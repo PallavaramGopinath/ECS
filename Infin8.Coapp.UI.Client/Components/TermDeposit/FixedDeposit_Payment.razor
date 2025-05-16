@@ -1,0 +1,584 @@
+﻿@page "/fixed-deposit-payment"
+@using System.ComponentModel.DataAnnotations
+@using Infin8.Coapp.Dto
+@rendermode InteractiveAuto
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+<h3 class="mb-2">Fixed Deposit Payment</h3>
+<hr class="mt-0" />
+<EditForm Model="@paymentModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+
+    <!-- Step 1: Request type I= interest payment, P = Refund -->
+    
+    @if (RequestType == "I" || RequestType == "P")
+    {
+        <!-- Step 2: Payment Type -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Payment Type</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="paymentStatus">Payment Type:</label>
+                            <InputSelect id="paymentStatus" class="form-control" @bind-Value="paymentModel.PaymentStatus">
+                                <option value="">Select Payment Type</option>
+                                <option value="I">Interest Payment</option>
+                                <option value="R">Refund Fixed Deposit</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => paymentModel.PaymentStatus)" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-secondary rounded-pill" @onclick="LoadFixedDeposits" disabled="@string.IsNullOrEmpty(paymentModel.PaymentStatus)">
+                            <i class="oi oi-list-rich"></i>
+                            Load Fixed Deposits
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 2: Request type R= Renewal -->
+    @if (RequestType == "R")
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Pament for renewal</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-secondary rounded-pill" @onclick="LoadFixedDepositsForRenewal">
+                            <i class="oi oi-list-rich"></i>
+                            Load Fixed Deposits For Renewal
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 3: Fixed Deposit Nos -->
+    @if (paymentModel.FixedDeposit_Nos != null && paymentModel.FixedDeposit_Nos.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Available Fixed Deposits</h5>
+            </div>
+            <div class="card-body">
+                @foreach (var fd in paymentModel.FixedDeposit_Nos)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="@($"fd{fd.TD_Id}")"
+                        @onchange="e => ToggleLoanSelection(fd, (bool)e.Value)" disabled="@isRenewal" />
+                        <label class="form-check-label" for="@($"fd_{fd.TD_Id}")">
+                            @fd.TD_No
+                        </label>
+                    </div>
+                }
+                @* disabled="@(!selectedFDs.Any())" *@
+                <button type="button" class="btn btn-secondary rounded-pill" @onclick="DisplayBalances" disabled="@isDisableFixedDepositNoButton" >
+                    <i class="oi oi-list-rich"></i>
+                    Display Balance
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- Step 4: Fixed Deposit Balance -->
+    @if (paymentModel.Fixed_Deposit_Datas != null && paymentModel.Fixed_Deposit_Datas.Any())
+    {
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Fixed Deposit Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>FD Id</th>
+                            <th>FD Number</th>
+                            <th>Pending Interest (if any)</th>
+                            <th>Current Interest Calculated</th>
+                            <th>Total Interest Payable</th>
+                            <th>Interest Applied Date</th>
+                            <th>Deposit Refund</th>
+                            <th>Total Payable</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var fdData in paymentModel.Fixed_Deposit_Datas)
+                        {
+                            <tr>
+                                <td disabled="@isRenewal">@fdData.FD_Id</td>
+                                <td disabled="@isRenewal">@fdData.FD_No</td>
+                                <td disabled="@isRenewal">@fdData.Pending_Interest.ToString("C2")</td>
+                                <td disabled="@isRenewal">@fdData.Current_Interest_Calculated.ToString("C2")</td>
+                                <td disabled="@isRenewal">@fdData.Total_Interest_Payable.ToString("C2")</td>
+                                <td disabled="@isRenewal">@fdData.Current_Interest_Applied_Date</td>
+                                <td disabled="@isRenewal">@fdData.Deposit_Refund.ToString("C2")</td>
+                                <td disabled="@isRenewal">@fdData.Total_Payable.ToString("C2") </td>
+
+                            </tr>
+                        }
+                        <tr class="table-info">
+                            <td colspan="2" class="text-end fw-bold">Total:</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Pending_Interest).ToString("C2")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Current_Interest_Calculated).ToString("C2")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Interest_Payable).ToString("C2")</td>
+                            <td></td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Deposit_Refund).ToString("C2")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Payable).ToString("C2") </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- Step 5: Loan on Fixed Deposit -->
+    @if (paymentModel.Loan_On_FixedDeposits != null && paymentModel.Loan_On_FixedDeposits.Any())
+    {
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Loan Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Loan Number</th>
+                            <th>Loan Amount</th>
+                            <th>Interest Balance</th>
+                            <th>Principal Balance</th>
+                            <th>Total Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loan in paymentModel.Loan_On_FixedDeposits)
+                        {
+                            <tr>
+                                <td>@loan.Loan_No</td>
+                                <td>@loan.Loan_Amount.ToString("C2")</td>
+                                <td>@loan.Interest_Balance.ToString("C2")</td>
+                                <td>@loan.Principal_Balance.ToString("C2")</td>
+                                <td>@loan.Total_Balance.ToString("C2")</td>
+                            </tr>
+                        }
+                        <tr class="table-info">
+                            <td colspan="1" class="text-end fw-bold">Total:</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Loan_Amount).ToString("C2")</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Interest_Balance).ToString("C2")</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Principal_Balance).ToString("C2")</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Total_Balance).ToString("C2")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (isFixedDepositLoaded )
+        {
+            <div class="bg-info text-white p-3">
+                The member had no loan balance on the selected fixed deposits
+            </div>
+        }
+    }
+
+    <!-- Step 6: Payment status -->
+    @if (paymentModel.PaymentStatus == "I")
+    {
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Payment Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-group mt-3">
+                    <label>
+                        <InputCheckbox id="deductLoan" @bind-Value="paymentModel.Is_Deduct_Loan_Amount" @onchange="ToggleDeductLoanAmount" />
+                        Deduct Loan Amount
+                    </label>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 7: Summary -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Summary</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Total Interest Payable:</label>
+                        <InputNumber class="form-control" @bind-Value="paymentModel.Total_Interest_Payable" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Total Deposit Payable:</label>
+                        <InputNumber class="form-control" @bind-Value="paymentModel.Total_Deposit_Payable" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Total Loan Interest Balance:</label>
+                        <InputNumber class="form-control" @bind-Value="paymentModel.Total_Loan_Interest_Balance" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Total Loan Principal Balance:</label>
+                        <InputNumber class="form-control" @bind-Value="paymentModel.Total_Loan_Principal_Balance" readonly />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Net Payable:</label>
+                        <InputNumber class="form-control" @bind-Value="paymentModel.Net_Payable" readonly />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 8: Button group -->
+    <div class="d-flex justify-content-between mt-4 mb-4">
+        <div>
+            <!-- Left-aligned buttons -->
+            <button type="button" class="btn btn-secondary me-2">
+                <i class="oi oi-x"></i>
+                Close
+            </button>
+            <button type="reset" class="btn btn-outline-secondary">
+                <i class="oi oi-action-undo"></i>
+                Reset
+            </button>
+        </div>
+
+        <!-- Right-aligned submit button -->
+        @if (RequestType == "I" || RequestType == "P")
+        {
+            <button type="button" class="btn btn-primary ">
+                <i class="oi oi-check"></i>
+                Initiate Payment
+            </button>
+        }
+        @if (RequestType == "R")
+        {
+            <button type="button" class="btn btn-primary " @onclick="ProceedToRenewal" disabled="@isRenewal">
+                <i class="oi oi-check"></i>
+                Proceed to Renewal
+            </button>
+        }
+        <button type="submit" class="btn btn-primary" >
+            <i class="oi oi-check"></i>
+            Initiate Jewel Loan Recovery
+        </button>
+    </div>
+
+    @if (isRenewal)
+    {
+        <FixedDeposit_Create MemberId="@MemberId"
+        MemberNumber="@MemberNumber"
+        MemberName="@MemberName"
+        Age="@Age"
+        NewFDAmount="@paymentModel.Net_Payable"
+        ValueDate="@paymentModel.Fixed_Deposit_Datas!.Max(x => x.Maturity_Date)"
+        IsRenewal="true"
+        TransactionDate="@paymentModel.Transaction_Date">
+        </FixedDeposit_Create>
+    }
+
+    <!-- Step 9: Initiation message -->
+    @if (processingMessage != null)
+    {
+        <div class="alert @(isError ? "alert-danger" : "alert-success") mt-3">
+            @processingMessage
+        </div>
+    }
+</EditForm>
+
+@code {
+    #region parameters
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public int Age { get; set; }
+    [Parameter] public string? RequestType { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    #endregion
+
+    #region declarations
+    private DtoTermDepositFixedDepositPayment paymentModel = new DtoTermDepositFixedDepositPayment();
+    private List<DtoTermDepositNo> selectedFDs = new List<DtoTermDepositNo>();
+    // private Dictionary<decimal, bool> selectedFDs = new Dictionary<decimal, bool>();
+    private string? processingMessage;
+    private bool isError = false;
+    private bool isRenewal = false;
+    private bool isFixedDepositLoaded = false;
+    private bool isDisableFixedDepositNoButton = true;
+    #endregion
+
+    protected override void OnInitialized()
+    {
+        isRenewal = false;
+        // Initialize the date to current date
+        // paymentModel.Mem_Id = 110010008478;
+        // paymentModel.Member_No = "1100110009991";
+        // paymentModel.Member_Name = "Saroja.K";
+        paymentModel.Mem_Id = MemberId;
+        paymentModel.Member_No = MemberNumber;
+        paymentModel.Member_Name = MemberName;
+
+        paymentModel.Transaction_Date = DateTime.Now;
+        paymentModel.PaymentStatus = "";
+        paymentModel.FixedDeposit_Nos = new List<DtoTermDepositNo>();
+        paymentModel.Loan_On_FixedDeposits = new List<DtoTermDepositLoan>();
+        if (RequestType == "R") paymentModel.PaymentStatus = "Q";
+    }
+
+    private void ToggleLoanSelection(DtoTermDepositNo fd, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedFDs.Any(l => l.TD_Id == fd.TD_Id))
+            {
+                selectedFDs.Add(fd);
+            }
+        }
+        else
+        {
+            selectedFDs.RemoveAll(l => l.TD_Id == fd.TD_Id);
+        }
+        StateHasChanged();
+        isDisableFixedDepositNoButton = false;
+    }
+
+    private void ToggleDeductLoanAmount()
+    {
+        double totalDeduction = 0;
+        totalDeduction = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Total_Balance);
+        if (paymentModel.Is_Deduct_Loan_Amount)
+            paymentModel.Net_Payable = paymentModel.Total_Interest_Payable + paymentModel.Total_Deposit_Payable - (paymentModel.Total_Loan_Interest_Balance + paymentModel.Total_Loan_Principal_Balance);
+        else
+            paymentModel.Net_Payable = totalDeduction;
+    }
+
+    private async Task LoadFixedDeposits()
+    {
+        try
+        {
+            List<DtoTermDepositNo> fdNosList = new List<DtoTermDepositNo>();
+            paymentModel.FixedDeposit_Nos!.Clear();
+            // List<DropdownItem> fdNos = new List<DropdownItem>();
+            var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/TermDeposit/GetFDNosByMemId/{paymentModel.Mem_Id}/F/11001");
+            if (fdNosTmp != null && fdNosTmp.Count > 0)
+            {
+                foreach (var fd in fdNosTmp)
+                {
+                    DtoTermDepositNo fdNo = new DtoTermDepositNo();
+                    fdNo.TD_Id = Convert.ToDecimal(fd.Value);
+                    fdNo.TD_No = fd.Text;
+                    paymentModel.FixedDeposit_Nos!.Add(fdNo);
+                }
+            }
+
+            // // Simulated data fetch based on Member_No and PaymentStatus
+            // if (!string.IsNullOrEmpty(paymentModel.Member_No) && !string.IsNullOrEmpty(paymentModel.PaymentStatus))
+            // {
+            //     paymentModel.FixedDeposit_Nos = new List<FixedDepositNos>
+            // {
+            //     new FixedDepositNos { FD_Id = 1, FD_No = "FD001" },
+            //     new FixedDepositNos { FD_Id = 2, FD_No = "FD002" }
+            // };
+            //     // selectedFDs = paymentModel.FixedDeposit_Nos.ToDictionary(fd => fd.FD_Id, fd => false);
+            // }
+        }
+        catch (Exception ex)
+        {
+            processingMessage = $"Error retrieving fixed deposits: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    private async Task LoadFixedDepositsForRenewal()
+    {
+        try
+        {
+            List<DtoTermDepositNo> fdNosList = new List<DtoTermDepositNo>();
+            paymentModel.FixedDeposit_Nos!.Clear();
+            var queryString = new System.Text.StringBuilder("memId=");
+            queryString.Append(paymentModel.Mem_Id);
+            queryString.Append($"&tdSchemeType=F");
+            queryString.Append($"&trnDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
+            queryString.Append("&brCode=11001");
+            var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/TermDeposit/GetFDNosForRenewal?{queryString}");
+            if (fdNosTmp != null && fdNosTmp.Count > 0)
+            {
+                foreach (var fd in fdNosTmp)
+                {
+                    DtoTermDepositNo fdNo = new DtoTermDepositNo();
+                    fdNo.TD_Id = Convert.ToDecimal(fd.Value);
+                    fdNo.TD_No = fd.Text;
+                    paymentModel.FixedDeposit_Nos!.Add(fdNo);
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            processingMessage = $"Error retrieving fixed deposits: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    private async Task DisplayBalances()
+    {
+        List<DtoTermDepositFixedDepositPayable> fdDataList = new List<DtoTermDepositFixedDepositPayable>();
+        int accId = 0;
+        // var selectedFDIds = selectedFDs.Where(x => x.Value).Select(x => x.Key).ToList();
+        if (!selectedFDs.Any())
+        {
+            processingMessage = "Please select at least one fixed deposit";
+            isError = true;
+            return;
+        }
+        if (selectedFDs.Any())
+        {
+            List<decimal> fdIdList = new List<decimal>();
+            foreach (var fd in selectedFDs)
+            {
+                fdIdList.Add(fd.TD_Id);
+            }
+            /// accountId = 7 Interest payment
+            /// accountId = 8 refund
+            /// accountId = 9 renewal
+            if (paymentModel.PaymentStatus == "I")
+                accId = 7;
+            else if (paymentModel.PaymentStatus == "R")
+                accId = 8;
+            else if (paymentModel.PaymentStatus == "Q")
+                accId = 9;
+            /// [FromQuery] decimal[] fdNos, [FromQuery] DateTime toDate, [FromQuery] int accountId, [FromQuery] bool isMonthEndCalc, [FromQuery] string brCode
+            var queryString = new System.Text.StringBuilder("fdNos=");
+            // Add fdIDs with proper URL encoding
+            for (int i = 0; i < fdIdList.Count; i++)
+            {
+                queryString.Append(fdIdList[i]);
+                if (i < fdIdList.Count - 1)
+                    queryString.Append("&fdNos=");
+            }
+            // Add other parameters with proper formatting
+            queryString.Append($"&toDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
+            queryString.Append($"&accountId=");
+            queryString.Append(accId);
+            queryString.Append("&brCode=11001");
+
+            var fdDataTmp = await _httpClient.GetFromJsonAsync<List<FDDetailsVM>>($"api/TermDeposit/GetFDPayable?{queryString}");
+            if (fdDataTmp != null && fdDataTmp.Count > 0)
+            {
+                List<DtoTermDepositFixedDepositPayable> dataList = new List<DtoTermDepositFixedDepositPayable>();
+                foreach (var fd in fdDataTmp)
+                {
+                    DtoTermDepositFixedDepositPayable data = new DtoTermDepositFixedDepositPayable();
+
+                    data.FD_Id = fd.FDId;
+                    data.FD_No = fd.FDNo;
+                    data.Previous_Interest_Calculated = fd.FDIntAlreadyCalculated;
+                    data.Previous_Interest_Paid = fd.FDIntAlreadyPaid;
+                    data.Current_Interest_Calculated = fd.FDIntCalculatedNow;
+                    data.Current_Interest_Applied_Date = fd.FDIntCalculatedDateNow;
+                    data.Pending_Interest = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid;
+                    data.Total_Interest_Payable = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid + fd.FDIntCalculatedNow;
+                    data.Current_Interest_Payment = 0;
+                    data.Deposit_Refund = fd.FDAmountRefund;
+                    data.Rate_Of_Interest_Applied = fd.FDROI;
+                    data.Total_Payable = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid + fd.FDIntCalculatedNow + fd.FDAmountRefund;
+                    data.Maturity_Date = fd.FDMaturityDate;
+                    dataList.Add(data);
+                }
+                paymentModel.Fixed_Deposit_Datas = new List<DtoTermDepositFixedDepositPayable>();
+                paymentModel.Fixed_Deposit_Datas!.AddRange(dataList);
+            }
+
+
+            // Simulated data fetch for FixedDepositData and LoanOnFixedDeposit
+            // paymentModel.Fixed_Deposit_Datas = new List<FixedDepositData>
+            // {
+            //     new FixedDepositData
+            //     {
+            //         FD_Id = 1,
+            //         FD_No = "FD001",
+            //         Current_Interest_Calculated = 500,
+            //         Total_Interest_Payable = 500,
+            //         Deposit_Refund = paymentModel.PaymentStatus == "R" ? 10000 : 0
+            //     },
+            //     new FixedDepositData
+            //     {
+            //         FD_Id = 2,
+            //         FD_No = "FD002",
+            //         Current_Interest_Calculated = 300,
+            //         Total_Interest_Payable = 300,
+            //         Deposit_Refund = paymentModel.PaymentStatus == "R" ? 8000 : 0
+            //     }
+            // }.Where(fd => fdIdList.Contains(fd.FD_Id)).ToList();
+
+            // paymentModel.Loan_On_FixedDeposits = new List<LoanOnFixedDeposit>
+            // {
+            //     new LoanOnFixedDeposit
+            //     {
+            //         FD_Id = 1,
+            //         Loan_Id = 101,
+            //         Loan_No = "LN001",
+            //         Loan_Amount = 5000,
+            //         Interest_Balance = 200,
+            //         Principal_Balance = 4800,
+            //         Total_Balance = 5000
+            //     }
+            // }.Where(loan => fdIdList.Contains(loan.FD_Id)).ToList();
+
+            // Calculate totals
+            paymentModel.Total_Interest_Payable = paymentModel.Fixed_Deposit_Datas!.Sum(fd => fd.Total_Interest_Payable);
+            paymentModel.Total_Deposit_Payable = paymentModel.Fixed_Deposit_Datas!.Sum(fd => fd.Deposit_Refund);
+            paymentModel.Total_Loan_Interest_Balance = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Interest_Balance);
+            paymentModel.Total_Loan_Principal_Balance = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Principal_Balance);
+
+            // Calculate Net Payable
+            double totalDeduction = 0;
+            if (paymentModel.Is_Deduct_Loan_Amount && paymentModel.PaymentStatus == "I")
+            {
+                totalDeduction = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Total_Balance);
+            }
+            paymentModel.Net_Payable = paymentModel.Total_Interest_Payable +
+                                      (paymentModel.PaymentStatus != "I" ? paymentModel.Fixed_Deposit_Datas!.Sum(fd => fd.Deposit_Refund) : 0) -
+                                      totalDeduction;
+            isDisableFixedDepositNoButton = true;
+
+        }
+    }
+
+    private void ProceedToRenewal()
+    {
+        isRenewal = true;
+        StateHasChanged();
+    }
+
+    private void HandleSubmit()
+    {
+        // Submit payment logic (e.g., API call to save paymentModel)
+        Navigation.NavigateTo("/payment-success");
+    }
+    private void ClosePage()
+    {
+        Navigation.NavigateTo("/member-transactions"); // or any other route
+    }
+}

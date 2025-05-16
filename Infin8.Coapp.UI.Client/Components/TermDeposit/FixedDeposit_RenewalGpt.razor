@@ -1,0 +1,423 @@
+﻿@page "/fixed-deposit/renewal"
+@using Microsoft.AspNetCore.Components
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@inject NavigationManager NavigationManager
+@inject ILogger<FixedDeposit_Renewal> Logger
+@rendermode InteractiveAuto
+@* Add your services here *@
+
+<h3>Fixed Deposit Renewal</h3>
+
+@if (!showCreateComponent)
+{
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Search Fixed Deposit</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@searchModel" >
+                        <DataAnnotationsValidator />
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Fixed Deposit Number</label>
+                                <InputText class="form-control" @bind-Value="searchModel.FdNumber" />
+                                <ValidationMessage For="@(() => searchModel.FdNumber)" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Member Number</label>
+                                <InputText class="form-control" @bind-Value="searchModel.MemberNumber" />
+                                <ValidationMessage For="@(() => searchModel.MemberNumber)" />
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary" @onclick="SearchFixedDeposit">Search</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+
+@if (errorMessage != null)
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+
+@if (paymentModel != null && !showCreateComponent)
+{
+    <div class="card">
+        <div class="card-header">
+            <h5>Fixed Deposit Payment Details</h5>
+        </div>
+        <div class="card-body">
+            <FixedDeposit_Payment MemberId="@paymentModel.Mem_Id"
+                                  MemberNumber="@paymentModel.Member_No"
+                                  MemberName="@paymentModel.Member_Name"
+                                  Age="@age"
+                                  PaymentModel="@paymentModel"
+                                  OnRenewalRequested="HandleRenewalRequested" />
+        </div>
+    </div>
+}
+
+@if (showCreateComponent)
+{
+    <div class="card">
+        <div class="card-header">
+            <h5>Create New Fixed Deposit</h5>
+            <button class="btn btn-secondary float-end" @onclick="() => showCreateComponent = false">Back</button>
+        </div>
+        <div class="card-body">
+            <FixedDeposit_Create MemberId="@memberId"
+                                 MemberNumber="@memberNumber"
+                                 MemberName="@memberName"
+                                 Age="@age"
+                                 NewFDAmount="@newFDAmount"
+                                 IsRenewal="true"
+                                 OnRenewalComplete="HandleRenewalComplete" />
+        </div>
+    </div>
+}
+
+@if (isRenewalComplete)
+{
+    <div class="alert alert-success" role="alert">
+        <h4 class="alert-heading">Fixed Deposit Renewal Complete!</h4>
+        <p>The fixed deposit has been successfully renewed.</p>
+        <hr>
+        <p class="mb-0">
+            <button class="btn btn-primary" @onclick="Reset">Process Another Renewal</button>
+        </p>
+    </div>
+}
+
+@code {
+    
+
+    private SearchModel searchModel = new SearchModel();
+    private FixedDepositPayment? paymentModel;
+    private FixedDepositCreateDtoValidation? newFixedDepositModel;
+
+    private bool isLoading = false;
+    private bool showCreateComponent = false;
+    private bool isRenewalComplete = false;
+    private string? errorMessage;
+
+    // Parameters to pass to FixedDeposit_Create component
+    private decimal memberId;
+    private string? memberNumber;
+    private string? memberName;
+    private int age;
+    private double newFDAmount;
+
+    #region class
+    private class SearchModel
+    {
+        public string? FdNumber { get; set; }
+        public string? MemberNumber { get; set; }
+    }
+    public class FixedDepositPayment
+    {
+        public decimal Mem_Id { get; set; }
+        public string? Member_No { get; set; }
+        public string? Member_Name { get; set; }
+        // public string? Father_Name { get; set; }
+        // public int Age { get; set; }
+        public DateTime Transaction_Date { get; set; }
+        public string? PaymentStatus { get; set; }
+        public List<FixedDepositData>? Fixed_Deposit_Datas { get; set; }
+        public List<FixedDepositNos>? FixedDeposit_Nos { get; set; }
+        public List<LoanOnFixedDeposit>? Loan_On_FixedDeposits { get; set; }
+        public double Total_Interest_Paid { get; set; }
+        public double Total_Interest_Calculated { get; set; }
+        public double Total_Interest_Payable { get; set; }
+        public double Total_Deposit_Payable { get; set; }
+        public double Total_Loan_Interest_Balance { get; set; }
+        public double Total_Loan_Principal_Balance { get; set; }
+        public double Net_Payable { get; set; }
+        public bool Is_Deduct_Loan_Amount { get; set; }
+    }
+    public class FixedDepositData
+    {
+        public decimal FD_Id { get; set; }
+        public string? FD_No { get; set; }
+        public double Previous_Interest_Calculated { get; set; }
+        public double Previous_Interest_Paid { get; set; }
+        public double Pending_Interest { get; set; }
+        public double Current_Interest_Calculated { get; set; }
+        public double Rate_Of_Interest_Applied { get; set; }
+        public DateTime? Current_Interest_Applied_Date { get; set; }
+        public double Total_Interest_Payable { get; set; }
+        public double Current_Interest_Payment { get; set; }
+        public double Deposit_Refund { get; set; }
+        public double Total_Payable { get; set; }
+    }
+    public class LoanOnFixedDeposit
+    {
+        public decimal FD_Id { get; set; }
+        public decimal Loan_Id { get; set; }
+        public string? Loan_No { get; set; }
+        public DateTime Loan_Date { get; set; }
+        public double Loan_Amount { get; set; }
+        public double Rate_Of_Interest { get; set; }
+        public double Interest_Balance { get; set; }
+        public double Current_Interest { get; set; }
+        public double Principal_Balance { get; set; }
+        public double Total_Balance { get; set; }
+        public double Fixed_Deposit_Face_Value { get; set; }
+    }
+    public class FixedDepositNos
+    {
+        public decimal FD_Id { get; set; }
+        public string? FD_No { get; set; }
+    }
+
+    public class TDCommonDtoValidation
+    {
+        [Required(ErrorMessage = "Scheme Name is required.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a valid Scheme Name")]
+        public int Tdscheme_Id { get; set; }
+
+        [Required(ErrorMessage = "Mode of operation is required.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a valid mode of operation")]
+        public int Mode_Of_Operation { get; set; }
+
+        [Required(ErrorMessage = "Account open date is required.")]
+        public DateTime Account_Opendate { get; set; }
+
+        [Required(ErrorMessage = "Value date is required.")]
+        public DateTime Value_Date { get; set; }
+
+        public decimal Mem_Id_ToAdd { get; set; }
+        public string? Member_No_ToAdd { get; set; }
+        public string? Member_Name_ToAdd { get; set; }
+        public string? Father_Name_ToAdd { get; set; }
+        public int Age_ToAdd { get; set; }
+
+        [Required(ErrorMessage = "Fixed Deposit Number is required.")]
+        [StringLength(15, ErrorMessage = "Fixed Deposit Number cannot exceed 15 characters.")]
+        public string? Td_No { get; set; }
+
+        [Required(ErrorMessage = "Depositor(s) Name is required.")]
+        [StringLength(125, ErrorMessage = "Depositor(s) Name cannot exceed 125 characters.")]
+        public string? Tdh_Name { get; set; }
+
+        [StringLength(125, ErrorMessage = "First Nominee name cannot exceed 125 characters.")]
+        public string? Nominee1Name { get; set; }
+
+        [Range(0, 150, ErrorMessage = "First Nominee age must be between 0 and 150.")]
+        public int Nominee1Age { get; set; }
+
+        [StringLength(50, ErrorMessage = "First Nominee relationship cannot exceed 50 characters.")]
+        public string? Nominee1Relationship { get; set; }
+
+        [StringLength(125, ErrorMessage = "Second Nominee name cannot exceed 125 characters.")]
+        public string? Nominee2Name { get; set; }
+
+        [Range(0, 150, ErrorMessage = "Second Nominee age must be between 0 and 150.")]
+        public int Nominee2Age { get; set; }
+
+        [StringLength(50, ErrorMessage = "Second Nominee relationship cannot exceed 50 characters.")]
+        public string? Nominee2Relationship { get; set; }
+    }
+
+    public class TDMembersDtoValidation
+    {
+        [Required(ErrorMessage = "Member No is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Member No must be greater than 0")]
+        public decimal Mem_Id { get; set; }
+
+        [Required(ErrorMessage = "Member No is required")]
+        [StringLength(14, ErrorMessage = "Member No cannot exceed 14 characters")]
+        public string? Member_No { get; set; }
+
+        [Required(ErrorMessage = "Member Name is required")]
+        [StringLength(100, ErrorMessage = "Member Name cannot exceed 100 characters")]
+
+        public string? Member_Name { get; set; }
+        [StringLength(100, ErrorMessage = "Father Name cannot exceed 100 characters")]
+        public string? Father_Name { get; set; }
+
+        [Range(1, 120, ErrorMessage = "Age must be between 0 and 120")]
+        public int Age { get; set; }
+    }
+
+    public class FixedDepositCreateDtoValidation
+    {
+        [Required(ErrorMessage = "Common information is required")]
+        public TDCommonDtoValidation Common { get; set; } = new();
+
+        public List<TDMembersDtoValidation> Members { get; set; } = new List<TDMembersDtoValidation>();
+
+        [Required(ErrorMessage = "Deposit Amount is required")]
+        [Range(1, double.MaxValue, ErrorMessage = "Deposit Amount must be greater than 0")]
+        public double Deposit_Amount { get; set; }
+
+        [Required(ErrorMessage = "Interest Payable Frequency is required")]
+        [Range(0, int.MaxValue, ErrorMessage = "Please select a valid Interest Payable Frequency")]
+        public int Interest_Payable_Frequency { get; set; }
+
+
+        [Required(ErrorMessage = "Period Type is required")]
+        [StringLength(10, ErrorMessage = "Period Type cannot exceed 10 characters")]
+        public string? Period_Type { get; set; }
+
+        public bool Is_DiscountRate { get; set; }
+
+        public int compoundfrequency { get; set; }
+
+        [Range(0, int.MaxValue, ErrorMessage = "Period In Months must be a positive number")]
+        public int Period_In_Months { get; set; }
+
+        [Range(0, int.MaxValue, ErrorMessage = "Period In Days must be a positive number")]
+        public int Period_In_Days { get; set; }
+
+        [Required(ErrorMessage = "Rate of Interest is required")]
+        [Range(0.01, 100, ErrorMessage = "Rate of Interest must be between 0.01 and 100")]
+        public double Rate_Of_Interest { get; set; }
+
+        [Required(ErrorMessage = "Maturity Amount is required")]
+        [Range(1, double.MaxValue, ErrorMessage = "Maturity Amount must be greater than 0")]
+        public double Maturity_Amount { get; set; }
+
+        [Required(ErrorMessage = "Maturity Date is required")]
+        public DateTime Maturity_Date { get; set; }
+    }
+    #endregion
+
+    private async Task SearchFixedDeposit()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+
+            // Here you would call your API service to fetch the fixed deposit details
+            // For example:
+            // paymentModel = await FixedDepositService.GetFixedDepositForRenewal(searchModel.FdNumber, searchModel.MemberNumber);
+
+            // For demonstration, we'll create a sample model
+            await Task.Delay(500); // Simulate API call
+
+            // Sample data, replace with actual API call
+            paymentModel = new FixedDepositPayment
+                {
+                    Mem_Id = 12345,
+                    Member_No = searchModel.MemberNumber ?? "MEM001",
+                    Member_Name = "Sample Member",
+                    Transaction_Date = DateTime.Now,
+                    PaymentStatus = "Matured",
+                    Fixed_Deposit_Datas = new List<FixedDepositData>
+                {
+                    new FixedDepositData
+                    {
+                        FD_Id = 1,
+                        FD_No = searchModel.FdNumber ?? "FD001",
+                        Previous_Interest_Calculated = 5000,
+                        Previous_Interest_Paid = 4500,
+                        Pending_Interest = 500,
+                        Current_Interest_Calculated = 200,
+                        Rate_Of_Interest_Applied = 8.5,
+                        Current_Interest_Applied_Date = DateTime.Now,
+                        Total_Interest_Payable = 700,
+                        Current_Interest_Payment = 200,
+                        Deposit_Refund = 50000,
+                        Total_Payable = 50700
+                    }
+                },
+                    FixedDeposit_Nos = new List<FixedDepositNos>
+                {
+                    new FixedDepositNos { FD_Id = 1, FD_No = searchModel.FdNumber ?? "FD001" }
+                },
+                    Total_Interest_Paid = 4500,
+                    Total_Interest_Calculated = 5200,
+                    Total_Interest_Payable = 700,
+                    Total_Deposit_Payable = 50000,
+                    Total_Loan_Interest_Balance = 0,
+                    Total_Loan_Principal_Balance = 0,
+                    Net_Payable = 50700
+                };
+
+            // Set the age (you might get this from your API)
+            age = 35;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading fixed deposit data: {ex.Message}";
+            Logger.LogError(ex, "Error loading fixed deposit data");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void HandleRenewalRequested(FixedDepositPayment payment)
+    {
+        // Store the necessary data for creating a new FD
+        memberId = payment.Mem_Id;
+        memberNumber = payment.Member_No;
+        memberName = payment.Member_Name;
+        newFDAmount = payment.Net_Payable;
+
+        // Show the create component
+        showCreateComponent = true;
+    }
+
+    private void HandleRenewalComplete(FixedDepositCreateDtoValidation newModel)
+    {
+        try
+        {
+            isLoading = true;
+
+            // Here you would process the renewal with both models
+            // For example:
+            // await FixedDepositService.ProcessRenewal(paymentModel, newModel);
+
+            // Store the new model for reference
+            newFixedDepositModel = newModel;
+
+            // Show completion message
+            isRenewalComplete = true;
+            showCreateComponent = false;
+
+            // Log the successful renewal
+            Logger.LogInformation($"Successfully renewed FD {paymentModel?.FixedDeposit_Nos?.FirstOrDefault()?.FD_No} to new FD {newModel.Common.Td_No}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error processing renewal: {ex.Message}";
+            Logger.LogError(ex, "Error processing renewal");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Reset()
+    {
+        // Reset the component state
+        searchModel = new SearchModel();
+        paymentModel = null;
+        newFixedDepositModel = null;
+        isRenewalComplete = false;
+        showCreateComponent = false;
+        errorMessage = null;
+    }
+}

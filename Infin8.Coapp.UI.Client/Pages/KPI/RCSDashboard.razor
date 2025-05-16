@@ -1,0 +1,239 @@
+﻿@page "/rcs-dashboard"
+@inject NavigationManager NavigationManager
+@using System.Globalization 
+@using Infin8.Coapp.Dto
+@rendermode InteractiveAuto
+@* Inject your data service here or load sample data *@
+
+<h3>Registrar of Cooperative Societies Dashboard - Tamil Nadu</h3>
+
+<FilterBar ShowRegionFilter="true" Regions="StateData.Regions"
+           SelectedRegionIdChanged="HandleRegionFilterChange" />
+
+@if (FilteredRegions == null)
+{
+    <p><em>Loading data...</em></p>
+}
+else
+{
+    var displayRegions = FilteredRegions;
+    var overallStateTargetJL = displayRegions.Sum(r => r.Circles.Sum(c => c.Banks.Sum(b => b.JewelLoanIssue.Target)));
+    var overallStateAchievedJL = displayRegions.Sum(r => r.Circles.Sum(c => c.Banks.Sum(b => b.JewelLoanIssue.Achievement)));
+    var overallStateJLPercent = overallStateTargetJL > 0 ? (overallStateAchievedJL / overallStateTargetJL) * 100 : 0;
+
+    var overallStateTargetFD = displayRegions.Sum(r => r.Circles.Sum(c => c.Banks.Sum(b => b.FixedDepositMobilization.Target)));
+    var overallStateAchievedFD = displayRegions.Sum(r => r.Circles.Sum(c => c.Banks.Sum(b => b.FixedDepositMobilization.Achievement)));
+    var overallStateFDPercent = overallStateTargetFD > 0 ? (overallStateAchievedFD / overallStateTargetFD) * 100 : 0;
+
+    var overallStateJLOverdue = displayRegions.Any() ? displayRegions.Average(r => r.Circles.Any() ? r.Circles.Average(c => c.Banks.Any() ? c.Banks.Average(b => b.JewelLoanOverdue.OverduePercentage) : 0) :0) : 0;
+
+
+    <h4>Statewide Summary</h4>
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Jewel Loan Issue</h5>
+                    <p class="card-text">Target: @overallStateTargetJL.ToString("C0", new CultureInfo("en-IN"))</p>
+                    <p class="card-text">Achieved: @overallStateAchievedJL.ToString("C0", new CultureInfo("en-IN")) (@overallStateJLPercent.ToString("0.00")%)</p>
+                    <div class="progress">
+                        <div class="progress-bar @(overallStateJLPercent >= 100 ? "bg-success" : overallStateJLPercent >=80 ? "bg-warning" : "bg-danger")" role="progressbar" style="width: @overallStateJLPercent%;" aria-valuenow="@overallStateJLPercent" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+         <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Jewel Loan Overdue</h5>
+                    <p class="card-text @(overallStateJLOverdue <= 2 ? "text-success" : overallStateJLOverdue <=5 ? "text-warning" : "text-danger")">
+                        @overallStateJLOverdue.ToString("0.00")%
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Fixed Deposit Mobilization</h5>
+                     <p class="card-text">Target: @overallStateTargetFD.ToString("C0", new CultureInfo("en-IN"))</p>
+                    <p class="card-text">Achieved: @overallStateAchievedFD.ToString("C0", new CultureInfo("en-IN")) (@overallStateFDPercent.ToString("0.00")%)</p>
+                     <div class="progress">
+                        <div class="progress-bar @(overallStateFDPercent >= 100 ? "bg-success" : overallStateFDPercent >=80 ? "bg-warning" : "bg-danger")" role="progressbar" style="width: @overallStateFDPercent%;" aria-valuenow="@overallStateFDPercent" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Add more summary cards for Cash on Hand, etc. -->
+    </div>
+
+    <h4>Regional Performance (Frequently Reviewed)</h4>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>JR Region</th>
+                <th>Jewel Loan Achievement %</th>
+                <th>Jewel Loan Overdue %</th>
+                <th>FD Achievement %</th>
+                <th>Actions >3m Overdue</th>
+                <th>View Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var region in displayRegions)
+            {
+                var regionTargetJL = region.Circles.Sum(c => c.Banks.Sum(b => b.JewelLoanIssue.Target));
+                var regionAchievedJL = region.Circles.Sum(c => c.Banks.Sum(b => b.JewelLoanIssue.Achievement));
+                var regionJLPercent = regionTargetJL > 0 ? (regionAchievedJL / regionTargetJL) * 100 : 0;
+                var regionJLOverdue = region.Circles.Any() ? region.Circles.Average(c => c.Banks.Any() ? c.Banks.Average(b => b.JewelLoanOverdue.OverduePercentage) : 0) : 0;
+                var regionTargetFD = region.Circles.Sum(c => c.Banks.Sum(b => b.FixedDepositMobilization.Target));
+                var regionAchievedFD = region.Circles.Sum(c => c.Banks.Sum(b => b.FixedDepositMobilization.Achievement));
+                var regionFDPercent = regionTargetFD > 0 ? (regionAchievedFD / regionTargetFD) * 100 : 0;
+                var regionActions = region.Circles.Sum(c => c.Banks.Sum(b => b.ActionsForOverdueJewelLoan));
+
+                <tr>
+                    <td>@region.Name</td>
+                    <td class="@(regionJLPercent >= 100 ? "text-success" : regionJLPercent >=80 ? "text-warning" : "text-danger")">@regionJLPercent.ToString("0.00")%</td>
+                    <td class="@(regionJLOverdue <= 2 ? "text-success" : regionJLOverdue <=5 ? "text-warning" : "text-danger")">@regionJLOverdue.ToString("0.00")%</td>
+                    <td class="@(regionFDPercent >= 100 ? "text-success" : regionFDPercent >=80 ? "text-warning" : "text-danger")">@regionFDPercent.ToString("0.00")%</td>
+                    <td>@regionActions</td>
+                    <td><button class="btn btn-sm btn-primary" @onclick="() => NavigateToJR(region.Id)">View</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Add sections for Monthly and Annually Reviewed KPIs similarly -->
+    <h4>Monthly Reviewed KPIs (Statewide & Regional Breakdown)</h4>
+    <!-- ... Table similar to above but for monthly KPIs ... -->
+     <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>JR Region</th>
+                <th>Jewel Loan Borrowings (₹)</th>
+                <th>Overdue % (Borrowings)</th>
+                <th>NFS Loan Overdue (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var region in displayRegions)
+            {
+                var regionJLBorrow = region.Circles.Sum(c => c.Banks.Sum(b => b.JewelLoanBorrowings));
+                var regionJLBorrowOverdue = region.Circles.Any() ? region.Circles.Average(c => c.Banks.Any() ? c.Banks.Average(b => b.JewelLoanBorrowingsOverdue.OverduePercentage) : 0) : 0;
+                var regionNFSOverdue = region.Circles.Sum(c => c.Banks.Sum(b => b.NonFarmSectorLoanOverdue.OverdueAmount));
+                <tr>
+                    <td>@region.Name</td>
+                    <td>@regionJLBorrow.ToString("N0", new CultureInfo("en-IN"))</td>
+                    <td class="@(regionJLBorrowOverdue <= 2 ? "text-success" : regionJLBorrowOverdue <=5 ? "text-warning" : "text-danger")">
+                        @regionJLBorrowOverdue.ToString("0.00")%
+                    </td>
+                    <td>@regionNFSOverdue.ToString("N0", new CultureInfo("en-IN"))</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+
+    <h4>Annually Reviewed KPIs (Statewide & Regional Breakdown)</h4>
+    <!-- ... Table similar to above but for annual KPIs ... -->
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>JR Region</th>
+                <th>Total Members</th>
+                <th>Share Capital (₹)</th>
+                <th>NPA %</th>
+                <th>Profit/Loss (₹)</th>
+                <th>Avg. Dividend (Last Year)</th>
+            </tr>
+        </thead>
+        <tbody>
+             @foreach (var region in displayRegions)
+            {
+                var regionMembers = region.Circles.Sum(c => c.Banks.Sum(b => b.Members));
+                var regionShareCapital = region.Circles.Sum(c => c.Banks.Sum(b => b.ShareCapitalOutstanding));
+                var regionNPA = region.Circles.Any() ? region.Circles.Average(c => c.Banks.Any() ? c.Banks.Average(b => b.NonPerformingAssets.OverduePercentage) : 0) : 0;
+                var regionProfitLoss = region.Circles.Sum(c => c.Banks.Sum(b => b.ProfitOrLoss));
+                var regionAvgDividend = region.Circles.Any() ? region.Circles.Average(c => c.Banks.Any() && c.Banks.First().DividendHistory.Any() ? c.Banks.Average(b => b.DividendHistory.OrderByDescending(d=>d.Year).FirstOrDefault()?.Percentage ?? 0) : 0) : 0;
+
+                <tr>
+                    <td>@region.Name</td>
+                    <td>@regionMembers</td>
+                    <td>@regionShareCapital.ToString("N0", new CultureInfo("en-IN"))</td>
+                    <td class="@(regionNPA <= 3 ? "text-success" : regionNPA <= 7 ? "text-warning" : "text-danger")">
+                        @regionNPA.ToString("0.00")%
+                    </td>
+                    <td class="@(regionProfitLoss >= 0 ? "text-success" : "text-danger")">
+                        @regionProfitLoss.ToString("N0", new CultureInfo("en-IN")) (@(regionProfitLoss >=0 ? "Profit" : "Loss"))
+                    </td>
+                    <td>@regionAvgDividend.ToString("0.00")%</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p><em>Dividend Trend (Statewide Average - Past 5 Years): [Line Chart Placeholder]</em></p>
+}
+
+@code {
+    private TamilNaduStateData StateData = new();
+    private List<JointRegistrarRegion>? FilteredRegions;
+    private string? selectedRegionIdForFilter;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate data loading
+        await Task.Delay(500); // Simulate network latency
+        LoadSampleData();
+        FilteredRegions = StateData.Regions; // Initially show all
+    }
+
+    private void HandleRegionFilterChange(string? regionId)
+    {
+        selectedRegionIdForFilter = regionId;
+        if (string.IsNullOrEmpty(selectedRegionIdForFilter))
+        {
+            FilteredRegions = StateData.Regions;
+        }
+        else
+        {
+            FilteredRegions = StateData.Regions.Where(r => r.Id == selectedRegionIdForFilter).ToList();
+        }
+        StateHasChanged();
+    }
+
+    private void NavigateToJR(string regionId)
+    {
+        NavigationManager.NavigateTo($"/jr-dashboard/{regionId}");
+    }
+
+    private void LoadSampleData()
+    {
+        // Simplified Sample Data
+        var r1 = new JointRegistrarRegion { Id = "JR01", Name = "North Region" };
+        var r2 = new JointRegistrarRegion { Id = "JR02", Name = "Central Region" };
+        var r3 = new JointRegistrarRegion { Id = "JR03", Name = "South Region" };
+
+        var dr1_1 = new DeputyRegistrarCircle { Id = "DR01", Name = "N-Circle1", JR_Region_Id = "JR01" };
+        var dr1_2 = new DeputyRegistrarCircle { Id = "DR02", Name = "N-Circle2", JR_Region_Id = "JR01" };
+        var dr2_1 = new DeputyRegistrarCircle { Id = "DR03", Name = "C-Circle1", JR_Region_Id = "JR02" };
+        var dr3_1 = new DeputyRegistrarCircle { Id = "DR04", Name = "S-Circle1", JR_Region_Id = "JR03" };
+
+        dr1_1.Banks.Add(new PCARDBankData { Name = "Bank A", DR_Circle_Id = "DR01", JewelLoanIssue = new KPINumeric { Target = 10000000, Achievement = 9500000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 200000, TotalAmount = 9500000}, ActionsForOverdueJewelLoan = 10, FixedDepositMobilization = new KPINumeric { Target = 5000000, Achievement = 5500000 }, CashOnHand = 1000000, JewelLoanBorrowings = 3000000, JewelLoanBorrowingsOverdue = new KPIOverdue { OverdueAmount = 30000, TotalAmount = 3000000 }, NonFarmSectorLoanOverdue = new KPIOverdue{OverdueAmount = 150000, TotalAmount=2000000}, Members = 1000, ShareCapitalOutstanding = 200000, NonPerformingAssets = new KPIOverdue{OverdueAmount=400000, TotalAmount=12000000}, ProfitOrLoss = 50000, DividendHistory = new List<DividendInfo>{ new DividendInfo{Year=2022, Percentage=8}, new DividendInfo{Year=2021, Percentage=7}} });
+        dr1_1.Banks.Add(new PCARDBankData { Name = "Bank B", DR_Circle_Id = "DR01", JewelLoanIssue = new KPINumeric { Target = 12000000, Achievement = 11000000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 400000, TotalAmount = 11000000}, ActionsForOverdueJewelLoan = 15, FixedDepositMobilization = new KPINumeric { Target = 6000000, Achievement = 5800000 }, ProfitOrLoss = -20000 });
+        // ... Add more banks to dr1_1, dr1_2 etc.
+
+        dr1_2.Banks.Add(new PCARDBankData { Name = "Bank C", DR_Circle_Id = "DR02", JewelLoanIssue = new KPINumeric { Target = 8000000, Achievement = 8100000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 100000, TotalAmount = 8100000}, ActionsForOverdueJewelLoan = 5, FixedDepositMobilization = new KPINumeric { Target = 4000000, Achievement = 4200000 }, ProfitOrLoss = 30000 });
+        
+        dr2_1.Banks.Add(new PCARDBankData { Name = "Bank E", DR_Circle_Id = "DR03", JewelLoanIssue = new KPINumeric { Target = 15000000, Achievement = 13000000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 900000, TotalAmount = 13000000}, ActionsForOverdueJewelLoan = 25, FixedDepositMobilization = new KPINumeric { Target = 7000000, Achievement = 6500000 }, ProfitOrLoss = 10000 });
+        
+        dr3_1.Banks.Add(new PCARDBankData { Name = "Bank I", DR_Circle_Id = "DR04", JewelLoanIssue = new KPINumeric { Target = 9000000, Achievement = 9200000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 300000, TotalAmount = 9200000}, ActionsForOverdueJewelLoan = 8, FixedDepositMobilization = new KPINumeric { Target = 3000000, Achievement = 3100000 }, ProfitOrLoss = 60000 });
+
+
+        r1.Circles.AddRange(new[] { dr1_1, dr1_2 });
+        r2.Circles.Add(dr2_1);
+        r3.Circles.Add(dr3_1);
+
+        StateData.Regions.AddRange(new[] { r1, r2, r3 });
+    }
+}
+

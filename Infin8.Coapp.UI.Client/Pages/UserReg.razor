@@ -1,0 +1,100 @@
+﻿@page "/register"
+@using Infin8.Coapp.Dto;
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="container mx-auto p-4 max-w-md">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold mb-6 text-center">Create Account</h1>
+
+        <EditForm Model="@registrationModel" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <div class="space-y-4">
+                <!-- Username -->
+                <div>
+                    <label for="username" class="block text-sm font-medium mb-1">Username</label>
+                    <InputText id="username" @bind-Value="registrationModel.username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <ValidationMessage For="@(() => registrationModel.username)" class="text-red-600 text-sm" />
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-medium mb-1">Email</label>
+                    <InputText id="email" @bind-Value="registrationModel.email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" type="email" />
+                    <ValidationMessage For="@(() => registrationModel.email)" class="text-red-600 text-sm" />
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label for="password" class="block text-sm font-medium mb-1">Password</label>
+                    <InputText id="password" @bind-Value="registrationModel.password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" type="password" />
+                    <ValidationMessage For="@(() => registrationModel.password)" class="text-red-600 text-sm" />
+                </div>
+
+                <!-- First Name -->
+                <div>
+                    <label for="first_name" class="block text-sm font-medium mb-1">First Name</label>
+                    <InputText id="first_name" @bind-Value="registrationModel.first_name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <ValidationMessage For="@(() => registrationModel.first_name)" class="text-red-600 text-sm" />
+                </div>
+
+                <!-- Last Name -->
+                <div>
+                    <label for="last_name" class="block text-sm font-medium mb-1">Last Name</label>
+                    <InputText id="last_name" @bind-Value="registrationModel.last_name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <ValidationMessage For="@(() => registrationModel.last_name)" class="text-red-600 text-sm" />
+                </div>
+
+                <!-- Mobile Number -->
+                <div>
+                    <label for="mobile_number" class="block text-sm font-medium mb-1">Mobile Number</label>
+                    <InputText id="mobile_number" @bind-Value="registrationModel.mobile_number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" type="tel" />
+                    <ValidationMessage For="@(() => registrationModel.mobile_number)" class="text-red-600 text-sm" />
+                </div>
+
+                <!-- Role (If applicable) -->
+                <div>
+                    <label for="role" class="block text-sm font-medium mb-1">Role</label>
+                    <InputSelect id="role" @bind-Value="registrationModel.role" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select a role</option>
+                        <option value="User">User</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Manager">Manager</option>
+                    </InputSelect>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button type="submit" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition duration-200">
+                        Register
+                    </button>
+                </div>
+
+                <!-- Sign In Link -->
+                <div class="text-center mt-4">
+                    <span class="text-sm text-gray-600">Already have an account?</span>
+                    <a href="login" class="text-sm text-blue-600 hover:underline ml-1">Sign in</a>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code
+{
+    private UserRegistration registrationModel  =  new();
+
+    private void HandleValidSubmit ()
+    {
+
+        // Here you would call your registration service
+
+        // await AuthService.RegisterUser(registrationModel);
+
+        // Navigate to confirmation page or login
+
+        // NavigationManager.NavigateTo("/registration-success");
+
+    }
+
+}

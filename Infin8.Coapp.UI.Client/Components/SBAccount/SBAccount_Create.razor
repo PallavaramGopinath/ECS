@@ -1,0 +1,86 @@
+﻿@page "/sbAccount-create"
+@rendermode InteractiveAuto
+@inject NavigationManager Navigation
+@using Infin8.Coapp.Dto
+
+<div class="container-sm mt-4">
+    <h4 class="mb-2">Savings Bank Account Creation</h4>
+    <hr class="mt-0" />
+    <EditForm Model="@sbAccountModel">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card p-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Saving Bank Account Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-2 mb-3">
+                                <div class="form-group">
+                                    <label for="Receipt_Amount">Receipt Amount</label>
+                                    <InputNumber TValue="double"
+                                    id="Receipt_Amount"
+                                    class="form-control shadow-none"
+                                    @bind-Value="sbAccountModel.Receipt_Amount" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Button group -->
+                        <div class="d-flex justify-content-between mt-4 mb-4">
+                            <div>
+                                <!-- Left-aligned buttons -->
+                                <button type="button" class="btn btn-secondary me-2" @onclick="ClosePage">
+                                    <i class="oi oi-x"></i>
+                                    Close
+                                </button>
+                                <button type="reset" class="btn btn-outline-secondary">
+                                    <i class="oi oi-action-undo"></i>
+                                    Reset
+                                </button>
+                            </div>
+
+                            <!-- Right-aligned submit button -->
+                            <button type="submit" class="btn btn-primary">
+                                <i class="oi oi-check"></i>
+                                Create Savings Bank Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    #region parameter
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime Transactiondate { get; set; }
+    #endregion
+
+    #region declarations
+    private DtoSBAccountCreate sbAccountModel = new DtoSBAccountCreate();
+    #endregion
+
+    protected override void OnInitialized()
+    {
+        sbAccountModel.Mem_Id = MemberId;
+        sbAccountModel.Member_No = MemberNumber;
+        sbAccountModel.Membe_Name = MemberName;
+        sbAccountModel.Transaction_Date = Transactiondate;
+    }
+
+    private void ResetForm()
+    {
+        sbAccountModel.Receipt_Amount = 0;
+    }
+    private void ClosePage()
+    {
+        Navigation.NavigateTo("/member-transactions"); // or any other route
+    }
+}

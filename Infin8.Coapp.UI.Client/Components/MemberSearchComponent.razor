@@ -1,0 +1,94 @@
+﻿@* @inject ITransactionService TransactionService *@
+@using Infin8.Coapp.Dto
+
+<div class="search-container">
+    <div class="mb-3">
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Search by Member No, Name or Father's Name"
+                   @bind="searchTerm" @bind:event="oninput" @onkeyup="HandleKeyUp" />
+            <button class="btn btn-primary" @onclick="SearchMembers">
+                <i class="oi oi-magnifying-glass"></i> Search
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (members.Any())
+    {
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-hover table-bordered table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>Member No</th>
+                        <th>Name</th>
+                        <th>Father's Name</th>
+                        <th>Address</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var member in members)
+                    {
+                        <tr>
+                            <td>@member.Member_No</td>
+                            <td>@member.Member_Name</td>
+                            <td>@member.Father_Name</td>
+                            <td>@member.Address</td>
+                            <td>
+                                <button class="btn btn-sm btn-success" @onclick="() => SelectMember(member)">
+                                    Select
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(searchTerm) && !isLoading)
+    {
+        <div class="alert alert-info">
+            No members found matching the search criteria.
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback<TransactionBy_Members> OnMemberSelected { get; set; }
+
+    private string searchTerm = "";
+    private List<TransactionBy_Members> members = new();
+    private bool isLoading = false;
+
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+             SearchMembers();
+        }
+    }
+
+    private void SearchMembers()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return;
+        }
+
+        isLoading = true;
+        // members = await TransactionService.SearchMembers(searchTerm);
+        isLoading = false;
+    }
+
+    private async Task SelectMember(TransactionBy_Members member)
+    {
+        await OnMemberSelected.InvokeAsync(member);
+    }
+}

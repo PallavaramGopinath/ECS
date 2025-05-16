@@ -1,0 +1,73 @@
+﻿@page "/print-receipt"
+@using System.Text.Json
+@rendermode InteractiveAuto
+@inject HttpClient _httpClient
+@inject Microsoft.JSInterop.IJSRuntime JS
+@using Infin8.Coapp.Dto
+
+<button @onclick="PrintMemberReceipt">Print Receipt</button>
+
+@code {
+    private byte[] fileBytes;
+    private rptReceiptAndPaymentAmount? rptAndpmtAmt { get; set; }
+    // double receiptAmt = 0;
+    // int vocTrnType = 0;
+    // string brCode = "11001";
+    // public class ReceiptObject
+    // {
+    //     public int vocTrnType { get; set; }
+    //     public decimal vocId { get; set; }
+    //     public string? brCode { get; set; }
+    //     public double receiptAmt { get; set; }
+    // }
+    private rptReceiptObject rptData { get; set; }
+    protected override void OnInitialized()
+    {
+        // base.OnInitialized()
+        // {
+        // }
+        rptAndpmtAmt = new();
+        rptData = new();
+    }
+    private async Task PrintMemberReceipt()
+    {
+        try
+        {
+            decimal vocId = 110010122511;
+            string brCode = "11001";
+
+            rptAndpmtAmt = await _httpClient.GetFromJsonAsync<rptReceiptAndPaymentAmount>($"https://localhost:7020/api/Print/GetReceiptAndPaymentData/{vocId}/{brCode}");
+            if (rptAndpmtAmt != null)
+            {
+                var rptData = new rptReceiptObject
+                {
+                    vocTrnType = 1,
+                    vocId = vocId,
+                    brCode = brCode,
+                    receiptAmt = rptAndpmtAmt.Voc_Rpt
+                };
+                // Ensure route matches exactly
+                var rpt = await _httpClient.PostAsJsonAsync($"https://localhost:7020/api/Print",rptData);
+
+                if (rpt.IsSuccessStatusCode)
+                {
+                    fileBytes = await rpt.Content.ReadAsByteArrayAsync();
+                    // await JS.InvokeVoidAsync("saveAs", "Receipt.pdf", fileBytes);
+                    await JS.SaveAs("Receipt.pdf", fileBytes!);
+                }
+                else
+                {
+                    // Log or show error
+                    Console.WriteLine($"Error: {rpt.StatusCode}");
+                }
+                // fileBytes = await rpt.Content.ReadAsByteArrayAsync();
+                // await JS.SaveAs("Receipt.pdf", fileBytes!);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception: {ex.Message}");
+        }
+        
+    }
+}

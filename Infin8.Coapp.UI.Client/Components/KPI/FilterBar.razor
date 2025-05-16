@@ -1,0 +1,104 @@
+﻿@using Infin8.Coapp.Dto
+@* <div class="row mb-3">
+    <div class="col-md-3">
+        <label>Date Range:</label>
+        <select class="form-control" @bind="SelectedDateRange">
+            <option value="last7">Last 7 Days</option>
+            <option value="last30">Last 30 Days</option>
+            <option value="currentFY">Current FY</option>
+        </select>
+    </div>
+    @if (ShowRegionFilter)
+    {
+        <div class="col-md-3">
+            <label>Region:</label>
+            <select class="form-control" @bind="SelectedRegionId" @onchange="RegionChanged">
+                <option value="">All Regions</option>
+                @foreach (var region in Regions)
+                {
+                    <option value="@region.Id">@region.Name</option>
+                }
+            </select>
+        </div>
+    }
+    @if (ShowCircleFilter)
+    {
+        <div class="col-md-3">
+            <label>Circle:</label>
+            <select class="form-control" @bind="SelectedCircleId" @onchange="CircleChanged">
+                <option value="">All Circles</option>
+                @foreach (var circle in Circles)
+                {
+                    <option value="@circle.Id">@circle.Name</option>
+                }
+            </select>
+        </div>
+    }
+</div> *@
+<div class="row mb-3">
+    <div class="col-md-3">
+        <label>Date Range:</label>
+        <select class="form-control" @bind="SelectedDateRange">
+            @* No explicit @onchange needed if SelectedDateRange and SelectedDateRangeChanged parameters exist *@
+            <option value="last7">Last 7 Days</option>
+            <option value="last30">Last 30 Days</option>
+            <option value="currentFY">Current FY</option>
+        </select>
+    </div>
+    @if (ShowRegionFilter)
+    {
+        <div class="col-md-3">
+            <label>Region:</label>
+            <select class="form-control" @bind="SelectedRegionId">
+                @* REMOVE @onchange="RegionChanged" *@
+                <option value="">All Regions</option>
+                @foreach (var region in Regions)
+                {
+                    <option value="@region.Id">@region.Name</option>
+                }
+            </select>
+        </div>
+    }
+    @if (ShowCircleFilter)
+    {
+        <div class="col-md-3">
+            <label>Circle:</label>
+            <select class="form-control" @bind="SelectedCircleId">
+                @* REMOVE @onchange="CircleChanged" *@
+                <option value="">All Circles</option>
+                @foreach (var circle in Circles)
+                {
+                    <option value="@circle.Id">@circle.Name</option>
+                }
+            </select>
+        </div>
+    }
+</div>
+@code {
+    [Parameter] public string? SelectedDateRange { get; set; }
+    [Parameter] public EventCallback<string?> SelectedDateRangeChanged { get; set; }
+
+    [Parameter] public bool ShowRegionFilter { get; set; }
+    [Parameter] public List<JointRegistrarRegion> Regions { get; set; } = new();
+    [Parameter] public string? SelectedRegionId { get; set; }
+    [Parameter] public EventCallback<string?> SelectedRegionIdChanged { get; set; }
+
+    [Parameter] public bool ShowCircleFilter { get; set; }
+    [Parameter] public List<DeputyRegistrarCircle> Circles { get; set; } = new();
+    [Parameter] public string? SelectedCircleId { get; set; }
+    [Parameter] public EventCallback<string?> SelectedCircleIdChanged { get; set; }
+
+
+    // private async Task RegionChanged(ChangeEventArgs e)
+    // {
+    //     SelectedRegionId = e.Value?.ToString();
+    //     await SelectedRegionIdChanged.InvokeAsync(SelectedRegionId);
+    // }
+
+    // private async Task CircleChanged(ChangeEventArgs e)
+    // {
+    //     SelectedCircleId = e.Value?.ToString();
+    //     await SelectedCircleIdChanged.InvokeAsync(SelectedCircleId);
+    // }
+}
+

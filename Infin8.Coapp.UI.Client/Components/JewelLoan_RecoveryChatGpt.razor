@@ -1,0 +1,204 @@
+﻿@page "/jewel-loan-recovery-chatgpt"
+@using System.ComponentModel.DataAnnotations
+@* @attribute [IgnoreAntiforgeryToken] *@
+@rendermode InteractiveAuto
+<EditForm Model="@recoveryModel" OnValidSubmit="@HandleSubmit" >
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <AntiforgeryToken />
+    <h3>Jewel Loan Recovery</h3>
+
+    <!-- Step 1: Select Member -->
+    <div class="mb-3">
+        <label>Member ID:</label>
+        <InputNumber @bind-Value="recoveryModel.Mem_Id" class="form-control" />
+        <button class="btn btn-primary mt-2" @onclick="GetLoanNumbers">Get Loan No(s)</button>
+    </div>
+
+    <!-- Step 2: Select Loan Numbers -->
+    @if (loanNumbers?.Any() == true)
+    {
+        <div class="mb-3">
+            <label>Available Loans:</label>
+            @foreach (var loan in loanNumbers)
+            {
+                <div>
+                    <InputCheckbox @bind-Value="loanSelections[loan.Loan_Id]" /> @loan.Loan_No
+                </div>
+            }
+            <button class="btn btn-secondary mt-2" @onclick="GetLoanBalances">Get Loan Balance</button>
+        </div>
+    }
+
+    <!-- Step 3: Loan Balance Table -->
+    @if (recoveryModel.JewelLoanBalance_List?.Any() == true)
+    {
+        <h5>Loan Balances</h5>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Loan No</th>
+                    <th>Scheme</th>
+                    <th>Loan Date</th>
+                    <th>Due Date</th>
+                    <th>Outstanding</th>
+                    <th>Interest</th>
+                    <th>Principal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var balance in recoveryModel.JewelLoanBalance_List)
+                {
+                    <tr>
+                        <td>@balance.Loan_No</td>
+                        <td>@balance.Scheme_Name</td>
+                        <td>@balance.Loan_Date.ToShortDateString()</td>
+                        <td>@balance.Due_Date.ToShortDateString()</td>
+                        <td>@balance.Outstanding</td>
+                        <td>@balance.Calculated_Amount</td>
+                        <td>@(balance.Outstanding - balance.Calculated_Amount)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Step 4: Enter Recovery Amount -->
+        <div class="mb-3">
+            <label>Total Recovery Amount:</label>
+            <InputNumber @bind-Value="recoveryModel.Recovery_Amount" class="form-control" />
+            <button class="btn btn-success mt-2" @onclick="ApplyRecovery">Apply</button>
+        </div>
+    }
+
+    <!-- Step 5: Recovery Allocation -->
+    @if (recoveryAllocations.Any())
+    {
+        <h5>Recovery Allocation</h5>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Loan No</th>
+                    <th>Applied to Interest</th>
+                    <th>Applied to Principal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var alloc in recoveryAllocations)
+                {
+                    <tr>
+                        <td>@alloc.LoanNo</td>
+                        <td>@alloc.Interest</td>
+                        <td>@alloc.Principal</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <button class="btn btn-primary mt-3" type="submit">Submit Recovery</button>
+</EditForm>
+
+@code {
+    #region declarations
+    private JewelLoanRecovery recoveryModel = new();
+    private List<JewelLoanNo> loanNumbers = new();
+    private Dictionary<decimal, bool> loanSelections = new();
+
+    private List<(string LoanNo, double Interest, double Principal)> recoveryAllocations = new();
+    #endregion 
+
+    #region events
+    private void GetLoanNumbers()
+    {
+        // Simulate fetching loan numbers from service
+        loanNumbers = new List<JewelLoanNo>
+        {
+            new() { Loan_Id = 1, Loan_No = "JL-001" },
+            new() { Loan_Id = 2, Loan_No = "JL-002" }
+        };
+        loanSelections = loanNumbers.ToDictionary(x => x.Loan_Id, x => false);
+    }
+
+    private void GetLoanBalances()
+    {
+        var selectedLoanIds = loanSelections.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+
+        recoveryModel.JewelLoanBalance_List = new List<JewelLoanBalance>
+        {
+            new() { Loan_Id = 1, Loan_No = "JL-001", Scheme_Name = "Gold", Loan_Date = DateTime.Today.AddMonths(-6),
+                    Due_Date = DateTime.Today.AddMonths(6), Outstanding = 25000, Calculated_Amount = 1000 },
+            new() { Loan_Id = 2, Loan_No = "JL-002", Scheme_Name = "Silver", Loan_Date = DateTime.Today.AddMonths(-5),
+                    Due_Date = DateTime.Today.AddMonths(7), Outstanding = 10000, Calculated_Amount = 400 }
+        }.Where(b => selectedLoanIds.Contains(b.Loan_Id)).ToList();
+    }
+
+    private void ApplyRecovery()
+    {
+        recoveryAllocations.Clear();
+        double amount = recoveryModel.Recovery_Amount;
+
+        foreach (var loan in recoveryModel.JewelLoanBalance_List!)
+        {
+            if (amount <= 0) break;
+            double toInterest = Math.Min(loan.Calculated_Amount, amount);
+            amount -= toInterest;
+            double toPrincipal = Math.Min(loan.Outstanding - loan.Calculated_Amount, amount);
+            amount -= toPrincipal;
+
+            recoveryAllocations.Add((loan.Loan_No!, toInterest, toPrincipal));
+        }
+    }
+    private void HandleSubmit()
+    {
+        // Submit logic here
+    }
+
+    #endregion 
+
+    #region class
+    public class JewelLoanRecovery
+    {
+        [Required]
+        public decimal Mem_Id { get; set; }
+        public string? Member_Name { get; set; }
+        // public double Total_Outstanding { get; set; }
+        [Range(1, double.MaxValue, ErrorMessage = "Enter a valid recovery amount")]
+        public double Recovery_Amount { get; set; }
+        public List<JewelLoanBalance>? JewelLoanBalance_List { get; set; }
+        public List<JewelLoanNo>? JewelLoanNo_List { get; set; }
+    }
+    public class JewelLoanNo
+    {
+        public decimal Loan_Id { get; set; }
+        public string? Loan_No { get; set; }
+    }
+    public class JewelLoanBalance
+    {
+        public decimal Loan_Id { get; set; }
+        public string? Loan_No { get; set; }
+        public string? Scheme_Name { get; set; }
+        public DateTime Loan_Date { get; set; }
+        public DateTime Due_Date { get; set; }
+        public double Outstanding { get; set; }
+        public double Calculated_Amount { get; set; }
+    }
+    // public class JewelLoanBalance
+    // {
+    //     public decimal Loan_Id { get; set; }
+    //     public string? Loan_No { get; set; }
+    //     public string? Scheme_Name { get; set; }
+    //     public string? Status { get; set; }
+    //     public double Loan_Amount { get; set; }
+    //     public DateTime Loan_Date { get; set; }
+    //     public double ROI { get; set; }
+    //     public double PI_Rate { get; set; }
+    //     public DateTime Due_Date { get; set; }
+    //     public DateTime? Interest_Application_Date { get; set; }
+    //     public double Outstanding { get; set; }
+    //     public double Calculated_Amount { get; set; }
+    //     public double Recovery_Amount { get; set; }
+    //     public decimal Led_Id { get; set; }
+    //     public double OverDue_Amount { get; set; }
+    // }
+    #endregion
+}

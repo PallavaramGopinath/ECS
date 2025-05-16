@@ -1,0 +1,553 @@
+﻿@page "/fixed-deposit-loan"
+@using System.ComponentModel.DataAnnotations
+@using System.Linq
+@rendermode InteractiveAuto
+@inject HttpClient _httpClient
+@using Infin8.Coapp.Dto
+@* <PageTitle>Fixed Deposit Loan Application</PageTitle> *@
+
+<h3 class="mb-0">Fixed Deposit Loan</h3>
+<hr class="mt-0" />
+<EditForm Model="@loanModel" OnValidSubmit="HandleValidSubmit" FormName="fdLoanForm">
+    <DataAnnotationsValidator />
+
+    <!-- Step 1: Member Details -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">Member Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="memberNo">Member Number:</label>
+                        <InputText id="memberNo" class="form-control" @bind-Value="loanModel.Member_No" />
+                        <ValidationMessage For="@(() => loanModel.Member_No)" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="memberName">Member Name:</label>
+                        <InputText id="memberName" class="form-control" @bind-Value="loanModel.Member_Name" readonly />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="memberId">Member ID:</label>
+                        <InputNumber id="memberId" class="form-control" @bind-Value="loanModel.Mem_Id" readonly />
+                    </div>
+                </div>
+                <div class="col-md-3 mt-3 d-flex align-items-end">
+                    <button class="btn btn-secondary rounded-pill mb-3" @onclick="LoadFdNumbersAsync" disabled="@(loanModel.Mem_Id <= 0)">
+                        <i class="oi oi-list-rich"></i> Get Fixed Deposit No(s)
+                    </button>
+                </div>
+            </div>
+            @* <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="memberNo" class="form-label">Member No:</label>
+                    <InputText id="memberNo" @bind-Value="loanModel.Member_No" class="form-control" @bind:event="oninput" disabled="@memberDataLoaded" />
+                    <ValidationMessage For="@(() => loanModel.Member_No)" />
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-primary" @onclick="FetchMemberDataAsync" disabled="@memberDataLoaded || string.IsNullOrWhiteSpace(loanModel.Member_No)">
+                        <i class="fas fa-search me-1"></i> Fetch Member Data
+                    </button>
+                </div>
+                @if (memberDataLoaded)
+                {
+                    <div class="col-md-4">
+                        <p class="mb-0"><strong>Member Name:</strong> @loanModel.Member_Name</p>
+                        <p class="mb-0"><strong>Member ID:</strong> @loanModel.Mem_Id</p>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="col-12">
+                        <div class="alert alert-danger mt-2">@errorMessage</div>
+                    </div>
+                }
+            </div> *@
+
+        </div>
+    </div>
+
+    <!-- Step 1 & 3 : Load and Select FD Numbers -->
+    @if (fdNosLoaded && loanModel.FD_Nos.Any())
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Available Fixed Deposits:</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group mb-3" style="max-height: 200px; overflow-y: auto;">
+                    @foreach (var fd in loanModel.FD_Nos)
+                    {
+                        var localFd = fd; // Avoid closure issue
+                        <label class="list-group-item">
+                            <InputCheckbox @bind-Value="localFd.IsSelected" @onchange="@(() => FdSelectionChanged())" disabled="@fdDataLoaded" />
+                            @localFd.FD_No  (ID: @localFd.FD_Id) 
+                        </label>
+                    }
+                </div>
+                <ValidationMessage For="@(() => loanModel.Selected_FD_Ids)" />
+            </div>
+        </div>
+    }
+    else if (fdNosLoaded)
+    {
+        <div class="alert alert-info">No Fixed Deposits found for this member.</div>
+    }
+
+
+    <!-- Step 4 : Load FD Data & Loan Details -->
+    @if (fdNosLoaded && loanModel.FD_Nos.Any(fd => fd.IsSelected))
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Loan Eligibility Details</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-secondary rounded-pill mb-3" @onclick="LoadFdDataAsync" disabled="@fdDataLoaded">
+                    <i class="oi oi-calculator me-1"></i> Load Fixed Deposit Data & Calculate Eligibility
+                </button>
+
+                @if (fdDataLoaded)
+                {
+                    
+
+                    <h5>Selected Fixed Deposit Details:</h5>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>FD No</th>
+                                    <th>Amount</th>
+                                    <th>Period</th>
+                                    <th>Interest Rate</th>
+                                    <th>Value Date</th>
+                                    <th>Maturity Date</th>
+                                    <th>Drawing Power</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var fdData in loanModel.FD_Datas)
+                                {
+                                    <tr>
+                                        <td>@fdData.FD_No</td>
+                                        <td>@fdData.FD_Amount.ToString("C2")</td>
+                                        <td>@fdData.Period_In_Months M @fdData.Period_In_Days D</td>
+                                        <td>@fdData.Rate_Of_Interest%</td>
+                                        <td>@fdData.Value_Date.ToString("yyyy-MM-dd")</td>
+                                        <td>@fdData.Maturity_Date.ToString("yyyy-MM-dd")</td>
+                                        <td>@fdData.Drawing_Power.ToString("C2")</td>
+                                    </tr>
+                                }
+                                <tr class="table-info">
+                                    <td class="fw-bold">Total</td>
+                                    <td class="fw-bold">@loanModel.FD_Datas.Sum(fd => fd.FD_Amount).ToString("C2")</td>
+                                    <td colspan="4"></td>
+                                    <td class="fw-bold">@loanModel.FD_Datas.Sum(fd => fd.Drawing_Power).ToString("C2")</td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h5>Existing Loan Details:</h5>
+                    @if (loanModel.Existing_Loan_Datas.Any())
+                    {
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Loan No</th>
+                                        <th>Loan Date</th>
+                                        <th>Loan Amount</th>
+                                        <th>Outstanding</th>
+                                        <th>Interest Balance</th>
+                                        <th>Total Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var loan in loanModel.Existing_Loan_Datas)
+                                    {
+                                        <tr>
+                                            <td>@loan.Loan_No</td>
+                                            <td>@loan.Loan_Date.ToString("yyyy-MM-dd")</td>
+                                            <td>@loan.Loan_Amount.ToString("C2")</td>
+                                            <td>@loan.Loan_Outstanding.ToString("C2")</td>
+                                            <td>@loan.Interest_Balance.ToString("C2")</td>
+                                            <td>@loan.Total_Balance.ToString("C2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">No existing loans found for this member.</div>
+                    }
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="alert alert-success">
+                                <h5 class="alert-heading">Loan Eligibility Summary</h5>
+                                <p>Total Selected FD Amount: @loanModel.Total_FD_Amount.ToString("C2")</p>
+                                <p>Loan Eligible Percentage: @loanModel.Loan_Eligible_Percentage%</p>
+                                <p>Total Borrowing Power: @loanModel.Total_Borrowing_Power.ToString("C2")</p>
+                                <p>Total Existing Loan Balance: @loanModel.Total_Existing_Loan_Amount.ToString("C2")</p>
+                                <hr>
+                                <p class="fw-bold">Eligible Loan Amount: @loanModel.Eligible_Loan_Amount.ToString("C2")</p>
+                                <p class="fw-bold">Calculated Loan Rate of Interest: @loanModel.Loan_Rate_Of_Interest%</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Step 5 : Enter Loan Amount -->
+    @if (fdDataLoaded)
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Enter Loan Amount</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="loanAmount" class="form-label">Desired Loan Amount:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">&#8377</span>
+                            <InputNumber id="loanAmount" @bind-Value="loanModel.Loan_Amount" class="form-control" ParsingErrorMessage="Please enter a valid number." />
+                        </div>
+                        <ValidationMessage For="@(() => loanModel.Loan_Amount)" />
+                        @if (loanModel.Loan_Amount > loanModel.Eligible_Loan_Amount)
+                        {
+                            <div class="invalid-feedback d-block">Loan amount cannot exceed the eligible amount of @loanModel.Eligible_Loan_Amount.ToString("C").</div>
+                        }
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success rounded-pill" disabled="@(loanModel.Loan_Amount == null || loanModel.Loan_Amount <= 0 || loanModel.Loan_Amount > loanModel.Eligible_Loan_Amount)">
+                            <i class="oi oi-check me-1"></i> Submit Loan Application
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* <ValidationSummary /> *@ @* Optional: Display all validation errors together *@
+    <!-- Step :5 Initiation message -->
+    @if (processingMessage != null)
+    {
+        <div class="alert @(isError ? "alert-danger" : "alert-success") mt-3">
+            @processingMessage
+        </div>
+    }
+</EditForm>
+@memberDataLoaded
+@code {
+    #region declaration
+    private FixedDepositLoan loanModel = new();
+    private bool memberDataLoaded = false;
+    private bool fdNosLoaded = false;
+    private bool fdDataLoaded = false;
+    private string? errorMessage = null;
+    private string? processingMessage;
+    private bool isError = false;
+    #endregion
+
+    #region class
+    public class FixedDepositLoan
+    {
+        public decimal Mem_Id { get; set; }
+        public string? Member_Name { get; set; }
+
+        [Required(ErrorMessage = "Member No is required.")]
+        public string? Member_No { get; set; }
+        public DateTime Transaction_Date { get; set; }
+        public List<FixedDepositNos> FD_Nos { get; set; } = new();
+        public List<FDDataForLoan> FD_Datas { get; set; } = new();
+        public List<TDLoanData> Existing_Loan_Datas { get; set; } = new();
+
+        // Store selected FD Ids
+        public List<decimal> Selected_FD_Ids { get; set; } = new();
+
+        public double Loan_Eligible_Percentage { get; set; }
+        public double Total_FD_Amount { get; set; }
+        public double Total_Borrowing_Power { get; set; }
+        public double Total_Existing_Loan_Amount { get; set; }
+        public double Eligible_Loan_Amount { get; set; }
+        public double Loan_Rate_Of_Interest { get; set; }
+
+        [Required(ErrorMessage = "Loan Amount is required.")]
+        [Range(1, double.MaxValue, ErrorMessage = "Loan Amount must be greater than 0.")]
+        // Custom validation will be added in the component logic to check against Eligible_Loan_Amount
+        public double? Loan_Amount { get; set; }
+    }
+
+    public class FixedDepositNos
+    {
+        public decimal FD_Id { get; set; }
+        public string? FD_No { get; set; }
+        public bool IsSelected { get; set; } // Helper property for checkbox binding
+    }
+
+    public class FDDataForLoan
+    {
+        public decimal FD_Id { get; set; }
+        public string? FD_No { get; set; }
+        public double FD_Amount { get; set; }
+        public int Period_In_Months { get; set; }
+        public int Period_In_Days { get; set; }
+        public double Rate_Of_Interest { get; set; }
+        public DateTime Value_Date { get; set; }
+        public DateTime Maturity_Date { get; set; }
+        public double Drawing_Power { get; set; } // This seems related but wasn't used in calculation step 4.5, using Total_Borrowing_Power instead.
+        public double Loan_Amount { get; set; } // This seems like the loan *against* this specific FD, might not be needed for the main calculation.
+    }
+
+    public class TDLoanData
+    {
+        public decimal Loan_Id { get; set; }
+        public string? Loan_No { get; set; }
+        public DateTime Loan_Date { get; set; }
+        public double Loan_Amount { get; set; }
+        public double Loan_Outstanding { get; set; }
+        public double Interest_Balance { get; set; }
+        public double Interest_Calculated { get; set; }
+        public DateTime? Interest_Applied_Date { get; set; }
+        public double Total_Balance => Loan_Outstanding + Interest_Balance + Interest_Calculated; // Calculated property
+    }
+
+
+    #endregion
+
+    protected override void OnInitialized()
+    {
+        // Initialize model if needed, e.g., from query parameters
+        // loanModel ??= new();
+        loanModel = new FixedDepositLoan();
+        loanModel.Mem_Id = 110010008478;
+        loanModel.Member_No = "1100110009991";
+        loanModel.Member_Name = "Saroja.K";
+        loanModel.Transaction_Date = DateTime.Now;
+        
+    }
+
+    private async Task FetchMemberDataAsync()
+    {
+        errorMessage = null; // Clear previous errors
+                             // --- Mock Data Fetch ---
+                             // In a real app, call an API service here based on loanModel.Member_No
+        await Task.Delay(500); // Simulate network latency
+
+        if (loanModel.Member_No == "MEM123")
+        {
+            loanModel.Mem_Id = 123;
+            loanModel.Member_Name = "John Doe";
+            memberDataLoaded = true;
+        }
+        else if (loanModel.Member_No == "MEM456")
+        {
+            loanModel.Mem_Id = 456;
+            loanModel.Member_Name = "Jane Smith";
+            memberDataLoaded = true;
+        }
+        else
+        {
+            errorMessage = $"Member with No '{loanModel.Member_No}' not found.";
+            loanModel.Mem_Id = 0;
+            loanModel.Member_Name = null;
+            memberDataLoaded = false;
+        }
+        // Reset subsequent steps if member changes
+        ResetFdSteps();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadFdNumbersAsync()
+    {
+        loanModel.FD_Nos = new List<FixedDepositNos>(); // Clear previous
+        var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/TermDeposit/GetFDNosByMemId/{loanModel.Mem_Id}/F/11001");
+        if (fdNosTmp != null && fdNosTmp.Count > 0)
+        {
+            foreach (var fd in fdNosTmp)
+            {
+                loanModel.FD_Nos.Add(new FixedDepositNos { FD_Id = Convert.ToDecimal(fd.Value), FD_No = fd.Text });
+            }
+        }
+        fdNosLoaded = true;
+        ResetFdDataStep(); // Reset step 4 if FD list is reloaded
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void FdSelectionChanged()
+    {
+        // When selection changes, reset the loaded FD data and calculations
+        ResetFdDataStep();
+        // Update the Selected_FD_Ids list (optional, could also filter directly in LoadFdDataAsync)
+        loanModel.Selected_FD_Ids = loanModel.FD_Nos.Where(fd => fd.IsSelected).Select(fd => fd.FD_Id).ToList();
+        StateHasChanged(); // Update UI to enable/disable Load FD Data button
+    }
+
+    private async Task LoadFdDataAsync()
+    {
+        loanModel.Selected_FD_Ids = loanModel.FD_Nos.Where(fd => fd.IsSelected).Select(fd => fd.FD_Id).ToList();
+
+        if (!loanModel.Selected_FD_Ids.Any())
+        {
+            // Should not happen if button is correctly disabled, but good practice
+            processingMessage = "Please select at least one fixed deposit";
+            isError = true;
+            return;
+        }
+        if (loanModel.Selected_FD_Ids.Any())
+        {
+            // Build query parameters properly
+            var queryString = new System.Text.StringBuilder("fdIds=");
+            // Add loan IDs with proper URL encoding
+            for (int i = 0; i < loanModel.Selected_FD_Ids.Count; i++)
+            {
+                queryString.Append(loanModel.Selected_FD_Ids[i]);
+                if (i < loanModel.Selected_FD_Ids.Count - 1)
+                    queryString.Append("&fdIds=");
+            }
+            var fddata = await _httpClient.GetFromJsonAsync<List<FDDataForLoan>>($"api/TermDeposit/GetFDDetailsForLoan?fdIds{queryString}");
+            if (fddata != null && fddata.Count > 0) 
+            {
+                loanModel.FD_Datas = new List<FDDataForLoan>();
+                loanModel.FD_Datas = fddata.ToList();
+            }
+            double eligiblepercentage = await _httpClient.GetFromJsonAsync<double>($"api/TermDeposit/GetTDLoanEligiblePercentage/1/11001");
+            loanModel.Loan_Eligible_Percentage = eligiblepercentage;
+            var existingLoan = await _httpClient.GetFromJsonAsync<List<TDLoanData>>($"api/Loan/GetTDLoanBalance?tdIds{queryString}");
+            if (existingLoan != null && existingLoan.Count > 0) loanModel.Existing_Loan_Datas = existingLoan.ToList();
+            foreach (var fd in loanModel.FD_Datas)
+            {
+                fd.Drawing_Power = Math.Round(fd.FD_Amount * (eligiblepercentage / 100), 0);
+            }
+
+        }
+        if (loanModel.FD_Datas.Any())
+        {
+            loanModel.Loan_Rate_Of_Interest = loanModel.FD_Datas.Max(fd => fd.Rate_Of_Interest) + 2.0;
+        }
+        else
+        {
+            loanModel.Loan_Rate_Of_Interest = 0; // Or a default minimum rate
+        }
+
+        #region mock data
+        // // --- Mock Data Fetch & Calculation ---
+        // await Task.Delay(700); // Simulate network latency
+
+        // // 1. Fetch FD Data for selected IDs
+        // loanModel.FD_Datas = GetMockFdData(loanModel.Selected_FD_Ids);
+
+        // // 2. Fetch Loan Eligibility Percentage
+        // loanModel.Loan_Eligible_Percentage = 80.0; // Example: 80%
+
+        // 3. Calculate Loan Rate Of Interest (Highest selected FD rate + 2%)
+        // if (loanModel.FD_Datas.Any())
+        // {
+        //     loanModel.Loan_Rate_Of_Interest = loanModel.FD_Datas.Max(fd => fd.Rate_Of_Interest) + 2.0;
+        // }
+        // else
+        // {
+        //      loanModel.Loan_Rate_Of_Interest = 0; // Or a default minimum rate
+        // }
+
+
+        // 4. Fetch Existing Loan Data
+        // loanModel.Existing_Loan_Datas = GetMockExistingLoans(loanModel.Mem_Id);
+        #endregion
+
+        // 5. Calculate Totals and Eligibility
+        loanModel.Total_FD_Amount = loanModel.FD_Datas.Sum(fd => fd.FD_Amount);
+        loanModel.Eligible_Loan_Amount = loanModel.FD_Datas.Sum(fd => fd.Drawing_Power);
+        loanModel.Total_Borrowing_Power = loanModel.Total_FD_Amount * (loanModel.Loan_Eligible_Percentage / 100.0);
+        loanModel.Total_Existing_Loan_Amount = loanModel.Existing_Loan_Datas.Sum(l => l.Total_Balance); // Sum of total outstanding balance
+        loanModel.Eligible_Loan_Amount = Math.Max(0, loanModel.Total_Borrowing_Power - loanModel.Total_Existing_Loan_Amount); // Ensure non-negative
+
+        // Reset loan amount input if eligibility changes
+        loanModel.Loan_Amount = null;
+
+        fdDataLoaded = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ResetFdSteps()
+    {
+        loanModel.FD_Nos.Clear();
+        loanModel.Selected_FD_Ids.Clear();
+        fdNosLoaded = false;
+        ResetFdDataStep();
+    }
+
+    private void ResetFdDataStep()
+    {
+        loanModel.FD_Datas.Clear();
+        loanModel.Existing_Loan_Datas.Clear();
+        loanModel.Total_FD_Amount = 0;
+        loanModel.Total_Borrowing_Power = 0;
+        loanModel.Total_Existing_Loan_Amount = 0;
+        loanModel.Eligible_Loan_Amount = 0;
+        loanModel.Loan_Rate_Of_Interest = 0;
+        loanModel.Loan_Amount = null;
+        fdDataLoaded = false;
+    }
+
+    private List<FDDataForLoan> GetMockFdData(List<decimal> fdIds)
+    {
+        // Simulate fetching data based on selected IDs
+        var allData = new List<FDDataForLoan>
+        {
+            new FDDataForLoan { FD_Id = 1001, FD_No = "FD-A001", FD_Amount = 50000, Period_In_Months = 12, Period_In_Days = 0, Rate_Of_Interest = 6.5, Value_Date = DateTime.Today.AddYears(-1), Maturity_Date = DateTime.Today },
+            new FDDataForLoan { FD_Id = 1002, FD_No = "FD-A002", FD_Amount = 100000, Period_In_Months = 24, Period_In_Days = 0, Rate_Of_Interest = 7.0, Value_Date = DateTime.Today.AddMonths(-18), Maturity_Date = DateTime.Today.AddMonths(6) },
+            new FDDataForLoan { FD_Id = 1003, FD_No = "FD-A003", FD_Amount = 75000, Period_In_Months = 6, Period_In_Days = 0, Rate_Of_Interest = 6.0, Value_Date = DateTime.Today.AddMonths(-3), Maturity_Date = DateTime.Today.AddMonths(3) },
+            new FDDataForLoan { FD_Id = 2001, FD_No = "FD-B001", FD_Amount = 200000, Period_In_Months = 36, Period_In_Days = 0, Rate_Of_Interest = 7.5, Value_Date = DateTime.Today.AddYears(-2), Maturity_Date = DateTime.Today.AddYears(1) }
+        };
+        return allData.Where(d => fdIds.Contains(d.FD_Id)).ToList();
+    }
+
+    private List<TDLoanData> GetMockExistingLoans(decimal memberId)
+    {
+        // Simulate fetching existing loans
+        if (memberId == 123) // John Doe has an existing loan
+        {
+            return new List<TDLoanData>
+            {
+                new TDLoanData { Loan_Id = 501, Loan_No = "LNFDA01", Loan_Date = DateTime.Today.AddMonths(-6), Loan_Amount = 20000, Loan_Outstanding = 15000, Interest_Balance = 500 }
+            };
+        }
+        return new List<TDLoanData>(); // No loans for others
+    }
+
+    private void HandleValidSubmit()
+    {
+        // Custom validation for Loan Amount against Eligible Amount
+        if (loanModel.Loan_Amount > loanModel.Eligible_Loan_Amount)
+        {
+            // This state should ideally be prevented by disabling the submit button,
+            // but this is a fallback. We could add a custom validation rule to EditContext
+            // for a more integrated approach.
+            Console.WriteLine("Validation Error: Loan amount exceeds eligible amount.");
+            return; // Prevent submission
+        }
+
+        // --- Mock Submission ---
+        Console.WriteLine("Form Submitted Successfully!");
+        Console.WriteLine($"Member ID: {loanModel.Mem_Id}");
+        Console.WriteLine($"Selected FD IDs: {string.Join(", ", loanModel.Selected_FD_Ids)}");
+        Console.WriteLine($"Loan Amount: {loanModel.Loan_Amount}");
+        Console.WriteLine($"Interest Rate: {loanModel.Loan_Rate_Of_Interest}%");
+
+        // In a real app, call an API service to save the loan application
+        // Optionally, navigate away or show a success message
+        // NavigationManager.NavigateTo("/loan-success");
+    }
+}

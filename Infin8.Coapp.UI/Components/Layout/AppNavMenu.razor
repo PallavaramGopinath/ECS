@@ -1,0 +1,89 @@
+﻿@inject NavigationManager NavigationManager
+@* @inject IMenuService MenuService *@
+
+<nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-secondary">
+    <div class="container-fluid">
+        <button class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+            <ul class="navbar-nav flex-grow-1">
+                @if (menuItems != null)
+                {
+                    @foreach (var menuItem in menuItems.Where(m => m.ParentId == null))
+                    {
+                        <li class="nav-item px-2 @(HasSubItems(menuItem.Id) ? "dropdown" : "")">
+                            @if (HasSubItems(menuItem.Id))
+                            {
+                                <div class="nav-link dropdown-toggle" @onclick="() => ToggleSubMenu(menuItem.Id)">
+                                    <span class="oi @menuItem.Icon" aria-hidden="true"></span> @menuItem.Title
+                                </div>
+                                <ul class="dropdown-menu @(expandedMenus.Contains(menuItem.Id) ? "show" : "")">
+                                    @foreach (var subItem in menuItems.Where(m => m.ParentId == menuItem.Id))
+                                    {
+                                        <li class="nav-item">
+                                            <NavLink class="nav-link text-dark" href="@subItem.Url" Match="NavLinkMatch.All">
+                                                <span class="oi @subItem.Icon" aria-hidden="true"></span> @subItem.Title
+                                            </NavLink>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <NavLink class="nav-link" href="@menuItem.Url" Match="NavLinkMatch.All">
+                                    <span class="oi @menuItem.Icon" aria-hidden="true"></span> @menuItem.Title
+                                </NavLink>
+                            }
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+    </div>
+</nav>
+
+@code {
+    private bool collapseNavMenu = true;
+    private List<MenuItem> menuItems = new();
+    private HashSet<int> expandedMenus = new();
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse navbar-collapse" : "navbar-collapse";
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private void ToggleSubMenu(int menuId)
+    {
+        if (expandedMenus.Contains(menuId))
+        {
+            expandedMenus.Remove(menuId);
+        }
+        else
+        {
+            expandedMenus.Add(menuId);
+        }
+    }
+
+    private bool HasSubItems(int menuId)
+    {
+        return menuItems.Any(m => m.ParentId == menuId);
+    }
+
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     // menuItems = await MenuService.GetMenuItemsAsync();
+    // }
+
+    public class MenuItem
+    {
+        public int Id { get; set; }
+        public int? ParentId { get; set; }
+        public string Title { get; set; }
+        public string Url { get; set; }
+        public string Icon { get; set; }
+        public int DisplayOrder { get; set; }
+    }
+}

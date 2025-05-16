@@ -1,0 +1,586 @@
+﻿@page "/jewel-loan-recovery"
+@using System.ComponentModel.DataAnnotations
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveAuto
+@using Infin8.Coapp.Dto
+@inject HttpClient _httpClient
+
+<div class="container">
+    <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
+        <h3 class="mb-2">Jewel Loan Recovery</h3>
+        <hr class="mt-0" />
+        <!-- Step 2: Loan No(s) -->
+        @if (!string.IsNullOrEmpty(model.Member_Name))
+        {
+            <div class="card mt-4">
+                <div class="card-header ">
+                    <h5 class="mb-0">Available Loan Numbers</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-secondary rounded-pill mb-3" @onclick="GetLoanNumbers" disabled="@(model.Mem_Id <= 0)">
+                        <i class="oi oi-list-rich"></i> Get Loan No(s)
+                    </button>
+
+                    @if (model.JewelLoanNo_List != null && model.JewelLoanNo_List.Any())
+                    {
+                        <div class="row">
+                            <div class="col">
+                                @* @if (model.JewelLoanBalance_List != null)
+                            { *@
+                                @foreach (var loan in model.JewelLoanNo_List)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="@($"loan_{loan.Loan_Id}")"
+                                        @onchange="e => ToggleLoanSelection(loan, (bool)e.Value)" />
+                                        <label class="form-check-label" for="@($"loan_{loan.Loan_Id}")">
+                                            @loan.Loan_No
+                                        </label>
+                                    </div>
+                                }
+                                @* } *@
+                                @* else
+                            {
+                                <div class="alert alert-info">No jewel loans found for this member.</div>
+                            } *@
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-secondary rounded-pill" @onclick="GetLoanBalances" disabled="@(!selectedLoans.Any())">
+                                <i class="oi oi-list-rich"></i> Get Loan Balance
+                            </button>
+                        </div>
+                    }
+                    else if (loanNumbersLoaded)
+                    {
+                        <div class="alert alert-info">No jewel loans found for this member.</div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Step 3: Loan Balance -->
+        @if (model.JewelLoanBalance_List != null && model.JewelLoanBalance_List.Any())
+        {
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Loan Balance & Recovery Details</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Loan No</th>
+                                <th>Scheme</th>
+                                <th>Status</th>
+                                <th>Loan Amount</th>
+                                <th>Loan Date</th>
+                                <th>Due Date</th>
+                                <th>Interest %</th>
+                                <th>Outstanding</th>
+                                <th>Recovery Amount</th>
+                                <th>Int Calc Amount</th>
+                                <th>Int Applied Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < model.JewelLoanBalance_List.Count; i++)
+                            {
+                                var loan = model.JewelLoanBalance_List[i];
+                                var index = i; // Capture for lambda
+                                <tr>
+                                    <td>@loan.Loan_No</td>
+                                    <td>@loan.Scheme_Name</td>
+                                    <td>@loan.Status</td>
+                                    <td>@loan.Loan_Amount.ToString("C2")</td>
+                                    <td>@loan.Loan_Date.ToShortDateString()</td>
+                                    <td>@loan.Due_Date.ToShortDateString()</td>
+                                    <td>@loan.ROI%</td>
+                                    <td>@loan.Outstanding.ToString("C2")</td>
+                                    <td>@loan.Recovery_Amount.ToString("C2")</td>
+                                    <td>@loan.Calculated_Amount.ToString("C2") </td>
+                                    <td>@loan.Interest_Application_Date</td>
+                                    @* <td>
+                                        <input type="number" step="0.01" class="form-control"
+                                               @bind="model.JewelLoanBalance_List[index].Recovery_Amount"
+                                               @bind:event="oninput"
+                                               @onchange="() => ValidateRecoveryAmount(index)" />
+                                        @if (loan.Recovery_Amount > loan.Outstanding)
+                                        {
+                                            <div class="text-danger">Cannot exceed outstanding amount</div>
+                                        }
+                                    </td> *@
+                                </tr>
+                            }
+                            <tr class="table-info">
+                                <td colspan="7" class="text-end fw-bold">Total:</td>
+                                <td class="fw-bold">@model.JewelLoanBalance_List.Sum(l => l.Outstanding).ToString("C2")</td>
+                                <td class="fw-bold">@model.JewelLoanBalance_List.Sum(l => l.Recovery_Amount).ToString("C2")</td>
+                                <td class="fw-bold">@model.JewelLoanBalance_List.Sum(l => l.Calculated_Amount).ToString("C2")</td>
+                                <td class="fw-bold"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <!-- Step 4: Recovery Appropriation -->
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="totalBalance" class="form-label">Total Outstanding</label>
+                            <input type="number" class="form-control" id="totalBalance" @bind=model.Total_Outstanding readonly />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="recoveryAmount" class="form-label">Enter Recovery Amount</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="recoveryAmount"
+                                @bind=model.Recovery_Amount
+                                @bind:event="oninput"
+                                @onchange="() => ValidateTotalRecoveryAmount()" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3 d-flex align-items-end">
+                            <button class="btn btn-secondary  rounded-pill" @onclick="AppropriateRecovery" disabled="@(model.Recovery_Amount <= 0)">
+                                <i class="oi oi-list-rich"></i> Appropriate Recovery
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Step 5: Final Initiation -->
+                    <div class="mt-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="number" class="form-control fw-bold fs-3 h-100" id="totalRecoveryAmount"
+                                    @bind="model.Recovery_Amount" readonly />
+                                    <label for="totalRecoveryAmount">Total Recovery Amount</label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Step 4: Button group -->
+        <div class="d-flex justify-content-between mt-4 mb-4">
+            <div>
+                <!-- Left-aligned buttons -->
+                <button type="button" class="btn btn-secondary me-2" @onclick="CloseJLRecovery">
+                    <i class="oi oi-x"></i>
+                    Close
+                </button>
+                <button type="reset" class="btn btn-outline-secondary">
+                    <i class="oi oi-action-undo"></i>
+                    Reset
+                </button>
+            </div>
+
+            <!-- Right-aligned submit button -->
+            <button type="submit" class="btn btn-primary" disabled="@(!IsRecoveryValid())" @onclick="JLRecoveryInitiate">
+                <i class="oi oi-check"></i>
+                Initiate Jewel Loan Recovery
+            </button>
+        </div>
+
+        <!-- Step 5: Initiation message -->
+        @if (processingMessage != null)
+        {
+            <div class="alert @(isError ? "alert-danger" : "alert-success") mt-3">
+                @processingMessage
+            </div>
+        }
+    </EditForm>
+
+</div>
+
+@code {
+    #region parameters
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnJLRecoveryComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoJewelLoanRecovery> OnJLRecoveryInitiate { get; set; }
+    #endregion 
+
+    private DtoJewelLoanRecovery model = new DtoJewelLoanRecovery();
+    private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
+    private List<DtoJewelLoanBalance> JewelLoanBalanceFromDB = new List<DtoJewelLoanBalance>();
+    private bool loanNumbersLoaded = false;
+    private string? processingMessage;
+    private bool isError = false;
+
+
+    protected override void OnInitialized()
+    {
+        // base.OnInitialized();
+        // model.Mem_Id = 110010008801;
+        // model.Member_No = "1100120006887";
+        // model.Member_Name = "Suresh R"; // This would come from your service
+
+        // model.Mem_Id = 110010005167;
+        // model.Member_No = "1100110008915";
+        // model.Member_Name = "Mohanambal.M"; // This would come from your service
+        model.Mem_Id = MemberId;
+        model.Member_No = MemberNumber;
+        model.Member_Name = MemberName;
+        model.Transaction_Date = TransactionDate;
+
+        model.JewelLoanNo_List = null;
+        model.JewelLoanBalance_List = null;
+        selectedLoans.Clear();
+        loanNumbersLoaded = false;
+        processingMessage = null;
+
+    }
+
+    #region commented
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     // model.Mem_Id = 1;
+    //     // model.Member_Name = "John Doe"; // This would come from your service
+    //     // model.JewelLoanNo_List = null;
+    //     // model.JewelLoanBalance_List = null;
+    //     // selectedLoans.Clear();
+    //     // loanNumbersLoaded = false;
+    //     // processingMessage = null;
+
+    //     model.Mem_Id = 110010008801;
+    //     model.Member_No = "1100120006887";
+    //     model.Member_Name = "Suresh R"; // This would come from your service
+    //     model.Transaction_Date = DateTime.Now;
+    //     model.JewelLoanNo_List = null;
+    //     model.JewelLoanBalance_List = null;
+    //     selectedLoans.Clear();
+    //     loanNumbersLoaded = false;
+    //     processingMessage = null;
+    // }
+    #endregion
+
+    private void HandleValidSubmit()
+    {
+        // Here you would typically call your service to save the data
+
+        // await FixedDepositService.CreateFixedDeposit(_fixedDepositModel);
+
+        Console.WriteLine("Form submitted successfully!");
+
+        // Convert validation model to DTO if needed for API calls
+
+        // Navigate to another page or show success message
+    }
+
+    // Mock services for demonstration - replace with actual service calls
+
+    private void GetMemberDetails()
+    {
+        try
+        {
+            // This would be a service call in the real implementation
+            // For the example, setting a mock value
+            // model.Member_Name = "John Doe"; // This would come from your service
+            model.JewelLoanNo_List = null;
+            model.JewelLoanBalance_List = null;
+            selectedLoans.Clear();
+            loanNumbersLoaded = false;
+            processingMessage = null;
+        }
+        catch (Exception ex)
+        {
+            processingMessage = $"Error retrieving member details: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    private async Task GetLoanNumbers()
+    {
+        try
+        {
+            List<DropdownItem> jlNoList = new List<DropdownItem>();
+            /// first time not rendered but on refresh it is rendered
+            // var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetJLNosByMemId/{model.Mem_Id}/2");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/2");
+            List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
+            if (result != null && result.Count > 0)
+            {
+                jlNoList = result.ToList();
+                foreach (var jl in jlNoList)
+                {
+                    DtoLoanNo newJL = new DtoLoanNo();
+                    newJL.Loan_Id = Convert.ToDecimal(jl.Value);
+                    newJL.Loan_No = jl.Text;
+                    loanNosList.Add(newJL);
+
+                    // model.JewelLoanNo_List = new List<JewelLoanNo>
+                    // {
+                    //     new JewelLoanNo { Loan_Id = Convert.ToDecimal (jl.Value), Loan_No = jl.Text }
+                    // };
+                }
+                model.JewelLoanNo_List = loanNosList;
+            }
+            loanNumbersLoaded = true;
+            selectedLoans.Clear();
+            model.JewelLoanBalance_List = null;
+            processingMessage = null;
+        }
+        catch (Exception ex)
+        {
+            processingMessage = $"Error retrieving loan numbers: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    private void ToggleLoanSelection(DtoLoanNo loan, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedLoans.Any(l => l.Loan_Id == loan.Loan_Id))
+            {
+                selectedLoans.Add(loan);
+            }
+        }
+        else
+        {
+            selectedLoans.RemoveAll(l => l.Loan_Id == loan.Loan_Id);
+        }
+    }
+
+    private async Task GetLoanBalances()
+    {
+        if (!selectedLoans.Any())
+        {
+            processingMessage = "Please select at least one loan";
+            isError = true;
+            return;
+        }
+        try
+        {
+            List<JewelLoanBalance> loanBalanceList = new List<JewelLoanBalance>();
+            List<decimal> loanIdList = new List<decimal>();
+            foreach (var loan in selectedLoans)
+            {
+                loanIdList.Add(loan.Loan_Id);
+            }
+
+            decimal[] loanIds = loanIdList.ToArray();
+
+            // Build query parameters properly
+            var queryString = new System.Text.StringBuilder("loanIdList=");
+            // Add loan IDs with proper URL encoding
+            for (int i = 0; i < loanIdList.Count; i++)
+            {
+                queryString.Append(loanIdList[i]);
+                if (i < loanIdList.Count - 1)
+                    queryString.Append("&loanIdList=");
+            }
+            // Add other parameters with proper formatting
+            queryString.Append($"&endDate={Uri.EscapeDataString(model.Transaction_Date.ToString("yyyy-MM-dd"))}");
+            queryString.Append("&brCode=11001");
+
+            // Make the API call with proper URL format
+            // var result = await _httpClient.GetFromJsonAsync<List<JewelLoanBalance>>($"api/Loan/GetJLBalance?{queryString}");
+            var result = await _httpClient.GetFromJsonAsync<List<JewelLoanBalance>>($"https://localhost:7073/api/Loan/GetJLBalance?{queryString}");
+
+            if (result != null && result.Count > 0) loanBalanceList = result.ToList();
+            model.JewelLoanBalance_List = new List<DtoJewelLoanBalance>();
+            foreach (var loan in loanBalanceList)
+            {
+                if (loan.PI_Bal > 0 || loan.PICalc_Amt > 0)
+                {
+                    model.JewelLoanBalance_List.Add(new DtoJewelLoanBalance
+                        {
+                            Loan_Id = loan.Loan_Id,
+                            Loan_No = loan.Loan_No,
+                            Scheme_Name = loan.Scheme_Name,
+                            Status = "Penal Interest",
+                            Loan_Amount = loan.San_Amt,
+                            Loan_Date = loan.San_Date,
+                            ROI = loan.Roi,
+                            PI_Rate = loan.Pi,
+                            Due_Date = loan.JL_DueDate,
+                            Interest_Application_Date = loan.PICalc_DateNow,
+                            Outstanding = loan.PI_Bal + loan.PICalc_Amt,
+                            Calculated_Amount = loan.PICalc_Amt,
+                            Recovery_Amount = 0,
+                            Led_Id = loan.PILed_Id,
+                            OverDue_Amount = 0,
+                            OrderNo = 1
+                        });
+                }
+                if (loan.Int_Bal > 0 || loan.IntCalc_Amt > 0)
+                {
+                    model.JewelLoanBalance_List.Add(new DtoJewelLoanBalance
+                        {
+                            Loan_Id = loan.Loan_Id,
+                            Loan_No = loan.Loan_No,
+                            Scheme_Name = loan.Scheme_Name,
+                            Status = "Interest",
+                            Loan_Amount = loan.San_Amt,
+                            Loan_Date = loan.San_Date,
+                            ROI = loan.Roi,
+                            PI_Rate = loan.Pi,
+                            Due_Date = loan.JL_DueDate,
+                            Interest_Application_Date = loan.IntCalc_DateNow,
+                            Outstanding = loan.Int_Bal + loan.IntCalc_Amt,
+                            Calculated_Amount = loan.IntCalc_Amt,
+                            Recovery_Amount = 0,
+                            Led_Id = loan.IntLed_Id,
+                            OverDue_Amount = 0,
+                            OrderNo = 2
+                        });
+                }
+                if (loan.Prl_Bal > 0)
+                {
+                    model.JewelLoanBalance_List.Add(new DtoJewelLoanBalance
+                        {
+                            Loan_Id = loan.Loan_Id,
+                            Loan_No = loan.Loan_No,
+                            Scheme_Name = loan.Scheme_Name,
+                            Status = "Principal",
+                            Loan_Amount = loan.San_Amt,
+                            Loan_Date = loan.San_Date,
+                            ROI = 0,
+                            PI_Rate = 0,
+                            Due_Date = loan.JL_DueDate,
+                            Interest_Application_Date = null,
+                            Outstanding = loan.Prl_Bal,
+                            Calculated_Amount = 0,
+                            Recovery_Amount = 0,
+                            Led_Id = loan.PrlLed_Id,
+                            OverDue_Amount = 0,
+                            OrderNo = 3
+                        });
+                }
+            }
+            model.Total_Outstanding = model.JewelLoanBalance_List.Sum(l => l.Outstanding);
+            processingMessage = null;
+        }
+        catch (Exception ex)
+        {
+            processingMessage = $"Error retrieving loan balances: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    private void ValidateRecoveryAmount(int index)
+    {
+        var loan = model.JewelLoanBalance_List[index];
+
+        // Ensure recovery amount is not negative
+        if (loan.Recovery_Amount < 0)
+        {
+            loan.Recovery_Amount = 0;
+        }
+
+        // Cap recovery at outstanding amount
+        if (loan.Recovery_Amount > loan.Outstanding)
+        {
+            // The UI will show a warning, but we don't cap it
+            // This way the user can see the error and correct it
+        }
+
+        // Update total recovery amount
+        model.Recovery_Amount = model.JewelLoanBalance_List.Sum(l => l.Recovery_Amount);
+    }
+
+    private void ValidateTotalRecoveryAmount()
+    {
+        if (model.Recovery_Amount > model.Total_Outstanding)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Total recovery amount is greater than total outstanding amount");
+            model.Recovery_Amount = model.Total_Outstanding;
+            AppropriateRecovery();
+        }
+        else
+        {
+            AppropriateRecovery();
+        }
+    }
+
+    private void AppropriateRecovery()
+    {
+        double totalRecovery = model.Recovery_Amount;
+        foreach (var rec in model.JewelLoanBalance_List!.OrderBy(x => x.Loan_Id).ThenBy(x => x.OrderNo))
+        {
+            rec.Recovery_Amount = 0;
+        }
+        foreach (var rec in model.JewelLoanBalance_List!.OrderBy(x => x.Loan_Id).ThenBy(x => x.OrderNo))
+        {
+            if (totalRecovery > 0)
+            {
+                if (totalRecovery >= rec.Outstanding)
+                {
+                    rec.Recovery_Amount = rec.Outstanding;
+                    totalRecovery -= rec.Outstanding;
+                }
+                else
+                {
+                    rec.Recovery_Amount = totalRecovery;
+                    totalRecovery = 0;
+                }
+            }
+        }
+
+    }
+
+    private bool IsRecoveryValid()
+    {
+        if (model.JewelLoanBalance_List == null || !model.JewelLoanBalance_List.Any())
+        {
+            return false;
+        }
+
+        // Check if any recovery amount is greater than outstanding
+        if (model.JewelLoanBalance_List.Any(l => l.Recovery_Amount > l.Outstanding))
+        {
+            return false;
+        }
+
+        // Check if total recovery is greater than zero
+        if (model.JewelLoanBalance_List.Sum(l => l.Recovery_Amount) <= 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task ProcessRecovery()
+    {
+        if (!IsRecoveryValid())
+        {
+            processingMessage = "Please correct the recovery amounts before proceeding";
+            isError = true;
+            return;
+        }
+
+        try
+        {
+            // This would be the service call to process the recovery
+            // For now, just show success message
+
+            // The logic to allocate recovery amount to interest and principal would be here
+            // For each loan, allocate recovery amount first to interest, then to principal
+
+            await JSRuntime.InvokeVoidAsync("alert", $"Recovery processed successfully! Total amount: {model.Recovery_Amount:C2}");
+
+            processingMessage = "Recovery processed successfully";
+            isError = false;
+
+            // Reset or reload as needed
+            // ResetForm();
+        }
+        catch (Exception ex)
+        {
+            processingMessage = $"Error processing recovery: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    protected async Task CloseJLRecovery()
+    {
+        await OnJLRecoveryComponentClose.InvokeAsync(true);
+    }
+
+    protected async Task JLRecoveryInitiate()
+    {
+        await OnJLRecoveryInitiate.InvokeAsync(model);
+    }
+}

@@ -1,0 +1,198 @@
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Infin8.Coapp.Repository
+{
+    public class TermDepositTrnRepository : Repository<TermDeposit_Trn>, ITermDepositTrnRepository
+    {
+        public CSISContext CSISContext => (CSISContext)Context;
+        public TermDepositTrnRepository(DbContext context) : base(context)
+        {
+        }
+
+        public async Task<bool> AddTermDepositTrnAsync(TermDeposit_Trn termDepositTrn)
+        {
+            bool result = false;
+            try
+            {
+                decimal maxId = await CSISContext.TermDeposit_Trn.MaxAsync(x => x.TDTrn_Id);
+                maxId++;
+                termDepositTrn.TDTrn_Id = maxId;
+                await AddAsync(termDepositTrn);
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit trn not saved");
+            }
+            return result;
+        }
+
+        public async Task<bool> EditTermDepositTrnAsync(TermDeposit_Trn termDepositTrn)
+        {
+            bool result = false;
+            try
+            {
+                //termDepositFCTemplate.TDfc_Delete = true;
+                await EditAsync(termDepositTrn);
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit trn not deleted");
+            }
+            return result;
+        }
+
+        public async Task<List<DropdownItem>> GetTDNosByMemIdAsync(decimal memId, string tdSchemeType, string brCode)
+        {
+            List<DropdownItem> tdNos = new List<DropdownItem>();
+            try
+            {
+                var tdNoList = await (from td in CSISContext.TermDeposit_Master
+                                      join scheme in CSISContext.TermDeposit_Schemes
+                                          on td.TDScheme_Id equals scheme.TDScheme_Id
+                                      join member in CSISContext.TermDeposit_Members
+                                          on td.TD_Id equals member.TD_Id
+                                      where td.TD_Delete == false
+                                          && td.AccountClosed == false
+                                          && member.TDMem_Delete == false
+                                          && member.Mem_Id == memId
+                                          && scheme.TDSchemeType == tdSchemeType
+                                          && td.BrCode == brCode
+                                      orderby td.TD_No
+                                      select new DropdownItem
+                                      {
+                                          Value = td.TD_Id.ToString(),
+                                          Text = td.TD_No
+                                      }).ToListAsync();
+                if (tdNoList != null && tdNoList.Count > 0) tdNos = tdNoList;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Term deposit nos by member id");
+            }
+            return tdNos;
+        }
+
+        public async Task<List<FDDetailsVM>> GetFDPayableByTDIdsAsync(decimal[] fdNos)
+        {
+            List<FDDetailsVM> fdDetails = new List<FDDetailsVM>();
+            try
+            {
+                var fdList = await (from master in CSISContext.TermDeposit_Master
+                                    join trn in CSISContext.TermDeposit_Trn
+                                        on master.TD_Id equals trn.TD_Id
+                                    join scheme in CSISContext.TermDeposit_Schemes
+                                        on master.TDScheme_Id equals scheme.TDScheme_Id
+                                    where trn.TD_Delete == false
+                          && master.AccountClosed == false
+                                        && fdNos.Contains(master.TD_Id)
+                                    group new
+                                    {
+                                        master,
+                                        scheme,
+                                        trn
+                                    } by new
+                                    {
+                                        master.TD_Id,
+                                        master.TD_No,
+                                        scheme.TDScheme_Name,
+                                        master.TDScheme_Id,
+                                        master.ValueDate,
+                                        master.DepositAmount,
+                                        master.PeriodInMonths,
+                                        master.PeriodInDays,
+                                        master.InterestPayableFrequency,
+                                        master.CompoundFrequency,
+                                        master.RateOfInterest,
+                                        master.IsDiscountRate,
+                                        master.MaturityAmount,
+                                        master.MaturityDate
+                                    } into grouped
+                                    select new FDDetailsVM
+                                    {
+                                        FDId = grouped.Key.TD_Id,
+                                        TDScheme_Name = grouped.Key.TDScheme_Name,
+                                        FDNo = grouped.Key.TD_No,
+                                        FDSchemeId = grouped.Key.TDScheme_Id,
+                                        FDValueDate = grouped.Key.ValueDate,
+                                        FDAmount = grouped.Key.DepositAmount,
+                                        FDPrdInMonths = grouped.Key.PeriodInMonths,
+                                        FDPrdInDays = grouped.Key.PeriodInDays,
+                                        FDIntPayableFrequency = grouped.Key.InterestPayableFrequency,
+                                        FDCompoundFrequency = grouped.Key.CompoundFrequency,
+                                        FDROI = grouped.Key.RateOfInterest,
+                                        FDIsDiscountRate = grouped.Key.IsDiscountRate,
+                                        FDMaturityAmount = grouped.Key.MaturityAmount,
+                                        FDMaturityDate = grouped.Key.MaturityDate,
+                                        FDIntAlreadyCalculated = grouped.Sum(g => g.trn.InterestCalculatedAmount),
+                                        FDIntAlreadyCalculatedDate = grouped.Max(g => g.trn.InterestAppliedDate),
+                                        FDIntAlreadyPaid = grouped.Sum(g => g.trn.InterestPaidAmount)
+                                    }).ToListAsync();
+                if (fdList.Count > 0) fdDetails = fdList;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Term deposit payable data");
+            }
+            return fdDetails;
+        }
+
+        public async Task<List<DropdownItem>> GetTDNosByMemIdForRenewal(decimal memId, string tdSchemeType, DateTime trnDate, string brCode)
+        {
+            List<DropdownItem> fdList = new List<DropdownItem>();
+            try
+            {
+                var query = await (from master in CSISContext.TermDeposit_Master
+                                       // --- Join with Transactions (INNER JOIN) ---
+                                   join trn in CSISContext.TermDeposit_Trn
+                                   on master.TD_Id equals trn.TD_Id
+                                   // --- Filtering (WHERE clauses combined) ---
+                                   where master.TD_Delete == false &&
+                                         master.AccountClosed == false &&
+                                         trn.TD_Delete == false &&
+                                         master.Mem_Id == memId &&
+                                         master.MaturityDate <= trnDate.Date &&
+                                         master.BrCode == brCode &&
+                                         trn.BrCode == brCode
+                                   // --- Grouping (GROUP BY) ---
+                                   // Group the transaction by the master fields
+                                   group trn by new { master.TD_Id, master.TD_No } into g // 'g' represents each group
+                                                                                          // --- Aggregation Filtering (HAVING) ---
+                                                                                          // Filter groups where the sum of DepositPaidAmount within the group is 0
+                                   where g.Sum(t => t.DepositPaidAmount) == 0
+                                   // --- Final Selection (SELECT) ---
+                                   // Select the key of the group (which contains TD_Id and TD_No)
+                                   select g.Key).ToListAsync();   // g.Key already holds the anonymous type { TD_Id, TD_No }
+                if (query != null && query.Count > 0)
+                {
+                    foreach (var t in query)
+                    {
+                        DropdownItem item = new DropdownItem
+                        {
+                            Value = t.TD_Id.ToString(),
+                            Text = t.TD_No,
+                        };
+                        fdList.Add(item);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Term deposit payable for renewal");
+            }
+            return fdList;
+        }
+    }
+}

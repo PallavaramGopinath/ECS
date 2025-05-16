@@ -1,0 +1,1239 @@
+﻿@page "/member-transactions"
+@using System.Linq
+@inject IJSRuntime JSRuntime
+@using Infin8.Coapp.Dto
+
+@rendermode InteractiveAuto
+@inject HttpClient _httpClient
+
+
+<div class="container-fluid">
+    <h3 class="mb-4">Member Transactions</h3>
+    <EditForm Model="@transaction" method="post" OnValidSubmit="@HandleValidSubmit" FormName="member-transaction">
+        <DataAnnotationsValidator />
+
+        <!-- Member Information -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">Member Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Transaction Date</label>
+                                    <InputDate class="form-control shadow-none" disabled="@isTrnDateDisable"
+                                               @bind-Value="transaction.Transaction_Date"
+                                               @bind-Value:after="this.DisableTrnDate" />
+                                    <ValidationMessage For="@(()=>transaction.Transaction_Date)" />
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Member No</label>
+                                    <div class="input-group">
+                                        <ErrorBoundary>
+                                            <ChildContent>
+                                                <InputText class="form-control shadow-none" disabled="@isMemberNoDisable" @bind-Value="transaction.Member_No"
+                                                           @oninput="(e) => handleMemNo(e, transaction)" />
+                                                <ValidationMessage For="@(()=>transaction.Member_No)" />
+                                                @* <button class="btn btn-outline-secondary" type="button" @onclick="OpenMemberSearchModal">
+                                            <i class="oi oi-magnifying-glass"></i>
+                                        </button> *@
+                                            </ChildContent>
+                                        </ErrorBoundary>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Member Name</label>
+                                    <InputText class="form-control shadow-none" disabled="true" @bind-Value="transaction.Member_Name" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Father's Name</label>
+                                    <InputText class="form-control shadow-none" disabled="true" @bind-Value="transaction.Father_Name" readonly />
+                                </div>
+                            </div>
+
+                            <div class="col-md-4 form-group mb-3">
+                                <label>Address</label>
+                                <textarea class="form-control shadow-none" disabled @bind="transaction.Address" readonly rows="2"></textarea>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Cash Adjustment</label>
+                                    <InputSelect class="form-select shadow-none" disabled="@isDdlCashAdjustmentDisable"
+                                                 @bind-Value="transaction.Cash_Adjustment"
+                                                 @bind-Value:after="DdlCashReceiptChange">
+                                        <option value="0">Select Cash/Adjustment</option>
+                                        <option value="1">Cash</option>
+                                        <option value="2">Adjustment</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(()=>transaction.Cash_Adjustment)" />
+
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Transaction Type</label>
+                                    <InputSelect class="form-select shadow-none" @bind-Value="transaction.Receipt_Payment"
+                                                 @bind-Value:after="handlerSelectAccount2">
+                                        <option value="0">Select Transaction Type</option>
+                                        <option value="1">Receipt</option>
+                                        <option value="2">Payment</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(()=>transaction.Receipt_Payment)" />
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Select Account</label>
+                                    <InputSelect class="form-select shadow-none" @bind-Value="transaction.Account_Id"
+                                                 @bind-Value:after="handlerShowAccountModal">
+                                        <option value="0">--Select Account Name--</option>
+                                        @foreach (var account in accountItems)
+                                        {
+                                            <option value="@account.Value">@account.Text</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(()=>transaction.Account_Id )" />
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Select Ledger Name</label>
+                                    <InputSelect class="form-select shadow-none" @bind-Value="transaction.Ledger_Id"
+                                                 @bind-Value:after="GetLedgerBalance">
+                                        <option value="0">--Select Ledger Name--</option>
+                                        @foreach (var ledger in ledgerNameItems)
+                                        {
+                                            <option value="@ledger.Value">@ledger.Text</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(()=>transaction.Ledger_Id )" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank Account Information -->
+        @if (isBankAccount)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Bank Account Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="checkNo">Cheque No:</label>
+                                <InputText id="checkNo" class="form-control" @bind-Value="transaction.Cheque_No" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="chequeDate">Cheque Date:</label>
+                                <InputDate id="chequeDate" class="form-control" @bind-Value="transaction.Cheque_Date" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="issueBank">Issue Bank:</label>
+                                <InputText id="issueBank" class="form-control" @bind-Value="transaction.Issue_Bank" />
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        }
+
+        <!-- Ledger Balance and Entry -->
+        @if (isLedgerSection)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Ledger Balance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="ledgerBalance">Ledger Balance:</label>
+                                <InputNumber id="ledgerBalance" class="form-control" disabled="true" readonly @bind-Value="transaction.Ledger_Balance" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="LedgerEntry">Ledger Entry:</label>
+                                <InputNumber id="LedgerEntry" class="form-control" @bind-Value="transaction.Ledger_Entry"
+                                             @onblur="ValidateLedgerEntry" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button class="btn btn-sm btn-light" @onclick="AddAccount">
+                                <i class="oi oi-plus"></i> Add Account
+                            </button>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        }
+
+        <!-- Accounts Information -->
+        @* @if (isTransactionSection)
+        { *@
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Transaction Details</h5>
+                        @* <button class="btn btn-sm btn-light" @onclick="AddNewAccountRow">
+                            <i class="oi oi-plus"></i> Add Account
+                        </button> *@
+                    </div>
+                    <div class="card-body" style="max-height: 350px; overflow-y: auto;">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Account Name</th>
+                                        <th>Receipt Amount</th>
+                                        <th>Payment Amount</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var account in transactionAccountsList)
+                                    {
+                                        <tr>
+                                            <td>@account.AccountName</td>
+                                            <td>@account.ReceiptAmount</td>
+                                            <td>@account.PaymentAmount</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary" @onclick="() => ViewAccount(account)">
+                                                    <i class="oi oi-eye"></i>
+                                                    View
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" @onclick="() => RemoveAccountRow(account)">
+                                                    <i class="oi oi-trash"></i>
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-info">
+                                        <th>Total</th>
+                                        <th>@transactionAccountsList.Sum(a => a.ReceiptAmount)</th>
+                                        <th>@transactionAccountsList.Sum(a => a.PaymentAmount)</th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @* } *@
+
+        @* <div class="row">
+            <div class="col-12 text-end">
+                <button class="btn btn-secondary me-2" @onclick="ResetForm">Reset</button>
+                <button class="btn btn-success" @onclick="SaveTransaction">Save Transaction</button>
+            </div>
+        </div> *@
+    </EditForm>
+</div>
+@if (isComponentLoaded)
+{
+    <DynamicComponent Type="currentComponent" Parameters="parameters" />
+}
+
+@if (isViewComponentLoaded && viewComponent != null)
+{
+    <DynamicComponent Type="viewComponent" Parameters="viewParameters" />
+}
+
+@if (showErrorMessage)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => showErrorMessage = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+@code {
+    private bool isComponentLoaded = false;
+    private bool isViewComponentLoaded = false;
+    private bool isBankAccount = false;
+    private bool isLedgerSection = false;
+    private bool isTransactionSection = false;
+    private bool showErrorMessage = false;
+    private string errorMessage = "";
+    private Type? currentComponent;
+    private Type? viewComponent;
+    private Dictionary<string, object> parameters = new();
+    private Dictionary<string, object> viewParameters = new();
+    private string componentName = "JewelLoanRecovery";
+    #region variable declarations
+    private TransactionBy_Members transaction = new()
+        {
+            Transaction_Date = DateTime.Today,
+            Receipt_Payment = 0,
+            Cash_Adjustment = 0,
+            Member_No = string.Empty,
+            Member_Name = string.Empty,
+            Account_Id = 0,
+            Address = string.Empty,
+            Ledger_Id = 0,
+            Father_Name = string.Empty,
+            Member_Id = 0,
+            Yr_Id = 110010000023
+        };
+
+    private MemberDetailsVM memberDetails = new();
+    bool isTrnDateDisable = false;
+    bool isMemberNoDisable = false;
+    bool isDdlCashAdjustmentDisable = false;
+
+    private List<AccountTransactionVM> transactionAccountsList = new();
+    private List<DropdownItem> accountItems = new();
+    private List<DropdownItem> ledgerNameItems = new();
+
+    private bool isMemberSearchModalVisible = false;
+    private bool isAccountSearchModalVisible = false;
+    private bool isChequeDetailsModalVisible = false;
+    private AccountTransactionVM selectedAccount;
+    #endregion
+
+    #region component inititate variables
+    private DtoJewelLoanRecovery JLRecoveryTransaction = new();
+    #endregion
+    protected override void OnInitialized()
+    {
+        // Initialize with one empty row
+
+        // AddNewAccountRow();
+    }
+
+    #region event handlers
+    private void DisableTrnDate()
+    {
+        isTrnDateDisable = true;
+    }
+
+    private void DdlCashReceiptChange()
+    {
+        isDdlCashAdjustmentDisable = true;
+    }
+
+    private void SelectMember(TransactionBy_Members member)
+    {
+
+        transaction.Member_Id = member.Member_Id;
+        transaction.Member_No = member.Member_No;
+        transaction.Member_Name = member.Member_Name;
+        transaction.Father_Name = member.Father_Name;
+        transaction.Address = member.Address;
+        transaction.Account_Id = member.Account_Id;
+
+        isMemberSearchModalVisible = false;
+    }
+
+    private void SelectAccount(AccountTransactionVM account)
+    {
+        if (selectedAccount != null)
+        {
+            selectedAccount.AccountId = account.AccountId;
+            selectedAccount.AccountName = account.AccountName;
+            selectedAccount.LedId = account.LedId;
+            if (transaction.Account_Id == 11)
+            {
+                selectedAccount.ChequeNo = transaction.Cheque_No;
+                selectedAccount.ChequeDate = transaction.Cheque_Date;
+                selectedAccount.IssueBankName = transaction.Issue_Bank;
+            }
+            else
+            {
+                selectedAccount.ChequeNo = "";
+                selectedAccount.ChequeDate = null;
+                selectedAccount.IssueBankName = "";
+            }
+        }
+
+        isAccountSearchModalVisible = false;
+    }
+
+    private async Task handleMemNo(ChangeEventArgs e, TransactionBy_Members transaction)
+    {
+        try
+        {
+            transaction.Member_No = e.Value?.ToString();
+            if (!string.IsNullOrWhiteSpace(transaction.Member_No))
+            {
+                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{transaction.Member_No}/11001");
+                if (mem != null)
+                {
+                    transaction.Member_Id = mem.Mem_Id;
+                    transaction.Member_Name = mem.MemberName;
+                    transaction.Father_Name = mem.FatherName;
+                    transaction.Address = mem.Address;
+                    isMemberNoDisable = true;
+                }
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    private void ValidateLedgerEntry()
+    {
+        switch (transaction.Account_Id)
+        {
+            case 3: /// Member suspense creditor
+                if (transaction.Receipt_Payment == 2)
+                {
+                    if (transaction.Ledger_Entry > transaction.Ledger_Balance)
+                    {
+                        JSRuntime.InvokeVoidAsync("alert", "Ledger entry is greater than ledger balance");
+                        transaction.Ledger_Entry = transaction.Ledger_Balance;
+                        StateHasChanged();
+                    }
+                }
+                break;
+            case 4: /// Member suspene debtor
+                if (transaction.Receipt_Payment == 1)
+                {
+                    if (transaction.Ledger_Entry > transaction.Ledger_Balance)
+                    {
+                        JSRuntime.InvokeVoidAsync("alert", "Ledger entry is greater than ledger balance");
+                        transaction.Ledger_Entry = transaction.Ledger_Balance;
+                        StateHasChanged();
+                    }
+                }
+                break;
+            case 5: /// Member share capital
+                if (transaction.Receipt_Payment == 2)
+                {
+                    if (transaction.Ledger_Entry > transaction.Ledger_Balance)
+                    {
+                        JSRuntime.InvokeVoidAsync("alert", "Share capital payment is greater than  share capital balance");
+                        transaction.Ledger_Entry = transaction.Ledger_Balance;
+                        StateHasChanged();
+                    }
+                }
+                break;
+
+        }
+
+    }
+
+    #region ddl onchange event first sample
+    private int Receipt_PaymentValue
+    {
+        get => transaction.Receipt_Payment;
+        set
+        {
+            transaction.Receipt_Payment = value;
+            handlerSelectAccount(value);
+        }
+    }
+
+    private async void handlerSelectAccount(int value)
+    {
+        if (transaction.Receipt_Payment == 1)
+        {
+            var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/R/M");
+            if (receiptAccoutNames != null) accountItems = receiptAccoutNames;
+        }
+        if (transaction.Receipt_Payment == 2)
+        {
+            var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/P/M");
+            if (paymentAccountNames != null) accountItems = paymentAccountNames;
+        }
+        StateHasChanged();
+    }
+    #endregion
+
+    private async Task handlerSelectAccount2()
+    {
+        if (transaction.Receipt_Payment == 1)
+        {
+            var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/R/M");
+            if (receiptAccoutNames != null) accountItems = receiptAccoutNames;
+        }
+        if (transaction.Receipt_Payment == 2)
+        {
+            var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/P/M");
+            if (paymentAccountNames != null) accountItems = paymentAccountNames;
+        }
+        StateHasChanged();
+    }
+
+    #endregion
+
+    #region dynamic model rendering
+    private void OpenMemberSearchModal()
+    {
+        isMemberSearchModalVisible = true;
+    }
+
+    private void OpenAccountSearchModal(AccountTransactionVM account)
+    {
+        selectedAccount = account;
+        isAccountSearchModalVisible = true;
+    }
+
+    private void OpenChequeDetailsModal(AccountTransactionVM account)
+    {
+        selectedAccount = account;
+        isChequeDetailsModalVisible = true;
+    }
+
+    private async void handlerShowAccountModal()
+    {
+        ledgerNameItems = await GetLedgerNameList();
+        StateHasChanged();
+        await GetComponentName(transaction.Account_Id);
+
+        StateHasChanged();
+        #region common accounts
+        switch (transaction.Account_Id)
+        {
+            case 3: /// membser suspense creditor receipt/payment
+                isBankAccount = false;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 4: /// member suspense debtor receipt/payment
+                isBankAccount = false;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 5: /// member share capital receipt/payment
+                isBankAccount = false;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 11: /// bank name receipt/payment
+                isBankAccount = true;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 21: /// ledger entry receipt/payment
+                isBankAccount = false;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 22:    /// Staff susepense Creditor receipt/payment
+                isBankAccount = false;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 23:    /// Staff suspense Debtor receipt/payment
+                isBankAccount = false;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 36:    /// sb account transaction
+                isBankAccount = false;
+                isLedgerSection = true;
+                isTransactionSection = false;
+                break;
+            case 44:    ///Member due to transactions multiple
+                isBankAccount = false;
+                isLedgerSection = true;
+                isTransactionSection = false;
+                break;
+            case 45:    /// Member due by transactions multiple
+                isBankAccount = false;
+                isLedgerSection = true;
+                isTransactionSection = false;
+                break;
+        }
+        #endregion
+
+        #region receipt accounts
+        if (transaction.Receipt_Payment == 1)
+        {
+            switch (transaction.Account_Id)
+            {
+                case 1: /// loan receipt
+
+                    break;
+                case 2: /// RD Receipt
+                    break;
+                case 6: /// member deposit advance receipt
+                    break;
+                case 16:    /// fd account creation
+                    break;
+                case 17: /// rd account creation
+                    break;
+                case 18: /// sb account creation
+                    break;
+                case 19: /// Staff Loan Recovery
+                    break;
+                case 20:   /// PF Subscription
+                    break;
+                case 24:    /// FD loan recovery
+                    break;
+                case 25:    /// RD loan recovery
+                    break;
+                case 26:    /// member pending deposit receipt
+                    break;
+                case 31:    /// Jewel Loan Recovery
+                    isComponentLoaded = true;
+                    break;
+                case 47:    /// housing loan reimbursemet
+                    break;
+            }
+        }
+        #endregion
+
+        #region payment accounts
+        if (transaction.Receipt_Payment == 2)
+        {
+            switch (transaction.Account_Id)
+            {
+                case 7: /// Fd Interest Payment
+                    break;
+                case 8: /// FD Refund
+                    break;
+                case 9:  /// FD Renewal
+                    break;
+                case 10:    /// RD Refund
+                    break;
+                case 12:    /// Loan disbursement for Housing society
+                    break;
+                case 13:    /// Loan on Fixed Deposit
+                    break;
+                case 14: /// Loan on Recurring Deposit
+                    break;
+                case 22:    /// staff suspense creditor payment
+                    break;
+                case 23:    /// staff suspense debtor payment
+                    break;
+                case 27:    /// member deposit payment
+                    break;
+                case 29:   /// member dividend payment
+                    break;
+                case 30: /// Member int on TD payment
+                    break;
+                case 32:    /// Member's Dividend and Int on TD Bulk Payment
+                    break;
+                case 37:    /// Jewel Loan disbursement
+                    break;
+                case 38:    /// Group Insurance Payment
+                    break;
+                case 46: /// Loan disbursement subsequent instalments HSIS
+                    break;
+                case 48:    /// Loan disbursement for PLDB
+                    break;
+            }
+            StateHasChanged();
+        }
+        #endregion
+    }
+    #endregion
+
+    private void AddAccount()
+    {
+        if (ValidateAddAccount()) return;
+        string status = "";
+        double receipt = 0, payment = 0;
+        string? ChequeNo = "", IssueBankName = "";
+        DateTime? ChequeDate = null;
+        switch (transaction.Account_Id)
+        {
+            case 3: /// Member suspense credit
+                status = "GB";
+                break;
+            case 4: /// Member suspene debtor
+                status = "GT";
+                break;
+            case 5:
+                status = "GS";
+                break;
+            case 21:    /// Ledger entry
+                status = "G";
+                break;
+            case 22: /// staff suspense creditor
+                status = "SDBy";
+                break;
+            case 23: /// staff suspense debtor
+                status = "SDTo";
+                break;
+        }
+        if (transaction.Account_Id == 11)
+        {
+            ChequeNo = transaction.Cheque_No;
+            ChequeDate = transaction.Cheque_Date;
+            IssueBankName = transaction.Issue_Bank;
+            status = "Q";
+        }
+        else
+        {
+            ChequeNo = "";
+            ChequeDate = null;
+            IssueBankName = "";
+        }
+        string accName = transaction.Account_Id.ToString();
+        if (transaction.Receipt_Payment == 1) receipt = transaction.Ledger_Entry;
+        else payment = transaction.Ledger_Entry;
+        transactionAccountsList.Add(new AccountTransactionVM
+            {
+                CashAdjId = transaction.Cash_Adjustment,
+                LedId = transaction.Ledger_Id,
+                AccountId = transaction.Account_Id,
+                AccountName = ledgerNameItems.Where(x => x.Value == transaction.Ledger_Id.ToString()).Select(x => x.Text).FirstOrDefault(), // accountItems.Where(a=> a.Value == accName).Select(a=> a.Text).FirstOrDefault(), // (accountItems.FirstOrDefault(a => a.Value == accName)!).ToString(),
+                ReceiptAmount = receipt,
+                PaymentAmount = payment,
+                ChequeNo = ChequeNo,
+                ChequeDate = ChequeDate,
+                IssueBankName = IssueBankName,
+                Status = status,
+                Member_Id = transaction.Member_Id,
+                Member_No = transaction.Member_No,
+                Member_Name = transaction.Member_Name,
+                CashReceipt = transaction.Receipt_Payment == 1 ? receipt : 0,
+                CashPayment = transaction.Receipt_Payment == 2 ? payment : 0
+            });
+        transaction.Ledger_Id = 0;
+        transaction.Account_Id = 0;
+        transaction.Ledger_Balance = 0;
+        transaction.Ledger_Entry = 0;
+        transaction.Cheque_No = string.Empty;
+        transaction.Cheque_Date = null;
+        transaction.Issue_Bank = string.Empty;
+    }
+
+    private bool ValidateAddAccount()
+    {
+        bool result = false;
+        if (transaction.Account_Id == 11)
+        {
+            if (string.IsNullOrWhiteSpace(transaction.Cheque_No))
+                errorMessage = "Cheque No. is required";
+            if (transaction.Cheque_Date == null) errorMessage += "\n Cheque Date is required";
+            if (string.IsNullOrWhiteSpace(transaction.Issue_Bank)) errorMessage += "\n Issue Bank Name is required";
+        }
+        if (transaction.Ledger_Entry == 0) errorMessage += "\n Ledger Transaction Amount is required";
+        if (errorMessage.Length > 0)
+        {
+            result = true;
+            showErrorMessage = true;
+        }
+        return result;
+    }
+
+    private async Task<List<DropdownItem>> GetLedgerNameList()
+    {
+        List<DropdownItem> ledgerList = new List<DropdownItem>();
+        isBankAccount = false;
+        switch (transaction.Account_Id)
+        {
+            case 3: /// membser suspense creditor receipt/payment
+                var ledgerTmp1 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetSuspenseAccounts/2/11001");
+                if (ledgerTmp1 != null) ledgerList = ledgerTmp1.ToList();
+                StateHasChanged();
+                break;
+            case 4: /// member suspense debtor receipt/payment
+                var ledgerTmp2 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetSuspenseAccounts/1/11001");
+                if (ledgerTmp2 != null) ledgerList = ledgerTmp2.ToList();
+                StateHasChanged();
+                break;
+            case 5: /// member share capital receipt/payment
+                var ledgerTmp3 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetShareCapitalLedger/11001");
+                if (ledgerTmp3 != null) ledgerList = ledgerTmp3.ToList();
+                StateHasChanged();
+                break;
+            case 11: /// bank name receipt/payment
+                var ledgerTmp4 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetBankLedgers/11001");
+                if (ledgerTmp4 != null) ledgerList = ledgerTmp4.ToList();
+
+                isBankAccount = true;
+                StateHasChanged();
+                break;
+            case 21: /// ledger entry receipt/payment
+                var ledgerTmp5 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetLedgersExceptBankLedger/11001");
+                if (ledgerTmp5 != null) ledgerList = ledgerTmp5.ToList();
+                break;
+            case 22:    /// Staff susepense Creditor receipt/payment
+                var ledgerTmp6 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetSuspenseAccounts/6/11001");
+                if (ledgerTmp6 != null) ledgerList = ledgerTmp6.ToList();
+                StateHasChanged();
+                break;
+            case 23:    /// Staff suspense Debtor receipt/payment
+                var ledgerTmp7 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetSuspenseAccounts/5/11001");
+                if (ledgerTmp7 != null) ledgerList = ledgerTmp7.ToList();
+                StateHasChanged();
+                break;
+            case 36:    /// sb account transaction
+
+                break;
+            case 44:    ///Member due to transactions multiple
+                break;
+            case 45:    /// Member due by transactions multiple
+                break;
+        }
+
+        return ledgerList;
+    }
+
+    private async Task GetComponentName(int Account_Id)
+    {
+        string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+
+        // parameters = new Dictionary<string, object> { { "Message", "Switched dynamically!" } };
+        if (isComponent(Account_Id))
+        {
+            var url = $"https://localhost:7073/api/Transaction/GetComponentName/{Account_Id}";
+            using var response = await _httpClient.GetAsync(url);
+            var jsonString = await response.Content.ReadAsStringAsync();
+            componentName = jsonString;
+            StateHasChanged();
+        }
+        else
+        {
+            isComponentLoaded = false;
+            StateHasChanged();
+        }
+        switch (transaction.Account_Id)
+        {
+            /// common
+
+            case 36:    /// sb account transaction
+                break;
+            case 44:    ///Member due to transactions multiple
+                break;
+            case 45:    /// Member due by transactions multiple
+                break;
+
+            /// Receipt
+            case 1: /// loan receipt
+                break;
+            case 2: /// RD Receipt
+                break;
+            case 6: /// member deposit advance receipt
+                break;
+            case 16:    /// fd account creation
+                break;
+            case 17: /// rd account creation
+                break;
+            case 18: /// sb account creation
+                break;
+            case 19: /// Staff Loan Recovery
+                break;
+            case 20:   /// PF Subscription
+                break;
+            case 24:    /// FD loan recovery
+                break;
+            case 25:    /// RD loan recovery
+                break;
+            case 26:    /// member pending deposit receipt
+                break;
+            case 31:    /// Jewel Loan Recovery
+
+                // componentName = "JewelLoanRecovery";
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+                Type? type = Type.GetType(fullyQualifiedName);
+                if (type != null) currentComponent = type;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnJLRecoveryComponentClose", EventCallback.Factory.Create<bool>(this, CloseJLRecoveryComponent) },
+                    { "OnJLRecoveryInitiate",EventCallback.Factory.Create<DtoJewelLoanRecovery>(this,JLRecoveryInitiate)}
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
+                break;
+            case 47:    /// housing loan reimbursemet
+                break;
+
+
+            /// payment
+            case 7: /// Fd Interest Payment
+                break;
+            case 8: /// FD Refund
+                break;
+            case 9:  /// FD Renewal
+                break;
+            case 10:    /// RD Refund
+                break;
+            case 12:    /// Loan disbursement for Housing society
+                break;
+            case 13:    /// Loan on Fixed Deposit
+                break;
+            case 14: /// Loan on Recurring Deposit
+                break;
+            case 22:    /// staff suspense creditor payment
+                break;
+            case 23:    /// staff suspense debtor payment
+                break;
+            case 27:    /// member deposit payment
+                break;
+            case 29:   /// member dividend payment
+                break;
+            case 30: /// Member int on TD payment
+                break;
+            case 32:    /// Member's Dividend and Int on TD Bulk Payment
+                break;
+            case 37:    /// Jewel Loan disbursement
+                // componentName = "JewelLoanDisbursement";
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+                Type? type2 = Type.GetType(fullyQualifiedName);
+                if (type2 != null) currentComponent = type2;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    {"MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date }
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                break;
+
+            case 38:    /// Group Insurance Payment
+                break;
+            case 46: /// Loan disbursement subsequent instalments HSIS
+                break;
+            case 48:    /// Loan disbursement for PLDB
+                break;
+        }
+    }
+
+    private async Task GetLedgerBalance()
+    {
+        switch (transaction.Account_Id)
+        {
+            case 3: /// Member suspense creditor
+            case 4: /// Member suspense debtor
+            case 5: /// Member share capital
+            case 22: /// Staff suspense creditor
+            case 23: /// staff suspense debtor
+                double ledgerBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Member/MemTrn/{transaction.Member_Id}/{transaction.Ledger_Id}/11001");
+                transaction.Ledger_Balance = ledgerBalance;
+                break;
+            case 6: /// Deposit advance receipt
+                break;
+            case 11: /// Bank balance
+            case 21: /// Ledger balance
+                // var queryString = new System.Text.StringBuilder("ledId=");
+                // queryString.Append(transaction.Ledger_Id);
+                // queryString.Append($"&yrId=");
+                // queryString.Append(transaction.Yr_Id);
+                // queryString.Append($"&uptoDate={Uri.EscapeDataString(transaction.Transaction_Date.ToString("yyyy-MM-dd"))}");
+                string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
+                try
+                {
+                    // var ledgerBalance21 = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Accounts/GetLedgerBalance?{queryString}");
+                    var ledgerBalance21 = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Accounts/GetLedgerBalance?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}");
+                    transaction.Ledger_Balance = Convert.ToDouble(ledgerBalance21);
+                }
+                catch (Exception ex)
+                {
+                    showErrorMessage = true;
+                    errorMessage = "Error in fetcing Ledger balance " + ex.Message;
+                }
+
+                break;
+        }
+    }
+
+    private void SaveChequeDetails()
+    {
+        isChequeDetailsModalVisible = false;
+    }
+
+    private void AddNewAccountRow()
+    {
+        transactionAccountsList.Add(new AccountTransactionVM
+            {
+                ReceiptAmount = 0,
+                PaymentAmount = 0,
+                Status = "Pending"
+            });
+    }
+
+    private async Task ViewAccount(AccountTransactionVM account)
+    {
+        string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+
+        // parameters = new Dictionary<string, object> { { "Message", "Switched dynamically!" } };
+        if (isComponent(account.AccountId))
+        {
+            var url = $"https://localhost:7073/api/Transaction/GetComponentName/{account.AccountId}";
+            using var response = await _httpClient.GetAsync(url);
+            var jsonString = await response.Content.ReadAsStringAsync();
+            componentName = jsonString + "View";
+            StateHasChanged();
+        }
+        else
+        {
+            isComponentLoaded = false;
+            StateHasChanged();
+        }
+        switch (account.AccountId)
+        {
+            /// common
+
+            case 36:    /// sb account transaction
+                break;
+            case 44:    ///Member due to transactions multiple
+                break;
+            case 45:    /// Member due by transactions multiple
+                break;
+
+            /// Receipt
+            case 1: /// loan receipt
+                break;
+            case 2: /// RD Receipt
+                break;
+            case 6: /// member deposit advance receipt
+                break;
+            case 16:    /// fd account creation
+                break;
+            case 17: /// rd account creation
+                break;
+            case 18: /// sb account creation
+                break;
+            case 19: /// Staff Loan Recovery
+                break;
+            case 20:   /// PF Subscription
+                break;
+            case 24:    /// FD loan recovery
+                break;
+            case 25:    /// RD loan recovery
+                break;
+            case 26:    /// member pending deposit receipt
+                break;
+            case 31:    /// Jewel Loan Recovery
+
+                // componentName = "JewelLoanRecovery";
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+                Type? type = Type.GetType(fullyQualifiedName);
+                if (type != null) currentComponent = type;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "jlRecovery", JLRecoveryTransaction.JewelLoanBalance_List! },
+                    { "OnJLRecoveryViewComponentClose", EventCallback.Factory.Create<bool>(this, CloseJLRecoveryViewComponent) }
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
+                break;
+            case 47:    /// housing loan reimbursemet
+                break;
+
+
+            /// payment
+            case 7: /// Fd Interest Payment
+                break;
+            case 8: /// FD Refund
+                break;
+            case 9:  /// FD Renewal
+                break;
+            case 10:    /// RD Refund
+                break;
+            case 12:    /// Loan disbursement for Housing society
+                break;
+            case 13:    /// Loan on Fixed Deposit
+                break;
+            case 14: /// Loan on Recurring Deposit
+                break;
+            case 22:    /// staff suspense creditor payment
+                break;
+            case 23:    /// staff suspense debtor payment
+                break;
+            case 27:    /// member deposit payment
+                break;
+            case 29:   /// member dividend payment
+                break;
+            case 30: /// Member int on TD payment
+                break;
+            case 32:    /// Member's Dividend and Int on TD Bulk Payment
+                break;
+            case 37:    /// Jewel Loan disbursement
+                // componentName = "JewelLoanDisbursement";
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+                Type? type2 = Type.GetType(fullyQualifiedName);
+                if (type2 != null) currentComponent = type2;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    {"MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date }
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                break;
+
+            case 38:    /// Group Insurance Payment
+                break;
+            case 46: /// Loan disbursement subsequent instalments HSIS
+                break;
+            case 48:    /// Loan disbursement for PLDB
+                break;
+        }
+    }
+
+    private void RemoveAccountRow(AccountTransactionVM account)
+    {
+        transactionAccountsList.Remove(account);
+    }
+
+    private async Task SaveTransaction()
+    {
+        // Validation
+        if (string.IsNullOrEmpty(transaction.Member_No))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please select a member");
+            return;
+        }
+
+        if (!transactionAccountsList.Any(a => a.ReceiptAmount > 0 || a.PaymentAmount > 0))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please add at least one account with amount");
+            return;
+        }
+
+        // Save transaction logic here
+        // await TransactionService.SaveMemberTransaction(transaction, transactionAccountsList);
+
+        await JSRuntime.InvokeVoidAsync("alert", "Transaction saved successfully!");
+        ResetForm();
+    }
+
+    private void ResetForm()
+    {
+        transaction = new TransactionBy_Members
+            {
+                Transaction_Date = DateTime.Today,
+                Receipt_Payment = 1,
+                Cash_Adjustment = 1
+            };
+
+        transactionAccountsList.Clear();
+        AddNewAccountRow();
+    }
+
+    private void HandleValidSubmit()
+    {
+
+    }
+
+    private bool isComponent(int Account_Id)
+    {
+        bool result = true;
+        switch (Account_Id)
+        {
+            case 3: /// membser suspense creditor receipt/payment
+                result = false;
+                break;
+            case 4: /// member suspense debtor receipt/payment
+                result = false;
+                break;
+            case 5: /// member share capital receipt/payment
+                result = false;
+                break;
+            case 11: /// bank name receipt/payment
+                result = false;
+                break;
+            case 21: /// ledger entry receipt/payment
+                result = false;
+                break;
+            case 22: /// Staff susepense Creditor receipt/payment
+                result = false;
+                break;
+            case 23: /// Staff suspense Debtor receipt/payment
+                result = false;
+                break;
+        }
+        return result;
+    }
+
+    private void CloseJLRecoveryComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+            isComponentLoaded = false;
+    }
+    private void CloseJLRecoveryViewComponent(bool closeSignalFromViewChild)
+    {
+        if (closeSignalFromViewChild)
+            isViewComponentLoaded = false;
+        viewComponent = null;
+        // viewParameters = null;
+        return;
+    }
+
+    private void JLRecoveryInitiate(DtoJewelLoanRecovery jlInitiate)
+    {
+        JLRecoveryTransaction = jlInitiate;
+        UpdateJLRecoveryTransaction();
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+    }
+
+    private void UpdateJLRecoveryTransaction()
+    {
+        // private List<AccountTransactionVM> transactionAccountsList = new();
+        AccountTransactionVM trn = new()
+            {
+                CashAdjId = transaction.Cash_Adjustment,
+                LedId = 0,
+                AccountId = transaction.Account_Id,
+                AccountName = "Jewel Loan Recovery",
+                ReceiptAmount = JLRecoveryTransaction.JewelLoanBalance_List!.Select(x => x.Recovery_Amount).Sum(),
+                PaymentAmount = 0,
+                ChequeNo = string.Empty,
+                ChequeDate = null,
+                IssueBankName = string.Empty,
+                Status = "JLR",
+                Member_Id = JLRecoveryTransaction.Mem_Id,
+                Member_No = JLRecoveryTransaction.Member_No,
+                PerNo = string.Empty,
+                Member_Name = JLRecoveryTransaction.Member_Name,
+                CashReceipt = transaction.Cash_Adjustment == 1 ? JLRecoveryTransaction.JewelLoanBalance_List!.Select(x => x.Recovery_Amount).Sum() : 0,
+                CashPayment = 0
+            };
+
+        transactionAccountsList.Add(trn);
+    }
+}

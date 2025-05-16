@@ -1,0 +1,252 @@
+﻿@using Microsoft.AspNetCore.Components
+@using System.ComponentModel.DataAnnotations
+
+<div class="container">
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="form-label">Member Number</label>
+                <input type="text" class="form-control" value="@MemberNumber" readonly />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="form-label">Member Name</label>
+                <input type="text" class="form-control" value="@MemberName" readonly />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="form-label">Age</label>
+                <input type="text" class="form-control" value="@Age" readonly />
+            </div>
+        </div>
+    </div>
+
+    @if (PaymentModel?.FixedDeposit_Nos?.Any() == true)
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Fixed Deposits</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>FD Number</th>
+                                <th>Interest Payable</th>
+                                <th>Deposit Refund</th>
+                                <th>Total Payable</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var fd in PaymentModel.Fixed_Deposit_Datas)
+                            {
+                                <tr>
+                                    <td>@fd.FD_No</td>
+                                    <td>@fd.Total_Interest_Payable.ToString("0.00")</td>
+                                    <td>@fd.Deposit_Refund.ToString("0.00")</td>
+                                    <td>@fd.Total_Payable.ToString("0.00")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (PaymentModel?.Loan_On_FixedDeposits?.Any() == true)
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Loans Against Fixed Deposits</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Loan Number</th>
+                                <th>Loan Date</th>
+                                <th>Loan Amount</th>
+                                <th>Interest Balance</th>
+                                <th>Principal Balance</th>
+                                <th>Total Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var loan in PaymentModel.Loan_On_FixedDeposits)
+                            {
+                                <tr>
+                                    <td>@loan.Loan_No</td>
+                                    <td>@loan.Loan_Date.ToShortDateString()</td>
+                                    <td>@loan.Loan_Amount.ToString("0.00")</td>
+                                    <td>@loan.Interest_Balance.ToString("0.00")</td>
+                                    <td>@loan.Principal_Balance.ToString("0.00")</td>
+                                    <td>@loan.Total_Balance.ToString("0.00")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5>Payment Summary</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-6">
+                    <span class="fw-bold">Total Interest Payable:</span>
+                </div>
+                <div class="col-md-6 text-end">
+                    @PaymentModel?.Total_Interest_Payable.ToString("0.00")
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-6">
+                    <span class="fw-bold">Total Deposit Payable:</span>
+                </div>
+                <div class="col-md-6 text-end">
+                    @PaymentModel?.Total_Deposit_Payable.ToString("0.00")
+                </div>
+            </div>
+            @if ((PaymentModel?.Total_Loan_Interest_Balance ?? 0) > 0 || (PaymentModel?.Total_Loan_Principal_Balance ?? 0) > 0)
+            {
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <span class="fw-bold">Loan Interest Balance:</span>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        @PaymentModel?.Total_Loan_Interest_Balance.ToString("0.00")
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <span class="fw-bold">Loan Principal Balance:</span>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        @PaymentModel?.Total_Loan_Principal_Balance.ToString("0.00")
+                    </div>
+                </div>
+            }
+            <hr />
+            <div class="row mb-2">
+                <div class="col-md-6">
+                    <span class="fw-bold">Net Payable:</span>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="fw-bold">@PaymentModel?.Net_Payable.ToString("0.00")</span>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="d-flex justify-content-between">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="deductLoanAmount"
+                           checked="@PaymentModel.Is_Deduct_Loan_Amount"
+                           @onchange="@(e => {
+                               if (PaymentModel != null)
+                                   PaymentModel.Is_Deduct_Loan_Amount = (bool)e.Value;
+                           })" />
+                    <label class="form-check-label" for="deductLoanAmount">
+                        Deduct loan amount from payment
+                    </label>
+                </div>
+                <div>
+                    <button class="btn btn-success me-2" @onclick="ProcessRenewal">Renew Fixed Deposit</button>
+                    <button class="btn btn-primary" @onclick="ProcessPayment">Process Payment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public int Age { get; set; }
+    [Parameter] public FixedDepositPayment? PaymentModel { get; set; }
+    [Parameter] public EventCallback<FixedDepositPayment> OnRenewalRequested { get; set; }
+    [Parameter] public EventCallback<FixedDepositPayment> OnPaymentProcessed { get; set; }
+
+    #region class
+    public class FixedDepositPayment
+    {
+        public decimal Mem_Id { get; set; }
+        public string? Member_No { get; set; }
+        public string? Member_Name { get; set; }
+        // public string? Father_Name { get; set; }
+        // public int Age { get; set; }
+        public DateTime Transaction_Date { get; set; }
+        public string? PaymentStatus { get; set; }
+        public List<FixedDepositData>? Fixed_Deposit_Datas { get; set; }
+        public List<FixedDepositNos>? FixedDeposit_Nos { get; set; }
+        public List<LoanOnFixedDeposit>? Loan_On_FixedDeposits { get; set; }
+        public double Total_Interest_Paid { get; set; }
+        public double Total_Interest_Calculated { get; set; }
+        public double Total_Interest_Payable { get; set; }
+        public double Total_Deposit_Payable { get; set; }
+        public double Total_Loan_Interest_Balance { get; set; }
+        public double Total_Loan_Principal_Balance { get; set; }
+        public double Net_Payable { get; set; }
+        public bool Is_Deduct_Loan_Amount { get; set; }
+    }
+    public class FixedDepositData
+    {
+        public decimal FD_Id { get; set; }
+        public string? FD_No { get; set; }
+        public double Previous_Interest_Calculated { get; set; }
+        public double Previous_Interest_Paid { get; set; }
+        public double Pending_Interest { get; set; }
+        public double Current_Interest_Calculated { get; set; }
+        public double Rate_Of_Interest_Applied { get; set; }
+        public DateTime? Current_Interest_Applied_Date { get; set; }
+        public double Total_Interest_Payable { get; set; }
+        public double Current_Interest_Payment { get; set; }
+        public double Deposit_Refund { get; set; }
+        public double Total_Payable { get; set; }
+    }
+    public class LoanOnFixedDeposit
+    {
+        public decimal FD_Id { get; set; }
+        public decimal Loan_Id { get; set; }
+        public string? Loan_No { get; set; }
+        public DateTime Loan_Date { get; set; }
+        public double Loan_Amount { get; set; }
+        public double Rate_Of_Interest { get; set; }
+        public double Interest_Balance { get; set; }
+        public double Current_Interest { get; set; }
+        public double Principal_Balance { get; set; }
+        public double Total_Balance { get; set; }
+        public double Fixed_Deposit_Face_Value { get; set; }
+    }
+    public class FixedDepositNos
+    {
+        public decimal FD_Id { get; set; }
+        public string? FD_No { get; set; }
+    }
+    #endregion
+    private async Task ProcessRenewal()
+    {
+        if (PaymentModel != null && OnRenewalRequested.HasDelegate)
+        {
+            await OnRenewalRequested.InvokeAsync(PaymentModel);
+        }
+    }
+
+    private async Task ProcessPayment()
+    {
+        if (PaymentModel != null && OnPaymentProcessed.HasDelegate)
+        {
+            // Here you might call your service to process the payment
+            await OnPaymentProcessed.InvokeAsync(PaymentModel);
+        }
+    }
+}

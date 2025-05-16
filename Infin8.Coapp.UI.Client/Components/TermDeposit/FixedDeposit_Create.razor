@@ -1,0 +1,695 @@
+﻿@page "/fixed-deposit-create"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using Infin8.Coapp.Dto
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveAuto
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+<h3 class="mb-2">Create Fixed Deposit</h3>
+<hr class="mt-0" />
+<EditForm Model="@_fixedDepositModel" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <!-- Step 1: Member Details -->
+    <div class="row mb-4">
+        <div class="col-md-12 mb-3">
+            <div class="card p-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Member Details</h5>
+                </div>
+                <div class="card-body">
+
+                    <div class="row">
+                        <div class="col-md-2 mb-3">
+                            <div class="form-group">
+                                <label for="Member_No_ToAdd">Member No:</label>
+                                <InputText id="Member_No_ToAdd" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common!.Member_No_ToAdd"
+                                @oninput="(e) => handleMemNo(e,_fixedDepositModel)">
+                                </InputText>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="form-group">
+                                <label for="memberNameToAdd">Member Name:</label>
+                                <InputText id="memberNameToAdd" class="form-control" disabled="true" @bind-Value="_fixedDepositModel.Common.Member_Name_ToAdd" />
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="form-group">
+                                <label for="fatherNameToAdd">Father's Name:</label>
+                                <InputText id="fatherNameToAdd" class="form-control" disabled="true" @bind-Value="_fixedDepositModel.Common.Father_Name_ToAdd" />
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="form-group">
+                                <label for="ageToAdd">Age:</label>
+                                <InputNumber id="ageToAdd" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Age_ToAdd" />
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="form-group">
+                                <label for="memIdToAdd">Mem Id:</label>
+                                <InputNumber id="memIdToAdd" class="form-control" disabled="true" @bind-Value="_fixedDepositModel.Common.Mem_Id_ToAdd" />
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button type="button" style="width:100%" class="btn btn-secondary rounded-pill" @onclick="AddMember">
+                                <i class="oi oi-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card p-3">
+
+                                @if (_fixedDepositModel.Members.Count > 0)
+                                {
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th> Member ID </th>
+                                                <th> Member Name </th>
+                                                <th> Father Name </th>
+                                                <th>Age</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (int i = 0; i < _fixedDepositModel.Members.Count; i++)
+                                            {
+                                                var index = i;
+                                                <tr>
+                                                    <td>@_fixedDepositModel.Members[i].Mem_Id</td>
+                                                    <td>@_fixedDepositModel.Members[i].Member_Name</td>
+                                                    <td>@_fixedDepositModel.Members[i].Father_Name</td>
+                                                    <td>@_fixedDepositModel.Members[i].Age</td>
+                                                    <td>
+                                                        <button type="button" class="btn btn=danger btn-sm" @onclick="()=> RemoveMember(index)">
+                                                            <i class="oi oi-trash"></i>Remove
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-info"> No members added yet.</div>
+                                }
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-group">
+                                <label for="tdhName">Bond Holder(s) Name:</label>
+                                <InputText id="tdhName" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Tdh_Name" />
+                                <ValidationMessage For="@(() => _fixedDepositModel.Common.Tdh_Name)" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2: Nominee details -->
+    <div class="card p-3 mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Nominee Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="nominee1Name">First Nominee Name:</label>
+                        <InputText id="nominee1Name" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Nominee1Name" />
+                        <ValidationMessage For="@(() => _fixedDepositModel.Common.Nominee1Name)" />
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="nominee1Age">First Nominee Age:</label>
+                        <InputNumber id="nominee1Age" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Nominee1Age" />
+                        <ValidationMessage For="@(() => _fixedDepositModel.Common.Nominee1Age)" />
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="nominee1Relationship">First Nominee Relation:</label>
+                        <InputText id="nominee1Relationship" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Nominee1Relationship" />
+                        <ValidationMessage For="@(() => _fixedDepositModel.Common.Nominee1Relationship)" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="nominee2Name">Second Nominee Name:</label>
+                        <InputText id="nominee2Name" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Nominee2Name" />
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="nominee2Age">Second Nominee Age:</label>
+                        <InputNumber id="nominee2Age" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Nominee2Age" />
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="nominee2Relationship">Second Nominee Relation:</label>
+                        <InputText id="nominee2Relationship" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Nominee2Relationship" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Fixed deposit details -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card p-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Fixed Deposit Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="schemeId">Select Scheme :</label>
+                                <InputSelect class="form-select shadow-none" @bind-Value="_fixedDepositModel.Common.Tdscheme_Id">
+                                    <option value="0">--Select Scheme Name--</option>
+                                    @foreach (var sch in schemeList)
+                                    {
+                                        <option value="@sch.Value">@sch.Text</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => _fixedDepositModel.Common.Tdscheme_Id)" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="modeOfOperation">Mode of Operation:</label>
+                                <InputSelect id="modeOfOperation" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Mode_Of_Operation">
+                                    <option value="0">--Select Mode--</option>
+                                    <option value="1">Single</option>
+                                    <option value="2">Joint</option>
+                                    <option value="3">Either or Survivor</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => _fixedDepositModel.Common.Mode_Of_Operation)" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="accountOpenDate">Account Open Date:</label>
+                                <InputDate id="accountOpenDate" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Account_Opendate" />
+                                <ValidationMessage For="@(() => _fixedDepositModel.Common.Account_Opendate)" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="valueDate">Value Date:</label>
+                                <InputDate id="valueDate" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Value_Date" />
+                                <ValidationMessage For="@(() => _fixedDepositModel.Common.Value_Date)" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3 mb-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-secondary rounded-pill" style="width:100%" @onclick="GetNewFDNo">
+                                <i class="oi oi-list-rich"></i>
+                                Get New Fixed Deposit No
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="tdNo">TD Number:</label>
+                                <InputText id="tdNo" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common.Td_No" />
+                                <ValidationMessage For="@(() => _fixedDepositModel.Common.Td_No)" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="depositAmount">Deposit Amount:</label>
+                                <InputNumber id="depositAmount" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Deposit_Amount" />
+                                <ValidationMessage For="@(() => _fixedDepositModel.Deposit_Amount)" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="interestPayableFreq">Interest Payable Frequency:</label>
+                                <InputSelect id="interestPayableFreq" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Interest_Payable_Frequency">
+                                    <option value="0">--Select Frequency--</option>
+                                    <option value="1">Monthly</option>
+                                    <option value="3">Quarterly</option>
+                                    <option value="6">Half-Yearly</option>
+                                    <option value="12">Yearly</option>
+                                    <option value="13">At Maturity</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => _fixedDepositModel.Interest_Payable_Frequency)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="periodType">Period Type:</label>
+                                <InputSelect id="periodType" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Period_Type" @onchange="PeriodTypeChanged">
+                                    <option value="">--Select Type--</option>
+                                    <option value="Months">Months</option>
+                                    <option value="Days">Days</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => _fixedDepositModel.Period_Type)" />
+                            </div>
+                        </div>
+
+                        @if (_fixedDepositModel.Period_Type == "Months")
+                        {
+                            <div class="col-md-3 mb-3">
+                                <div class="form-group">
+                                    <label for="periodInMonths"> Period In Months: </label>
+                                    <InputNumber id="periodInMonths" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Period_In_Months" />
+                                    <ValidationMessage For="@(() => _fixedDepositModel.Period_In_Months)" />
+                                </div>
+                            </div>
+                        }
+                        else
+                        if (_fixedDepositModel.Period_Type == "Days")
+                        {
+                            <div class="col-md-3 mb-3">
+                                <div class="form-group">
+                                    <label for="periodInDays"> Period In Days: </label>
+                                    <InputNumber id="periodInDays" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Period_In_Days" />
+                                    <ValidationMessage For="@(() => _fixedDepositModel.Period_In_Days)" />
+                                </div>
+                            </div>
+                        }
+
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group form-check mt-4">
+                                <InputCheckbox id="isDiscountRate" class="form-check-input shadow-none" @bind-Value="_fixedDepositModel.Is_DiscountRate" />
+                                <label class="form-check-label" for="isDiscountRate">Discount Rate</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="periodType">Compound Frequency:</label>
+                                <InputSelect id="periodType" class="form-control shadow-none" @bind-Value="_fixedDepositModel.compoundfrequency">
+                                    <option value="0">--Select compound frequency --</option>
+                                    <option value="13">No compound frequency</option>
+                                    <option value="1">Months</option>
+                                    <option value="3">Quarterly</option>
+                                    <option value="6">half Yearly</option>
+                                    <option value="12">Annual</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => _fixedDepositModel.compoundfrequency)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-secondary rounded-pill" style="width:100%" @onclick="GetROI">
+                                <i class="oi oi-list-rich"></i>
+                                Get Rate of Interest
+                            </button>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="form-group">
+                                <label for="rateOfInterest">Rate of Interest (%):</label>
+                                <InputNumber id="rateOfInterest" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Rate_Of_Interest" />
+                                <ValidationMessage For="@(() => _fixedDepositModel.Rate_Of_Interest)" />
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-secondary rounded-pill" style="width:100%" @onclick="GetMaturityDateAndAmount">
+                                <i class="oi oi-list-rich"></i>
+                                Get Maturity Details
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="maturityAmount">Maturity Amount:</label>
+                                <InputNumber id="maturityAmount" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Maturity_Amount" />
+                                <ValidationMessage For="@(() => _fixedDepositModel.Maturity_Amount)" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-group">
+                                <label for="maturityDate">Maturity Date:</label>
+                                <InputDate id="maturityDate" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Maturity_Date" />
+                                <ValidationMessage For="@(() => _fixedDepositModel.Maturity_Date)" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+   
+    <!-- Button group -->
+    <div class="d-flex justify-content-between mt-4 mb-4">
+        <div>
+            <!-- Left-aligned buttons -->
+            <button type="button" class="btn btn-secondary me-2" @onclick="ClosePage">
+                <i class="oi oi-x"></i>
+                Close
+            </button>
+            <button type="reset" class="btn btn-outline-secondary" @onclick="ResetForm">
+                <i class="oi oi-action-undo"></i>
+                Reset
+            </button>
+        </div>
+
+        <!-- Right-aligned submit button -->
+        <button type="submit" class="btn btn-primary">
+            <i class="oi oi-check"></i>
+            @CreateButtonText
+        </button>
+    </div>
+
+</EditForm>
+
+@code
+{
+    #region Parameter
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public int Age { get; set; }
+    [Parameter] public double NewFDAmount { get; set; }
+    [Parameter] public DateTime ValueDate { get; set; }
+    [Parameter] public bool IsRenewal { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    #endregion
+
+    #region variables
+    private DtoTermDepositFixedDepositCreation _fixedDepositModel = new DtoTermDepositFixedDepositCreation();
+
+    private List<DropdownItem> schemeList = new();
+
+    public class TdNoResponse
+    {
+        public string? TdNo { get; set; }
+    }
+    private string CreateButtonText = "Initiate Fixed Deposit";
+    #endregion
+
+    protected override async Task OnInitializedAsync()
+    {
+        _fixedDepositModel.Common = new DtoTermDepositCommon();
+        _fixedDepositModel.Common.Account_Opendate = DateTime.Today;
+        _fixedDepositModel.Common.Value_Date = DateTime.Today;
+        _fixedDepositModel.Maturity_Date = DateTime.Today.AddMonths(12);
+        var schemeListTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetTDScheme/F,C/11001");
+        if (schemeListTmp != null) schemeList = schemeListTmp.ToList();
+        if (IsRenewal)
+        {
+            _fixedDepositModel.Deposit_Amount = NewFDAmount;
+            _fixedDepositModel.Common.Value_Date = ValueDate;
+            _fixedDepositModel.Members = new List<DtoTermDepositMember>();
+            var member = new DtoTermDepositMember
+                {
+                    Mem_Id = MemberId,
+                    Member_Name = MemberNumber,
+                    Father_Name = MemberName,
+                    Age = Age
+                };
+            _fixedDepositModel.Members.Add(member);
+            CreateButtonText = "Initiate Renewal of Fixed Deposit";
+        }
+    }
+
+    #region api call
+    private async Task handleMemNo(ChangeEventArgs e, DtoTermDepositFixedDepositCreation fd)
+    {
+        try
+        {
+            fd.Common!.Member_No_ToAdd = e.Value?.ToString();
+            if (!string.IsNullOrWhiteSpace(_fixedDepositModel.Common!.Member_No_ToAdd))
+            {
+                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{fd.Common.Member_No_ToAdd}/11001");
+                if (mem != null)
+                {
+                    fd.Common.Mem_Id_ToAdd = mem.Mem_Id;
+                    fd.Common.Member_Name_ToAdd = mem.MemberName!;
+                    fd.Common.Father_Name_ToAdd = mem.FatherName!;
+                    if (mem.Dob != null)
+                    {
+                        string fromDateFormatted = ((DateTime)mem.Dob).ToString("yyyy-MM-dd");
+                        string toDateFormatted = _fixedDepositModel.Common.Account_Opendate.ToString("yyyy-MM-dd");
+                        var age = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Utility/GetAge?fromDate={fromDateFormatted}&toDate={toDateFormatted}");
+                        // if(age != null )
+                        _fixedDepositModel.Common.Age_ToAdd = Convert.ToInt16(age);
+                    }
+                    else
+                    {
+                        await JSRuntime.InvokeVoidAsync("alert", "Date of birth not available, enter age manually!"); // Alert
+                        return;
+                    }
+                }
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    private async Task GetNewFDNo()
+    {
+        string newTdNo = "";
+        if (_fixedDepositModel.Common!.Tdscheme_Id == 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Scheme name not selected!"); // Alert
+            return;
+        }
+        var url = $"https://localhost:7073/api/NewAccountNo/NewTDNo/{_fixedDepositModel.Common.Tdscheme_Id}/11001";
+        Console.WriteLine($"Calling API: {url}"); // Debug URL
+        using var response = await _httpClient.GetAsync(url);
+        var jsonString = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"Raw JSON response: {jsonString}");
+        if (response.IsSuccessStatusCode)
+        {
+            newTdNo = jsonString;
+        }
+        else
+        {
+            Console.WriteLine($"API Error: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
+        }
+        _fixedDepositModel.Common.Td_No = newTdNo;
+        // var response = await _httpClient.GetFromJsonAsync<string?>();
+        // if (TdNo != null) _fixedDepositModel.Common.Td_No = TdNo;
+        // string? tdNo = response;
+        // _fixedDepositModel.Common.Td_No = tdNo;
+    }
+
+    private async Task GetROI()
+    {
+        string errorMessage = "";
+        if (_fixedDepositModel.Common!.Tdscheme_Id == 0)
+        {
+            errorMessage = "Scheme name not selected";
+
+        }
+        if (_fixedDepositModel.Period_Type == "")
+            errorMessage += "\n Period type not selected";
+        else
+        {
+            if (_fixedDepositModel.Period_Type == "Months")
+            {
+                if (_fixedDepositModel.Period_In_Months == 0) errorMessage += "\n Period in months is missing";
+            }
+            if (_fixedDepositModel.Period_Type == "Days")
+            {
+                if (_fixedDepositModel.Period_In_Days == 0) errorMessage += "\n Period in days is missing";
+            }
+        }
+        if (errorMessage.Length > 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", errorMessage); // Alert
+            return;
+        }
+        var roi = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/TermDeposit/GetTDROI?depositDate={_fixedDepositModel.Common.Value_Date}&schemeId={_fixedDepositModel.Common.Tdscheme_Id}&prdInMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}&brCode=11001");
+        _fixedDepositModel.Rate_Of_Interest = Convert.ToDouble(roi);
+    }
+
+    private async Task GetMaturityDateAndAmount()
+    {
+        string errorMessage = "";
+        if (_fixedDepositModel.compoundfrequency == 0) errorMessage = "Compound frequency  not selected";
+        if (_fixedDepositModel.Period_Type == "") errorMessage += "\n Period type not selected";
+        else
+        {
+            if (_fixedDepositModel.Period_Type == "Months")
+            {
+                if (_fixedDepositModel.Period_In_Months == 0) errorMessage += "\n Perion in months is missing";
+
+            }
+            else
+                if (_fixedDepositModel.Period_In_Days == 0) errorMessage += "\n Period in days is missing";
+        }
+        if (_fixedDepositModel.Interest_Payable_Frequency == 0) errorMessage += "\n Interest payable frequency is not selected";
+        if (_fixedDepositModel.Deposit_Amount == 0) errorMessage += "\n Deposit amount is missing";
+        if (_fixedDepositModel.Rate_Of_Interest == 0) errorMessage += "\n Rate of interest is missing";
+        if (errorMessage.Length > 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", errorMessage); // Alert
+            return;
+        }
+        string requestUri = $"https://localhost:7073/api/Utility/GetTDMaturityDate?TDDate={Convert.ToDateTime(_fixedDepositModel.Common.Value_Date)}&NoOfMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}";
+        var maturityDate = await _httpClient.GetFromJsonAsync<DateTime>(requestUri);
+        _fixedDepositModel.Maturity_Date = maturityDate;
+        var maturityAmount = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Utility/GetFDMaturityAmount?Principal={_fixedDepositModel.Deposit_Amount}&FromDate={_fixedDepositModel.Common.Value_Date}&ToDate={maturityDate}&PeriodInMonths={_fixedDepositModel.Period_In_Months}&PeriodInDays={_fixedDepositModel.Period_In_Days}&ROI={_fixedDepositModel.Rate_Of_Interest}&IntPayablePrd={_fixedDepositModel.Interest_Payable_Frequency}&IsDiscountRate={_fixedDepositModel.Is_DiscountRate}&CompoundFrequency={_fixedDepositModel.compoundfrequency}");
+        _fixedDepositModel.Maturity_Amount = maturityAmount;
+    }
+
+    private void HandleValidSubmit()
+    {
+        // Here you would typically call your service to save the data
+
+        // await FixedDepositService.CreateFixedDeposit(_fixedDepositModel);
+
+        Console.WriteLine("Form submitted successfully!");
+
+        // Convert validation model to DTO if needed for API calls
+
+        var fdDto = ConvertToDto(_fixedDepositModel);
+
+        // Navigate to another page or show success message
+    }
+    #endregion
+
+    #region methods
+    private void AddMember()
+    {
+        if (_fixedDepositModel.Common?.Mem_Id_ToAdd <= 0 || string.IsNullOrWhiteSpace(_fixedDepositModel.Common?.Member_Name_ToAdd))
+        {
+            return;
+            // Basic validation
+
+        }
+        var member = new DtoTermDepositMember
+            {
+                Mem_Id = _fixedDepositModel.Common.Mem_Id_ToAdd,
+                Member_Name = _fixedDepositModel.Common.Member_Name_ToAdd,
+                Father_Name = _fixedDepositModel.Common.Father_Name_ToAdd,
+                Age = _fixedDepositModel.Common.Age_ToAdd
+            };
+
+        _fixedDepositModel.Members.Add(member);
+
+        // Clear form fields
+        _fixedDepositModel.Common.Mem_Id_ToAdd = 0;
+        _fixedDepositModel.Common.Member_Name_ToAdd = "";
+        _fixedDepositModel.Common.Father_Name_ToAdd = "";
+        _fixedDepositModel.Common.Age_ToAdd = 0;
+    }
+
+    private void RemoveMember(int index)
+    {
+        if (index < 0 || index >= _fixedDepositModel.Members.Count)
+            return;
+        _fixedDepositModel.Members.RemoveAt(index);
+    }
+
+    private void PeriodTypeChanged()
+    {
+        if (_fixedDepositModel.Period_Type == "Months")
+        {
+            _fixedDepositModel.Period_In_Days = 0;
+        }
+        else
+        if (_fixedDepositModel.Period_Type == "Days")
+        {
+            _fixedDepositModel.Period_In_Months = 0;
+        }
+    }
+
+    private void ResetForm()
+    {
+        _fixedDepositModel = new DtoTermDepositFixedDepositCreation();
+
+        _fixedDepositModel.Common = new DtoTermDepositCommon();
+
+        _fixedDepositModel.Common.Account_Opendate = DateTime.Today;
+
+        _fixedDepositModel.Common.Value_Date = DateTime.Today;
+
+        _fixedDepositModel.Maturity_Date = DateTime.Today.AddMonths(12);
+    }
+
+    private void ClosePage()
+    {
+        Navigation.NavigateTo("/member-transactions"); // or any other route
+    }
+    #endregion
+
+    #region  Validation classes derived from your DTOs
+    private FixedDepositCreateDto ConvertToDto(DtoTermDepositFixedDepositCreation model)
+    {
+        var dto = new FixedDepositCreateDto
+            {
+                Common = new TDCommonDto
+                {
+                    Tdscheme_Id = model.Common!.Tdscheme_Id,
+
+                    Mode_Of_Operation = model.Common.Mode_Of_Operation,
+
+                    Account_Opendate = model.Common.Account_Opendate,
+
+                    Value_Date = model.Common.Value_Date,
+
+                    Td_No = model.Common.Td_No,
+
+                    Tdh_Name = model.Common.Tdh_Name,
+
+                    Nominee1Name = model.Common.Nominee1Name,
+
+                    Nominee1Age = model.Common.Nominee1Age,
+
+                    Nominee1Relationship = model.Common.Nominee1Relationship,
+
+                    Nominee2Name = model.Common.Nominee2Name,
+
+                    Nominee2Age = model.Common.Nominee2Age,
+
+                    Nominee2Relationship = model.Common.Nominee2Relationship
+                },
+
+                Deposit_Amount = model.Deposit_Amount,
+
+                Interest_Payable_Frequency = model.Interest_Payable_Frequency,
+
+                Period_Type = model.Period_Type,
+
+                Is_DiscounRate = model.Is_DiscountRate,
+
+                Period_In_Months = model.Period_In_Months,
+
+                Period_In_Days = model.Period_In_Days,
+
+                Rate_Of_Interest = model.Rate_Of_Interest,
+
+                Maturity_Amount = model.Maturity_Amount,
+
+                Maturity_Date = model.Maturity_Date
+            };
+
+        dto.Members = model.Members.Select(m => new TDMembersDto { Mem_Id = m.Mem_Id, Member_Name = m.Member_Name, Father_Name = m.Father_Name, Age = m.Age }).ToList();
+
+        return dto;
+    }
+
+
+    #endregion
+}
+

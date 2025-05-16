@@ -1,0 +1,265 @@
+﻿@page "/fixed-deposit-renewal2"
+@inject NavigationManager NavigationManager
+
+<h3 class="mb-2">Fixed Deposit Payment</h3>
+<hr class="mt-0" />
+
+
+@if (isLoading)
+{
+    <p><em>Loading maturing deposit details...</em></p>
+}
+else if (maturingFd == null)
+{
+    <p class="text-danger">Could not load fixed deposit details for renewal.</p>
+}
+else if (renewalComplete)
+{
+    <div class="alert alert-success">
+        Fixed Deposit renewed successfully! New FD ID: @newFdId
+        <br />
+        @* <button class="btn btn-sm btn-primary mt-2" @onclick="() => NavigationManager.NavigateTo($"/fixeddeposit/details/{newFdId}")">View New FD</button> *@
+        @* <button class="btn btn-sm btn-secondary mt-2 ms-2" @onclick="() => NavigationManager.NavigateTo("/fixeddeposit/list")">Back to List</button> *@
+    </div>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-header">Maturing Fixed Deposit Details</div>
+        <div class="card-body">
+            <p><strong>Account Number:</strong> @maturingFd.AccountNumber</p>
+            <p><strong>Original Principal:</strong> @maturingFd.Principal.ToString("C")</p>
+            <p><strong>Maturity Date:</strong> @maturingFd.MaturityDate.ToShortDateString()</p>
+            <p><strong>Maturity Amount:</strong> @maturingFd.MaturityAmount.ToString("C")</p>
+            @* Add other relevant maturing details *@
+        </div>
+    </div>
+
+    @* --- Step 1: Configure New FD Details --- *@
+    @if (currentStep == RenewalStep.ConfigureNewFd)
+    {
+        <h4>Configure New Fixed Deposit</h4>
+        <FixedDeposit_Create InitialPrincipal="newFdConfiguration.Principal"
+        InitialTenureMonths="newFdConfiguration.TenureMonths"
+        @* Pass other relevant initial values *@
+        OnDetailsConfirmed="HandleNewFdDetailsConfirmed" />
+        @* Optional: Add a button here if FixedDeposit_Create doesn't have its own submit button visible in this context *@
+    }
+
+    @* --- Step 2: Handle Payment (if needed) --- *@
+    @if (currentStep == RenewalStep.Payment)
+    {
+        <h4>Payment Details</h4>
+        <p>New Principal Amount: @newFdConfiguration.Principal.ToString("C")</p>
+        @if (AmountToAdd > 0)
+        {
+            <p>Existing Maturity Amount: @maturingFd.MaturityAmount.ToString("C")</p>
+            <p><strong>Additional Amount Required: @AmountToAdd.ToString("C")</strong></p>
+        }
+        else
+        {
+            <p>Renewing with Maturity Amount.</p>
+        }
+
+        <FixedDeposit_Payment Amount="AmountToAdd" @* Only pass > 0 amount if adding funds *@
+        PaymentContext="'Renewal'" @* Example parameter *@
+        OnPaymentSuccess="HandlePaymentSuccess"
+        OnPaymentCancelled="HandlePaymentCancelled" @* Optional: Add a cancel handler *@
+        />
+        @* FixedDeposit_Payment might handle showing "Confirm Renewal" if AmountToAdd is 0 *@
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger mt-3">@errorMessage</div>
+    }
+}
+@newFdId
+@code {
+    [Parameter] public int FixedDepositId { get; set; }
+
+    private FixedDepositModel? maturingFd; // Model for the FD being renewed
+    private FixedDepositModel newFdConfiguration = new(); // Model for the new FD being created
+    private bool isLoading = true;
+    private bool renewalComplete = false;
+    private int newFdId; // Store the ID of the newly created FD
+    private string? errorMessage;
+
+    // State management for the renewal flow
+    private enum RenewalStep { Loading, ConfigureNewFd, Payment, Complete, Error }
+    private RenewalStep currentStep = RenewalStep.Loading;
+
+    private decimal AmountToAdd = 0; // Calculated amount if user increases principal
+
+    protected override void  OnParametersSet()
+    {
+         LoadMaturingDeposit();
+    }
+
+    private void LoadMaturingDeposit()
+    {
+        isLoading = true;
+        errorMessage = null;
+        currentStep = RenewalStep.Loading;
+        try
+        {
+            // maturingFd = await FdService.GetFixedDepositByIdAsync(FixedDepositId); // Fetch details
+            maturingFd = new FixedDepositModel
+            {
+                Principal = 100000,
+                TenureMonths = 12,
+                SourceAccountId = 101
+            };
+
+            if (maturingFd != null)
+            {
+                // Pre-populate the configuration for the new FD
+                newFdConfiguration = new FixedDepositModel
+                {
+                    // Default to reinvesting the maturity amount
+                    Principal = maturingFd.MaturityAmount,
+                    // You might want default tenure/rate or fetch renewal offers
+                    TenureMonths = maturingFd.TenureMonths, // Example: default to same tenure
+                    // InterestRate = await FdService.GetCurrentInterestRateAsync(maturingFd.MaturityAmount, maturingFd.TenureMonths), // Example
+                    SourceAccountId = maturingFd.LinkedAccountId // Example
+                    // Add other necessary properties
+                };
+                currentStep = RenewalStep.ConfigureNewFd; // Move to next step
+            }
+            else
+            {
+                errorMessage = $"Fixed Deposit with ID {FixedDepositId} not found or not eligible for renewal.";
+                currentStep = RenewalStep.Error;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log exception
+            errorMessage = ex.Message +  " An error occurred while loading fixed deposit details.";
+            currentStep = RenewalStep.Error;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Callback handler from FixedDeposit_Create
+    private void HandleNewFdDetailsConfirmed(FixedDepositModel confirmedDetails)
+    {
+        errorMessage = null;
+        newFdConfiguration = confirmedDetails; // Update our state with the user's choices
+
+        /// --- Logic to determine if payment step is needed ---
+        if (maturingFd != null && newFdConfiguration.Principal > maturingFd.MaturityAmount)
+        {
+            AmountToAdd = newFdConfiguration.Principal - maturingFd.MaturityAmount;
+            currentStep = RenewalStep.Payment; // Need to pay the difference
+        }
+        else if (maturingFd != null && newFdConfiguration.Principal < maturingFd.MaturityAmount)
+        {
+            // Handle partial renewal? Payout the difference? This needs business logic.
+            // For simplicity, assume Principal >= MaturityAmount or Principal == MaturityAmount
+            // If Principal == MaturityAmount, proceed as if payment was successful (internal transfer)
+            AmountToAdd = 0; // Ensure it's zero
+            HandlePaymentSuccess(); 
+            /// Skip explicit payment component if just reinvesting maturity amount
+                                    /// Alternatively, show Payment component with Amount=0 for confirmation? Depends on Payment component design.
+                                    /// currentStep = RenewalStep.Payment; // If Payment component handles Amount=0 case
+        }
+        else // Principal == Maturity Amount
+        {
+            AmountToAdd = 0; // Ensure it's zero
+                             // Decide if you need a confirmation step via Payment component or just proceed
+            HandlePaymentSuccess(); // Assuming direct processing if amount matches
+                                    // currentStep = RenewalStep.Payment; // If Payment component needed for confirmation even with 0 amount
+        }
+
+        StateHasChanged(); // Update UI
+    }
+
+    // Callback handler from FixedDeposit_Payment
+    private void HandlePaymentSuccess()
+    {
+        errorMessage = null;
+        currentStep = RenewalStep.Complete; // Mark as processing complete (before API call)
+        isLoading = true; // Show loading indicator during final API call
+        StateHasChanged();
+
+        try
+        {
+            // --- Final Step: Call the actual renewal service ---
+            // This service would typically:
+            // 1. Validate the request
+            // 2. Mark the old FD (FixedDepositId) as renewed/closed
+            // 3. Create the new FD using 'newFdConfiguration' data
+            // 4. Handle any fund transfers (debiting for AmountToAdd, crediting new FD)
+            // var result = await FdService.RenewFixedDepositAsync(FixedDepositId, newFdConfiguration, AmountToAdd);
+
+            // if (result.IsSuccess)
+            // {
+            //     newFdId = result.NewFixedDepositId; // Get the ID of the new FD from the result
+            //     renewalComplete = true;
+            //     currentStep = RenewalStep.Complete;
+            // }
+            // else
+            // {
+            //     errorMessage = result.ErrorMessage ?? "Failed to renew the fixed deposit.";
+            //     // Roll back to a previous step? Or just show error?
+            //     currentStep = RenewalStep.Payment; // Go back to payment/confirmation? Or Configure?
+            // }
+        }
+        catch (Exception ex)
+        {
+            // Log error
+            errorMessage = ex.Message +  " An unexpected error occurred during the renewal process.";
+            currentStep = RenewalStep.Error; // Or back to payment?
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+     // Optional: Handler if user cancels during payment
+    private void HandlePaymentCancelled()
+    {
+        errorMessage = "Renewal cancelled during payment.";
+        // Reset to the configuration step?
+        currentStep = RenewalStep.ConfigureNewFd;
+        AmountToAdd = 0; // Reset calculated amount
+        StateHasChanged();
+    }
+
+    // --- Define necessary Models (place in a shared project ideally) ---
+    public class FixedDepositModel // Example structure - adapt to your needs
+    {
+        public int Id { get; set; }
+        public string? AccountNumber { get; set; }
+        public decimal Principal { get; set; }
+        public decimal InterestRate { get; set; }
+        public int TenureMonths { get; set; }
+        public DateTime MaturityDate { get; set; }
+        public decimal MaturityAmount { get; set; } // Calculated amount at maturity
+        public int LinkedAccountId { get; set; } // Account funds come from/go to
+        public int SourceAccountId { get; set; } // Or maybe rename LinkedAccountId
+        // Add other properties as needed (Customer ID, Status, etc.)
+    }
+
+    // Example Service Interface (adapt to your needs)
+    public interface IFixedDepositService
+    {
+        Task<FixedDepositModel?> GetFixedDepositByIdAsync(int id);
+        Task<decimal> GetCurrentInterestRateAsync(decimal principal, int tenureMonths);
+        Task<RenewalResult> RenewFixedDepositAsync(int oldFdId, FixedDepositModel newFdDetails, decimal additionalAmount);
+    }
+
+    // Example Result Class
+    public class RenewalResult
+    {
+        public bool IsSuccess { get; set; }
+        public int NewFixedDepositId { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+}

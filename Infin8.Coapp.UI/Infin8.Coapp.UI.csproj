@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Infin8.Coapp.UI.Client\Infin8.Coapp.UI.Client.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.2" />
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.26" />
+    <PackageReference Include="System.CodeDom" Version="9.0.3" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Infin8.Coapp.BusinessLogic\Infin8.Coapp.BusinessLogic.csproj" />
+    <ProjectReference Include="..\Infin8.Coapp.Dto\Infin8.Coapp.Dto.csproj" />
+    <ProjectReference Include="..\Infin8.Coapp.Models\Infin8.Coapp.Models.csproj" />
+  </ItemGroup>
+
+</Project>

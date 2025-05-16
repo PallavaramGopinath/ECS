@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.Design" Version="1.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Infin8.Coapp.Dto\Infin8.Coapp.Dto.csproj" />
+    <ProjectReference Include="..\Infin8.Coapp.Models\Infin8.Coapp.Models.csproj" />
+    <ProjectReference Include="..\Infin8.Coapp.Utility\Infin8.Coapp.Utility.csproj" />
+  </ItemGroup>
+
+</Project>

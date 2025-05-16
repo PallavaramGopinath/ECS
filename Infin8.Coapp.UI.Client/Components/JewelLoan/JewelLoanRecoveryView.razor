@@ -1,0 +1,76 @@
+﻿@using Infin8.Coapp.Dto
+@attribute [StreamRendering]
+@if (jlRecovery != null && jlRecovery.Any())
+{
+    <EditForm Model="@jlRecovery">
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Loan Balance & Recovery Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Loan No</th>
+                            <th>Scheme</th>
+                            <th>Status</th>
+                            <th>Loan Amount</th>
+                            <th>Loan Date</th>
+                            <th>Due Date</th>
+                            <th>Interest %</th>
+                            <th>Outstanding</th>
+                            <th>Recovery Amount</th>
+                            <th>Int Calc Amount</th>
+                            <th>Int Applied Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        @for (int i = 0; i < jlRecovery.Count; i++)
+                        {
+                            var loan = jlRecovery[i];
+                            var index = i; // Capture for lambda
+                            <tr>
+                                <td>@loan.Loan_No</td>
+                                <td>@loan.Scheme_Name</td>
+                                <td>@loan.Status</td>
+                                <td>@loan.Loan_Amount.ToString("C2")</td>
+                                <td>@loan.Loan_Date.ToShortDateString()</td>
+                                <td>@loan.Due_Date.ToShortDateString()</td>
+                                <td>@loan.ROI%</td>
+                                <td>@loan.Outstanding.ToString("C2")</td>
+                                <td>@loan.Recovery_Amount.ToString("C2")</td>
+                                <td>@loan.Calculated_Amount.ToString("C2") </td>
+                                <td>@loan.Interest_Application_Date</td>
+                            </tr>
+                        }
+                        <tr class="table-info">
+                            <td colspan="7" class="text-end fw-bold">Total:</td>
+                            <td class="fw-bold">@jlRecovery.Sum(l => l.Outstanding).ToString("C2")</td>
+                            <td class="fw-bold">@jlRecovery.Sum(l => l.Recovery_Amount).ToString("C2")</td>
+                            <td class="fw-bold">@jlRecovery.Sum(l => l.Calculated_Amount).ToString("C2")</td>
+                            <td class="fw-bold"></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Step 5: Final Initiation -->
+                <button type="button" class="btn btn-secondary me-2" @onclick="CloseView">
+                    <i class="oi oi-x"></i>
+                    Close
+                </button>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public List<DtoJewelLoanBalance>? jlRecovery { get; set; }
+    [Parameter]
+    public EventCallback<bool> OnJLRecoveryViewComponentClose { get; set; }
+    private async Task CloseView()
+    {
+        await OnJLRecoveryViewComponentClose.InvokeAsync(true);
+    }
+}

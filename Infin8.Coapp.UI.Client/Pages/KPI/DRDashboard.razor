@@ -1,0 +1,212 @@
+﻿@page "/dr-dashboard/{CircleId}"
+@inject NavigationManager NavigationManager
+@using System.Globalization
+@using Infin8.Coapp.Dto
+@rendermode InteractiveAuto
+@* Inject your data service here or load sample data *@
+
+@if (SelectedCircle == null)
+{
+    <p><em>Loading circle data or circle not found...</em></p>
+}
+else
+{
+    <h3>Circle Deputy Registrar of Cooperative Societies Dashboard - @SelectedCircle.Name</h3>
+    @* <button class="btn btn-secondary mb-3" @onclick="() => NavigationManager.NavigateTo($"/jr-dashboard/{SelectedCircle.JR_Region_Id}")">Back to JR View</button> *@
+    <button class="btn btn-secondary mb-3" @onclick="GoToJRDashboard">
+        Back to JR View
+    </button>
+
+
+
+    <h4>Circle Summary (@SelectedCircle.Name)</h4>
+    <!-- Add overall summary cards for the circle if needed -->
+
+    <h4>Bank Performance within @SelectedCircle.Name</h4>
+
+    <h5>Frequently Reviewed KPIs</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th rowspan="2">PCARD Bank</th>
+                    <th colspan="3">Jewel Loan Issue</th>
+                    <th colspan="2">Jewel Loan Overdue</th>
+                    <th rowspan="2">Actions >3m Overdue</th>
+                    <th colspan="3">Fixed Deposit Mobilization</th>
+                    <th rowspan="2">Cash on Hand (₹)</th>
+                </tr>
+                <tr>
+                    <th>Target (₹)</th>
+                    <th>Achieved (₹)</th>
+                    <th>Ach. %</th>
+                    <th>Overdue (₹)</th>
+                    <th>Overdue %</th>
+                    <th>Target (₹)</th>
+                    <th>Achieved (₹)</th>
+                    <th>Ach. %</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var bank in SelectedCircle.Banks)
+                {
+                    <tr>
+                        <td>@bank.Name</td>
+                        <td>@bank.JewelLoanIssue.Target.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td>@bank.JewelLoanIssue.Achievement.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td class="@bank.JewelLoanIssue.StatusColor">@bank.JewelLoanIssue.Percentage.ToString("0.00")%</td>
+                        <td>@bank.JewelLoanOverdue.OverdueAmount.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td class="@bank.JewelLoanOverdue.StatusColor">@bank.JewelLoanOverdue.OverduePercentage.ToString("0.00")%</td>
+                        <td>@bank.ActionsForOverdueJewelLoan</td>
+                        <td>@bank.FixedDepositMobilization.Target.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td>@bank.FixedDepositMobilization.Achievement.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td class="@bank.FixedDepositMobilization.StatusColor">@bank.FixedDepositMobilization.Percentage.ToString("0.00")%</td>
+                        <td>@bank.CashOnHand.ToString("N0", new CultureInfo("en-IN"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h5 class="mt-4">Monthly Reviewed KPIs</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th>PCARD Bank</th>
+                    <th>Jewel Loan Borrowings (₹)</th>
+                    <th>Overdue (Borrowings) (₹)</th>
+                    <th>Overdue % (Borrowings)</th>
+                    <th>NFS Loan Overdue (₹)</th>
+                    <th>NFS Loan Overdue %</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var bank in SelectedCircle.Banks)
+                {
+                    <tr>
+                        <td>@bank.Name</td>
+                        <td>@bank.JewelLoanBorrowings.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td>@bank.JewelLoanBorrowingsOverdue.OverdueAmount.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td class="@bank.JewelLoanBorrowingsOverdue.StatusColor">@bank.JewelLoanBorrowingsOverdue.OverduePercentage.ToString("0.00")%</td>
+                        <td>@bank.NonFarmSectorLoanOverdue.OverdueAmount.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td class="@bank.NonFarmSectorLoanOverdue.StatusColor">@bank.NonFarmSectorLoanOverdue.OverduePercentage.ToString("0.00")%</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h5 class="mt-4">Annually Reviewed KPIs</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th>PCARD Bank</th>
+                    <th>Members</th>
+                    <th>Share Capital (₹)</th>
+                    <th>NPA (₹)</th>
+                    <th>NPA %</th>
+                    <th>Profit/Loss (₹)</th>
+                    @for(int i=0; i < 5; i++) {
+                        <th>Dividend Yr-(@(i+1))</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var bank in SelectedCircle.Banks)
+                {
+                    <tr>
+                        <td>@bank.Name</td>
+                        <td>@bank.Members</td>
+                        <td>@bank.ShareCapitalOutstanding.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td>@bank.NonPerformingAssets.OverdueAmount.ToString("N0", new CultureInfo("en-IN"))</td>
+                        <td class="@bank.NonPerformingAssets.StatusColor">@bank.NonPerformingAssets.OverduePercentage.ToString("0.00")%</td>
+                        <td class="@bank.ProfitLossStatusColor">
+                            @bank.ProfitOrLoss.ToString("N0", new CultureInfo("en-IN"))
+                            (@(bank.ProfitOrLoss >=0 ? "Profit" : "Loss"))
+                        </td>
+                        @foreach(var div in bank.DividendHistory.OrderByDescending(d => d.Year).Take(5))
+                        {
+                            <td>@div.Percentage.ToString("0.00")% (@div.Year)</td>
+                        }
+                        @for(int i = bank.DividendHistory.Count; i < 5; i++)
+                        {
+                            <td>-</td> @* Placeholder for missing years *@
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? CircleId { get; set; }
+
+    private DeputyRegistrarCircle? SelectedCircle;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Task.Delay(100); // Simulate finding circle
+        var stateData = new TamilNaduStateData();
+        LoadSampleData(stateData); // Use the same sample data loader
+
+        SelectedCircle = stateData.Regions
+            .SelectMany(r => r.Circles)
+            .FirstOrDefault(c => c.Id == CircleId);
+    }
+
+    // Helper to load sample data (same as in RCSDashboard for consistency)
+    private void LoadSampleData(TamilNaduStateData stateData)
+    {
+        if (stateData.Regions.Any()) return;
+
+        var r1 = new JointRegistrarRegion { Id = "JR01", Name = "North Region" };
+        var r2 = new JointRegistrarRegion { Id = "JR02", Name = "Central Region" };
+        var r3 = new JointRegistrarRegion { Id = "JR03", Name = "South Region" };
+
+        var dr1_1 = new DeputyRegistrarCircle { Id = "DR01", Name = "N-Circle1", JR_Region_Id = "JR01" };
+        var dr1_2 = new DeputyRegistrarCircle { Id = "DR02", Name = "N-Circle2", JR_Region_Id = "JR01" };
+        var dr2_1 = new DeputyRegistrarCircle { Id = "DR03", Name = "C-Circle1", JR_Region_Id = "JR02" };
+        var dr3_1 = new DeputyRegistrarCircle { Id = "DR04", Name = "S-Circle1", JR_Region_Id = "JR03" };
+
+        dr1_1.Banks.Add(new PCARDBankData { Name = "Bank A", DR_Circle_Id = "DR01", JewelLoanIssue = new KPINumeric { Target = 10000000, Achievement = 9500000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 200000, TotalAmount = 9500000}, ActionsForOverdueJewelLoan = 10, FixedDepositMobilization = new KPINumeric { Target = 5000000, Achievement = 5500000 }, CashOnHand = 1000000, JewelLoanBorrowings = 3000000, JewelLoanBorrowingsOverdue = new KPIOverdue { OverdueAmount = 30000, TotalAmount = 3000000 }, NonFarmSectorLoanOverdue = new KPIOverdue{OverdueAmount = 150000, TotalAmount=2000000}, Members = 1000, ShareCapitalOutstanding = 200000, NonPerformingAssets = new KPIOverdue{OverdueAmount=400000, TotalAmount=12000000}, ProfitOrLoss = 50000, DividendHistory = new List<DividendInfo>{ new DividendInfo{Year=DateTime.Now.Year-1, Percentage=8}, new DividendInfo{Year=DateTime.Now.Year-2, Percentage=7}, new DividendInfo{Year=DateTime.Now.Year-3, Percentage=7}, new DividendInfo{Year=DateTime.Now.Year-4, Percentage=6}, new DividendInfo{Year=DateTime.Now.Year-5, Percentage=5}} });
+        dr1_1.Banks.Add(new PCARDBankData { Name = "Bank B", DR_Circle_Id = "DR01", JewelLoanIssue = new KPINumeric { Target = 12000000, Achievement = 11000000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 400000, TotalAmount = 11000000}, ActionsForOverdueJewelLoan = 15, FixedDepositMobilization = new KPINumeric { Target = 6000000, Achievement = 5800000 }, ProfitOrLoss = -20000, DividendHistory = new List<DividendInfo>{ new DividendInfo{Year=DateTime.Now.Year-1, Percentage=0}}});
+
+        dr1_2.Banks.Add(new PCARDBankData { Name = "Bank C", DR_Circle_Id = "DR02", JewelLoanIssue = new KPINumeric { Target = 8000000, Achievement = 8100000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 100000, TotalAmount = 8100000}, ActionsForOverdueJewelLoan = 5, FixedDepositMobilization = new KPINumeric { Target = 4000000, Achievement = 4200000 }, ProfitOrLoss = 30000 });
+
+        dr2_1.Banks.Add(new PCARDBankData { Name = "Bank E", DR_Circle_Id = "DR03", JewelLoanIssue = new KPINumeric { Target = 15000000, Achievement = 13000000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 900000, TotalAmount = 13000000}, ActionsForOverdueJewelLoan = 25, FixedDepositMobilization = new KPINumeric { Target = 7000000, Achievement = 6500000 }, ProfitOrLoss = 10000 });
+
+        dr3_1.Banks.Add(new PCARDBankData { Name = "Bank I", DR_Circle_Id = "DR04", JewelLoanIssue = new KPINumeric { Target = 9000000, Achievement = 9200000 }, JewelLoanOverdue = new KPIOverdue { OverdueAmount = 300000, TotalAmount = 9200000}, ActionsForOverdueJewelLoan = 8, FixedDepositMobilization = new KPINumeric { Target = 3000000, Achievement = 3100000 }, ProfitOrLoss = 60000 });
+
+        r1.Circles.AddRange(new[] { dr1_1, dr1_2 });
+        r2.Circles.Add(dr2_1);
+        r3.Circles.Add(dr3_1);
+
+        stateData.Regions.AddRange(new[] { r1, r2, r3 });
+    }
+
+    private void GoToJRDashboard()
+    {
+        // NavigationManager.NavigateTo("/jr-dashboard/{SelectedCircle.JR_Region_Id}");
+        if (SelectedCircle != null && !string.IsNullOrEmpty(SelectedCircle.JR_Region_Id))
+        {
+            string targetRegionId = SelectedCircle.JR_Region_Id;
+            string navigationUrl = $"/jr-dashboard/{targetRegionId}"; // Construct the URL
+
+            Console.WriteLine($"DRDashboard: Attempting to navigate to: {navigationUrl}"); // LOG THIS
+            System.Diagnostics.Debug.WriteLine($"DRDashboard DEBUG: Navigating to: {navigationUrl}"); // Alternative logging
+
+            NavigationManager.NavigateTo(navigationUrl); // Use the constructed URL
+        }
+        else
+        {
+            Console.WriteLine("DRDashboard: Cannot navigate. SelectedCircle or JR_Region_Id is missing.");
+            System.Diagnostics.Debug.WriteLine("DRDashboard DEBUG: Navigation blocked. SelectedCircle or JR_Region_Id is missing.");
+            // Optionally navigate to a default page or show an error
+        }
+    }
+}
+}

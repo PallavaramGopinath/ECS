@@ -1,0 +1,340 @@
+﻿@page "/fixed-deposit-loan_recovery"
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@using Infin8.Coapp.Dto
+
+
+<EditForm Model="@fdRecovery" OnValidSubmit="HandleSubmit">
+    <h3 class="mb-2">Fixed Deposit Loan Recovery</h3>
+    <hr class="mt-0" />
+
+    <!-- Step 2: Loan No(s) -->
+    @if (!string.IsNullOrEmpty(MemberName))
+    {
+        <div class="card mt-4">
+            <div class="card-header ">
+                <h5 class="mb-0">Available Loan Numbers</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-secondary rounded-pill mb-3" @onclick="GetLoanNumbers" disabled="@(fdRecovery.Mem_Id <= 0)">
+                    <i class="oi oi-list-rich"></i> Get Loan No(s)
+                </button>
+
+                @if (fdRecovery.FDLoanNos != null && fdRecovery.FDLoanNos!.Any())
+                {
+                    <div class="row">
+                        <div class="col">
+                            @* @if (model.JewelLoanBalance_List != null)
+                            { *@
+                            @foreach (var loan in fdRecovery.FDLoanNos!)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="@($"loan_{loan.Loan_Id}")"
+                                    @onchange="e => ToggleLoanSelection(loan, (bool)e.Value)" />
+                                    <label class="form-check-label" for="@($"loan_{loan.Loan_Id}")">
+                                        @loan.Loan_No
+                                    </label>
+                                </div>
+                            }
+                            @* } *@
+                            @* else
+                            {
+                                <div class="alert alert-info">No jewel loans found for this member.</div>
+                            } *@
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-secondary rounded-pill" @onclick="GetLoanBalances" disabled="@(!selectedLoans.Any())">
+                            <i class="oi oi-list-rich"></i> Get Loan Balance
+                        </button>
+                    </div>
+                }
+                else if (loanNumbersLoaded)
+                {
+                    <div class="alert alert-info">No jewel loans found for this member.</div>
+                }
+            </div>
+        </div>
+    }
+
+    @if(fdRecovery.Loan_Balance_List != null && fdRecovery.Loan_Balance_List.Any())
+    {
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Loan Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Loan Number</th>
+                            <th>Loan Amount</th>
+                            <th>Interest Balance</th>
+                            <th>Principal Balance</th>
+                            <th>Total Balance</th>
+                            <th>Interest Collection</th>
+                            <th>Principal Collection</th>
+                            <th>Total Collection</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loan in fdRecovery.Loan_Balance_List)
+                        {
+                            <tr>
+                                <td>@loan.Loan_No</td>
+                                <td>@loan.Loan_Amount.ToString("C2")</td>
+                                <td>@loan.Interest_Balance.ToString("C2")</td>
+                                <td>@loan.Principal_Balance.ToString("C2")</td>
+                                <td>@loan.Total_Balance.ToString("C2")</td>
+                                <td>@loan.Interest_Collection.ToString("C2")</td>
+                                <td>@loan.Principal_Collection.ToString("C2")</td>
+                                <td>@loan.Total_Collection.ToString("C2")</td>
+                            </tr>
+                        }
+                        <tr class="table-info">
+                            <td colspan="1" class="text-end fw-bold">Total:</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Loan_Amount).ToString("C2")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Balance).ToString("C2")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Balance).ToString("C2")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Total_Balance).ToString("C2")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Collection).ToString("C2")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Collection).ToString("C2")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Total_Collection).ToString("C2")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (isLoanBalanceLoaded)
+        {
+            <div class="bg-info text-white p-3">
+                The member had no loan balance on the selected fixed deposits
+            </div>
+        }
+    }
+
+    <!-- Step 4: Button group -->
+    <div class="d-flex justify-content-between mt-4 mb-4">
+        <div>
+            <!-- Left-aligned buttons -->
+            <button type="button" class="btn btn-secondary me-2">
+                <i class="oi oi-x"></i>
+                Close
+            </button>
+            <button type="reset" class="btn btn-outline-secondary">
+                <i class="oi oi-action-undo"></i>
+                Reset
+            </button>
+        </div>
+
+        <!-- Right-aligned submit button -->
+        <button type="submit" class="btn btn-primary" disabled="@(!IsRecoveryValid())" @onclick="ProcessRecovery">
+            <i class="oi oi-check"></i>
+            Initiate Fixed Deposit Loan Recovery
+        </button>
+    </div>
+    @isError 
+</EditForm>
+@code {
+    #region parameters
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    #endregion 
+
+    #region declarations
+    private DtoTermDepositLoanRecovery fdRecovery = new DtoTermDepositLoanRecovery();
+    private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
+    private bool isLoanBalanceLoaded = false;
+    private bool loanNumbersLoaded = false;
+    private string? processingMessage;
+    private bool isError = false;
+    #endregion 
+
+    protected override void OnInitialized()
+    {
+        fdRecovery.Mem_Id = MemberId;
+        fdRecovery.Member_No = MemberNumber;
+        fdRecovery.Member_Name = MemberName;
+        fdRecovery.Transaction_Date = TransactionDate;
+    }
+    private async Task GetLoanNumbers()
+    {
+        try
+        {
+            List<DropdownItem> lnNoList = new List<DropdownItem>();
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetJLNosByMemId/{fdRecovery.Mem_Id}/3");
+            List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
+            if (result != null && result.Count > 0)
+            {
+                lnNoList = result.ToList();
+                foreach (var loan in lnNoList)
+                {
+                    DtoLoanNo newLoan = new DtoLoanNo();
+                    newLoan.Loan_Id = Convert.ToDecimal(loan.Value);
+                    newLoan.Loan_No = loan.Text;
+                    loanNosList.Add(newLoan);
+                }
+                fdRecovery.FDLoanNos = loanNosList;
+            }
+            loanNumbersLoaded = true;
+            selectedLoans.Clear();
+            fdRecovery.Loan_Balance_List = null;
+            processingMessage = null;
+        }
+        catch (Exception ex)
+        {
+            processingMessage = $"Error retrieving loan numbers: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    private void ToggleLoanSelection(DtoLoanNo loan, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedLoans.Any(l => l.Loan_Id == loan.Loan_Id))
+            {
+                selectedLoans.Add(loan);
+            }
+        }
+        else
+        {
+            selectedLoans.RemoveAll(l => l.Loan_Id == loan.Loan_Id);
+        }
+    }
+
+    private async Task GetLoanBalances()
+    {
+        if (!selectedLoans.Any())
+        {
+            processingMessage = "Please select at least one loan";
+            isError = true;
+            return;
+        }
+        try
+        {
+            List<DtoTermDepositLoanBalance> loanBalanceList = new List<DtoTermDepositLoanBalance>();
+            List<decimal> loanIdList = new List<decimal>();
+            foreach (var loan in selectedLoans)
+            {
+                loanIdList.Add(loan.Loan_Id);
+            }
+
+            decimal[] loanIds = loanIdList.ToArray();
+
+            // Build query parameters properly
+            var queryString = new System.Text.StringBuilder("loanIdList=");
+            // Add loan IDs with proper URL encoding
+            for (int i = 0; i < loanIdList.Count; i++)
+            {
+                queryString.Append(loanIdList[i]);
+                if (i < loanIdList.Count - 1)
+                    queryString.Append("&loanIdList=");
+            }
+            // Add other parameters with proper formatting
+            queryString.Append($"&endDate={Uri.EscapeDataString(fdRecovery.Transaction_Date.ToString("yyyy-MM-dd"))}");
+            queryString.Append("&brCode=11001");
+
+            // Make the API call with proper URL format
+            var result = await _httpClient.GetFromJsonAsync<List<DtoTermDepositLoanBalance>>($"api/TermDeposit/GetJLBalance?{queryString}");
+
+            if (result != null && result.Count > 0) loanBalanceList = result.ToList();
+            fdRecovery.Loan_Balance_List = new List<DtoTermDepositLoanBalance>();
+            foreach (var loan in loanBalanceList)
+            {
+                if (loan.Interest_Balance > 0 || loan.Current_Interest > 0)
+                {
+                    fdRecovery.Loan_Balance_List.Add(new DtoTermDepositLoanBalance
+                        {
+                            Loan_Id = loan.Loan_Id,
+                            Loan_No = loan.Loan_No,
+                            Loan_Amount = loan.Loan_Amount,
+                            Loan_Date = loan.Loan_Date,
+                            Rate_Of_Interest = loan.Rate_Of_Interest,
+                            Due_Date = loan.Due_Date,
+                            Interest_Application_Date = loan.Interest_Application_Date,
+                            Principal_Balance = loan.Principal_Balance ,
+                            Interest_Balance = loan.Interest_Balance ,
+                            Current_Interest = loan.Current_Interest,
+                            Interest_Collection = 0,
+                            Principal_Collection =0,
+                            Total_Collection =0
+                        });
+                }
+            }
+            fdRecovery.Total_Interest_Balance = fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Balance);
+            fdRecovery.Total_Principal_Balance = fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Balance);
+            fdRecovery.Total_Balance = fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Balance) + fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Balance);
+            processingMessage = null;
+        }
+        catch (Exception ex)
+        {
+            processingMessage = $"Error retrieving loan balances: {ex.Message}";
+            isError = true;
+        }
+    }
+
+    private bool IsRecoveryValid()
+    {
+        if (fdRecovery.Loan_Balance_List == null || !fdRecovery.Loan_Balance_List.Any())
+        {
+            return false;
+        }
+
+        // Check if any recovery amount is greater than outstanding
+        if (fdRecovery.Loan_Balance_List.Any(l => l.Interest_Collection > l.Interest_Balance))
+        {
+            return false;
+        }
+
+        // Check if total recovery is greater than zero
+        if (fdRecovery.Loan_Balance_List.Sum(l => l.Total_Balance) <= 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task ProcessRecovery()
+    {
+        if (!IsRecoveryValid())
+        {
+            processingMessage = "Please correct the recovery amounts before proceeding";
+            isError = true;
+            return;
+        }
+
+        try
+        {
+            // This would be the service call to process the recovery
+            // For now, just show success message
+
+            // The logic to allocate recovery amount to interest and principal would be here
+            // For each loan, allocate recovery amount first to interest, then to principal
+
+            await JSRuntime.InvokeVoidAsync("alert", $"Recovery processed successfully! Total amount: {fdRecovery.Total_Collection:C2}");
+
+            processingMessage = "Recovery processed successfully";
+            isError = false;
+
+            // Reset or reload as needed
+            // ResetForm();
+        }
+        catch (Exception ex)
+        {
+            processingMessage = $"Error processing recovery: {ex.Message}";
+            isError = true;
+        }
+    }
+    private void HandleSubmit()
+    {
+        // Submit payment logic (e.g., API call to save paymentModel)
+        // NavigationManager.NavigateTo("/payment-success");
+    }
+}

@@ -1,0 +1,171 @@
+﻿@using Infin8.Coapp.Dto
+<h3>RowAddInGrid</h3>
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Account Details</h5>
+                <button class="btn btn-sm btn-light" @onclick="AddNewAccountRow">
+                    <i class="oi oi-plus"></i> Add Account
+                </button>
+            </div>
+            <div class="card-body" style="max-height: 350px; overflow-y: auto;">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Account Name</th>
+                                <th>Receipt</th>
+                                <th>Payment</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var account in transactionAccountsList)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control" value="@account.AccountName" readonly disabled="@(transaction.Receipt_Payment != 2)" />
+                                            <button class="btn btn-outline-secondary" type="button" @onclick="() => OpenAccountSearchModal(account)">
+                                                <i class="oi oi-magnifying-glass"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm"
+                                        @bind="account.ReceiptAmount" disabled="@(transaction.Receipt_Payment == 0)" />
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm"
+                                        @bind="account.PaymentAmount" disabled="@(transaction.Receipt_Payment == 0)" />
+                                    </td>
+
+                                    @* <td>
+                                                <button class="btn btn-sm btn-info" @onclick="() => OpenChequeDetailsModal(account)">
+                                                    Cheque Details
+                                                </button>
+                                            </td> *@
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" @onclick="() => RemoveAccountRow(account)">
+                                            <i class="oi oi-trash"></i>
+                                            View
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => RemoveAccountRow(account)">
+                                            <i class="oi oi-trash"></i>
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-secondary">
+                                <th>Total</th>
+                                <th>@transactionAccountsList.Sum(a => a.ReceiptAmount)</th>
+                                <th>@transactionAccountsList.Sum(a => a.PaymentAmount)</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Member Search Modal -->
+@* <Modal IsVisible="@isMemberSearchModalVisible"
+       Title="Search Member"
+       OnClose="() => isMemberSearchModalVisible = false">
+    <ChildContent>
+        <MemberSearchComponent OnMemberSelected="SelectMember" />
+    </ChildContent>
+</Modal> *@
+
+<!-- Account Search Modal -->
+@* <Modal IsVisible="@isAccountSearchModalVisible"
+       Title="Search Account"
+       OnClose="() => isAccountSearchModalVisible = false">
+    <ChildContent>
+        <AccountSearchComponent OnAccountSelected="SelectAccount" />
+    </ChildContent>
+</Modal> *@
+
+<!-- Cheque Details Modal -->
+@* <Modal IsVisible="@isChequeDetailsModalVisible"
+       Title="Cheque Details"
+       OnClose="() => isChequeDetailsModalVisible = false">
+    <ChildContent>
+        @if (selectedAccount != null)
+        {
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Cheque Number</label>
+                        <input type="text" class="form-control" @bind="selectedAccount.ChequeNo" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Cheque Date</label>
+                        <input type="date" class="form-control" @bind="selectedAccount.ChequeDate" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Issuing Bank</label>
+                <input type="text" class="form-control" @bind="selectedAccount.IssueBankName" />
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select class="form-select" @bind="selectedAccount.Status">
+                    <option value="Pending">Pending</option>
+                    <option value="Cleared">Cleared</option>
+                    <option value="Bounced">Bounced</option>
+                </select>
+            </div>
+            <div class="text-end mt-3">
+                <button class="btn btn-primary" @onclick="SaveChequeDetails">Save Details</button>
+            </div>
+        }
+    </ChildContent>
+</Modal> *@
+
+@code {
+    private AccountTransactionVM selectedAccount;
+    private bool isMemberSearchModalVisible = false;
+    private bool isAccountSearchModalVisible = false;
+    private bool isChequeDetailsModalVisible = false;
+    private TransactionBy_Members transaction = new()
+        {
+            Transaction_Date = DateTime.Today,
+            Receipt_Payment = 0,
+            Cash_Adjustment = 0,
+            Member_No = string.Empty,
+            Member_Name = string.Empty,
+            Account_Id = 0,
+            Address = string.Empty,
+            Ledger_Id = 0,
+            Father_Name = string.Empty,
+            Member_Id = 0
+        };
+    private List<AccountTransactionVM> transactionAccountsList = new();
+    private void AddNewAccountRow()
+    {
+        transactionAccountsList.Add(new AccountTransactionVM
+            {
+                ReceiptAmount = 0,
+                PaymentAmount = 0,
+                Status = "Pending"
+            });
+    }
+    private void RemoveAccountRow(AccountTransactionVM account)
+    {
+        transactionAccountsList.Remove(account);
+    }
+    private void OpenAccountSearchModal(AccountTransactionVM account)
+    {
+        selectedAccount = account;
+        isAccountSearchModalVisible = true;
+    }
+}

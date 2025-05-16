@@ -1,0 +1,20 @@
+﻿using Infin8.Coapp.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Infin8.Coapp.Repository
+{
+    public interface IMemTrnRepository
+    {
+        Task<bool> AddMemTrnAsync(Mem_Trn memTrn,string brCode);
+        Task<bool> EditMemTrnAsync(Mem_Trn memTrn,string brCode);
+        Task<double> GetSBAccountBalanceByAccId(decimal accId, string brCode);
+        Task<double> GetSBAccountInterestBalanceByAccId(decimal accId,string brCode);
+        Task<double> GetMemTrnByMemIdAndLedIdAsync(decimal memId, decimal ledId,string brCode);
+        Task<double> GetmemTrnTotalSuspenseAmount(decimal memId, int trnType,string brCode);
+
+    }
+}

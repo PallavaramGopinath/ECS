@@ -1,0 +1,34 @@
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Infin8.Coapp.Repository
+{
+    public  interface ILoanTrnRepository
+    {
+        Task<bool> AddLoanTrnListAsync(List<Loan_Trn> loanTrnList);
+        Task<bool> EditLoanTrnListAsync(List<Loan_Trn> loanTrnList);
+        Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(int schemeId);
+        Task<double> GetJLExistingLoanOutstandingAsync(decimal memId);
+        Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType);
+        Task<List<DropdownItem>> GetLoanNosByMemIdAndLoanTypeAsync(decimal memId, int loanType);
+        Task<List<JewelLoanBalance>> GetJewelLoanNoBalanceAsync(decimal[] loanIdList, DateTime endDate,string brCode);
+        Task<List<LoanDetailsHL>> GetLoanDetailsListByLoanIdsHSISAsync(decimal[] LoanNos, DateTime trnDate, int intCalcType, int societyType);
+        Task<List<LoanDetailsHL>> GetLoanDetailsListByLoanIdLTAsync(decimal[] loanIds, DateTime trnDate);
+        Task<List<LoanDetailsHL>> GetLoanDetailsListByLoanIdsAsync(decimal[] loanIds);
+        Task<List<LoanDetailsVM>> GetLoanDetailsList2ByLoanIdsAsync(decimal[] loanIds);
+        Task<LoanInterestCalculatedItems> GetCalculatedInterestComponentsForLoanAsync(decimal loanId, DateTime firstIntDueDate, DateTime maxTrnDate, DateTime? maxDueDate, DateTime intFromDate, DateTime? piFromDate, DateTime toDate, DateTime piToDate, int Int_Application, int PI_Application, int IOD_Application, double DisbAmt, double PrlColl, double PrlSchedule, double PrlDemand, double IntCalcAmt, double IntCollAmt, string DisbAgency);
+        
+        Task<(double appraisalFee, double bankCharges, double serviceCharges)> GetJewelLoanAppraisalFees(double loanAmount);
+
+        #region td loan
+        Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds);
+        Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds);
+        #endregion 
+
+    }
+}

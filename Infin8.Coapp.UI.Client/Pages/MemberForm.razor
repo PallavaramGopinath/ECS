@@ -1,0 +1,698 @@
+﻿@page "/member-registration"
+@using Infin8.Coapp.Dto
+@rendermode InteractiveAuto
+@inject HttpClient _httpClient
+<div class="container-fluid p-4">
+    <EditForm Model="@member" method="post" OnValidSubmit="@HandleValidSubmit" FormName="member-create">
+        <DataAnnotationsValidator />
+
+        <!-- Basic Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Basic Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Member Type</label>
+                        <InputSelect @bind-Value="member.membertype" @bind-Value:after="OnMemberTypeChanged" class="form-select  shadow-none">
+                            <option value="0">Select Member Type</option>
+                            <option value="1">A-Class Member</option>
+                            <option value="2">Associate Member</option>
+                            <option value="3">Non-Member</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(()=>member.membertype)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Member No</label>
+                        <InputText @bind-Value="member.memberno" disabled class="form-control shadow-none" />
+                        @* <ValidationMessage For="@(()=>member.memberno)" /> *@
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Resolution No</label>
+                        <InputText @bind-Value="member.resolutionno" class="form-control shadow-none" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Resolution Date</label>
+                        <InputDate @bind-Value="member.resolutiondate" class="form-control shadow-none" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Admission Date</label>
+                        <InputDate @bind-Value="member.admissiondate" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.admissiondate)" />
+                    </div>
+                    <div class="col-md-1 mb-1">
+                        <label class="form-label">Salutation</label>
+                        <InputSelect @bind-Value="member.salutation" class="form-select shadow-none">
+                            <option value="0">Select Salutation</option>
+                            <option value="1">Mr</option>
+                            <option value="2">Mrs</option>
+                            <option value="2">Miss</option>
+                            <option value="3">Dr</option>
+                            <option value="3">Er</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(()=>member.salutation)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Member Name</label>
+                        <InputText @bind-Value="member.membername" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.membername)" />
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <label class="form-label">Relation Type</label>
+                        <InputSelect @bind-Value="member.relation_type" class="form-select shadow-none">
+                            <option value="0">Select Salutation</option>
+                            <option value="1">F/o</option>
+                            <option value="2">S/o</option>
+                            <option value="2">D/o</option>
+                            <option value="3">W/o</option>
+                            <option value="3">H/o</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(()=>member.relation_type)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Father's Name</label>
+                        <InputText @bind-Value="member.fathername" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.fathername)" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Gender</label>
+                        <InputSelect @bind-Value="member.gender" class="form-select shadow-none">
+                            <option value="0">Select Gender</option>
+                            <option value="1">Male</option>
+                            <option value="2">Female</option>
+                            <option value="3">Other</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(()=>member.gender)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Religion</label>
+                        <InputSelect @bind-Value="member.religion_id" class="form-select shadow-none">
+                            <option value="0">Select Religion</option>
+                            @foreach (var religion in religions)
+                            {
+                                <option value="@religion.Value">@religion.Text</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(()=>member.religion_id)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Community</label>
+                        <InputSelect @bind-Value="member.comm_id" class="form-select shadow-none">
+                            <option value="0">Select Community</option>
+                            @foreach (var community in communities)
+                            {
+                                <option value="@community.Value">@community.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Caste</label>
+                        <InputSelect @bind-Value="member.caste_id" class="form-select shadow-none">
+                            <option value="0">Select Caste</option>
+                            @foreach (var caste in castes)
+                            {
+                                <option value="@caste.Value">@caste.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Occupation</label>
+                        <InputSelect @bind-Value="member.occ_id" class="form-select shadow-none">
+                            <option value="0">Select Occupation</option>
+                            @foreach (var occupation in occupations)
+                            {
+                                <option value="@occupation.Value">@occupation.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Date of Birth</label>
+                        <InputDate @bind-Value="DateOfBirth" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.dob)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+
+                        <label class="form-label">Age</label>
+                        <InputNumber @bind-Value="member.age" class="form-control shadow-none" readonly />
+                        <ValidationMessage For="@(()=>member.age)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Constituency</label>
+                        <InputSelect @bind-Value="member.constituency_id" class="form-select shadow-none">
+                            <option value="0">Select Constituency</option>
+                            @foreach (var constituency in constituencies)
+                            {
+                                <option value="@constituency.Value">@constituency.Text</option>
+                            }
+                        </InputSelect>
+                        @* <ValidationMessage For="@(()=>member.religion_id)" /> *@
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Contact Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Mobile No</label>
+                        <InputText @bind-Value="member.mobileno" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.mobileno)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Alternative Mobile No</label>
+                        <InputText @bind-Value="member.alternative_mobileno" class="form-control shadow-none" />
+                    </div>
+                    @* <div class="col-md-3 mb-3">
+                        <label class="form-label">Office Phone</label>
+                        <InputText @bind-Value="member.officephoneno" class="form-control shadow-none" />
+                    </div> *@
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Email ID</label>
+                        <InputText @bind-Value="member.emailid" class="form-control shadow-none" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Present Address -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Present Address</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 1</label>
+                        <InputText @bind-Value="member.preadd1" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.preadd1)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 2</label>
+                        <InputText @bind-Value="member.preadd2" class="form-control shadow-none" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 3</label>
+                        <InputText @bind-Value="member.preadd3" class="form-control shadow-none" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">PIN Code</label>
+                        <InputText @bind-Value="member.prepin" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.prepin)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Area</label>
+                        <InputSelect @bind-Value="member.prearea_id" class="form-select shadow-none">
+                            <option value="0">Select Area</option>
+                            @foreach (var area in areas)
+                            {
+                                <option value="@area.Value">@area.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permanent Address -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Permanent Address</h5>
+                    <div class="form-check">
+                        <InputCheckbox @bind-Value="sameAsPresent" @onclick="CopyPresentAddress" class="form-check-input" id="sameAsPresent" />
+                        <label class="form-check-label text-white" for="sameAsPresent">Same as Present Address</label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 1</label>
+                        <InputText @bind-Value="member.peradd1" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.peradd1)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 2</label>
+                        <InputText @bind-Value="member.peradd2" class="form-control shadow-none" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 3</label>
+                        <InputText @bind-Value="member.peradd3" class="form-control shadow-none" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">PIN Code</label>
+                        <InputText @bind-Value="member.perpin" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.perpin)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Area</label>
+                        <InputSelect @bind-Value="member.perarea_id" class="form-select shadow-none">
+                            <option value="0">Select Area</option>
+                            @foreach (var area in areas)
+                            {
+                                <option value="@area.Value">@area.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Membership Details -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Membership Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="form-check">
+                            <InputCheckbox @bind-Value="member.isnewmember" class="form-check-input shadow-none" id="isNewMember" />
+                            <label class="form-check-label" for="isNewMember">New Member</label>
+                        </div>
+
+                    </div>
+                    @if (!member.isnewmember)
+                    {
+                        member.isexistingmember.Equals(false);
+                        member.existing_memberno = "";
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="member.isexistingmember" class="form-check-input shadow-none" id="isExistingMember" />
+                                <label class="form-check-label" for="isExistingMember">Existing Member</label>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        member.isexistingmember = false;
+                        member.existing_memberno = "";
+                    }
+                    <div class="col-md-4 mb-3">
+                        <div class="form-check">
+                            <InputCheckbox @bind-Value="member.ismember_othersociety" class="form-check-input shadow-none" id="isOtherSociety" />
+                            <label class="form-check-label" for="isOtherSociety">Member of Other Society</label>
+                        </div>
+                    </div>
+                </div>
+                @if (member.isexistingmember && !member.isnewmember)
+                {
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Existing Member No</label>
+                            <InputText @bind-Value="member.existing_memberno" class="form-control shadow-none" />
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Nominee Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Nominee Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Nominee Name</label>
+                        <InputText @bind-Value="member.nomineename" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.nomineename)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Nominee Age</label>
+                        <InputNumber @bind-Value="member.nomineeage" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.nomineeage)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Relationship</label>
+                        <InputText @bind-Value="member.nomineerelationship" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.nomineerelationship)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank and Identity Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Bank and Identity Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Bank Account No</label>
+                        <InputText @bind-Value="member.sbaccountno" class="form-control shadow-none" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Bank Name</label>
+                        <InputSelect @bind-Value="member.bankname" class="form-select shadow-none">
+                            <option value="0">Select Bank Name</option>
+                            @foreach (var bank in banks)
+                            {
+                                <option value="@bank.Value">@bank.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">IFSC Code</label>
+                        <InputText @bind-Value="member.ifsccode" class="form-control shadow-none" />
+                    </div>
+                </div>
+                <div class="row">
+                    @* <div class="col-md-3 mb-3">
+                        <label class="form-label">GPF No</label>
+                        <InputText @bind-Value="member.gpf_no" class="form-control shadow-none" />
+                    </div> *@
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">PAN No</label>
+                        <InputText @bind-Value="member.panno" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.panno)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Aadhar No</label>
+                        <InputText @bind-Value="member.aadharno" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.aadharno)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Smart Card No</label>
+                        <InputText @bind-Value="member.smartcardno" class="form-control shadow-none" />
+                        <ValidationMessage For="@(()=>member.smartcardno)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Photo and Documentation -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Photo and Documentation</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Member Photo</label>
+                        <InputFile OnChange="@OnMemberPhotoSelected" class="form-control shadow-none" accept="image/*" />
+                        @if (!string.IsNullOrEmpty(member.memberphoto))
+                        {
+                            <img src="@member.memberphoto" class="mt-2" style="max-width: 150px;" />
+                        }
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">E-Signature</label>
+                        <InputFile OnChange="@OnSignatureSelected" class="form-control shadow-none" accept="image/*" />
+                        @if (!string.IsNullOrEmpty(member.memberesignature))
+                        {
+                            <img src="@member.memberesignature" class="mt-2" style="max-width: 150px;" />
+                        }
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Aadhar Card</label>
+                        <InputFile OnChange="@OnAadharCardSelected" class="form-control shadow-none" accept="image/*,application/pdf" />
+                        @if (!string.IsNullOrEmpty(member.aadharcardpath))
+                        {
+                            <div class="mt-2">
+                                <a href="@member.aadharcardpath" target="_blank">View Aadhar Card</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" @onclick="Reset">Reset</button>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+    </EditForm>
+</div>
+@statusMessage
+@code {
+    private bool isSucceeded = false;
+    private string statusMessage = "Initial value";
+
+    private MemberRegistration member = new();
+
+    // private string message = "";
+    private bool sameAsPresent = false;
+
+    private List<DropdownItem> memberType = new();
+    private List<DropdownItem> religions = new();
+    private List<DropdownItem> communities = new();
+    private List<DropdownItem> castes = new();
+    private List<DropdownItem> occupations = new();
+    private List<DropdownItem> areas = new();
+    private List<DropdownItem> banks = new();
+    private List<DropdownItem> constituencies = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookups();
+    }
+
+    private async Task LoadLookups()
+    {
+        member.isnewmember = true;
+        member.isexistingmember = false;
+        member.brcode = "11001";
+        var religion = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/6/11001/false");
+        if (religion != null) religions = religion.ToList();
+        var community = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/1/11001/false");
+        if (community != null) communities = community.ToList();
+        var caste = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/4/11001/false");
+        if (caste != null) castes = caste.ToList();
+        var occupation = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/5/11001/false");
+        if (occupation != null) occupations = occupation.ToList();
+        var area = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/Area/11001");
+        if (area != null) areas = area.ToList();
+        var bank = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/BankItems");
+        if (bank != null) banks = bank.ToList();
+        var constituency = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/Constituencies");
+        if (constituency != null) constituencies = constituency.ToList();
+    }
+
+    private async Task OnMemberTypeChanged()
+    {
+        try
+        {
+            string memberNo = "";
+            int memType = member.membertype;
+            var url = $"https://localhost:7073/api/NewAccountNo/NewMemberNo/{memType}/11001";
+            Console.WriteLine($"Calling API: {url}"); // Debug URL
+            using var response = await _httpClient.GetAsync(url);
+            var jsonString = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Raw JSON response: {jsonString}");
+            if (response.IsSuccessStatusCode)
+            {
+                memberNo = jsonString;
+            }
+            else
+            {
+                Console.WriteLine($"API Error: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
+            }
+            member.memberno = memberNo;
+        }
+        catch (Exception ex)
+        {
+
+            string errormessage = ex.Message;
+        }
+    }
+
+    private DateTime? DateOfBirth
+    {
+        get => member.dob;
+        set
+        {
+            member.dob = value;
+            if (value.HasValue)
+            {
+                var today = DateTime.Today;
+                var birthDate = value.Value;
+
+                var age = today.Year - birthDate.Year;
+                if (birthDate.Month > today.Month ||
+                    (birthDate.Month == today.Month && birthDate.Day > today.Day))
+                {
+                    age--;
+                }
+
+                member.age = age;
+            }
+            else
+            {
+                member.age = 0;
+            }
+        }
+    }
+
+    private void CalculateAge()
+    {
+        if (member.dob.HasValue)
+        {
+            member.age = DateTime.Today.Year - member.dob.Value.Year;
+            if (member.dob.Value.Date > DateTime.Today.AddYears(-member.age))
+                member.age--;
+        }
+    }
+
+    private void CopyPresentAddress()
+    {
+        // sameAsPresent = (bool)e.Value;
+        // sameAsPresent = value;
+        // if (sameAsPresent)
+        // {
+        member.peradd1 = member.preadd1;
+        member.peradd2 = member.preadd2;
+        member.peradd3 = member.preadd3;
+        member.perpin = member.prepin;
+        // member.percity = member.precity;
+        member.perarea_id = member.prearea_id;
+        // }
+        // else {
+        //     member.peradd1 ="";
+        //     member.peradd2 = "";
+        //     member.peradd3 = "";
+        //     member.perpin = "";
+        //     member.percity = 0;
+        //     member.perarea_id = 0;
+        // }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var response = await _httpClient.PostAsJsonAsync<MemberRegistration>("https://localhost:7073/api/Member", member);
+        if (response.IsSuccessStatusCode)
+        {
+            statusMessage = "success";
+            sameAsPresent = false;
+            member = new();
+
+            member.isnewmember = true;
+            member.isexistingmember = false;
+            member.brcode = "11001";
+
+            StateHasChanged();
+        }
+        else
+        {
+            statusMessage = $"Request failed with status code: {response.StatusCode}";
+            isSucceeded = false;
+        }
+    }
+
+    private void Reset()
+    {
+        member = new();
+        sameAsPresent = false;
+    }
+
+    private async Task OnMemberPhotoSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                // Create directory if it doesn't exist
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "member-photos");
+                Directory.CreateDirectory(uploadPath);
+
+                // Generate unique filename
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                // Save the file
+                using var stream = file.OpenReadStream(maxAllowedSize: 10485760); // 10MB max
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                await stream.CopyToAsync(fileStream);
+
+                // Update member photo path
+                member.memberphoto = $"/uploads/member-photos/{fileName}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading photo: {ex.Message}");
+            // Handle error appropriately
+        }
+    }
+
+    private async Task OnSignatureSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "signatures");
+                Directory.CreateDirectory(uploadPath);
+
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                using var stream = file.OpenReadStream(maxAllowedSize: 5242880); // 5MB max
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                await stream.CopyToAsync(fileStream);
+
+                member.memberesignature = $"/uploads/signatures/{fileName}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading signature: {ex.Message}");
+        }
+    }
+
+    private async Task OnAadharCardSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "aadhar-cards");
+                Directory.CreateDirectory(uploadPath);
+
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                using var stream = file.OpenReadStream(maxAllowedSize: 15728640); // 15MB max
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                await stream.CopyToAsync(fileStream);
+
+                member.aadharcardpath = $"/uploads/aadhar-cards/{fileName}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading Aadhar card: {ex.Message}");
+        }
+    }
+
+    public class LookupItem
+    {
+        public decimal Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+}
