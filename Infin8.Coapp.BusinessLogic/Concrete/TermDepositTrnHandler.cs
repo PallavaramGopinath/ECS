@@ -16,7 +16,6 @@ namespace Infin8.Coapp.BusinessLogic
         {
             _unitOfWork = unitOfWork;
         }
-
         public async Task<bool> AddTermDepositTrnAsync(TermDeposit_Trn termDepositTrn)
         {
             bool result = false;
@@ -33,7 +32,6 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
-
         public async Task<bool> EditTermDepositTrnAsync(TermDeposit_Trn termDepositTrn)
         {
             bool result = false;
@@ -50,7 +48,6 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
-
         public async Task<List<FDDetailsVM>> GetFDPayableByTDIdsAsync(decimal[] fdNos, DateTime toDate, int accountId, string brCode)
         {
             bool isMonthEndCalc = false;
@@ -276,15 +273,17 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return fdDetails;
         }
-
         public async Task<List<DropdownItem>> GetTDNosByMemIdAsync(decimal memId, string tdSchemeType, string brCode)
         {
             return await _unitOfWork.TermDepositTrn.GetTDNosByMemIdAsync(memId, tdSchemeType, brCode);
         }
-
         public async Task<List<DropdownItem>> GetTDNosByMemIdForRenewal(decimal memId, string tdSchemeType, DateTime trnDate, string brCode)
         {
             return await _unitOfWork.TermDepositTrn.GetTDNosByMemIdForRenewal(memId, tdSchemeType,trnDate, brCode);
+        }
+        public async Task<DtoNominee> GetNomineeForTermDeposit(decimal memId, string tdSchemeType, string brCode)
+        {
+            return await _unitOfWork.TermDepositTrn.GetNomineeForTermDeposit(memId, tdSchemeType, brCode);
         }
     }
 }

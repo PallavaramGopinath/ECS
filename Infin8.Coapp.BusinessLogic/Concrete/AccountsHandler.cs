@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
 using Microsoft.IdentityModel.Tokens;
 using System;

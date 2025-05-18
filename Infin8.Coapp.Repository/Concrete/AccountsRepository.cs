@@ -72,6 +72,8 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        
+
         #region general
         public async Task<decimal> GetCashLedgerId(string brCode)
         {

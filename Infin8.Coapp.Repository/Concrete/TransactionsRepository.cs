@@ -42,6 +42,19 @@ namespace Infin8.Coapp.Repository
             return trnList;
         }
 
+        public async Task<List<DtoAccount_Transactions>> GetAllAccountsTransactions()
+        {
+            return await (from trn in CSISContext.Account_Transactions
+                          where trn.Acc_Delete == false
+                          select new DtoAccount_Transactions
+                          {
+                              Acc_Id = trn.Acc_Id,
+                              Acc_Name = trn.Acc_Name,
+                              Acc_Status = trn.Acc_Status,
+                              Acc_Type = trn.Acc_Type,
+                              Component_Name = trn.Component_Name,
+                          }).ToListAsync();
+        }
         public async Task<List<DropdownItem>> GetSuspenseLedgerItems(int suspeneType,string brCode)
         {
             List<DropdownItem> trnList = new List<DropdownItem>();

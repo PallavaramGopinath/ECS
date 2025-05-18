@@ -2071,6 +2071,47 @@ namespace Infin8.Coapp.Repository
             }
             return loanList;
         }
-        #endregion 
+
+        public async Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList)
+        {
+            List<DtoTermDepositLoan> loanList = new List<DtoTermDepositLoan>();
+            try
+            {
+                var query = await (from lien in CSISContext.Lien_Trn
+                                   where tdIdList.Contains(lien.TD_Id)
+                                   join loan in CSISContext.Loan_Master on lien.Loan_Id equals loan.Loan_Id
+                                   join trn in CSISContext.Loan_Trn on loan.Loan_Id equals trn.Loan_Id
+                                   group new { lien, loan, trn } by new
+                                   {
+                                       lien.TD_Id,
+                                       lien.Loan_Id,
+                                       loan.Loan_No,
+                                       loan.San_Date,
+                                       loan.San_Amt,
+                                       loan.Roi
+                                   } into g
+                                   select new DtoTermDepositLoan
+                                   {
+                                       TD_Id = g.Key.TD_Id,
+                                       Loan_Id = g.Key.Loan_Id,
+                                       Loan_No = g.Key.Loan_No,
+                                       Loan_Date = g.Key.San_Date,
+                                       Loan_Amount = g.Key.San_Amt,
+                                       Rate_Of_Interest = g.Key.Roi,
+                                       Interest_Overdue = g.Sum(x => x.trn.IntCalc_Amt) - g.Sum(x => x.trn.IntColl_Amt),
+                                       Principal_Balance = g.Key.San_Amt - g.Sum(x => x.trn.PrlColl_Amt),
+                                       Fixed_Deposit_Face_Value = g.Sum(x => x.lien.LienTr_Amount),
+                                       IntCalc_Date = g.Max(x => x.trn.IntCalc_Date)
+                                   }).ToListAsync();
+
+                if (query != null) loanList = query.ToList();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return loanList;
+        }
+        #endregion
     }
 }

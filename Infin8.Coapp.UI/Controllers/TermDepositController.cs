@@ -90,5 +90,14 @@ namespace Infin8.Coapp.API.Controllers
             if (fdNos != null) return Ok(fdNos);
             else return NotFound();
         }
+        [HttpGet]
+        [Route("GetNominee")]
+        public async Task<ActionResult<DtoNominee>> GetNominee(decimal memId, string tdSchemeType, string brCode)
+        {
+            DtoNominee nominee = new DtoNominee();
+            nominee = await _termDepositTrnHandler.GetNomineeForTermDeposit(memId, tdSchemeType, brCode);
+            if (nominee != null) return Ok(nominee);
+            else return NotFound();
+        }
     }
 }

@@ -8,7 +8,7 @@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Utility
 
-<div class="container mt-4">
+<div class="mt-4">
     <h3 class="mb-2">Jewel Loan Disbursement</h3>
     <hr class="mt-0" />
 
@@ -162,6 +162,7 @@
                                         <td>
                                             <button type="button" class="btn btn-danger rounded-pill btn-sm" @onclick="() => RemoveOrnament(item)">
                                                 <i class="oi oi-trash"></i>
+                                                Delete
                                             </button>
                                         </td>
                                     </tr>
@@ -277,7 +278,7 @@
         <div class="d-flex justify-content-between mt-4 mb-4">
             <div>
                 <!-- Left-aligned buttons -->
-                <button type="button" class="btn btn-secondary me-2" >
+                <button type="button" class="btn btn-secondary me-2" @onclick="CloseJLDisbursement">
                     <i class="oi oi-x"></i>
                     Close
                 </button>
@@ -288,7 +289,7 @@
             </div>
 
             <!-- Right-aligned submit button -->
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary" disabled="@isValidSubmit" @onclick="JLDisbursementInitiate">
                 <i class="oi oi-check"></i>
                 Create Jewel Loan Account
             </button>
@@ -318,13 +319,18 @@
 
 @code {
     #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
     [Parameter] public decimal MemberId { get; set; }
     [Parameter] public string? MemberNumber { get; set; }
     [Parameter] public string? MemberName { get; set; }
     [Parameter] public DateTime TransactionDate { get; set; }
-    #endregion 
+    [Parameter] public EventCallback<bool> OnJLDisbursementComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoJewelLoanDisbursement> OnJLDisbursementInitiate { get; set; }
+    #endregion
 
     #region declarations
+    private bool isValidSubmit = true;
     private DtoJewelLoanDisbursement loanDetails = new DtoJewelLoanDisbursement();
     private DtoJewelLoanOrnments newOrnament = new DtoJewelLoanOrnments();
     private string memberNo = "";
@@ -343,6 +349,8 @@
         // loanDetails.Member_Name = "Suresh R"; // This would come from your service
         //                                       // Initialize the date to current date
         // loanDetails.Tranaction_Date = DateTime.Now;
+        loanDetails.AccountId = AccountId ;
+        loanDetails.CashOrAdjustment = CashOrAdjustment ;
         loanDetails.Mem_Id = MemberId;
         loanDetails.Member_No = MemberNumber;
         loanDetails.Member_Name = MemberName;
@@ -701,6 +709,36 @@
         }
     }
 
+    private bool IsValidForSubmission()
+    {
+        bool result = false;
+        if (string.IsNullOrEmpty(loanDetails.Member_No) || loanDetails.Mem_Id <= 0)
+            errorMessage = "Please enter a valid member number and fetch member details";
+
+        if (loanDetails.Scheme_Id <= 0)
+            errorMessage += "\n Please select a loan scheme";
+
+        if (loanDetails.Ornment_List == null || !loanDetails.Ornment_List.Any())
+            errorMessage += "\n Please add at least one ornament";
+
+        if (loanDetails.Gross_Weight <= 0)
+            errorMessage += "\n Please enter valid gross weight";
+
+        if (loanDetails.Loan_Amount <= 0 || loanDetails.Loan_Amount > loanDetails.Jewels_Value)
+            errorMessage += "\n Please enter valid loan amount within the eligible limit";
+
+        if (string.IsNullOrEmpty(loanDetails.Jewels_Photo_Path))
+            errorMessage += "\n Please capture a photo of the jewels";
+        if (errorMessage.Length > 0)
+        {
+            showErrorMessage = true;
+            result = true;
+            isValidSubmit = true;
+        }
+        else
+            isValidSubmit = false;
+        return result;
+    }
     private void ResetForm()
     {
         loanDetails = new DtoJewelLoanDisbursement
@@ -714,6 +752,18 @@
         showSuccessMessage = false;
         showErrorMessage = false;
     }
+
+
+    protected async Task CloseJLDisbursement()
+    {
+        await OnJLDisbursementComponentClose.InvokeAsync(true);
+    }
+
+    protected async Task JLDisbursementInitiate()
+    {
+        await OnJLDisbursementInitiate.InvokeAsync(loanDetails);
+    }
+
 
     // Additional classes for the demo
     // public class LoanScheme

@@ -11,6 +11,8 @@ namespace Infin8.Coapp.Dto
     {
         [Required]
         public decimal Mem_Id { get; set; }
+        public int AccountId { get; set; }
+        public int CashOrAdjustment { get; set; }
         public string? Member_No { get; set; }
         public string? Member_Name { get; set; }
         public DateTime Transaction_Date { get; set; }

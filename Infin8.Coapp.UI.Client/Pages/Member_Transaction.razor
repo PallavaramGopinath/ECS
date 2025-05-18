@@ -25,8 +25,8 @@
                                 <div class="form-group">
                                     <label>Transaction Date</label>
                                     <InputDate class="form-control shadow-none" disabled="@isTrnDateDisable"
-                                               @bind-Value="transaction.Transaction_Date"
-                                               @bind-Value:after="this.DisableTrnDate" />
+                                    @bind-Value="transaction.Transaction_Date"
+                                    @bind-Value:after="this.DisableTrnDate" />
                                     <ValidationMessage For="@(()=>transaction.Transaction_Date)" />
                                 </div>
                             </div>
@@ -37,7 +37,7 @@
                                         <ErrorBoundary>
                                             <ChildContent>
                                                 <InputText class="form-control shadow-none" disabled="@isMemberNoDisable" @bind-Value="transaction.Member_No"
-                                                           @oninput="(e) => handleMemNo(e, transaction)" />
+                                                @oninput="(e) => handleMemNo(e, transaction)" />
                                                 <ValidationMessage For="@(()=>transaction.Member_No)" />
                                                 @* <button class="btn btn-outline-secondary" type="button" @onclick="OpenMemberSearchModal">
                                             <i class="oi oi-magnifying-glass"></i>
@@ -70,8 +70,8 @@
                                 <div class="form-group">
                                     <label>Cash Adjustment</label>
                                     <InputSelect class="form-select shadow-none" disabled="@isDdlCashAdjustmentDisable"
-                                                 @bind-Value="transaction.Cash_Adjustment"
-                                                 @bind-Value:after="DdlCashReceiptChange">
+                                    @bind-Value="transaction.Cash_Adjustment"
+                                    @bind-Value:after="DdlCashReceiptChange">
                                         <option value="0">Select Cash/Adjustment</option>
                                         <option value="1">Cash</option>
                                         <option value="2">Adjustment</option>
@@ -84,7 +84,7 @@
                                 <div class="form-group">
                                     <label>Transaction Type</label>
                                     <InputSelect class="form-select shadow-none" @bind-Value="transaction.Receipt_Payment"
-                                                 @bind-Value:after="handlerSelectAccount2">
+                                    @bind-Value:after="handlerSelectAccount2">
                                         <option value="0">Select Transaction Type</option>
                                         <option value="1">Receipt</option>
                                         <option value="2">Payment</option>
@@ -96,7 +96,7 @@
                                 <div class="form-group">
                                     <label>Select Account</label>
                                     <InputSelect class="form-select shadow-none" @bind-Value="transaction.Account_Id"
-                                                 @bind-Value:after="handlerShowAccountModal">
+                                    @bind-Value:after="handlerShowAccountModal">
                                         <option value="0">--Select Account Name--</option>
                                         @foreach (var account in accountItems)
                                         {
@@ -106,25 +106,34 @@
                                     <ValidationMessage For="@(()=>transaction.Account_Id )" />
                                 </div>
                             </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label>Select Ledger Name</label>
-                                    <InputSelect class="form-select shadow-none" @bind-Value="transaction.Ledger_Id"
-                                                 @bind-Value:after="GetLedgerBalance">
-                                        <option value="0">--Select Ledger Name--</option>
-                                        @foreach (var ledger in ledgerNameItems)
-                                        {
-                                            <option value="@ledger.Value">@ledger.Text</option>
-                                        }
-                                    </InputSelect>
-                                    <ValidationMessage For="@(()=>transaction.Ledger_Id )" />
+                            @if (isDdlLedger)
+                            {
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>Select Ledger Name</label>
+                                        <InputSelect class="form-select shadow-none" @bind-Value="transaction.Ledger_Id"
+                                        @bind-Value:after="GetLedgerBalance">
+                                            <option value="0">--Select Ledger Name--</option>
+                                            @foreach (var ledger in ledgerNameItems)
+                                            {
+                                                <option value="@ledger.Value">@ledger.Text</option>
+                                            }
+                                        </InputSelect>
+                                        <ValidationMessage For="@(()=>transaction.Ledger_Id )" />
+                                    </div>
                                 </div>
-                            </div>
+                            }
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Dynamic Component --->
+        @if (isComponentLoaded)
+        {
+            <DynamicComponent Type="currentComponent" Parameters="parameters" />
+        }
 
         <!-- Bank Account Information -->
         @if (isBankAccount)
@@ -179,11 +188,11 @@
                             <div class="form-group">
                                 <label for="LedgerEntry">Ledger Entry:</label>
                                 <InputNumber id="LedgerEntry" class="form-control" @bind-Value="transaction.Ledger_Entry"
-                                             @onblur="ValidateLedgerEntry" />
+                                @onblur="ValidateLedgerEntry" />
                             </div>
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
-                            <button class="btn btn-sm btn-light" @onclick="AddAccount">
+                            <button class="btn btn-sm btn-secondary" @onclick="AddAccount">
                                 <i class="oi oi-plus"></i> Add Account
                             </button>
                         </div>
@@ -261,10 +270,8 @@
         </div> *@
     </EditForm>
 </div>
-@if (isComponentLoaded)
-{
-    <DynamicComponent Type="currentComponent" Parameters="parameters" />
-}
+
+
 
 @if (isViewComponentLoaded && viewComponent != null)
 {
@@ -284,7 +291,9 @@
 @code {
     private bool isComponentLoaded = false;
     private bool isViewComponentLoaded = false;
+    private bool isDdlLedger = false;
     private bool isBankAccount = false;
+
     private bool isLedgerSection = false;
     private bool isTransactionSection = false;
     private bool showErrorMessage = false;
@@ -326,12 +335,17 @@
     #endregion
 
     #region component inititate variables
+    private List<DtoAccount_Transactions> AllAccountTransaction = new();
     private DtoJewelLoanRecovery JLRecoveryTransaction = new();
+    private DtoJewelLoanDisbursement JewelLoanDisbursement = new();
+    private DtoTermDepositFixedDepositCreation FDNewCreate = new();
+    private DtoTermDepositFixedDepositPayment FixedDepositPayment = new();
     #endregion
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         // Initialize with one empty row
-
+        var transactionItems = await _httpClient.GetFromJsonAsync<List<DtoAccount_Transactions>>($"https://localhost:7073/api/Transaction/GetAllAccountNames");
+        if (transactionItems != null) AllAccountTransaction = transactionItems;
         // AddNewAccountRow();
     }
 
@@ -466,12 +480,12 @@
         if (transaction.Receipt_Payment == 1)
         {
             var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/R/M");
-            if (receiptAccoutNames != null) accountItems = receiptAccoutNames;
+            if (receiptAccoutNames != null) accountItems = receiptAccoutNames.OrderBy(x=> x.Text).ToList();
         }
         if (transaction.Receipt_Payment == 2)
         {
             var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/P/M");
-            if (paymentAccountNames != null) accountItems = paymentAccountNames;
+            if (paymentAccountNames != null) accountItems = paymentAccountNames.OrderBy(x => x.Text).ToList(); ;
         }
         StateHasChanged();
     }
@@ -512,64 +526,71 @@
         isChequeDetailsModalVisible = true;
     }
 
-    private async void handlerShowAccountModal()
+    private async Task handlerShowAccountModal()
     {
         ledgerNameItems = await GetLedgerNameList();
         StateHasChanged();
         await GetComponentName(transaction.Account_Id);
-
-        StateHasChanged();
+        isDdlLedger = false;
+        // StateHasChanged();
         #region common accounts
         switch (transaction.Account_Id)
         {
             case 3: /// membser suspense creditor receipt/payment
                 isBankAccount = false;
+                isDdlLedger = true;
                 isLedgerSection = true;
                 isTransactionSection = true;
                 break;
             case 4: /// member suspense debtor receipt/payment
                 isBankAccount = false;
+                isDdlLedger = true;
                 isLedgerSection = true;
                 isTransactionSection = true;
                 break;
             case 5: /// member share capital receipt/payment
                 isBankAccount = false;
+                isDdlLedger = true;
                 isLedgerSection = true;
                 isTransactionSection = true;
                 break;
             case 11: /// bank name receipt/payment
                 isBankAccount = true;
+                isDdlLedger = true;
                 isLedgerSection = true;
                 isTransactionSection = true;
                 break;
             case 21: /// ledger entry receipt/payment
                 isBankAccount = false;
+                isDdlLedger = true;
                 isLedgerSection = true;
                 isTransactionSection = true;
                 break;
             case 22:    /// Staff susepense Creditor receipt/payment
                 isBankAccount = false;
+                isDdlLedger = true;
                 isLedgerSection = true;
                 isTransactionSection = true;
                 break;
             case 23:    /// Staff suspense Debtor receipt/payment
                 isBankAccount = false;
+                isDdlLedger = true;
                 isLedgerSection = true;
                 isTransactionSection = true;
                 break;
             case 36:    /// sb account transaction
                 isBankAccount = false;
-                isLedgerSection = true;
+                isLedgerSection = false;
                 isTransactionSection = false;
                 break;
             case 44:    ///Member due to transactions multiple
                 isBankAccount = false;
-                isLedgerSection = true;
+                isLedgerSection = false;
                 isTransactionSection = false;
                 break;
             case 45:    /// Member due by transactions multiple
                 isBankAccount = false;
-                isLedgerSection = true;
+                isLedgerSection = false;
                 isTransactionSection = false;
                 break;
         }
@@ -581,32 +602,43 @@
             switch (transaction.Account_Id)
             {
                 case 1: /// loan receipt
-
                     break;
                 case 2: /// RD Receipt
+                    isLedgerSection = false;
                     break;
                 case 6: /// member deposit advance receipt
                     break;
                 case 16:    /// fd account creation
+                    isLedgerSection = false;
                     break;
                 case 17: /// rd account creation
+                    isLedgerSection = false;
                     break;
                 case 18: /// sb account creation
+                    isLedgerSection = false;
                     break;
                 case 19: /// Staff Loan Recovery
+                    isLedgerSection = false;
                     break;
                 case 20:   /// PF Subscription
+                    isDdlLedger = true;
+                    isLedgerSection = false;
                     break;
                 case 24:    /// FD loan recovery
+                    isLedgerSection = false;
                     break;
                 case 25:    /// RD loan recovery
+                    isLedgerSection = false;
                     break;
                 case 26:    /// member pending deposit receipt
+                    isLedgerSection = false;
                     break;
                 case 31:    /// Jewel Loan Recovery
+                    isLedgerSection = false;
                     isComponentLoaded = true;
                     break;
                 case 47:    /// housing loan reimbursemet
+                    isLedgerSection = false;
                     break;
             }
         }
@@ -618,38 +650,56 @@
             switch (transaction.Account_Id)
             {
                 case 7: /// Fd Interest Payment
+                    isLedgerSection = false;
+
                     break;
                 case 8: /// FD Refund
+                    isLedgerSection = false;
                     break;
                 case 9:  /// FD Renewal
+                    isLedgerSection = false;
                     break;
                 case 10:    /// RD Refund
+                    isLedgerSection = false;
                     break;
                 case 12:    /// Loan disbursement for Housing society
+                    isLedgerSection = false;
                     break;
                 case 13:    /// Loan on Fixed Deposit
+                    isLedgerSection = false;
                     break;
                 case 14: /// Loan on Recurring Deposit
+                    isLedgerSection = false;
                     break;
                 case 22:    /// staff suspense creditor payment
+                    isLedgerSection = true;
                     break;
                 case 23:    /// staff suspense debtor payment
+                    isLedgerSection = true;
                     break;
                 case 27:    /// member deposit payment
+                    isLedgerSection = false;
                     break;
                 case 29:   /// member dividend payment
+                    isLedgerSection = false;
                     break;
                 case 30: /// Member int on TD payment
+                    isLedgerSection = false;
                     break;
                 case 32:    /// Member's Dividend and Int on TD Bulk Payment
+                    isLedgerSection = false;
                     break;
                 case 37:    /// Jewel Loan disbursement
+                    isLedgerSection = false;
                     break;
                 case 38:    /// Group Insurance Payment
+                    isLedgerSection = false;
                     break;
                 case 46: /// Loan disbursement subsequent instalments HSIS
+                    isLedgerSection = false;
                     break;
                 case 48:    /// Loan disbursement for PLDB
+                    isLedgerSection = false;
                     break;
             }
             StateHasChanged();
@@ -839,6 +889,26 @@
             case 6: /// member deposit advance receipt
                 break;
             case 16:    /// fd account creation
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName}";
+                Type? typeNewFD = Type.GetType(fullyQualifiedName);
+                if (typeNewFD != null) currentComponent = typeNewFD;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnFDNewComponentClose", EventCallback.Factory.Create<bool>(this, CloseFDNewComponent) },
+                    { "OnFDNewInitiate",EventCallback.Factory.Create<DtoTermDepositFixedDepositCreation>(this,FDNewInitiate)}
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
                 break;
             case 17: /// rd account creation
                 break;
@@ -863,6 +933,8 @@
                 parameters.Clear();
                 parameters = new Dictionary<string, object>
                 {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
                     { "MemberId", transaction.Member_Id },
                     { "MemberNumber", transaction.Member_No! },
                     { "MemberName", transaction.Member_Name! },
@@ -882,8 +954,50 @@
 
             /// payment
             case 7: /// Fd Interest Payment
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName}";
+                Type? typeFDPayment = Type.GetType(fullyQualifiedName);
+                if (typeFDPayment != null) currentComponent = typeFDPayment;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "RequestType","I"},
+                    { "OnFDPaymentComponentClose", EventCallback.Factory.Create<bool>(this, CloseFDPaymentComponent) },
+                    { "OnFDPaymentInitiate",EventCallback.Factory.Create<DtoTermDepositFixedDepositPayment>(this,FDPaymentInitiate)}
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
                 break;
             case 8: /// FD Refund
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName}";
+                Type? typeFDRefund = Type.GetType(fullyQualifiedName);
+                if (typeFDRefund != null) currentComponent = typeFDRefund;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "RequestType","P"},
+                    { "OnFDRefundComponentClose", EventCallback.Factory.Create<bool>(this, CloseFDRefundComponent) },
+                    { "OnFDRefundInitiate",EventCallback.Factory.Create<DtoTermDepositFixedDepositPayment>(this,FDRefundInitiate)}
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
                 break;
             case 9:  /// FD Renewal
                 break;
@@ -915,10 +1029,14 @@
                 parameters.Clear();
                 parameters = new Dictionary<string, object>
                 {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
                     { "MemberId", transaction.Member_Id },
                     { "MemberNumber", transaction.Member_No! },
                     {"MemberName", transaction.Member_Name! },
-                    { "TransactionDate", transaction.Transaction_Date }
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnJLDisbursementComponentClose", EventCallback.Factory.Create<bool>(this, CloseJLDisbursementComponent) },
+                    { "OnJLDisbursementInitiate",EventCallback.Factory.Create<DtoJewelLoanDisbursement>(this,JLDisbursementInitiate)}
                 };
                 isComponentLoaded = true;
                 StateHasChanged();
@@ -1023,6 +1141,20 @@
             case 6: /// member deposit advance receipt
                 break;
             case 16:    /// fd account creation
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName}";
+                Type? typeFDNewView = Type.GetType(fullyQualifiedName);
+                if (typeFDNewView != null) currentComponent = typeFDNewView;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "fdNewCreation", FDNewCreate },
+                    { "OnFDNewViewComponentClose", EventCallback.Factory.Create<bool>(this, CloseFDNewViewComponent) }
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
                 break;
             case 17: /// rd account creation
                 break;
@@ -1115,7 +1247,175 @@
 
     private void RemoveAccountRow(AccountTransactionVM account)
     {
+        DeleteTransactedAccount(account.AccountId);
         transactionAccountsList.Remove(account);
+    }
+
+    private void DeleteTransactedAccount(int accountId)
+    {
+        #region common accounts
+        switch (accountId)
+        {
+            case 3: /// membser suspense creditor receipt/payment
+                isBankAccount = false;
+                isDdlLedger = true;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 4: /// member suspense debtor receipt/payment
+                isBankAccount = false;
+                isDdlLedger = true;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 5: /// member share capital receipt/payment
+                isBankAccount = false;
+                isDdlLedger = true;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 11: /// bank name receipt/payment
+                isBankAccount = true;
+                isDdlLedger = true;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 21: /// ledger entry receipt/payment
+                isBankAccount = false;
+                isDdlLedger = true;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 22:    /// Staff susepense Creditor receipt/payment
+                isBankAccount = false;
+                isDdlLedger = true;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 23:    /// Staff suspense Debtor receipt/payment
+                isBankAccount = false;
+                isDdlLedger = true;
+                isLedgerSection = true;
+                isTransactionSection = true;
+                break;
+            case 36:    /// sb account transaction
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                break;
+            case 44:    ///Member due to transactions multiple
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                break;
+            case 45:    /// Member due by transactions multiple
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                break;
+        }
+        #endregion
+
+        #region receipt accounts
+        switch (accountId)
+        {
+            case 1: /// loan receipt
+                break;
+            case 2: /// RD Receipt
+
+                break;
+            case 6: /// member deposit advance receipt
+                break;
+            case 16:    /// fd account creation
+                FDNewCreate = new();
+                break;
+            case 17: /// rd account creation
+
+                break;
+            case 18: /// sb account creation
+
+                break;
+            case 19: /// Staff Loan Recovery
+
+                break;
+            case 20:   /// PF Subscription
+
+                break;
+            case 24:    /// FD loan recovery
+
+                break;
+            case 25:    /// RD loan recovery
+
+                break;
+            case 26:    /// member pending deposit receipt
+
+                break;
+            case 31:    /// Jewel Loan Recovery
+                JLRecoveryTransaction = new();
+                break;
+            case 47:    /// housing loan reimbursemet
+
+                break;
+        }
+        #endregion
+
+        #region payment accounts
+        switch (accountId)
+        {
+            case 7: /// Fd Interest Payment
+
+                break;
+            case 8: /// FD Refund
+
+                break;
+            case 9:  /// FD Renewal
+
+                break;
+            case 10:    /// RD Refund
+
+                break;
+            case 12:    /// Loan disbursement for Housing society
+
+                break;
+            case 13:    /// Loan on Fixed Deposit
+
+                break;
+            case 14: /// Loan on Recurring Deposit
+
+                break;
+            case 22:    /// staff suspense creditor payment
+
+                break;
+            case 23:    /// staff suspense debtor payment
+
+                break;
+            case 27:    /// member deposit payment
+
+                break;
+            case 29:   /// member dividend payment
+
+                break;
+            case 30: /// Member int on TD payment
+
+                break;
+            case 32:    /// Member's Dividend and Int on TD Bulk Payment
+
+                break;
+            case 37:    /// Jewel Loan disbursement
+
+                break;
+            case 38:    /// Group Insurance Payment
+
+                break;
+            case 46: /// Loan disbursement subsequent instalments HSIS
+
+                break;
+            case 48:    /// Loan disbursement for PLDB
+
+                break;
+        }
+        #endregion
+        StateHasChanged();
     }
 
     private async Task SaveTransaction()
@@ -1188,11 +1488,100 @@
         return result;
     }
 
+    #region Jewel Loan Disburemet
+    private void CloseJLDisbursementComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private void JLDisbursementInitiate(DtoJewelLoanDisbursement initiate)
+    {
+        JewelLoanDisbursement = new();
+        List<DtoJewelLoanOrnments> ornmentList = new();
+        foreach (var ornments in initiate.Ornment_List!)
+        {
+            DtoJewelLoanOrnments ornment = new DtoJewelLoanOrnments
+                {
+                    Ornment_Name = ornments.Ornment_Name,
+                    Ornment_Nos = ornments.Ornment_Nos
+                };
+            ornmentList.Add(ornment);
+        }
+
+        JewelLoanDisbursement = new();
+        JewelLoanDisbursement.Ornment_List = ornmentList;
+
+        JewelLoanDisbursement.Mem_Id = initiate.Mem_Id;
+        JewelLoanDisbursement.Member_No = initiate.Member_No;
+        JewelLoanDisbursement.Member_Name = initiate.Member_Name;
+        JewelLoanDisbursement.Tranaction_Date = initiate.Tranaction_Date;
+        JewelLoanDisbursement.Loan_No = initiate.Loan_No;
+        JewelLoanDisbursement.Market_Rate = initiate.Market_Rate;
+        JewelLoanDisbursement.Govt_Rate = initiate.Govt_Rate;
+        JewelLoanDisbursement.Maximum_Loan_Limit = initiate.Maximum_Loan_Limit;
+        JewelLoanDisbursement.Existing_Loan_Outstanding = initiate.Existing_Loan_Outstanding;
+        JewelLoanDisbursement.Percentage_Of_Eligibility_On_Market_Rate = initiate.Percentage_Of_Eligibility_On_Market_Rate;
+        JewelLoanDisbursement.Period_Of_Loan = initiate.Period_Of_Loan;
+        JewelLoanDisbursement.Due_Date = initiate.Due_Date;
+        JewelLoanDisbursement.Rate_Of_Interest = initiate.Rate_Of_Interest;
+        JewelLoanDisbursement.Penal_Rate = initiate.Penal_Rate;
+        JewelLoanDisbursement.Loan_Amount = initiate.Loan_Amount;
+        JewelLoanDisbursement.Gross_Weight = initiate.Gross_Weight;
+        JewelLoanDisbursement.Wasgate = initiate.Wasgate;
+        JewelLoanDisbursement.Net_Weight = initiate.Net_Weight;
+        JewelLoanDisbursement.Jewels_Photo_Path = initiate.Jewels_Photo_Path;
+        JewelLoanDisbursement.AppraisalFee = initiate.AppraisalFee;
+        JewelLoanDisbursement.BankCharges = initiate.BankCharges;
+        UpdateFDPaymentTransaction();
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
+    private void UpdateJLDisbursementTransaction()
+    {
+        string accountName = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Name!).First();
+        string status = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Status!).First();
+
+        AccountTransactionVM trn = new()
+            {
+                CashAdjId = transaction.Cash_Adjustment,
+                LedId = 0,
+                AccountId = transaction.Account_Id,
+                AccountName = accountName,
+                ReceiptAmount = JewelLoanDisbursement.AppraisalFee + JewelLoanDisbursement.BankCharges,
+                PaymentAmount = JewelLoanDisbursement.Loan_Amount,
+                ChequeNo = string.Empty,
+                ChequeDate = null,
+                IssueBankName = string.Empty,
+                Status = status,
+                Member_Id = transaction.Member_Id,
+                Member_No = transaction.Member_No,
+                PerNo = string.Empty,
+                Member_Name = transaction.Member_Name,
+                CashReceipt = transaction.Cash_Adjustment == 1 ? JewelLoanDisbursement.AppraisalFee + JewelLoanDisbursement.BankCharges : 0,
+                CashPayment = transaction.Cash_Adjustment == 2 ? JewelLoanDisbursement.Loan_Amount : 0,
+            };
+        transactionAccountsList.Add(trn);
+        transaction.Account_Id = 0;
+    }
+    #endregion
+
+    #region Jewel loan Recovery component items
     private void CloseJLRecoveryComponent(bool closeSignalFromChild)
     {
         if (closeSignalFromChild)
+        {
             isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
     }
+
     private void CloseJLRecoveryViewComponent(bool closeSignalFromViewChild)
     {
         if (closeSignalFromViewChild)
@@ -1209,31 +1598,341 @@
         isComponentLoaded = false;
         isLedgerSection = false;
         isTransactionSection = true;
+        transaction.Account_Id = 0;
     }
 
     private void UpdateJLRecoveryTransaction()
     {
+        string accountName = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Name!).First();
+        string status = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Status!).First();
         // private List<AccountTransactionVM> transactionAccountsList = new();
         AccountTransactionVM trn = new()
             {
-                CashAdjId = transaction.Cash_Adjustment,
+                CashAdjId = JLRecoveryTransaction.AccountId, /// transaction.Cash_Adjustment,
                 LedId = 0,
-                AccountId = transaction.Account_Id,
-                AccountName = "Jewel Loan Recovery",
+                AccountId = JLRecoveryTransaction.CashOrAdjustment , // transaction.Account_Id,
+                AccountName = accountName,
                 ReceiptAmount = JLRecoveryTransaction.JewelLoanBalance_List!.Select(x => x.Recovery_Amount).Sum(),
                 PaymentAmount = 0,
                 ChequeNo = string.Empty,
                 ChequeDate = null,
                 IssueBankName = string.Empty,
-                Status = "JLR",
+                Status = status,
                 Member_Id = JLRecoveryTransaction.Mem_Id,
                 Member_No = JLRecoveryTransaction.Member_No,
                 PerNo = string.Empty,
                 Member_Name = JLRecoveryTransaction.Member_Name,
-                CashReceipt = transaction.Cash_Adjustment == 1 ? JLRecoveryTransaction.JewelLoanBalance_List!.Select(x => x.Recovery_Amount).Sum() : 0,
+                CashReceipt = JLRecoveryTransaction.CashOrAdjustment == 1 ? JLRecoveryTransaction.JewelLoanBalance_List!.Select(x => x.Recovery_Amount).Sum() : 0,
                 CashPayment = 0
             };
 
         transactionAccountsList.Add(trn);
     }
+    #endregion
+
+    #region Fixed Deposit new component Items
+
+    private void CloseFDNewComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private void CloseFDNewViewComponent(bool closeSignalFromViewChild)
+    {
+        if (closeSignalFromViewChild)
+            isViewComponentLoaded = false;
+        viewComponent = null;
+        // viewParameters = null;
+        return;
+    }
+
+    private void FDNewInitiate(DtoTermDepositFixedDepositCreation fdNewInitiate)
+    {
+        DtoTermDepositCommon common = new DtoTermDepositCommon
+            {
+                Tdscheme_Id = fdNewInitiate.Common.Tdscheme_Id,
+                Mode_Of_Operation = fdNewInitiate.Common.Mode_Of_Operation,
+                Account_Opendate = fdNewInitiate.Common.Account_Opendate,
+                Value_Date = fdNewInitiate.Common.Value_Date,
+                Td_No = fdNewInitiate.Common.Td_No,
+                Tdh_Name = fdNewInitiate.Common.Tdh_Name,
+                Nominee1Name = fdNewInitiate.Common.Nominee1Name,
+                Nominee1Age = fdNewInitiate.Common.Nominee1Age,
+                Nominee1Relationship = fdNewInitiate.Common.Nominee1Relationship,
+                Nominee2Name = fdNewInitiate.Common.Nominee2Name,
+                Nominee2Age = fdNewInitiate.Common.Nominee2Age,
+                Nominee2Relationship = fdNewInitiate.Common.Nominee2Relationship
+            };
+        FDNewCreate.Common = new DtoTermDepositCommon();
+        FDNewCreate.Common = common;
+
+        List<DtoTermDepositMember> members = new List<DtoTermDepositMember>();
+        foreach (var fd in fdNewInitiate.Members)
+        {
+            DtoTermDepositMember member = new DtoTermDepositMember
+                {
+                    Mem_Id = fd.Mem_Id,
+                    Member_Name = fd.Member_Name,
+                    Father_Name = fd.Father_Name,
+                    Age = fd.Age
+                };
+            members.Add(member);
+        }
+        FDNewCreate.Members = members;
+        FDNewCreate.Deposit_Amount = fdNewInitiate.Deposit_Amount;
+        FDNewCreate.Interest_Payable_Frequency = fdNewInitiate.Interest_Payable_Frequency;
+        FDNewCreate.Period_Type = fdNewInitiate.Period_Type;
+        FDNewCreate.Is_DiscountRate = fdNewInitiate.Is_DiscountRate;
+        FDNewCreate.compoundfrequency = fdNewInitiate.compoundfrequency;
+        FDNewCreate.Period_In_Months = fdNewInitiate.Period_In_Months;
+        FDNewCreate.Period_In_Days = fdNewInitiate.Period_In_Days;
+        FDNewCreate.Rate_Of_Interest = fdNewInitiate.Rate_Of_Interest;
+        FDNewCreate.Maturity_Amount = fdNewInitiate.Maturity_Amount;
+        FDNewCreate.Maturity_Date = fdNewInitiate.Maturity_Date;
+
+        UpdateFDNewTransaction();
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
+    private void UpdateFDNewTransaction()
+    {
+        string accountName = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Name!).First();
+        string status = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Status!).First();
+        AccountTransactionVM trn = new()
+            {
+                CashAdjId = FDNewCreate.CashorAdjustment, /// transaction.Cash_Adjustment,
+                LedId = 0,
+                AccountId = FDNewCreate.AccountId , /// transaction.Account_Id,
+                AccountName = accountName ,
+                ReceiptAmount = FDNewCreate.Deposit_Amount, //  JLRecoveryTransaction.JewelLoanBalance_List!.Select(x => x.Recovery_Amount).Sum(),
+                PaymentAmount = 0,
+                ChequeNo = string.Empty,
+                ChequeDate = null,
+                IssueBankName = string.Empty,
+                Status = status,
+                Member_Id = FDNewCreate.Mem_Id, /// transaction.Member_Id,
+                Member_No = FDNewCreate.Member_No , ///  transaction.Member_No,
+                PerNo = string.Empty,
+                Member_Name = FDNewCreate.Member_Name , /// transaction.Member_Name,
+                CashReceipt = FDNewCreate.CashorAdjustment == 1 ? FDNewCreate.Deposit_Amount : 0,
+                CashPayment = 0
+            };
+
+        transactionAccountsList.Add(trn);
+    }
+    #endregion
+
+    #region Fixed Deposit Payment
+    private void CloseFDPaymentComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private void FDPaymentInitiate(DtoTermDepositFixedDepositPayment fdPaymentInitiate)
+    {
+        List<DtoTermDepositFixedDepositPayable> fdPayable = new();
+        foreach (var pmt in fdPaymentInitiate.Fixed_Deposit_Datas!)
+        {
+            DtoTermDepositFixedDepositPayable payment = new DtoTermDepositFixedDepositPayable
+                {
+                    FD_Id = pmt.FD_Id,
+                    FD_No = pmt.FD_No,
+                    Maturity_Date = pmt.Maturity_Date,
+                    Previous_Interest_Calculated = pmt.Previous_Interest_Calculated,
+                    Previous_Interest_Paid = pmt.Previous_Interest_Paid,
+                    Pending_Interest = pmt.Pending_Interest,
+                    Current_Interest_Calculated = pmt.Current_Interest_Calculated,
+                    Rate_Of_Interest_Applied = pmt.Rate_Of_Interest_Applied,
+                    Current_Interest_Applied_Date = pmt.Current_Interest_Applied_Date,
+                    Total_Interest_Payable = pmt.Total_Interest_Payable,
+                    Current_Interest_Payment = pmt.Current_Interest_Payment,
+                    Deposit_Refund = pmt.Deposit_Refund,
+                    Total_Payable = pmt.Total_Payable
+                };
+            fdPayable.Add(payment);
+        }
+
+        FixedDepositPayment.Fixed_Deposit_Datas = new();
+        FixedDepositPayment.Fixed_Deposit_Datas = fdPayable;
+
+        List<DtoTermDepositLoan> loanList = new();
+        foreach (var ln in fdPaymentInitiate.Loan_On_FixedDeposits!)
+        {
+            DtoTermDepositLoan loan = new DtoTermDepositLoan
+                {
+                    TD_Id = ln.TD_Id,
+                    Loan_Id = ln.Loan_Id,
+                    Loan_No = ln.Loan_No,
+                    Loan_Date = ln.Loan_Date,
+                    Loan_Amount = ln.Loan_Amount,
+                    Rate_Of_Interest = ln.Rate_Of_Interest,
+                    Current_Interest = ln.Current_Interest,
+                    Principal_Balance = ln.Principal_Balance,
+                    Fixed_Deposit_Face_Value = ln.Fixed_Deposit_Face_Value
+                };
+            loanList.Add(loan);
+        }
+
+        FixedDepositPayment.Loan_On_FixedDeposits = new();
+        FixedDepositPayment.Loan_On_FixedDeposits = loanList;
+
+        FixedDepositPayment.PaymentStatus = fdPaymentInitiate.PaymentStatus;
+        FixedDepositPayment.Total_Interest_Paid = fdPaymentInitiate.Total_Interest_Paid;
+        FixedDepositPayment.Total_Interest_Calculated = fdPaymentInitiate.Total_Interest_Calculated;
+        FixedDepositPayment.Total_Interest_Payable = fdPaymentInitiate.Total_Interest_Payable;
+        FixedDepositPayment.Total_Deposit_Payable = fdPaymentInitiate.Total_Deposit_Payable;
+        FixedDepositPayment.Total_Loan_Interest_Balance = fdPaymentInitiate.Total_Loan_Interest_Balance;
+        FixedDepositPayment.Total_Loan_Interest_Balance = fdPaymentInitiate.Total_Loan_Interest_Balance;
+        FixedDepositPayment.Net_Payable = fdPaymentInitiate.Net_Payable;
+        FixedDepositPayment.Is_Deduct_Loan_Amount = fdPaymentInitiate.Is_Deduct_Loan_Amount;
+        UpdateFDPaymentTransaction();
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
+    private void UpdateFDPaymentTransaction()
+    {
+        string accountName = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Name!).First();
+        string status = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Type!).First();
+        
+        AccountTransactionVM trn = new()
+            {
+                CashAdjId = FixedDepositPayment.CashOrAdjustment,
+                LedId = 0,
+                AccountId = FixedDepositPayment.AccountId ,
+                AccountName = accountName,
+                ReceiptAmount = FixedDepositPayment.Loan_On_FixedDeposits!.Select(x => x.Total_Balance).Sum(),
+                PaymentAmount = FixedDepositPayment.Total_Interest_Payable + FixedDepositPayment.Total_Deposit_Payable,
+                ChequeNo = string.Empty,
+                ChequeDate = null,
+                IssueBankName = string.Empty,
+                Status = status,
+                Member_Id = FixedDepositPayment.Mem_Id,
+                Member_No = FixedDepositPayment.Member_No,
+                PerNo = string.Empty,
+                Member_Name = FixedDepositPayment.Member_Name,
+                CashReceipt = FixedDepositPayment.CashOrAdjustment == 1 ? FixedDepositPayment.Loan_On_FixedDeposits!.Select(x => x.Total_Balance).Sum() : 0,
+                CashPayment = FixedDepositPayment.CashOrAdjustment == 2 ? FixedDepositPayment.Total_Interest_Payable + FixedDepositPayment.Total_Deposit_Payable : 0,
+            };
+
+        transactionAccountsList.Add(trn);
+    }
+    #endregion
+
+    #region Fixed Deposit Refund
+    private void CloseFDRefundComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private void FDRefundInitiate(DtoTermDepositFixedDepositPayment fdPaymentInitiate)
+    {
+        List<DtoTermDepositFixedDepositPayable> fdPayable = new();
+        foreach (var pmt in fdPaymentInitiate.Fixed_Deposit_Datas!)
+        {
+            DtoTermDepositFixedDepositPayable payment = new DtoTermDepositFixedDepositPayable
+                {
+                    FD_Id = pmt.FD_Id,
+                    FD_No = pmt.FD_No,
+                    Maturity_Date = pmt.Maturity_Date,
+                    Previous_Interest_Calculated = pmt.Previous_Interest_Calculated,
+                    Previous_Interest_Paid = pmt.Previous_Interest_Paid,
+                    Pending_Interest = pmt.Pending_Interest,
+                    Current_Interest_Calculated = pmt.Current_Interest_Calculated,
+                    Rate_Of_Interest_Applied = pmt.Rate_Of_Interest_Applied,
+                    Current_Interest_Applied_Date = pmt.Current_Interest_Applied_Date,
+                    Total_Interest_Payable = pmt.Total_Interest_Payable,
+                    Current_Interest_Payment = pmt.Current_Interest_Payment,
+                    Deposit_Refund = pmt.Deposit_Refund,
+                    Total_Payable = pmt.Total_Payable
+                };
+            fdPayable.Add(payment);
+        }
+
+        FixedDepositPayment.Fixed_Deposit_Datas = new();
+        FixedDepositPayment.Fixed_Deposit_Datas = fdPayable;
+
+        List<DtoTermDepositLoan> loanList = new();
+        foreach (var ln in fdPaymentInitiate.Loan_On_FixedDeposits!)
+        {
+            DtoTermDepositLoan loan = new DtoTermDepositLoan
+                {
+                    TD_Id = ln.TD_Id,
+                    Loan_Id = ln.Loan_Id,
+                    Loan_No = ln.Loan_No,
+                    Loan_Date = ln.Loan_Date,
+                    Loan_Amount = ln.Loan_Amount,
+                    Rate_Of_Interest = ln.Rate_Of_Interest,
+                    Current_Interest = ln.Current_Interest,
+                    Principal_Balance = ln.Principal_Balance,
+                    Fixed_Deposit_Face_Value = ln.Fixed_Deposit_Face_Value
+                };
+            loanList.Add(loan);
+        }
+
+        FixedDepositPayment.Loan_On_FixedDeposits = new();
+        FixedDepositPayment.Loan_On_FixedDeposits = loanList;
+
+        FixedDepositPayment.PaymentStatus = fdPaymentInitiate.PaymentStatus;
+        FixedDepositPayment.Total_Interest_Paid = fdPaymentInitiate.Total_Interest_Paid;
+        FixedDepositPayment.Total_Interest_Calculated = fdPaymentInitiate.Total_Interest_Calculated;
+        FixedDepositPayment.Total_Interest_Payable = fdPaymentInitiate.Total_Interest_Payable;
+        FixedDepositPayment.Total_Deposit_Payable = fdPaymentInitiate.Total_Deposit_Payable;
+        FixedDepositPayment.Total_Loan_Interest_Balance = fdPaymentInitiate.Total_Loan_Interest_Balance;
+        FixedDepositPayment.Total_Loan_Interest_Balance = fdPaymentInitiate.Total_Loan_Interest_Balance;
+        FixedDepositPayment.Net_Payable = fdPaymentInitiate.Net_Payable;
+        FixedDepositPayment.Is_Deduct_Loan_Amount = fdPaymentInitiate.Is_Deduct_Loan_Amount;
+        UpdateFDPaymentTransaction();
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
+    private void UpdateFDRefundTransaction()
+    {
+        string accountName = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Name!).First();
+        string status = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Type!).First();
+
+        AccountTransactionVM trn = new()
+            {
+                CashAdjId = FixedDepositPayment.CashOrAdjustment,
+                LedId = 0,
+                AccountId = FixedDepositPayment.AccountId,
+                AccountName = accountName,
+                ReceiptAmount = FixedDepositPayment.Loan_On_FixedDeposits!.Select(x => x.Total_Balance).Sum(),
+                PaymentAmount = FixedDepositPayment.Total_Interest_Payable + FixedDepositPayment.Total_Deposit_Payable,
+                ChequeNo = string.Empty,
+                ChequeDate = null,
+                IssueBankName = string.Empty,
+                Status = status,
+                Member_Id = FixedDepositPayment.Mem_Id,
+                Member_No = FixedDepositPayment.Member_No,
+                PerNo = string.Empty,
+                Member_Name = FixedDepositPayment.Member_Name,
+                CashReceipt = FixedDepositPayment.CashOrAdjustment == 1 ? FixedDepositPayment.Loan_On_FixedDeposits!.Select(x => x.Total_Balance).Sum() : 0,
+                CashPayment = FixedDepositPayment.CashOrAdjustment == 2 ? FixedDepositPayment.Total_Interest_Payable + FixedDepositPayment.Total_Deposit_Payable : 0,
+            };
+
+        transactionAccountsList.Add(trn);
+    }
+    #endregion 
+
 }

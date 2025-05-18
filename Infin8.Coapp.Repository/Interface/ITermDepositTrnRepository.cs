@@ -15,6 +15,6 @@ namespace Infin8.Coapp.Repository
         Task<List<DropdownItem>> GetTDNosByMemIdAsync(decimal memId, string tdSchemeType, string brCode);
         Task<List<FDDetailsVM>> GetFDPayableByTDIdsAsync(decimal[] fdNos);
         Task<List<DropdownItem>> GetTDNosByMemIdForRenewal(decimal memId , string tdSchemeType, DateTime trnDate, string brCode);
-        
+        Task<DtoNominee> GetNomineeForTermDeposit(decimal memId, string tdSchemeType, string brCode);
     }
 }

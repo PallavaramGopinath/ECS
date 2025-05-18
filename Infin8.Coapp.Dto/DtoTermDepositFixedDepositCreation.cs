@@ -9,6 +9,11 @@ namespace Infin8.Coapp.Dto
 {
     public class DtoTermDepositFixedDepositCreation
     {
+        public int AccountId { get; set; }
+        public int CashorAdjustment { get; set; }
+        public decimal Mem_Id { get; set; }
+        public string? Member_No { get; set; }
+        public string? Member_Name { get; set; }
         [Required(ErrorMessage = "Common information is required")]
         public DtoTermDepositCommon  Common { get; set; } = new();
 

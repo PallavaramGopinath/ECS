@@ -20,13 +20,15 @@ namespace Infin8.Coapp.BusinessLogic
 
         Task<List<LoanDetailsHL>> GetLoanDetailsListByLoanIdsHSISAsync(decimal[] loanIds, DateTime trnDate, int intCalcType, int societyType);
 
-        Task<List<LoanDetailsVM>> GetTDLoanDetailsByTDIdsAsync(decimal[] TDNos, DateTime toDate);
+       
         Task<List<LoanDetailsVM>> GetLoanDetailsList2ByLoanIdsAsync(decimal[] loanIds);
         Task<(double appraisalFee, double bankCharges, double serviceCharges)> GetJewelLoanAppraisalFees(double loanAmount);
 
         #region td loan
+        Task<List<LoanDetailsVM>> GetTDLoanDetailsByTDIdsAsync(decimal[] TDNos, DateTime toDate);
         Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds);
         Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds);
+        Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList,DateTime toDate);
         #endregion 
     }
 

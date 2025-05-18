@@ -8,6 +8,8 @@ namespace Infin8.Coapp.Dto
 {
     public class DtoJewelLoanDisbursement
     {
+        public int AccountId { get; set; }
+        public int CashOrAdjustment { get; set; }
         public decimal Mem_Id { get; set; }
         public string? Member_No { get; set; }
         public string? Member_Name { get; set; }

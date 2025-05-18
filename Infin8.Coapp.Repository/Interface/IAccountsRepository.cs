@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace Infin8.Coapp.Repository
     {
         Task<bool> AddAccountsTransaction(Account_Transactions accountTransaction);
         Task<bool> EditAccountsTransaction(Account_Transactions accountTransaction);
-
+        
         Task<decimal> GetCashLedgerId(string brCode);
         Task<(double OBAmount, double CBAmount)> GetLedgerOBAndCBAmount(decimal ledId, decimal yrId, DateTime toDate,string brCode);
         Task<double> GetPreviousReceipt(decimal ledId, decimal yrId, DateTime dateUpto);

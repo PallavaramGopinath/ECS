@@ -28,6 +28,19 @@ namespace Infin8.Coapp.API.Controllers
         }
 
         [HttpGet]
+        [Route("GetAllAccountNames")]
+        public async Task<ActionResult<List<DtoAccount_Transactions>>> GetAllTransactionAccounts()
+        {
+            List<DtoAccount_Transactions> dtoAccounts = new List<DtoAccount_Transactions>();
+            dtoAccounts = await _transactionHandler.GetAllAccountsTransactions();
+            if (dtoAccounts == null)
+            {
+                return NotFound();
+            }
+            return Ok(dtoAccounts);
+        }
+
+        [HttpGet]
         [Route("GetSuspenseAccounts/{suspenseType:int}/{brCode}")]
         public async Task<ActionResult<List<DropdownItem>>> GetSuspenseLedgerItems(int suspenseType,string brCode)
         {

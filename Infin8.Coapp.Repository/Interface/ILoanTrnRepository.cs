@@ -28,6 +28,8 @@ namespace Infin8.Coapp.Repository
         #region td loan
         Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds);
         Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds);
+
+        Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList);
         #endregion 
 
     }

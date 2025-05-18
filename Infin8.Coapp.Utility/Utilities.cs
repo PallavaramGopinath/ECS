@@ -125,6 +125,7 @@ namespace Infin8.Coapp.Utility
             //UtilityHandler utilityHandler = new UtilityHandler();
             switch (CompoundFrequency)
             {
+                case 0:
                 case 13:  /// compound not applicable
                     if (PeriodInMonths > 0)
                     {

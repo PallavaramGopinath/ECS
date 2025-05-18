@@ -194,5 +194,54 @@ namespace Infin8.Coapp.Repository
             }
             return fdList;
         }
+
+        public async Task<DtoNominee> GetNomineeForTermDeposit(decimal memId, string tdSchemeType, string brCode)
+        {
+            DtoNominee nominee = new DtoNominee();
+            try
+            {
+                var result = await (from td in CSISContext.TermDeposit_Master
+                              join scheme in CSISContext.TermDeposit_Schemes
+                                  on td.TDScheme_Id equals scheme.TDScheme_Id
+                              where td.Mem_Id == memId &&
+                                    td.BrCode == brCode &&
+                                    td.TD_Delete == false &&
+                                    td.Nominee1Name != null &&
+                                    scheme.TDSchemeType == tdSchemeType
+                              orderby td.TD_Id descending
+                              select new DtoNominee
+                              {
+                                  Nominee1Name = td.Nominee1Name,
+                                  Nominee1Age = td.Nominee1Age,
+                                  Nominee1Relationship = td.Nominee1Relationship,
+                                  Nominee2Name=td.Nominee2Name,
+                                  Nominee2Age = td.Nominee2Age,
+                                  Nominee2Relationship = td.Nominee2Relationship,
+                              }).FirstOrDefaultAsync();
+
+                if (result != null ) 
+                    nominee = result;
+                else
+                {
+                    var result1 = await (from td in CSISContext.TermDeposit_Master
+                                         where td.Mem_Id == memId
+                                         select new DtoNominee
+                                         {
+                                             Nominee1Name = td.Nominee1Name,
+                                             Nominee1Age = td.Nominee1Age,
+                                             Nominee1Relationship = td.Nominee1Relationship,
+                                             Nominee2Name ="",
+                                             Nominee2Age = 0,
+                                             Nominee2Relationship ="",
+                                         }).FirstOrDefaultAsync();
+                    if(result1 != null ) nominee = result1;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Term deposit nominee data");
+            }
+            return nominee;
+        }
     }
 }

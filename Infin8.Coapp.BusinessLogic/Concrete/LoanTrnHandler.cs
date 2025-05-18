@@ -51,8 +51,6 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        
-
         public async Task<List<JewelLoanBalance>> GetJewelLoanNoBalanceAsync(decimal[] loanIdList, DateTime endDate,string brCode)
         {
             decimal id = 0;
@@ -137,11 +135,6 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanTrn.GetLoanHavingOSItemsBySchemeIdAsync(schemeId);
         }
 
-        public async Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds)
-        {
-            return await _unitOfWork.LoanTrn.GetLoanIdListByTdIdListAsync(tdIds);
-        }
-
         public async Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType)
         {
             return await _unitOfWork.LoanTrn.GetLoanNosAsync(memId, loanType);
@@ -152,6 +145,14 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanTrn.GetLoanNosByMemIdAndLoanTypeAsync((decimal)memId, loanType);
         }
 
+        
+
+        public async Task<(double appraisalFee, double bankCharges, double serviceCharges)> GetJewelLoanAppraisalFees(double loanAmount)
+        {
+            return await _unitOfWork.LoanTrn.GetJewelLoanAppraisalFees(loanAmount);
+        }
+
+        #region TD Loan
         public async Task<List<LoanDetailsVM>> GetTDLoanDetailsByTDIdsAsync(decimal[] TDNos, DateTime toDate)
         {
             DateTime IntCalcDate;
@@ -162,17 +163,17 @@ namespace Infin8.Coapp.BusinessLogic
             try
             {
                 loanIdList = await _unitOfWork.LoanTrn.GetLoanIdListByTdIdListAsync(TDNos);
-                if(loanIdList.Count > 0)
+                if (loanIdList.Count > 0)
                 {
                     var loanList = await _unitOfWork.LoanTrn.GetLoanDetailsList2ByLoanIdsAsync(loanIdList.ToArray());
-                    if(loanList != null &&  loanList.Count > 0) loanDetailsList =  loanList;
+                    if (loanList != null && loanList.Count > 0) loanDetailsList = loanList;
                     if (loanDetailsList.Count > 0)
                     {
                         foreach (var loan in loanDetailsList)
                         {
                             if (loan.maxintcalcdate == null) IntCalcDate = loan.disbursementdate;
                             else IntCalcDate = (DateTime)loan.maxintcalcdate;
-                            loan.intcalcamt = utilityHandler.Calculate_Interest(loan.disbamt - loan.prlcoll ,loan.roi,utilityHandler.GetNoOfDays(IntToDate, IntCalcDate ));
+                            loan.intcalcamt = utilityHandler.Calculate_Interest(loan.disbamt - loan.prlcoll, loan.roi, utilityHandler.GetNoOfDays(IntToDate, IntCalcDate));
                             loan.intcalcdate = IntToDate;
                         }
                     }
@@ -184,15 +185,39 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return loanDetailsList;
         }
-
-        public async Task<(double appraisalFee, double bankCharges, double serviceCharges)> GetJewelLoanAppraisalFees(double loanAmount)
+        public async Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds)
         {
-            return await _unitOfWork.LoanTrn.GetJewelLoanAppraisalFees(loanAmount);
+            return await _unitOfWork.LoanTrn.GetLoanIdListByTdIdListAsync(tdIds);
         }
-
         public async Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds)
         {
             return await _unitOfWork.LoanTrn.GetTDLoanDetailsByTDIds(tdIds);
         }
+        public async Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList, DateTime toDate)
+        {
+            List<DtoTermDepositLoan> loanList = new List<DtoTermDepositLoan>();
+            DateTime IntCalcDate;
+            try
+            {
+                UtilityHandler utilityHandler = new UtilityHandler();
+                var result = await  _unitOfWork.LoanTrn.GetTDLoanDataByTDIds(tdIdList);
+                if (result != null)
+                {
+                    loanList = result.ToList();
+                    foreach(var loan in loanList)
+                    {
+                        if (loan.IntCalc_Date == null) IntCalcDate = loan.Loan_Date;
+                        else IntCalcDate = (DateTime)loan.IntCalc_Date;
+                        loan.Current_Interest = utilityHandler.Calculate_Interest(loan.Principal_Balance , loan.Rate_Of_Interest , utilityHandler.GetNoOfDays(toDate, IntCalcDate));
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return loanList;
+        }
+        #endregion
     }
 }

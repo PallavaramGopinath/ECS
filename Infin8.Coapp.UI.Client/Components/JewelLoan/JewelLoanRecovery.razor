@@ -5,7 +5,7 @@
 @using Infin8.Coapp.Dto
 @inject HttpClient _httpClient
 
-<div class="container">
+<div >
     <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
         <h3 class="mb-2">Jewel Loan Recovery</h3>
         <hr class="mt-0" />
@@ -192,6 +192,8 @@
 
 @code {
     #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
     [Parameter] public decimal MemberId { get; set; }
     [Parameter] public string? MemberNumber { get; set; }
     [Parameter] public string? MemberName { get; set; }
@@ -218,6 +220,8 @@
         // model.Mem_Id = 110010005167;
         // model.Member_No = "1100110008915";
         // model.Member_Name = "Mohanambal.M"; // This would come from your service
+        model.AccountId = AccountId;
+        model.CashOrAdjustment = CashOrAdjustment;
         model.Mem_Id = MemberId;
         model.Member_No = MemberNumber;
         model.Member_Name = MemberName;
