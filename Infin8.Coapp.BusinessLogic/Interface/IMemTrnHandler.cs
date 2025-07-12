@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,7 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<bool> AddMemTrnAsync(Mem_Trn memTrn, string brCode);
         Task<bool> EditMemTrnAsync(Mem_Trn memTrn, string brCode);
+        Task<DtoSBAccountBalanceWithIds> GetSBAccountBalanceWithIds(decimal memId, string brCode);
         Task<double> GetSBAccountBalanceByAccId(decimal accId, string brCode);
         Task<double> GetSBAccountInterestBalanceByAccId(decimal accId,string brCode);
         Task<double> GetMemTrnByMemIdAndLedIdAsync(decimal memId, decimal ledId,string brCode);

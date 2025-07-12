@@ -29,6 +29,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds);
         Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds);
         Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList,DateTime toDate);
+        Task<List<DtoTermDepositLoanBalance>> GetTDLoanBalanceByTDIds(List<decimal> loanIdList, DateTime toDate, string brCode);
         #endregion 
     }
 

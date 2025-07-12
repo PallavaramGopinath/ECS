@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.MemTrn.AddMemTrnAsync(memTrn,brCode);
         }
-
+        public async Task<DtoSBAccountBalanceWithIds> GetSBAccountBalanceWithIds(decimal memId, string brCode)
+        {
+            return await _unitOfWork.MemTrn.GetSBAccountBalanceWithIds(memId,brCode);
+        }
         public async Task<bool> EditMemTrnAsync(Mem_Trn memTrn, string brCode)
         {
             return await _unitOfWork.MemTrn.EditMemTrnAsync(memTrn, brCode);    
@@ -45,5 +49,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.MemTrn.GetmemTrnTotalSuspenseAmount(memId, trnType, brCode);
         }
+
+        
     }
 }

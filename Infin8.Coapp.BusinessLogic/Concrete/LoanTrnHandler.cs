@@ -145,8 +145,6 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanTrn.GetLoanNosByMemIdAndLoanTypeAsync((decimal)memId, loanType);
         }
 
-        
-
         public async Task<(double appraisalFee, double bankCharges, double serviceCharges)> GetJewelLoanAppraisalFees(double loanAmount)
         {
             return await _unitOfWork.LoanTrn.GetJewelLoanAppraisalFees(loanAmount);
@@ -218,6 +216,12 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return loanList;
         }
+
+        public async Task<List<DtoTermDepositLoanBalance>> GetTDLoanBalanceByTDIds(List<decimal> loanIdList, DateTime toDate, string brCode)
+        {
+            return await _unitOfWork.LoanTrn.GetTDLoanBalanceByTDIds(loanIdList, toDate, brCode);
+        }
+        
         #endregion
     }
 }
