@@ -101,5 +101,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
            return await _unitOfWork.LoanScheme.GetPeriodOfLoan(schemeId);
         }
+
+        public async Task<Loan_Schemes> GetLoanSchemeByType(int loanType)
+        {
+            return  await _unitOfWork.LoanScheme.GetLoanSchemeByType(loanType);
+        }
     }
 }

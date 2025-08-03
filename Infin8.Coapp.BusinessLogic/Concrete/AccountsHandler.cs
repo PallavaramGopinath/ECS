@@ -27,15 +27,24 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.Accounts.EditAccountsTransaction(accountTransaction);
         }
+        public async Task<string> GetTransactedAccountNameFromAccount_Transactions(int accId)
+        {
+            return await _unitOfWork.Accounts.GetTransactedAccountNameFromAccount_Transactions(accId);
+        }
 
         public async Task<decimal> GetCashLedgerId(string brCode)
         {
             return await _unitOfWork.Accounts.GetCashLedgerId(brCode);
         }
 
-        public async Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate)
+        public async Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate, string brCode)
         {
-            return await _unitOfWork.Accounts.GetLedgerBalance(ledId, yrId, upToDate);
+            return await _unitOfWork.Accounts.GetLedgerBalance(ledId, yrId, upToDate,brCode);
+        }
+
+        public async Task<DtoLedgerBalance> GetLedgerBalanceWithFnlId(decimal ledId, decimal yrId, DateTime upToDate, string brCode)
+        {
+            return await _unitOfWork.Accounts.GetLedgerBalanceWithFnlId(ledId, yrId, upToDate,brCode);
         }
 
         public string GetLedgerNameByLedId(decimal ledId)
@@ -63,5 +72,6 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.Accounts.UpdateLedgerBalance(yrId, fromDate, toDate, brCode);
         }
 
+        
     }
 }

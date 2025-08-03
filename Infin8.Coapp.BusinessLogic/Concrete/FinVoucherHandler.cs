@@ -16,12 +16,13 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddFinVoucherAsync(Fin_Voucher finVouocher)
+        public async Task<(bool result, decimal vocId)> AddFinVoucherAsync(Fin_Voucher finVouocher)
         {
             bool result = false;
+            decimal vocId = 0;
             try
             {
-                result = await _unitOfWork.FinVoucher.AddFinVoucherAsync(finVouocher); 
+                (result,vocId)  = await _unitOfWork.FinVoucher.AddFinVoucherAsync(finVouocher); 
                 await _unitOfWork.CompleteAsync();
                 result = true;
             }
@@ -30,7 +31,7 @@ namespace Infin8.Coapp.BusinessLogic
                 result = false;
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Payment voucher not saved");
             }
-            return result;
+            return (result,vocId);
         }
 
         public async Task<bool> EditFinVoucherAsync(Fin_Voucher finVouocher)

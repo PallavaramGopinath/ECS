@@ -12,5 +12,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<decimal> AddStagingMaster(Staging_Master stagingMaster);
         bool IsStagingMasterCreated(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate);
         Task<Decimal> GetStagingMasterId(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate);
+       
     }
 }

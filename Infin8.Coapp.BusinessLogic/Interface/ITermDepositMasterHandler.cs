@@ -10,10 +10,12 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface ITermDepositMasterHandler
     {
-        Task<bool> AddTermDepositMasterAsync(TermDeposit_Master termDepositMaster);
+        Task<(bool result, decimal tdId, string tdNo)> AddTermDepositMasterAsync(TermDeposit_Master termDepositMaster);
         Task<bool> EditTermDepositMasterAsync(TermDeposit_Master termDepositMaster);
+        Task<bool> UpdateTermDepositMasterAsClosed(decimal tdId);
         Task<FDRenewalObject> GetFDRnewalObjectByMemIdAsync(decimal memId);
         Task<DateTime> GetMaxMaturityDate(decimal[] tdIds, DateTime toDate);
         Task<List<FDDataForLoan>> GetFDDetailsForLoan(decimal[] tdIds);
+        Task<string> GetNewTDNo(int schemeId);
     }
 }

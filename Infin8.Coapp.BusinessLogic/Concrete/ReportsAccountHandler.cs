@@ -108,13 +108,13 @@ namespace Infin8.Coapp.BusinessLogic
 
                             if (ledId == gl.Led_Id)
                             {
-                                openingBalance =  await  _unitOfWork.Accounts.GetLedgerBalance(gl.Led_Id,yrId, gl.GL_Date);
+                                openingBalance =  await  _unitOfWork.Accounts.GetLedgerBalance(gl.Led_Id,yrId, gl.GL_Date,brCode);
                             }
                             monthNo = gl.GL_Date.Month;
                             if (ledId != gl.Led_Id)
                             {
                                 openingBalance = 0; closingBalance = 0;
-                                openingBalance = await  _unitOfWork.Accounts.GetLedgerBalance(gl.Led_Id,yrId, gl.GL_Date);
+                                openingBalance = await  _unitOfWork.Accounts.GetLedgerBalance(gl.Led_Id,yrId, gl.GL_Date,brCode);
                                 closingBalance = openingBalance;
                                 ledId = gl.Led_Id;
                             }

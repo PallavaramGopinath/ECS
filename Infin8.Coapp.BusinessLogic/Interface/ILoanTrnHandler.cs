@@ -11,6 +11,7 @@ namespace Infin8.Coapp.BusinessLogic
     public interface ILoanTrnHandler
     {
         Task<bool> AddLoanTrnListAsync(List<Loan_Trn> loanTrnList);
+        Task<bool> AddLoanTrn(Loan_Trn loanTrn);
         Task<bool> EditLoanTrnListAsync(List<Loan_Trn> loanTrnList);
         Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(int schemeId);
         Task<double> GetJLExistingLoanOutstandingAsync(decimal memId);

@@ -9,8 +9,8 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface ILienTrnHandler
     {
-        Task<bool> AddLienTrnListRepositoryAsync(List<Lien_Trn> lientrnList);
-        Task<bool> EditLienTrnListRepositoryAsync(List<Lien_Trn> lientrnList);
+        Task<bool> AddLienTrnListAsync(List<Lien_Trn> lientrnList);
+        Task<bool> EditLienTrnListAsync(List<Lien_Trn> lientrnList);
         Task<double> GetTDAmountByLoanIdListAsync(decimal[] loanIdList);
     }
 }

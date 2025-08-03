@@ -31,6 +31,21 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return stagingId;
         }
+        public async Task<bool> DeleteStagingMaster(decimal stagingId)
+        {
+            bool result = false;
+            try
+            {
+                _unitOfWork.BeginTransaction();
+                result = await _unitOfWork.StagingMaster.DeleteStagingMaster(stagingId);
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while deleting Staging Master");
+            }
+            return result;
+        }
 
         public async Task<decimal> GetStagingMasterId(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate)
         {

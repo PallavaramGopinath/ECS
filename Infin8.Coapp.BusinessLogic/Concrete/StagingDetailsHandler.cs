@@ -28,7 +28,7 @@ namespace Infin8.Coapp.BusinessLogic
             }
             else
             {
-                accountType = await _unitOfWork.StagingDetails.GetAccountType(stagingDetails.Created_By, stagingDetails.Member_Id, "I", stagingDetails.Created_Date, stagingDetails.BrCode!);
+                accountType = await _unitOfWork.StagingDetails.GetAccountType(stagingDetails.Related_Account_Id); /// stagingDetails.Created_By, stagingDetails.Member_Id, "I", stagingDetails.Created_Date, stagingDetails.BrCode!);
                 Staging_Master master = new()
                 {
                     Staging_Id = 0,
@@ -46,26 +46,128 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return await _unitOfWork.StagingDetails.AddStagingDetails(stagingDetails, stagingId);   
         }
-
+        public async Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId, int relateAccountId)
+        {
+            bool result = false;
+            try
+            {
+                _unitOfWork.BeginTransaction();
+                 result = await _unitOfWork.StagingDetails.DeleteStagingDetailsByStagingId(stagingId, relateAccountId);
+                int count = await VerifyStagingIdExistinsInStagingDetails(stagingId);
+                if (count == 0) 
+                { 
+                    result = await  _unitOfWork.StagingMaster.DeleteStagingMaster(stagingId);
+                }
+                _unitOfWork.Complete();
+                _unitOfWork.CommitTransaction();
+            }
+            catch (Exception)
+            {
+                result = false;
+                _unitOfWork.RollBack();
+            }
+            return result;
+        }
+        public async Task<int> VerifyStagingIdExistinsInStagingDetails(decimal stagingId)
+        {
+            return await _unitOfWork.StagingDetails.VerifyStagingIdExistinsInStagingDetails(stagingId);
+        }
         public async Task<List<AccountTransactionVM>> GetAccountTransactions( DateTime createdDate, decimal memId, string stagingStatus, string brCode)
         {
             return await _unitOfWork.StagingDetails.GetAccountTransactions( createdDate,memId, stagingStatus, brCode);
         }
-
+        public async Task<List<AccountTransactionVM>> GetChekerDashboardById(decimal stagingId)
+        {
+            return await _unitOfWork.StagingDetails.GetChekerDashboardById(stagingId);
+        }
         public async Task<List<DtoCheckerDashboard>> GetCheckerDashboard(DateTime createdDate,  string stagingStatus, string brCode)
         {
             return await _unitOfWork.StagingDetails.GetCheckerDashboard(createdDate, stagingStatus, brCode);
         }
-
-        public async Task<string> GetAccountType(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate, string brCode)
+        public async Task<string> GetAccountType(int accId)
         {
-            return await GetAccountType(createdBy, memId, stagingStatus, createdDate, brCode);
+            return await _unitOfWork.StagingDetails.GetAccountType(accId);
         }
+        //public async Task<string> GetAccountType(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate, string brCode)
+        //{
+        //    return await _unitOfWork.StagingDetails.GetAccountType(createdBy, memId, stagingStatus, createdDate, brCode);
+        //}
 
+        public async Task<Staging_Details> GetStagingDetailsById(decimal stagingId, int relatedAccountId)
+        {
+            return await _unitOfWork.StagingDetails.GetStagingDetailsById(stagingId,relatedAccountId);
+        }
         public Task<List<Staging_Details>> GetAllStagingDetails(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate)
         {
             throw new NotImplementedException();
         }
+        public async Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId)
+        {
+            return await _unitOfWork.StagingDetails.IsAlreadyTransactedButNotVerifiedOrRejected (memId, transactedDate, relatedAccountId);
+        }
+        public async Task<bool> MakeStagingDetails(decimal stagingId)
+        {
+            bool result = false;
+            try
+            {
+                _unitOfWork.BeginTransaction();
+                var resultDetails = await _unitOfWork.StagingDetails.MakeStagingDetails(stagingId);
+                var resultMaster = await _unitOfWork.StagingMaster.MakeStagingMaster(stagingId); 
 
+                if(resultDetails  && resultMaster)
+                {
+                    _unitOfWork.Complete();
+                    result = true;
+                }
+                else
+                {
+                    _unitOfWork.RollBack();
+                    result = false;
+                }
+                _unitOfWork.CommitTransaction();
+            }
+            catch (Exception)
+            {
+                _unitOfWork.RollBack();
+                result =false;
+            }
+            return result;
+        }
+
+        public async Task<bool> CheckerStateStaging(decimal stagingId, decimal vocId, decimal checkerBy, string stagingStatus)
+        {
+            bool result = false;
+            try
+            {
+                _unitOfWork.BeginTransaction();
+                var resultDetails = await _unitOfWork.StagingMaster.CheckerStateStaging(stagingId, vocId,checkerBy,stagingStatus );
+                var resultMaster = await _unitOfWork.StagingDetails.CheckerStateStaging(stagingId,vocId, checkerBy,stagingStatus );
+
+                if (resultDetails && resultMaster)
+                {
+                    _unitOfWork.Complete();
+                    result = true;
+                }
+                else
+                {
+                    _unitOfWork.RollBack();
+                    result = false;
+                }
+                _unitOfWork.CommitTransaction();
+            }
+            catch (Exception)
+            {
+                _unitOfWork.RollBack();
+                result = false;
+            }
+            return result;
+        }
+
+        public async Task<bool> VerifyForFixedDepositLoanRecovery(int accountId, decimal memId)
+        {
+            return await _unitOfWork.StagingDetails.VerifyForFixedDepositLoanRecovery(accountId, memId);
+        }
+
+        
     }
 }

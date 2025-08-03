@@ -21,6 +21,11 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositMember.AddTermDepositMemberAsync(termDepositMember);
         }
 
+        public async Task<bool> AddTermDepositMemberListAsync(List<TermDeposit_Members> termDepositMemberList)
+        {
+            return await _unitOfWork.TermDepositMember.AddTermDepositMemberListAsync (termDepositMemberList);
+        }
+
         public async Task<bool> EditTermDepositMemberAsync(TermDeposit_Members termDepositMember)
         {
             return await _unitOfWork.TermDepositMember.EditTermDepositMemberAsync(termDepositMember);

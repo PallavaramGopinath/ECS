@@ -17,7 +17,7 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddSBCAMasterAsync(SBCA_Master sbcaMaster)
+        public async Task<(bool result, decimal accId, string accNo)> AddSBCAMasterAsync(SBCA_Master sbcaMaster)
         {
             return await _unitOfWork.SBCAMaster.AddSBCAMasterAsync(sbcaMaster);
         }

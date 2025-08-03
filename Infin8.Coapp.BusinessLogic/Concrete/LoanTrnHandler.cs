@@ -33,6 +33,22 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+        public async Task<bool> AddLoanTrn(Loan_Trn loanTrn)
+        {
+            bool result = false;
+            try
+            {
+                result = await _unitOfWork.LoanTrn.AddLoanTrn(loanTrn);
+                await _unitOfWork.CompleteAsync();
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Loan trn not saved");
+            }
+            return result;
+        }
 
         public async Task<bool> EditLoanTrnListAsync(List<Loan_Trn> loanTrnList)
         {
@@ -204,9 +220,14 @@ namespace Infin8.Coapp.BusinessLogic
                     loanList = result.ToList();
                     foreach(var loan in loanList)
                     {
-                        if (loan.IntCalc_Date == null) IntCalcDate = loan.Loan_Date;
+                        if (loan.IntCalc_Date == null)
+                        {
+                            IntCalcDate = loan.Loan_Date;
+                            loan.IntCalc_Date = loan.IntCalc_Date;
+                        }
                         else IntCalcDate = (DateTime)loan.IntCalc_Date;
                         loan.Current_Interest = utilityHandler.Calculate_Interest(loan.Principal_Balance , loan.Rate_Of_Interest , utilityHandler.GetNoOfDays(toDate, IntCalcDate));
+                        loan.Current_IntCalc_Date = toDate;
                     }
                 }
             }
@@ -221,7 +242,9 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.LoanTrn.GetTDLoanBalanceByTDIds(loanIdList, toDate, brCode);
         }
+
         
+
         #endregion
     }
 }

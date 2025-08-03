@@ -32,6 +32,22 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+        public async Task<bool> AddTermDepositTrnListAsync(List<TermDeposit_Trn> termDepositTrnList)
+        {
+            bool result = false;
+            try
+            {
+                result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(termDepositTrnList);
+                await _unitOfWork.CompleteAsync();
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit transaction not saved");
+            }
+            return result;
+        }
         public async Task<bool> EditTermDepositTrnAsync(TermDeposit_Trn termDepositTrn)
         {
             bool result = false;
@@ -252,6 +268,7 @@ namespace Infin8.Coapp.BusinessLogic
                                 single.FDAmountRefund = single.FDAmount;
                                 IntNextDate = single.FDMaturityDate;
                             }
+                            single.FDROIApplied = single.FDROI;
                         }
 
                         goto FinalOutPut;
@@ -285,5 +302,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.TermDepositTrn.GetNomineeForTermDeposit(memId, tdSchemeType, brCode);
         }
+
+        
     }
 }

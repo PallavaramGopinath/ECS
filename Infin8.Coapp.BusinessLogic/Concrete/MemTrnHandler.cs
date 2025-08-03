@@ -17,9 +17,9 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddMemTrnAsync(Mem_Trn memTrn, string brCode)
+        public async Task<bool> AddMemTrnAsync(Mem_Trn memTrn)
         {
-            return await _unitOfWork.MemTrn.AddMemTrnAsync(memTrn,brCode);
+            return await _unitOfWork.MemTrn.AddMemTrnAsync(memTrn);
         }
         public async Task<DtoSBAccountBalanceWithIds> GetSBAccountBalanceWithIds(decimal memId, string brCode)
         {

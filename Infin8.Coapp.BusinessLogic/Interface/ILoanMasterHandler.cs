@@ -10,8 +10,9 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface ILoanMasterHandler
     {
-        Task<bool> AddLoanMasterAsync(Loan_Master loanMaster);
+        Task<(bool result, decimal loanId, string loanNo)> AddLoanMasterAsync(Loan_Master loanMaster);
         Task<bool> EditLoanMasterAsync(Loan_Master loanMaster);
         Task<bool> IsLoanSchemeReferedInLoanMaster(int schemeId);
+        Task<string> GetNewLoanNo(int schemeId);
     }
 }

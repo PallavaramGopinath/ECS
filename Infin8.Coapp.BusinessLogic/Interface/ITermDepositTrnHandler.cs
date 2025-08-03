@@ -11,6 +11,7 @@ namespace Infin8.Coapp.BusinessLogic
     public interface ITermDepositTrnHandler
     {
         Task<bool> AddTermDepositTrnAsync(TermDeposit_Trn termDepositTrn);
+        Task<bool> AddTermDepositTrnListAsync(List<TermDeposit_Trn> termDepositTrnList);
         Task<bool> EditTermDepositTrnAsync(TermDeposit_Trn termDepositTrn);
         Task<List<DropdownItem>> GetTDNosByMemIdAsync(decimal memId, string tdSchemeType, string brCode);
         Task<List<FDDetailsVM>> GetFDPayableByTDIdsAsync(decimal[] fdNos, DateTime toDate, int accountId,string brCode);

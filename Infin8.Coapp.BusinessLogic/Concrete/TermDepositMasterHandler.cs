@@ -17,21 +17,25 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddTermDepositMasterAsync(TermDeposit_Master termDepositMaster)
+        public async Task<(bool result, decimal tdId, string tdNo)> AddTermDepositMasterAsync(TermDeposit_Master termDepositMaster)
         {
             bool result = false;
+            decimal tdId = 0;
+            string tdNo = string.Empty;
             try
             {
-                result = await _unitOfWork.TermDepositMaster.AddTermDepositMasterAsync(termDepositMaster);  
+                var query = await _unitOfWork.TermDepositMaster.AddTermDepositMasterAsync(termDepositMaster);  
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                result = query.result;
+                tdId = query.tdId;
+                tdNo = query.tdNo;
             }
             catch (Exception ex)
             {
                 result = false;
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit master not saved");
             }
-            return result;
+            return (result, tdId ,tdNo );
         }
 
         public async Task<bool> EditTermDepositMasterAsync(TermDeposit_Master termDepositMaster)
@@ -64,6 +68,16 @@ namespace Infin8.Coapp.BusinessLogic
         public async Task<List<FDDataForLoan>> GetFDDetailsForLoan(decimal[] tdIds)
         {
             return await _unitOfWork.TermDepositMaster.GetFDDetailsForLoan(tdIds);
+        }
+
+        public async Task<string> GetNewTDNo(int schemeId)
+        {
+            return await _unitOfWork.TermDepositMaster.GetNewTDNo(schemeId);
+        }
+
+        public async Task<bool> UpdateTermDepositMasterAsClosed(decimal tdId)
+        {
+            return await _unitOfWork.TermDepositMaster.UpdateTermDepositMasterAsClosed(tdId);
         }
     }
 }

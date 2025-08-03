@@ -54,5 +54,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.SBCASchemes.GetSBAccountLedgerIds(brCode);
         }
+
+        public Task<SBCA_Schemes> GetSBCAScheme(string brCode)
+        {
+            return _unitOfWork.SBCASchemes.GetSBCAScheme(brCode);
+        }
     }
 }

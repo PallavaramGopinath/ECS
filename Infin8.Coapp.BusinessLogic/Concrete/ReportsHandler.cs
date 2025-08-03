@@ -16,6 +16,8 @@ namespace Infin8.Coapp.BusinessLogic
         {
             _unitOfWork = unitOfWork;
         }
+
+        #region Report name and id
         public async Task<int> GetReportId(string reportName)
         {
             return await _unitOfWork.ReportsMaster.GetReportId(reportName);
@@ -28,13 +30,23 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsMaster.GetReportNameWithSignature(reportName);
         }
-        public async Task<rptReceiptAndPaymentAmount> GetReceiptAndPaymentAmount(decimal vocId)
+        #endregion
+
+        #region status
+        public async Task<List<string>> GetStatusForMemberTransaction(decimal vocId)
         {
-            return await _unitOfWork.ReportsMaster.GetReceiptAndPaymentAmount(vocId);
+            return  await _unitOfWork.ReportsMaster.GetStatusForMemberTransaction(vocId);
         }
-        public async Task<rptReceiptAndPaymentAmount> GetReceiptAndPaymentAmount(decimal vocId, string brCode)
+        #endregion 
+
+        #region Receipt
+        public async Task<List<rptReceiptAndPaymentAmount>> GetReceiptAndPaymentAmount(decimal vocId, string brCode)
         {
             return await _unitOfWork.ReportsMaster.GetReceiptAndPaymentAmount(vocId,brCode);
+        }
+        public async Task<rptReceiptAndPaymentAmount> GetReceiptAndPaymentAmount2(decimal vocId, string brCode)
+        {
+            return await _unitOfWork.ReportsMaster.GetReceiptAndPaymentAmount2(vocId,brCode);
         }
         public async Task<(List<rptReceiptMemberList> receiptData, DateTime? intCalcDate)> GetReceiptData(decimal vocId, string brCode)
         {
@@ -52,7 +64,18 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsMaster.GetChequeDetailsForReceipt(vocId);
         }
+        #endregion 
 
+
+        #region Fixed Deposit
+        public async Task<(List<rptFDPaymentList> fdPaymentList, string chequeDetails)> GetFDPaymentList(decimal vocId)
+        {
+            return await _unitOfWork.ReportsMaster.GetFDPaymentList(vocId);
+        }
+        #endregion
+
+        #region Print
         
+        #endregion 
     }
 }

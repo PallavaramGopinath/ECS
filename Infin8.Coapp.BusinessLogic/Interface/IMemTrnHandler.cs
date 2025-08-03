@@ -10,7 +10,7 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface IMemTrnHandler
     {
-        Task<bool> AddMemTrnAsync(Mem_Trn memTrn, string brCode);
+        Task<bool> AddMemTrnAsync(Mem_Trn memTrn);
         Task<bool> EditMemTrnAsync(Mem_Trn memTrn, string brCode);
         Task<DtoSBAccountBalanceWithIds> GetSBAccountBalanceWithIds(decimal memId, string brCode);
         Task<double> GetSBAccountBalanceByAccId(decimal accId, string brCode);

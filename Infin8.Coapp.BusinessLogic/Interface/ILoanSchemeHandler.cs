@@ -21,6 +21,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<DropdownItem>> GetInstalmentTypeAsync();
         Task<List<DropdownItem>> GetDisbursementTypeAsync();
         Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId);
+        Task<Loan_Schemes> GetLoanSchemeByType(int loanType);
         Task<int> GetPeriodOfLoan(int schemeId);
     }
 }

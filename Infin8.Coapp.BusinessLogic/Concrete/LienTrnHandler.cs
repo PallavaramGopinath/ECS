@@ -16,12 +16,12 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddLienTrnListRepositoryAsync(List<Lien_Trn> lientrnList)
+        public async Task<bool> AddLienTrnListAsync(List<Lien_Trn> lientrnList)
         {
             bool result = false;
             try
             {
-                result = await _unitOfWork.LienTrn.AddLienTrnListRepositoryAsync(lientrnList);
+                result = await _unitOfWork.LienTrn.AddLienTrnListAsync(lientrnList);
                 await _unitOfWork.CompleteAsync();
                 result = true;
             }
@@ -33,12 +33,12 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<bool> EditLienTrnListRepositoryAsync(List<Lien_Trn> lientrnList)
+        public async Task<bool> EditLienTrnListAsync(List<Lien_Trn> lientrnList)
         {
             bool result = false;
             try
             {
-                result = await _unitOfWork.LienTrn.EditLienTrnListRepositoryAsync(lientrnList);
+                result = await _unitOfWork.LienTrn.EditLienTrnListAsync(lientrnList);
                 await _unitOfWork.CompleteAsync();
                 result = true;
             }
