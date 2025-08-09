@@ -25,22 +25,23 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsAccount.GetLedgerNameList(brCode);
         }
-        public async Task<List<rptDayBook2>> GetChittaBook(DateTime fromDate, DateTime toDate, decimal yrId, string brCode)
+        public async Task<List<rptDayBook2>> GetChittaBook(string fromDate, string toDate, decimal yrId, string brCode)
         {
             double OBAmount = 0, CBAmount = 0;
             string rsInWords = "";
             decimal cashLedId = 0;
             List<rptDayBook2> dayBookList = new List<rptDayBook2>();
+            
             try
             {
                 cashLedId = await _unitOfWork.Accounts.GetCashLedgerId(brCode);
-                dayBookList = await _unitOfWork.ReportsAccount.GetChittaBook(fromDate, toDate, yrId, brCode);
+                dayBookList = await _unitOfWork.ReportsAccount.GetChittaBook(fromDate, toDate , yrId, brCode);
                 foreach (var dayBook in dayBookList)
                 {
                     OBAmount = 0; CBAmount = 0;
                     (OBAmount, CBAmount) = await _unitOfWork.Accounts.GetLedgerOBAndCBAmount(cashLedId, yrId, dayBook.Voc_Date, brCode);
-                    dayBook.Fin_Db_Ob = OBAmount;
-                    dayBook.Fin_Db_Cb = CBAmount;
+                    dayBook.Fin_db_ob = OBAmount;
+                    dayBook.Fin_db_cb = CBAmount;
                     if (CBAmount > 0)
                         rsInWords = _utility.RupeesInWords(CBAmount);
                     else
@@ -54,7 +55,7 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return dayBookList;
         }
-        public async Task<List<rptDayBook2>> GetDayBook(DateTime fromDate, DateTime toDate, decimal yrId, string brCode)
+        public async Task<List<rptDayBook2>> GetDayBook(string fromDate, string toDate, decimal yrId, string brCode)
         {
             double OBAmount = 0, CBAmount = 0;
             string rsInWords = "";
@@ -64,13 +65,15 @@ namespace Infin8.Coapp.BusinessLogic
             {
                 cashledId = await _unitOfWork.Accounts.GetCashLedgerId(brCode);
                 dayBookList = await _unitOfWork.ReportsAccount.GetDayBook(fromDate, toDate, yrId, brCode);
+                //DateTime.TryParse(fromDate, out DateTime fromDateParse);
+                DateTime.TryParse(toDate, out DateTime toDateParse);
                 foreach (var dayBook in dayBookList)
                 {
-                    (OBAmount, CBAmount) = await _unitOfWork.Accounts.GetLedgerOBAndCBAmount(cashledId, yrId, toDate, brCode);
+                    (OBAmount, CBAmount) = await _unitOfWork.Accounts.GetLedgerOBAndCBAmount(cashledId, yrId, toDateParse, brCode);
                     OBAmount = 0; CBAmount = 0;
                     (OBAmount, CBAmount) = await _unitOfWork.Accounts.GetLedgerOBAndCBAmount(cashledId, yrId, dayBook.Voc_Date, brCode);
-                    dayBook.Fin_Db_Ob = OBAmount;
-                    dayBook.Fin_Db_Cb = CBAmount;
+                    dayBook.Fin_db_ob = OBAmount;
+                    dayBook.Fin_db_cb = CBAmount;
                     if (CBAmount > 0)
                         rsInWords = _utility.RupeesInWords(CBAmount);
                     else

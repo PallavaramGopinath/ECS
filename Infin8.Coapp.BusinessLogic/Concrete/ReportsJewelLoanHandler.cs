@@ -26,6 +26,10 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanIssueRegisterList(fromDate, toDate, brCode);
         }
 
+        public async Task<List<rptJewelLoanClaim>> GetJewelLoanClaim(DateTime fromDate, DateTime toDate, string brCode)
+        {
+            return await _unitOfWork.ReportsJewelLoan.GetJewelLoanClaim(fromDate, toDate, brCode);
+        }
         public async Task<List<rptJewelLoanLedgerToMember>> GetJewelLoanLedgerToMembers(List<decimal> loanIdList, DateTime fromDate, DateTime toDate)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanLedgerToMembers(loanIdList, fromDate, toDate);
@@ -60,7 +64,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanRedemptionList(fromDate, toDate, brCode);
         }
-
+        public async Task<List<rptJewelLoanRedemption>> GetJewelLoanRedemption(DateTime fromDate, DateTime toDate, string brCode)
+        {
+            return await _unitOfWork.ReportsJewelLoan.GetJewelLoanRedemption(fromDate, toDate, brCode);
+        }
         public async Task<List<rptJewelLoanStockRegisterList>> GetJewelLoanStockRegisteList(DateTime fromDate, DateTime toDate, int loanType, string brCode)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanStockRegisteList(fromDate,toDate,loanType,brCode );
@@ -75,5 +82,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsJewelLoan.Print_JewelLoanLedgerMain(loanIdList);
         }
+
+        
     }
 }

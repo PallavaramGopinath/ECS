@@ -19,22 +19,22 @@ namespace Infin8.Coapp.BusinessLogic
             _UtilityHandler = utility;
         }
 
-        public async Task<rptFDBond> GetFDBondPreprinted(decimal vocId)
-        {
-            rptFDBond fDBond = new rptFDBond();
+        //public async Task<rptFDBond> GetFDBondPreprinted(decimal vocId)
+        //{
+        //    rptFDBond fDBond = new rptFDBond();
 
-            try
-            {
-                var fDBondTmp = await _unitOfWork.ReportsTermDeposits.GetFDBondPreprinted(vocId);
-                if (fDBondTmp != null) fDBond = fDBondTmp;
-                fDBond.RsInWords = _UtilityHandler.RupeesInWords(fDBond.DepositAmount);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-            return fDBond;
-        }
+        //    try
+        //    {
+        //        var fDBondTmp = await _unitOfWork.ReportsTermDeposits.GetFDBondPreprinted(vocId);
+        //        if (fDBondTmp != null) fDBond = fDBondTmp;
+        //        fDBond.RsInWords = _UtilityHandler.RupeesInWords(fDBond.DepositAmount);
+        //    }
+        //    catch (Exception)
+        //    {
+        //        throw;
+        //    }
+        //    return fDBond;
+        //}
 
         public async Task<List<rptTDRefundBetweenDates>> GetFDRefundBetweenDated(DateTime fromDate, DateTime toDate, string TDSchemeType, string brCode)
         {

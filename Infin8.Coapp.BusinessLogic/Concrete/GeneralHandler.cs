@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Repository;
+﻿using Infin8.Coapp.Models;
+using Infin8.Coapp.Repository;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +15,13 @@ namespace Infin8.Coapp.BusinessLogic
         {
             _unitOfWork = unitOfWork;
         }
-
         public async Task<string> GetSocietyName(string brCode)
         {
             return await  _unitOfWork.General.GetSocietyName(brCode);
+        }
+        public async Task<Gen_Bank_Name> GetSocietyData(string brCode)
+        {
+            return await _unitOfWork.General.GetSocietyData(brCode);
         }
     }
 }

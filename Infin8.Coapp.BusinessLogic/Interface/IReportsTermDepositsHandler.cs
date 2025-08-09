@@ -14,7 +14,8 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<rptFDOutstanding>> GetTermDepositOutstandingIndividual(decimal memId, DateTime asOnDate, string TDSchemeType);
         Task<List<rptTermDepositPayable>> GetTermDepositPayable(DateTime asOnDate, string brCode);
         Task<List<rptTermDepositPayable>> GetTermDepositMaturityPayable(DateTime asOnDate, string tdSchemeType, string brCode);
-        Task<rptFDBond> GetFDBondPreprinted(decimal vocId);
+
+        //Task<rptFDBond> GetFDBondPreprinted(decimal vocId);
         Task<List<rptTDNewBetweenDates>> GetTermDepositrReceivedDuringPeriod(DateTime fromDate, DateTime toDate, string TDSchemeType, string brCode);
         Task<List<rptTDRefundBetweenDates>> GetFDRefundBetweenDated(DateTime fromDate, DateTime toDate, string TDSchemeType, string brCode);
     }

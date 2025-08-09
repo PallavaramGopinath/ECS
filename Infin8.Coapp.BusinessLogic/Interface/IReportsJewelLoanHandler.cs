@@ -25,9 +25,15 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<rptJewelLoanStockRegisterList>> GetJewelLoanStockRegisteList(DateTime fromDate, DateTime toDate, int loanType, string brCode);
         Task<List<rptJewelLoanOutstandingList>> GetJewelLoanOutstandingList(DateTime asOnDate, string brCode);
         Task<List<rptJewelLoanOverdueList>> GetJewelLoanOverdueList(DateTime asOnDate, string brCode);
+        
         Task<List<rptJewelLoanOverdueList>> GetJewelLoanAboveLimitList(DateTime asOnDate, double limitAmt, string brCode);
+
+        ///  Issue register is for jewel loan claim, new GetJewelLoanClaim is develoved
+        ///  hence it is discarded
         Task<List<rptJewelLoanIssueRegister>> GetJewelLoanIssueRegisterList(DateTime fromDate, DateTime toDate, string brCode);
+        Task<List<rptJewelLoanClaim>> GetJewelLoanClaim(DateTime fromDate, DateTime toDate, string brCode);
         Task<List<rptJewelLoanRedemptionList>> GetJewelLoanRedemptionList(DateTime fromDate, DateTime toDate, string brCode);
+        Task<List<rptJewelLoanRedemption>> GetJewelLoanRedemption(DateTime fromDate, DateTime toDate, string brCode);
         Task<List<rptJewelLoanOutstandingList>> GetJewelLoanOutstandingForMember(decimal memId, DateTime asOnDate);
         Task<List<rptJewelLoanOutstandingSchemeWiseList>> GetJewelLoanOutstandingSchemeWiseList(DateTime asOnDate, string brCode);
         Task<List<rptJewelLoanLedgerToMember>> GetJewelLoanLedgerToMembers(List<decimal> loanIdList, DateTime fromDate, DateTime toDate);

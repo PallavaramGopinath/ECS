@@ -10,6 +10,8 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface IReportsHandler
     {
+        Task<List<DropdownItem>> GetReportNameList(int grpId);
+
         #region Report name and id
         Task<int> GetReportId(string reportName);
         Task<Reports_Master> GetReportNameWithSignature(int reportId);
@@ -31,8 +33,13 @@ namespace Infin8.Coapp.BusinessLogic
 
         #region Fixed Deposit
         Task<(List<rptFDPaymentList> fdPaymentList, string chequeDetails)> GetFDPaymentList(decimal vocId);
+        Task<rptFDBond> GetFDBondPreprinted(decimal vocId);
+        Task<rptFDBond> GetFDBondData(decimal vocId);
         #endregion
 
-        
+        #region  Jewel Loan
+        Task<List<rptJewelLoanLedger>> GetJewelLoanLedger(decimal vocId);
+        #endregion
+
     }
 }

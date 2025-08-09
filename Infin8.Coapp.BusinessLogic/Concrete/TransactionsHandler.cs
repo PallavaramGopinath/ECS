@@ -27,6 +27,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.TransactionsRepository.GetAllAccountsTransactions();
         }
+        public async Task<List<DropdownItem>> GetAllLedgerItems(string brCode)
+        {
+            return await _unitOfWork.TransactionsRepository.GetAllLedgerItems(brCode);
+        }
         public async Task<List<DropdownItem>> GetSuspenseLedgerItems(int suspeneType, string brCode)
         {
             return await _unitOfWork.TransactionsRepository.GetSuspenseLedgerItems(suspeneType, brCode);
@@ -783,6 +787,6 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TransactionsRepository.GetTransactionStatusByAccId((int)accId);
         }
 
-       
+        
     }
 }

@@ -17,6 +17,11 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
+        public async Task<List<DropdownItem>> GetReportNameList(int grpId)
+        {
+            return await _unitOfWork.ReportsMaster.GetReportNameList(grpId);
+        }
+
         #region Report name and id
         public async Task<int> GetReportId(string reportName)
         {
@@ -39,7 +44,7 @@ namespace Infin8.Coapp.BusinessLogic
         }
         #endregion 
 
-        #region Receipt
+        #region Receipt and Payment
         public async Task<List<rptReceiptAndPaymentAmount>> GetReceiptAndPaymentAmount(decimal vocId, string brCode)
         {
             return await _unitOfWork.ReportsMaster.GetReceiptAndPaymentAmount(vocId,brCode);
@@ -72,10 +77,24 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsMaster.GetFDPaymentList(vocId);
         }
+
+        public async Task<rptFDBond> GetFDBondPreprinted(decimal vocId)
+        {
+            return await _unitOfWork.ReportsMaster.GetFDBondPreprinted(vocId);
+        }
+
+        public async Task<rptFDBond> GetFDBondData(decimal vocId)
+        {
+            return await _unitOfWork.ReportsMaster.GetFDBondData(vocId);
+        }
         #endregion
 
-        #region Print
-        
-        #endregion 
+        #region Jewel Loan
+        public async Task<List<rptJewelLoanLedger>> GetJewelLoanLedger(decimal vocId)
+        {
+            return await _unitOfWork.ReportsMaster.GetJewelLoanLedger(vocId);
+        }
+        #endregion
+
     }
 }
