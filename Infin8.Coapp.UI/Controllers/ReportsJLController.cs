@@ -530,9 +530,26 @@ namespace Infin8.Coapp.UI.Controllers
                     EnableExternalImages = true,
                 };
 
+                localReport.SubreportProcessing += new
+                    SubreportProcessingEventHandler(OnSubreportProcessing);
+
                 using (FileStream stream = System.IO.File.OpenRead(path))
                 {
                     localReport.LoadReportDefinition(stream);
+                }
+
+                var subreportPath = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\JewelLoan_LedgerSubOrnments.rdlc";
+
+                using (var stream = System.IO.File.OpenRead(subreportPath))
+                {
+                    localReport.LoadSubreportDefinition("Ornments", stream);
+                }
+
+                var subreportPath2 = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\JewelLoan_LedgerSubTrn.rdlc";
+
+                using (var stream = System.IO.File.OpenRead(subreportPath2))
+                {
+                    localReport.LoadSubreportDefinition("LoanTrn", stream);
                 }
 
                 var loanListData = await _reportsJewelLoanHandler.GetJewelLoanLedger(rptObject.LoanNoList!);
@@ -549,12 +566,8 @@ namespace Infin8.Coapp.UI.Controllers
                     new ReportParameter("ParamSecondSignature", report.SecondSignature ),
                     new ReportParameter("ParamThirdSignature", report.ThirdSignature )
                 };
-                //localReport.SubreportProcessing += new
-                //    SubreportProcessingEventHandler(SubreportProcessingOrnments);
-                //localReport.SubreportProcessing += new
-                //    SubreportProcessingEventHandler(SubreportProcessingLoanTrn);
-                localReport.SubreportProcessing += SubreportProcessing_Handler;
-                localReport.DataSources.Clear();
+
+                //localReport.DataSources.Clear();
                 localReport.DataSources.Add(new ReportDataSource("Ds_JLMain", loanList));
                 localReport.SetParameters(parameters);
                 localReport.Refresh();
@@ -650,16 +663,16 @@ namespace Infin8.Coapp.UI.Controllers
 
                 // Add this line to load the subreport definition.
                 // The path should be relative to your project's content root.
-                var subreportPath = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\JewelLoan_LedgerSubOrnments.rdlc";
-                LocalReport localReport = new LocalReport
-                {
-                    EnableExternalImages = true,
-                };
-                using (var stream = System.IO.File.OpenRead(subreportPath))
-                {
-                    localReport.LoadReportDefinition(stream);
-                    //e.ReportDefinition = new LocalReport().LoadReportDefinition(stream);
-                }
+                //var subreportPath = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\JewelLoan_LedgerSubOrnments.rdlc";
+                //LocalReport localReport = new LocalReport
+                //{
+                //    EnableExternalImages = true,
+                //};
+                //using (var stream = System.IO.File.OpenRead(subreportPath))
+                //{
+                //    localReport.LoadReportDefinition(stream);
+                //    //e.ReportDefinition = new LocalReport().LoadReportDefinition(stream);
+                //}
 
 
 
@@ -679,29 +692,41 @@ namespace Infin8.Coapp.UI.Controllers
             }
         }
 
-        private void SubreportProcessingLoanTrn(object sender, SubreportProcessingEventArgs e)
+        private void OnSubreportProcessing(object sender, SubreportProcessingEventArgs e)
         {
             try
             {
                 // 1. Get the subreport name from the event arguments
-                string subreportName = e.ReportPath;
+                //string subreportName = e.ReportPath;
 
                 // 2. Construct the full path to the subreport's .rdlc file
-                var subreportPath = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\{subreportName}.rdlc";
+                //var subreportPath = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\{subreportName}.rdlc";
 
-                // 3. Create a new LocalReport instance for the subreport
-                LocalReport subReport = new LocalReport();
+                //// 3. Create a new LocalReport instance for the subreport
+                //LocalReport subReport = new LocalReport();
 
-                // 4. Load the subreport definition from the file
-                using (var stream = System.IO.File.OpenRead(subreportPath))
-                {
-                    subReport.LoadReportDefinition(stream);
-                }
+                //// 4. Load the subreport definition from the file
+                //using (var stream = System.IO.File.OpenRead(subreportPath))
+                //{
+                //    subReport.LoadReportDefinition(stream);
+                //}
 
                 decimal loanId = decimal.Parse(e.Parameters["LoanId"].Values[0].ToString());
-                List<rptJewelLoanLedgerTrnSub> loanTrnList = new List<rptJewelLoanLedgerTrnSub>();
-                loanTrnList = _reportsJewelLoanHandler.GetJewelLoanLedgerTrnSub(loanId, fromDateForController, toDateForController,brCodeForController  );
-                e.DataSources.Add(new ReportDataSource("Ds_JLSubTrn", loanTrnList));
+               
+                //e.DataSources.Add(new ReportDataSource("Ds_JLSubTrn", loanTrnList));
+                
+                if (e.ReportPath == "LoanTrn") // name as in RDLC, not file name
+                {
+                    List<rptJewelLoanLedgerTrnSub> loanTrnList = new List<rptJewelLoanLedgerTrnSub>();
+                    loanTrnList = _reportsJewelLoanHandler.GetJewelLoanLedgerTrnSub(loanId, fromDateForController, toDateForController, brCodeForController);
+                    e.DataSources.Add(new ReportDataSource("Ds_JLSubTrn", loanTrnList));
+                }
+                else if(e.ReportPath == "Ornments")
+                {
+                    List<rptJewelLoanLedgerOrnmentsSub> ornmentsList = new List<rptJewelLoanLedgerOrnmentsSub>();
+                    var ornmentsListData = _reportsJewelLoanHandler.GetJewelLoanLedgerOrnmentsSub(loanId);
+                    e.DataSources.Add(new ReportDataSource("Ds_JLSubOrnments", ornmentsListData));
+                }
             }
             catch (Exception ex)
             {

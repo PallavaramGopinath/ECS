@@ -779,7 +779,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-ledger-fullpath", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-ledger", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
