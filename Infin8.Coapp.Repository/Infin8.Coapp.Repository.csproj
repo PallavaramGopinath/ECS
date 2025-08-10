@@ -17,5 +17,7 @@
     <ProjectReference Include="..\Infin8.Coapp.Models\Infin8.Coapp.Models.csproj" />
     <ProjectReference Include="..\Infin8.Coapp.Utility\Infin8.Coapp.Utility.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 </Project>

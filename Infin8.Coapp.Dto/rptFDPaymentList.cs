@@ -14,5 +14,7 @@
         public DateTime? InterestAppliedDate { get; set; }
         public double InterestPaidAmount { get; set; }
         public double DepositPaidAmount { get; set; }
+        public string? ChequeDetails { get; set; }
+        public string? BrCode { get; set; }
     }
 }

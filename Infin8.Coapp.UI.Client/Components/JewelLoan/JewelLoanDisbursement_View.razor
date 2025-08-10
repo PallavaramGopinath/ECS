@@ -1,0 +1,207 @@
+﻿@using System.Globalization
+@using Infin8.Coapp.Dto
+@using System.Text.Json
+@using System.Net
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+<EditForm Model="@DisbursementDetails">
+    <div class="container" style="max-width: 95%;">
+        <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>Jewel Loan Disbursement Details</h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Member No:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Member_No</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Member Name:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Member_Name</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Transaction Date:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Tranaction_Date.ToString("dd-MMM-yyyy")</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Loan No:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Loan_No</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Due Date:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Due_Date.ToString("dd-MMM-yyyy")</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Loan Period (months):</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Period_Of_Loan</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Market Rate:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Market_Rate.ToString("N2")</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Govt Rate:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Govt_Rate.ToString("N2")</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Eligibility % on Market Rate:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Percentage_Of_Eligibility_On_Market_Rate.ToString("N2")%</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Maximum Loan Limit:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Maximum_Loan_Limit.ToString("C", CultureInfo.CreateSpecificCulture("en-IN"))</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Existing Loan Outstanding:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Existing_Loan_Outstanding.ToString("C", CultureInfo.CreateSpecificCulture("en-IN"))</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Loan Amount:</label>
+                    <div class="form-control-plaintext fw-bold">@DisbursementDetails.Loan_Amount.ToString("C", CultureInfo.CreateSpecificCulture("en-IN"))</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Interest Rate:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Rate_Of_Interest.ToString("N2")%</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Penal Rate:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Penal_Rate.ToString("N2")%</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Appraisal Fee:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.AppraisalFee.ToString("C", CultureInfo.CreateSpecificCulture("en-IN"))</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Gross Weight (g):</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Gross_Weight.ToString("N2")</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Wastage (g):</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Wasgate.ToString("N2")</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Net Weight (g):</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Net_Weight.ToString("N2")</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Jewels Value:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.Jewels_Value.ToString("C", CultureInfo.CreateSpecificCulture("en-IN"))</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Bank Charges:</label>
+                    <div class="form-control-plaintext">@DisbursementDetails.BankCharges.ToString("C", CultureInfo.CreateSpecificCulture("en-IN"))</div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(DisbursementDetails.Jewels_Photo_Path))
+            {
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Jewel Photo:</label>
+                        <div>
+                            <img src="@DisbursementDetails.Jewels_Photo_Path" class="img-thumbnail" style="max-height: 200px;" alt="Jewel Photo" />
+                            <button class="btn btn-sm btn-outline-primary ms-2" @onclick="() => OpenImageInNewTab(DisbursementDetails.Jewels_Photo_Path)">
+                                <i class="bi bi-arrows-angle-expand"></i> View Full Size
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (DisbursementDetails.Ornment_List != null && DisbursementDetails.Ornment_List.Any())
+            {
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h5>Ornament Details</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Nos</th>
+                                        <th>Ornment</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var ornament in DisbursementDetails.Ornment_List)
+                                    {
+                                        <tr>
+                                            <td>@ornament.Ornment_Nos</td>
+                                            <td>@ornament.Ornment_Name</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="card-footer">
+            <button class="btn btn-primary" @onclick="OnPrint">Print</button>
+            <button class="btn btn-secondary ms-2" @onclick="OnClose">Close</button>
+        </div>
+    </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private Staging_Details details = new Staging_Details();
+    private DtoJewelLoanDisbursement DisbursementDetails { get; set; } = new DtoJewelLoanDisbursement();
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null)
+                {
+                    DisbursementDetails = Utility.JsonbObject.ConvertFromJsonForJeweLoanDisbursement(details.Related_Account_Data!);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+
+    private async Task OpenImageInNewTab(string imageUrl)
+    {
+        await JSRuntime.InvokeVoidAsync("window.open", imageUrl, "_blank");
+    }
+
+    private async Task OnPrint()
+    {
+        await JSRuntime.InvokeVoidAsync("window.print");
+    }
+}

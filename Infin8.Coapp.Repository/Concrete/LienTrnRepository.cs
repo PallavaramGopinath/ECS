@@ -15,7 +15,7 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddLienTrnListRepositoryAsync(List<Lien_Trn> lientrnList)
+        public async Task<bool> AddLienTrnListAsync(List<Lien_Trn> lientrnList)
         {
             bool result = false;
             decimal maxId = 0;
@@ -38,7 +38,7 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<bool> EditLienTrnListRepositoryAsync(List<Lien_Trn> lientrnList)
+        public async Task<bool> EditLienTrnListAsync(List<Lien_Trn> lientrnList)
         {
             bool result = false;
             try

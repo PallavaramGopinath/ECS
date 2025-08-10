@@ -13,5 +13,6 @@
         public double NetValue { get; set; }
         public int Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
+        
     }
 }

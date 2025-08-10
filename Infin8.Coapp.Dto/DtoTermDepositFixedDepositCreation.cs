@@ -52,5 +52,8 @@ namespace Infin8.Coapp.Dto
 
         [Required(ErrorMessage = "Maturity Date is required")]
         public DateTime Maturity_Date { get; set; }
+        public bool IsCompoundInterest { get; set; }
+        public bool IsNomineeProvided { get; set; }
+
     }
 }

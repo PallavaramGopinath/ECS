@@ -1,15 +1,51 @@
 ﻿@page "/fixed-deposit-renewal"
 @using System.ComponentModel.DataAnnotations
 @using Infin8.Coapp.Dto
-@inject NavigationManager NavigationManager
 @rendermode InteractiveAuto
 @inject HttpClient _httpClient
-<h3>Fixed Deposit Renewal</h3>
-<FixedDeposit_Payment MemberId="110010008478"
-                      MemberNumber="1100110009991"
-                      MemberName="Saroja.K"
-                      RequestType="R"  >
-</FixedDeposit_Payment>
-@code {
+@inject NavigationManager Navigation
+<h3 class="mb-2">Fixed Deposit Renewal</h3>
+<hr class="mt-0" />
+<FixedDeposit_Payment AccountId=@AccountId
+                      CashOrAdjustment=@CashOrAdjustment
+                      MemberId=@MemberId
+                      MemberNumber=@MemberNumber
+                      MemberName=@MemberName
+                      RequestType=@RequestType
+                      TransactionDate=@TransactionDate>
 
+</FixedDeposit_Payment>
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public int Age { get; set; }
+    [Parameter] public string? RequestType { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnFDRenewalComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoTermDepositFixedDepositPayment> OnFDRenewalInitiate { get; set; }
+    #endregion
+    #region declarations
+    DtoTermDepositFixedDepositRenewal renewal = new();
+    #endregion
+    protected override void OnInitialized()
+    {
+        // Initialize the date to current date
+        // paymentModel.Mem_Id = 110010008478;
+        // paymentModel.Member_No = "1100110009991";
+        // paymentModel.Member_Name = "Saroja.K";
+        renewal.AccountId = AccountId;
+        renewal.CashOrAdjustment = CashOrAdjustment;
+        renewal.Mem_Id = MemberId;
+        renewal.Member_No = MemberNumber;
+        renewal.Member_Name = MemberName;
+
+        renewal.Transaction_Date = TransactionDate;
+        renewal.PaymentStatus = RequestType;
+
+    }
 }

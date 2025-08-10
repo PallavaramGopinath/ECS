@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Infin8.Coapp.Repository
 {
@@ -16,15 +17,21 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddTermDepositMasterAsync(TermDeposit_Master termDepositMaster)
+        public async Task<(bool result, decimal tdId, string tdNo)> AddTermDepositMasterAsync(TermDeposit_Master termDepositMaster)
         {
             bool result = false;
+            decimal tdId = 0;
+            string tdNo = string.Empty; 
             try
             {
                 decimal maxId = await CSISContext.TermDeposit_Master.MaxAsync(x => x.TD_Id);
                 maxId++;
+                var newTDNo = await GetNewTDNo(termDepositMaster.TDScheme_Id);
+                if(newTDNo!= null) {tdNo = newTDNo;}
                 termDepositMaster.TD_Id = maxId;
+                termDepositMaster.TD_No = tdNo;
                 await AddAsync(termDepositMaster);
+                tdId = maxId;
                 result = true;
             }
             catch (Exception ex)
@@ -32,7 +39,7 @@ namespace Infin8.Coapp.Repository
                 result = false;
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit master not saved");
             }
-            return result;
+            return (result,tdId,tdNo);
         }
 
         public async Task<bool> EditTermDepositMasterAsync(TermDeposit_Master termDepositMaster)
@@ -133,6 +140,80 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching term deposit data for loan");
             }
             return tdDetails;
+        }
+
+        public async Task<string> GetNewTDNo(int schemeId)
+        {
+            string numberAsString = schemeId.ToString();
+            string brCode = numberAsString.Substring(0, 5); // Result will be "11001"
+            string forFDString = brCode + "400";
+            int forFD = int.Parse(forFDString);
+            //int forFD = int.Parse(numberAsString.Substring(5))+400; 
+            string lastThreeChars = numberAsString.Substring(numberAsString.Length - 3); // Result will be "301"
+            int lastThreeDigitsAsInt = int.Parse(lastThreeChars); // Result will be 301
+            string newTDNo = string.Empty;
+            decimal maxId = 0;
+            try
+            {
+                if(lastThreeDigitsAsInt < 400) /// for fixed deposit
+                {
+                    var maxNo = await (from lm in CSISContext.TermDeposit_Master
+                                       where lm.TDScheme_Id < forFD
+                                       select lm.TD_No).MaxAsync();
+                    if (!string.IsNullOrWhiteSpace(maxNo))
+                    {
+                        maxId = Convert.ToDecimal(maxNo) + 1;
+                        maxNo = Convert.ToString(maxId);
+                    }
+                    else
+                    {
+                        maxNo = brCode + "030000001"; // If no records found, start with 001
+                    }
+                    newTDNo = maxNo;
+                }
+                else if(lastThreeDigitsAsInt >= 400 && lastThreeDigitsAsInt <500) /// for recurring deposit
+                {
+                    var maxNo = await (from lm in CSISContext.TermDeposit_Master
+                                       where lm.TDScheme_Id == schemeId
+                                       select lm.TD_No).MaxAsync();
+                    if (string.IsNullOrEmpty(maxNo))
+                    {
+                        maxId = Convert.ToDecimal(maxNo) + 1;
+                        maxNo = Convert.ToString(maxId);
+                    }
+                    else
+                    {
+                        maxNo = brCode + "040000001"; // If no records found, start with 001
+                    }
+                    newTDNo = maxNo;
+                }
+                
+            }
+            catch (Exception)
+            {
+                throw new InvalidOperationException("Error in fetching New Loan No based on Loan Scheme");
+            }
+            return newTDNo;
+        }
+
+        public async Task<bool> UpdateTermDepositMasterAsClosed(decimal tdId)
+        {
+            bool result = false;
+            try
+            {
+                var master = await CSISContext.TermDeposit_Master.Where(x=> x.TD_Id == tdId).FirstOrDefaultAsync();
+                if(master != null)
+                {
+                    master.AccountClosed = true;
+                    await EditAsync(master);
+                    result = true;
+                }
+            }
+            catch (Exception)
+            {
+                result = false;
+            }
+            return result;
         }
     }
 }

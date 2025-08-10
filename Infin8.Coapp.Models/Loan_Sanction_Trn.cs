@@ -27,6 +27,6 @@ namespace Infin8.Coapp.Models
         public decimal Yr_Id { get; set; }
         public int Loan_SlNo { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

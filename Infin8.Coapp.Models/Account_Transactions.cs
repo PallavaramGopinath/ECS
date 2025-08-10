@@ -21,5 +21,6 @@ namespace Infin8.Coapp.Models
         public string Acc_BelongsTo { get; set; }
         public bool Acc_Delete { get; set; }
         public string Component_Name { get; set; }
+        public string View_Component_Name { get; set; }
     }
 }

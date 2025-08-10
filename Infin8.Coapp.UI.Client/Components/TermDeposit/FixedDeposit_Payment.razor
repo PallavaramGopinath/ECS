@@ -1,12 +1,20 @@
 ﻿@page "/fixed-deposit-payment"
 @using System.ComponentModel.DataAnnotations
 @using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Net
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
 @rendermode InteractiveAuto
 @inject HttpClient _httpClient
 @inject NavigationManager Navigation
+@inject TransactionStateService TransactionState
+
 <h3 class="mb-2">Fixed Deposit Payment</h3>
 <hr class="mt-0" />
-<EditForm Model="@paymentModel" OnValidSubmit="HandleSubmit">
+<EditForm Model="@paymentModel">
+    <!-- OnValidSubmit="HandleSubmit" -->
     <DataAnnotationsValidator />
 
     <!-- Step 1: Request type I= interest payment, P = Refund -->
@@ -102,12 +110,16 @@
                         <tr>
                             <th>FD Id</th>
                             <th>FD Number</th>
+                            <th>Interest Already Calculated</th>
+                            <th>Interest Already Paid</th>
                             <th>Pending Interest (if any)</th>
                             <th>Current Interest Calculated</th>
                             <th>Total Interest Payable</th>
                             <th>Interest Applied Date</th>
                             <th>Deposit Refund</th>
                             <th>Total Payable</th>
+                            <th>Rate of Interest</th>
+                            <th>Rate of Interest Applied Now</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -116,23 +128,30 @@
                             <tr>
                                 <td disabled="@isRenewal">@fdData.FD_Id</td>
                                 <td disabled="@isRenewal">@fdData.FD_No</td>
-                                <td disabled="@isRenewal">@fdData.Pending_Interest.ToString("C2")</td>
-                                <td disabled="@isRenewal">@fdData.Current_Interest_Calculated.ToString("C2")</td>
-                                <td disabled="@isRenewal">@fdData.Total_Interest_Payable.ToString("C2")</td>
+                                <td disabled="@isRenewal">@fdData.Previous_Interest_Calculated.ToString("C")</td>
+                                <td disabled="@isRenewal">@fdData.Previous_Interest_Paid.ToString("C")</td>
+                                <td disabled="@isRenewal">@fdData.Pending_Interest.ToString("C")</td>
+                                <td disabled="@isRenewal">@fdData.Current_Interest_Calculated.ToString("C")</td>
+                                <td disabled="@isRenewal">@fdData.Total_Interest_Payable.ToString("C")</td>
                                 <td disabled="@isRenewal">@fdData.Current_Interest_Applied_Date</td>
-                                <td disabled="@isRenewal">@fdData.Deposit_Refund.ToString("C2")</td>
-                                <td disabled="@isRenewal">@fdData.Total_Payable.ToString("C2") </td>
+                                <td disabled="@isRenewal">@fdData.Deposit_Refund.ToString("C")</td>
+                                <td disabled="@isRenewal">@fdData.Total_Payable.ToString("C") </td>
+                                <td disabled="@isRenewal">@fdData.Rate_Of_Interest %</td>
+                                <td disabled="@isRenewal">@fdData.Rate_Of_Interest_Applied %</td>
 
                             </tr>
                         }
                         <tr class="table-info">
                             <td colspan="2" class="text-end fw-bold">Total:</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Pending_Interest).ToString("C2")</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Current_Interest_Calculated).ToString("C2")</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Interest_Payable).ToString("C2")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Previous_Interest_Calculated).ToString("C")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Previous_Interest_Paid).ToString("C")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Pending_Interest).ToString("C")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Current_Interest_Calculated).ToString("C")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Interest_Payable).ToString("C")</td>
                             <td></td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Deposit_Refund).ToString("C2")</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Payable).ToString("C2") </td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Deposit_Refund).ToString("C")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Payable).ToString("C") </td>
+                            <td colspan="2"></td>
                         </tr>
                     </tbody>
                 </table>
@@ -156,6 +175,7 @@
                             <th>Interest Balance</th>
                             <th>Principal Balance</th>
                             <th>Total Balance</th>
+                            <th>Interest Applied Date</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -163,18 +183,20 @@
                         {
                             <tr>
                                 <td>@loan.Loan_No</td>
-                                <td>@loan.Loan_Amount.ToString("C2")</td>
-                                <td>@loan.Interest_Balance.ToString("C2")</td>
-                                <td>@loan.Principal_Balance.ToString("C2")</td>
-                                <td>@loan.Total_Balance.ToString("C2")</td>
+                                <td>@loan.Loan_Amount.ToString("C")</td>
+                                <td>@loan.Interest_Balance.ToString("C")</td>
+                                <td>@loan.Principal_Balance.ToString("C")</td>
+                                <td>@loan.Total_Balance.ToString("C")</td>
+                                <td>@loan.Current_IntCalc_Date</td>
                             </tr>
                         }
                         <tr class="table-info">
                             <td colspan="1" class="text-end fw-bold">Total:</td>
-                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Loan_Amount).ToString("C2")</td>
-                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Interest_Balance).ToString("C2")</td>
-                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Principal_Balance).ToString("C2")</td>
-                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Total_Balance).ToString("C2")</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Loan_Amount).ToString("C")</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Interest_Balance).ToString("C")</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Principal_Balance).ToString("C")</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Total_Balance).ToString("C")</td>
+                            <td></td>
                         </tr>
                     </tbody>
                 </table>
@@ -300,9 +322,9 @@
 
         @if (RequestType == "R")
         {
-            <button type="button" class="btn btn-primary " @onclick="ProceedToRenewal" disabled="@isRenewal">
+            <button type="button" class="btn btn-primary " @onclick="ProceedToRenewal" disabled="@isRenewal && @isValidForProceedToRenewal">
                 <i class="oi oi-check"></i>
-                Initiate Fixed Deposit Renewal
+                Proceed to Fixed Deposit Renewal
             </button>
         }
 
@@ -310,14 +332,19 @@
 
     @if (isRenewal)
     {
-        <FixedDeposit_Create MemberId="@MemberId"
+        <FixedDeposit_Create 
+        AccountId="@AccountId"
+        CashOrAdjustment="@CashOrAdjustment"
+        MemberId="@MemberId"
         MemberNumber="@MemberNumber"
         MemberName="@MemberName"
         Age="@Age"
+        DOB="@DOB"
         NewFDAmount="@paymentModel.Net_Payable"
         ValueDate="@paymentModel.Fixed_Deposit_Datas!.Max(x => x.Maturity_Date)"
         IsRenewal="true"
-        TransactionDate="@paymentModel.Transaction_Date">
+        TransactionDate="@paymentModel.Transaction_Date"
+        FixedDepositPayment="@paymentModel">
         </FixedDeposit_Create>
     }
 
@@ -338,13 +365,20 @@
     [Parameter] public string? MemberNumber { get; set; }
     [Parameter] public string? MemberName { get; set; }
     [Parameter] public int Age { get; set; }
-    [Parameter] public string? RequestType { get; set; }
+    [Parameter] public DateTime? DOB {get;set;}
     [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public string? RequestType { get; set; }
+
+
     [Parameter] public EventCallback<bool> OnFDPaymentComponentClose { get; set; }
     [Parameter] public EventCallback<DtoTermDepositFixedDepositPayment> OnFDPaymentInitiate { get; set; }
     [Parameter] public EventCallback<bool> OnFDRefundComponentClose { get; set; }
     [Parameter] public EventCallback<DtoTermDepositFixedDepositPayment> OnFDRefundInitiate { get; set; }
+
+    [Parameter] public EventCallback<DtoTermDepositFixedDepositRenewal> OnFDRenewalInitiate { get; set; }
+    [Parameter] public EventCallback<DtoTermDepositFixedDepositCreation> OnFDNewInitiate { get; set; }
     #endregion
+
 
     #region declarations
     private DtoTermDepositFixedDepositPayment paymentModel = new DtoTermDepositFixedDepositPayment();
@@ -353,17 +387,22 @@
     private string? processingMessage;
     private bool isError = false;
     private bool isRenewal = false;
+    private bool isValidForProceedToRenewal = false;
     private bool isFixedDepositLoaded = false;
     private bool isDisableFixedDepositNoButton = true;
-    #endregion
 
+    private Staging_Details stagingDetails = new();
+    #endregion
+    // Initialize the date to current date
+    // paymentModel.Mem_Id = 110010008478;
+    // paymentModel.Member_No = "1100110009991";
+    // paymentModel.Member_Name = "Saroja.K";
+    ///  for renewal mem no = 1100110009991
+    ///  for renewal fd no 1001030008257
     protected override void OnInitialized()
     {
         isRenewal = false;
-        // Initialize the date to current date
-        // paymentModel.Mem_Id = 110010008478;
-        // paymentModel.Member_No = "1100110009991";
-        // paymentModel.Member_Name = "Saroja.K";
+
         paymentModel.AccountId = AccountId;
         paymentModel.CashOrAdjustment = CashOrAdjustment;
         paymentModel.Mem_Id = MemberId;
@@ -374,6 +413,7 @@
         paymentModel.PaymentStatus = RequestType;
         paymentModel.FixedDeposit_Nos = new List<DtoTermDepositNo>();
         paymentModel.Loan_On_FixedDeposits = new List<DtoTermDepositLoan>();
+        // if (RequestType == "R") isRenewal = true;
         // if (RequestType == "R") paymentModel.PaymentStatus = "Q";
     }
 
@@ -419,11 +459,22 @@
         try
         {
             List<DtoTermDepositNo> fdNosList = new List<DtoTermDepositNo>();
+            List<DropdownItem> fdNos = new List<DropdownItem>();
             paymentModel.FixedDeposit_Nos!.Clear();
-            var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosByMemId/{paymentModel.Mem_Id}/F/11001");
-            if (fdNosTmp != null && fdNosTmp.Count > 0)
+            if(RequestType == "I" || RequestType =="P") /// for interest payment or refund
             {
-                foreach (var fd in fdNosTmp)
+                var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosByMemId/{paymentModel.Mem_Id}/F/11001");
+                if (fdNosTmp != null) fdNos = fdNosTmp.ToList();
+            }
+            else 
+            {
+                string formatedDate = TransactionDate.ToString("yyyy-MM-dd");
+                var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosForRenewal/{paymentModel.Mem_Id}/F/{formatedDate}/11001");
+                if (fdNosTmp != null) fdNos = fdNosTmp.ToList();
+            }
+            if (fdNos != null && fdNos.Count > 0)
+            {
+                foreach (var fd in fdNos)
                 {
                     DtoTermDepositNo fdNo = new DtoTermDepositNo();
                     fdNo.TD_Id = Convert.ToDecimal(fd.Value);
@@ -461,7 +512,6 @@
                     paymentModel.FixedDeposit_Nos!.Add(fdNo);
                 }
             }
-
         }
         catch (Exception ex)
         {
@@ -472,123 +522,138 @@
 
     private async Task DisplayBalances()
     {
-        List<DtoTermDepositFixedDepositPayable> fdDataList = new List<DtoTermDepositFixedDepositPayable>();
-        List<DtoTermDepositLoan> loanList = new();
-        int accId = 0;
-        // var selectedFDIds = selectedFDs.Where(x => x.Value).Select(x => x.Key).ToList();
-        if (!selectedFDs.Any())
+        try
         {
-            processingMessage = "Please select at least one fixed deposit";
-            isError = true;
-            return;
-        }
-        List<decimal> fdIdList = new List<decimal>();
-        if (selectedFDs.Any())
-        {
-            foreach (var fd in selectedFDs)
+            List<DtoTermDepositFixedDepositPayable> fdDataList = new List<DtoTermDepositFixedDepositPayable>();
+            List<DtoTermDepositLoan> loanList = new();
+            int accId = 0;
+            // var selectedFDIds = selectedFDs.Where(x => x.Value).Select(x => x.Key).ToList();
+            if (!selectedFDs.Any())
             {
-                fdIdList.Add(fd.TD_Id);
+                processingMessage = "Please select at least one fixed deposit";
+                isError = true;
+                return;
             }
-            /// accountId = 7 Interest payment
-            /// accountId = 8 refund
-            /// accountId = 9 renewal
-            if (paymentModel.PaymentStatus == "I")
-                accId = 7;
-            else if (paymentModel.PaymentStatus == "P")
-                accId = 8;
-            else if (paymentModel.PaymentStatus == "R")
-                accId = 9;
-            /// [FromQuery] decimal[] fdNos, [FromQuery] DateTime toDate, [FromQuery] int accountId, [FromQuery] bool isMonthEndCalc, [FromQuery] string brCode
-            var queryString = new System.Text.StringBuilder("fdNos=");
-            // Add fdIDs with proper URL encoding
+            List<decimal> fdIdList = new List<decimal>();
+            if (selectedFDs.Any())
+            {
+                foreach (var fd in selectedFDs)
+                {
+                    fdIdList.Add(fd.TD_Id);
+                }
+                /// accountId = 7 Interest payment
+                /// accountId = 8 refund
+                /// accountId = 9 renewal
+                if (paymentModel.PaymentStatus == "I")
+                    accId = 7;
+                else if (paymentModel.PaymentStatus == "P")
+                    accId = 8;
+                else if (paymentModel.PaymentStatus == "R")
+                    accId = 9;
+                /// [FromQuery] decimal[] fdNos, [FromQuery] DateTime toDate, [FromQuery] int accountId, [FromQuery] bool isMonthEndCalc, [FromQuery] string brCode
+                var queryString = new System.Text.StringBuilder("fdNos=");
+                // Add fdIDs with proper URL encoding
+                for (int i = 0; i < fdIdList.Count; i++)
+                {
+                    queryString.Append(fdIdList[i]);
+                    if (i < fdIdList.Count - 1)
+                        queryString.Append("&fdNos=");
+                }
+                // Add other parameters with proper formatting
+                queryString.Append($"&toDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
+                queryString.Append($"&accountId=");
+                queryString.Append(accId);
+                queryString.Append("&brCode=11001");
+
+                var fdDataTmp = await _httpClient.GetFromJsonAsync<List<FDDetailsVM>>($"https://localhost:7073/api/TermDeposit/GetFDPayable?{queryString}");
+                if (fdDataTmp != null && fdDataTmp.Count > 0)
+                {
+                    List<DtoTermDepositFixedDepositPayable> dataList = new List<DtoTermDepositFixedDepositPayable>();
+                    foreach (var fd in fdDataTmp)
+                    {
+                        DtoTermDepositFixedDepositPayable data = new DtoTermDepositFixedDepositPayable();
+
+                        data.FD_Id = fd.FDId;
+                        data.FD_No = fd.FDNo;
+                        data.Previous_Interest_Calculated = fd.FDIntAlreadyCalculated;
+                        data.Previous_Interest_Paid = fd.FDIntAlreadyPaid;
+                        data.Current_Interest_Calculated = fd.FDIntCalculatedNow;
+                        data.Current_Interest_Applied_Date = fd.FDIntCalculatedDateNow;
+                        data.Pending_Interest = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid;
+                        if (paymentModel.PaymentStatus == "I")
+                            data.Total_Interest_Payable = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid + fd.FDIntCalculatedNow;
+                        else
+                        {
+                            data.Total_Interest_Payable = fd.FDIntCalculatedNow - fd.FDIntAlreadyPaid;
+                        }
+                        data.Current_Interest_Payment = 0;
+                        data.Deposit_Refund = fd.FDAmountRefund;
+                        data.Rate_Of_Interest = fd.FDROI;
+                        data.Rate_Of_Interest_Applied = fd.FDROIApplied;
+                        data.Total_Payable = data.Total_Interest_Payable + fd.FDAmountRefund;
+                        data.Maturity_Date = fd.FDMaturityDate;
+                        dataList.Add(data);
+                    }
+                    paymentModel.Fixed_Deposit_Datas = new List<DtoTermDepositFixedDepositPayable>();
+                    paymentModel.Fixed_Deposit_Datas!.AddRange(dataList);
+                }
+
+                // Calculate totals
+                paymentModel.Total_Interest_Payable = paymentModel.Fixed_Deposit_Datas!.Sum(fd => fd.Total_Interest_Payable);
+                paymentModel.Total_Deposit_Payable = paymentModel.Fixed_Deposit_Datas!.Sum(fd => fd.Deposit_Refund);
+                paymentModel.Total_Loan_Interest_Balance = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Interest_Balance);
+                paymentModel.Total_Loan_Principal_Balance = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Principal_Balance);
+
+            }
+            var queryStringLoan = new System.Text.StringBuilder("tdIds=");
+
             for (int i = 0; i < fdIdList.Count; i++)
             {
-                queryString.Append(fdIdList[i]);
+                queryStringLoan.Append(fdIdList[i]);
                 if (i < fdIdList.Count - 1)
-                    queryString.Append("&fdNos=");
+                    queryStringLoan.Append("&tdIds=");
             }
+            DateTime intToDate = paymentModel.Fixed_Deposit_Datas!.Select(x => x.Maturity_Date).Max();
+            if (intToDate > paymentModel.Transaction_Date) intToDate = paymentModel.Transaction_Date;
             // Add other parameters with proper formatting
-            queryString.Append($"&toDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
-            queryString.Append($"&accountId=");
-            queryString.Append(accId);
-            queryString.Append("&brCode=11001");
-
-            var fdDataTmp = await _httpClient.GetFromJsonAsync<List<FDDetailsVM>>($"https://localhost:7073/api/TermDeposit/GetFDPayable?{queryString}");
-            if (fdDataTmp != null && fdDataTmp.Count > 0)
+            // queryStringLoan.Append($"&toDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
+            queryStringLoan.Append($"&toDate={Uri.EscapeDataString(intToDate.ToString("yyyy-MM-dd"))}");
+            var loanListTmp = await _httpClient.GetFromJsonAsync<List<DtoTermDepositLoan>>($"https://localhost:7073/api/Loan/GetTDLoanData?{queryStringLoan}");
+            if (loanListTmp != null) loanList = loanListTmp;
+            paymentModel.Loan_On_FixedDeposits = new();
+            paymentModel.Loan_On_FixedDeposits = loanList;
+            if (paymentModel.PaymentStatus == "P" || paymentModel.PaymentStatus == "R")
             {
-                List<DtoTermDepositFixedDepositPayable> dataList = new List<DtoTermDepositFixedDepositPayable>();
-                foreach (var fd in fdDataTmp)
-                {
-                    DtoTermDepositFixedDepositPayable data = new DtoTermDepositFixedDepositPayable();
-
-                    data.FD_Id = fd.FDId;
-                    data.FD_No = fd.FDNo;
-                    data.Previous_Interest_Calculated = fd.FDIntAlreadyCalculated;
-                    data.Previous_Interest_Paid = fd.FDIntAlreadyPaid;
-                    data.Current_Interest_Calculated = fd.FDIntCalculatedNow;
-                    data.Current_Interest_Applied_Date = fd.FDIntCalculatedDateNow;
-                    data.Pending_Interest = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid;
-                    data.Total_Interest_Payable = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid + fd.FDIntCalculatedNow;
-                    data.Current_Interest_Payment = 0;
-                    data.Deposit_Refund = fd.FDAmountRefund;
-                    data.Rate_Of_Interest_Applied = fd.FDROI;
-                    data.Total_Payable = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid + fd.FDIntCalculatedNow + fd.FDAmountRefund;
-                    data.Maturity_Date = fd.FDMaturityDate;
-                    dataList.Add(data);
-                }
-                paymentModel.Fixed_Deposit_Datas = new List<DtoTermDepositFixedDepositPayable>();
-                paymentModel.Fixed_Deposit_Datas!.AddRange(dataList);
+                paymentModel.Total_Loan_Interest_Receipt = loanList.Sum(x => x.Interest_Balance );
+                paymentModel.Total_Loan_Principal_Receipt = loanList.Sum(x => x.Principal_Balance);
             }
-
-            // Calculate totals
-            paymentModel.Total_Interest_Payable = paymentModel.Fixed_Deposit_Datas!.Sum(fd => fd.Total_Interest_Payable);
-            paymentModel.Total_Deposit_Payable = paymentModel.Fixed_Deposit_Datas!.Sum(fd => fd.Deposit_Refund);
-            paymentModel.Total_Loan_Interest_Balance = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Interest_Balance);
-            paymentModel.Total_Loan_Principal_Balance = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Principal_Balance);
-
-            // // Calculate Net Payable
-            // double totalDeduction = 0;
-            // if (paymentModel.Is_Deduct_Loan_Amount && paymentModel.PaymentStatus == "I")
-            // {
-            //     totalDeduction = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Total_Balance);
-            // }
+            // Calculate Net Payable
+            double totalDeduction = 0;
+            if (paymentModel.Is_Deduct_Loan_Amount && paymentModel.PaymentStatus == "I")
+            {
+                totalDeduction = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Total_Balance);
+            }
+            paymentModel.Net_Payable = (paymentModel.Total_Interest_Payable + paymentModel.Total_Deposit_Payable) - (paymentModel.Total_Loan_Interest_Receipt + paymentModel.Total_Loan_Principal_Receipt);
             // paymentModel.Net_Payable = paymentModel.Total_Interest_Payable +
             //                           (paymentModel.PaymentStatus != "I" ? paymentModel.Fixed_Deposit_Datas!.Sum(fd => fd.Deposit_Refund) : 0) -
             //                           totalDeduction;
-            // isDisableFixedDepositNoButton = true;
-
+            isDisableFixedDepositNoButton = true;
+            if (paymentModel.PaymentStatus == "R")
+            {
+                isValidForProceedToRenewal = true;
+                isRenewal = true;
+            }
         }
-        var queryStringLoan = new System.Text.StringBuilder("tdIds=");
-
-        for (int i = 0; i < fdIdList.Count; i++)
+        catch (Exception)
         {
-            queryStringLoan.Append(fdIdList[i]);
-            if (i < fdIdList.Count - 1)
-                queryStringLoan.Append("&tdIds=");
+            // isDisableFixedDepositNoButton = false;
+            if (paymentModel.PaymentStatus == "R") 
+            {
+                isValidForProceedToRenewal = false;
+                isRenewal = false;
+            }
         }
-        // Add other parameters with proper formatting
-        queryStringLoan.Append($"&toDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
 
-        var loanListTmp = await _httpClient.GetFromJsonAsync<List<DtoTermDepositLoan>>($"https://localhost:7073/api/Loan/GetTDLoanData?{queryStringLoan}");
-        if (loanListTmp != null) loanList = loanListTmp;
-        paymentModel.Loan_On_FixedDeposits = new();
-        paymentModel.Loan_On_FixedDeposits = loanList;
-        if(paymentModel.PaymentStatus == "P" || paymentModel.PaymentStatus == "R")
-        {
-            paymentModel.Total_Loan_Interest_Receipt = loanList.Sum(x => x.Interest_Balance + x.Current_Interest);
-            paymentModel.Total_Loan_Principal_Receipt = loanList.Sum(x => x.Principal_Balance);
-        }
-        // Calculate Net Payable
-        double totalDeduction = 0;
-        if (paymentModel.Is_Deduct_Loan_Amount && paymentModel.PaymentStatus == "I")
-        {
-            totalDeduction = paymentModel.Loan_On_FixedDeposits!.Sum(loan => loan.Total_Balance);
-        }
-        paymentModel.Net_Payable = (paymentModel.Total_Interest_Payable + paymentModel.Total_Deposit_Payable) - (paymentModel.Total_Loan_Interest_Receipt + paymentModel.Total_Loan_Principal_Receipt);
-        // paymentModel.Net_Payable = paymentModel.Total_Interest_Payable +
-        //                           (paymentModel.PaymentStatus != "I" ? paymentModel.Fixed_Deposit_Datas!.Sum(fd => fd.Deposit_Refund) : 0) -
-        //                           totalDeduction;
-        isDisableFixedDepositNoButton = true;
     }
 
     private void ProceedToRenewal()
@@ -597,11 +662,11 @@
         StateHasChanged();
     }
 
-    private void HandleSubmit()
-    {
-        // Submit payment logic (e.g., API call to save paymentModel)
-        Navigation.NavigateTo("/payment-success");
-    }
+    // private void HandleSubmit()
+    // {
+    //     // Submit payment logic (e.g., API call to save paymentModel)
+    //     // Navigation.NavigateTo("/payment-success");
+    // }
 
     private void ClosePage()
     {
@@ -619,10 +684,77 @@
 
     protected async Task FDPaymentInitiate()
     {
-        if (RequestType == "I")
-            await OnFDPaymentInitiate.InvokeAsync(paymentModel);
-        if (RequestType == "P")
-            await OnFDRefundInitiate.InvokeAsync(paymentModel);
+        string accountName = "";
+        try
+        {
+            var responseForAccountName = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseForAccountName.IsSuccessStatusCode)
+            {
+                accountName = await responseForAccountName.Content.ReadAsStringAsync();
+            }
+            else if (responseForAccountName.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseForAccountName.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        double receiptAmount = 0;   
+        if(paymentModel.Total_Interest_Payable < 0)
+            receiptAmount = Math.Abs(paymentModel.Total_Interest_Payable);  
+        receiptAmount += paymentModel.Total_Loan_Interest_Receipt + paymentModel.Total_Loan_Principal_Receipt;
+        
+        string fdPaymentJsonData = ConvertToJson(paymentModel);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = MemberId,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = receiptAmount,
+            Payment_Amount = paymentModel.Total_Deposit_Payable + paymentModel.Total_Interest_Payable, /// paymentModel.Net_Payable,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = fdPaymentJsonData,
+            Created_By = 110010000001,
+            Created_Date = TransactionDate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = "11001"
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        await TransactionState.NotifyIntiate(true);
+        // if (RequestType == "I")
+        // {
+
+        //     await OnFDPaymentInitiate.InvokeAsync(paymentModel);
+        // }
+        // if (RequestType == "P")
+        // {
+        //     await OnFDRefundInitiate.InvokeAsync(paymentModel);
+        // }
     }
 
+    private string ConvertToJson(DtoTermDepositFixedDepositPayment fdPayment)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(fdPayment, options);
+    }
+
+    
 }

@@ -50,5 +50,27 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
+        public async Task<bool> AddTermDepositMemberListAsync(List<TermDeposit_Members> termDepositMemberList)
+        {
+            bool result = false;
+            try
+            {
+                decimal maxId = CSISContext.TermDeposit_Members.Max(x => x.TDMem_Id);
+                foreach (var mem in termDepositMemberList)
+                {
+                    maxId++;
+                    mem.TDMem_Id = maxId;
+                    await AddAsync(mem);
+                }
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Term Deposit Members not saved");
+            }
+            return result;
+        }
     }
 }

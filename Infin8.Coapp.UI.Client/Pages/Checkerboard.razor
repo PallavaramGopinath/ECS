@@ -1,0 +1,533 @@
+﻿@page "/checker-dashboard"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode InteractiveAuto *@
+@using Infin8.Coapp.Dto
+@using System.Net
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.UI.Client.Components.ModalDialog
+@using Infin8.Coapp.UI.Client.Components.JewelLoan
+@using System.Reflection
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+<h3>Checker Dashboard</h3>
+
+<p>Review and approve pending transactions</p>
+
+<button type="button" class="btn btn-sm btn-outline-primary mb-3" @onclick="LoadChekerDashboardDataAsync">
+    <i class="oi oi-reload me-1" aria-hidden="true"></i> Load Data
+</button>
+
+@if(checkerDashboardList == null)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (!checkerDashboardList.Any())
+{
+    <div class="alert alert-info">No pending transactions found.</div>
+}
+else 
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Maker</th>
+                <th>Amount Received</th>
+                <th>Amount Paid</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var tx in checkerDashboardList)
+            {
+                <tr>
+                    <td>@tx.Staging_Id</td>
+                    <td>@tx.Type</td>
+                    <td>@tx.Created_By_Name</td>
+                    <td>@tx.Receipt_Amount.ToString("C")</td>
+                    <td>@tx.Payment_Amount.ToString("C")</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary me-1" @onclick="() => ApproveTransactions(tx.Staging_Id)">
+                            <i class="oi oi-check"></i> Approve
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger me-1" @onclick="() => RejectTransactions(tx.Staging_Id)">
+                            <i class="oi oi-delete"></i>Reject
+                        </button>
+                        <button type="button" class="btn btn-sm btn-info me-1" @onclick="() => ViewTransactions(tx)">
+                            <i class="oi oi-eye"></i>Review
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- display transactions as modaldialog for various transactions (loan,fd,rd, sb etc.,) -->
+@if(showTransaction)
+{
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Transaction Details</h5>
+                    <button type="button" class="btn btn-sm btn-light" @onclick="() => showTransaction =false">
+                        <i class="oi oi-circle-x"></i> Close
+                    </button>
+                </div>
+                <div class="card-body" style="max-height: 350px; overflow-y: auto;">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Account Name</th>
+                                    <th>Receipt Amount</th>
+                                    <th>Payment Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var account in transactionAccountsList)
+                                {
+                                    <tr>
+                                        <td>@account.AccountName</td>
+                                        <td>@account.ReceiptAmount</td>
+                                        <td>@account.PaymentAmount</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-primary" @onclick="() => ViewAccount(account)">
+                                                <i class="oi oi-eye"></i>
+                                                View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-info">
+                                    <th>Total</th>
+                                    <th>@transactionAccountsList.Sum(a => a.ReceiptAmount)</th>
+                                    <th>@transactionAccountsList.Sum(a => a.PaymentAmount)</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+<ModalDialog @bind-Show="showModal" Title="View Transactions (Checker)">
+    <ChildContent>
+        @* @if (relatedAccountId == 31)
+        {
+            <JewelLoan_View  stagingId="@stagingId" relatedAccountId="@relatedAccountId">
+            </JewelLoan_View>
+        } *@
+        @if (viewComponent != null)
+        {
+            <DynamicComponent Type="viewComponent" Parameters="parameters" />
+        }
+    </ChildContent>
+</ModalDialog>
+
+
+
+@code {
+
+    private bool showModal = false;
+    private Type? viewComponent;
+
+    #region transactions list
+    private decimal stagingId=0;
+    private int relatedAccountId = 0;
+    private bool showTransaction = false;
+    private List<AccountTransactionVM> transactionAccountsList = new();
+    private string componentName = "JewelLoanRecovery";
+    private Type? currentComponent;
+    private Dictionary<string, object> parameters = new();
+    private bool isComponentLoaded = false;
+    private bool isBankAccount = false;
+    private bool isLedgerSection = false;
+    private bool isTransactionSection = false;
+    #endregion
+
+    #region display from staging
+    private DateTime Transaction_Date = DateTime.Now; /// new DateTime(2025,06,30);
+    private string stagingStatus ="M";
+    private string brCode = "11001";
+    private List<DtoCheckerDashboard> checkerDashboardList = new();
+    #endregion 
+    private bool _isDataLoaded = false;
+
+    // protected override async Task OnInitializedAsync()
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     try
+    //     {
+    //         if (firstRender && !_isDataLoaded)
+    //         {
+    //             var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+    //             // if (query != null && query.Count > 0)
+    //             // {
+    //             //     checkerDashboardList = query.ToList();
+    //             // }
+    //             checkerDashboardList = query ?? new List<DtoCheckerDashboard>();
+    //             _isDataLoaded = true;
+    //             StateHasChanged(); // Notify the component that the state has changed to re-render
+    //         }
+    //     }
+    //     catch (HttpRequestException ex)
+    //     {
+    //         // Console.WriteLine($"Error loading data: {ex.Message}");
+    //         // checkerDashboardList = new List<DtoCheckerDashboard>();
+
+    //         if (ex.StatusCode == HttpStatusCode.NotFound) // Using System.Net.HttpStatusCode
+    //         {
+    //             checkerDashboardList = new();
+    //         }
+    //         else 
+    //         {
+    //             checkerDashboardList = new();
+    //         }
+    //     }
+    // }
+
+    private async Task LoadChekerDashboardDataAsync()
+    {
+        try
+        {
+            var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+            // if (query != null && query.Count > 0)
+            // {
+            //     checkerDashboardList = query.ToList();
+            // }
+            checkerDashboardList = query ?? new List<DtoCheckerDashboard>();
+
+        }
+        catch (HttpRequestException ex)
+        {
+            // Console.WriteLine($"Error loading data: {ex.Message}");
+            // checkerDashboardList = new List<DtoCheckerDashboard>();
+
+            if (ex.StatusCode == HttpStatusCode.NotFound) // Using System.Net.HttpStatusCode
+            {
+                checkerDashboardList = new();
+            }
+            else
+            {
+                checkerDashboardList = new();
+            }
+        }
+        StateHasChanged();
+    }
+
+    // private async Task ViewAccount(AccountTransactionVM account)
+    // {
+    //     string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+
+    //     // parameters = new Dictionary<string, object> { { "Message", "Switched dynamically!" } };
+    //     if (isComponent(account.AccountId))
+    //     {
+    //         var url = $"https://localhost:7073/api/Transaction/GetComponentName/{account.AccountId}";
+    //         using var response = await _httpClient.GetAsync(url);
+    //         var jsonString = await response.Content.ReadAsStringAsync();
+    //         componentName = jsonString + "View";
+    //         StateHasChanged();
+    //     }
+    //     else
+    //     {
+    //         isComponentLoaded = false;
+    //         StateHasChanged();
+    //     }
+    //     switch (account.AccountId)
+    //     {
+    //         /// common
+
+    //         case 36:    /// sb account transaction
+    //             break;
+    //         case 44:    ///Member due to transactions multiple
+    //             break;
+    //         case 45:    /// Member due by transactions multiple
+    //             break;
+
+    //         /// Receipt
+    //         case 1: /// loan receipt
+    //             break;
+    //         case 2: /// RD Receipt
+    //             break;
+    //         case 6: /// member deposit advance receipt
+    //             break;
+    //         case 16:    /// fd account creation
+    //             fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName}";
+    //             Type? typeFDNewView = Type.GetType(fullyQualifiedName);
+    //             if (typeFDNewView != null) currentComponent = typeFDNewView;
+    //             parameters.Clear();
+    //             // parameters = new Dictionary<string, object>
+    //             // {
+    //             //     { "fdNewCreation", FDNewCreate },
+    //             //     { "OnFDNewViewComponentClose", EventCallback.Factory.Create<bool>(this, CloseFDNewViewComponent) }
+    //             // };
+    //             isComponentLoaded = true;
+    //             isBankAccount = false;
+    //             isLedgerSection = false;
+    //             isTransactionSection = false;
+    //             StateHasChanged();
+    //             break;
+    //         case 17: /// rd account creation
+    //             break;
+    //         case 18: /// sb account creation
+    //             break;
+    //         case 19: /// Staff Loan Recovery
+    //             break;
+    //         case 20:   /// PF Subscription
+    //             break;
+    //         case 24:    /// FD loan recovery
+    //             break;
+    //         case 25:    /// RD loan recovery
+    //             break;
+    //         case 26:    /// member pending deposit receipt
+    //             break;
+    //         case 31:    /// Jewel Loan Recovery
+
+    //             // componentName = "JewelLoanRecovery";
+    //             fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+    //             Type? type = Type.GetType(fullyQualifiedName);
+    //             if (type != null) currentComponent = type;
+    //             parameters.Clear();
+    //             // parameters = new Dictionary<string, object>
+    //             // {
+    //             //     { "jlRecovery", JLRecoveryTransaction.JewelLoanBalance_List! },
+    //             //     { "OnJLRecoveryViewComponentClose", EventCallback.Factory.Create<bool>(this, CloseJLRecoveryViewComponent) }
+    //             // };
+    //             isComponentLoaded = true;
+    //             isBankAccount = false;
+    //             isLedgerSection = false;
+    //             isTransactionSection = false;
+    //             StateHasChanged();
+    //             break;
+    //         case 47:    /// housing loan reimbursemet
+    //             break;
+
+
+    //         /// payment
+    //         case 7: /// Fd Interest Payment
+    //             break;
+    //         case 8: /// FD Refund
+    //             break;
+    //         case 9:  /// FD Renewal
+    //             break;
+    //         case 10:    /// RD Refund
+    //             break;
+    //         case 12:    /// Loan disbursement for Housing society
+    //             break;
+    //         case 13:    /// Loan on Fixed Deposit
+    //             break;
+    //         case 14: /// Loan on Recurring Deposit
+    //             break;
+    //         case 22:    /// staff suspense creditor payment
+    //             break;
+    //         case 23:    /// staff suspense debtor payment
+    //             break;
+    //         case 27:    /// member deposit payment
+    //             break;
+    //         case 29:   /// member dividend payment
+    //             break;
+    //         case 30: /// Member int on TD payment
+    //             break;
+    //         case 32:    /// Member's Dividend and Int on TD Bulk Payment
+    //             break;
+    //         case 37:    /// Jewel Loan disbursement
+    //             // componentName = "JewelLoanDisbursement";
+    //             fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+    //             Type? type2 = Type.GetType(fullyQualifiedName);
+    //             if (type2 != null) currentComponent = type2;
+    //             parameters.Clear();
+    //             // parameters = new Dictionary<string, object>
+    //             // {
+    //             //     { "MemberId", transaction.Member_Id },
+    //             //     { "MemberNumber", transaction.Member_No! },
+    //             //     {"MemberName", transaction.Member_Name! },
+    //             //     { "TransactionDate", transaction.Transaction_Date }
+    //             // };
+    //             isComponentLoaded = true;
+    //             StateHasChanged();
+    //             break;
+
+    //         case 38:    /// Group Insurance Payment
+    //             break;
+    //         case 46: /// Loan disbursement subsequent instalments HSIS
+    //             break;
+    //         case 48:    /// Loan disbursement for PLDB
+    //             break;
+    //     }
+    // }
+
+    private async Task ViewAccount(AccountTransactionVM account)
+    {
+        await GetViewComponentName(account);
+        // var stagingDetails = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{account.Staging_Id}/{account.AccountId}");
+        // if (stagingDetails != null)
+        // {
+        //     stagingId = stagingDetails.Staging_Id;
+        //     relatedAccountId = stagingDetails.Related_Account_Id;
+        //     showModal = true;
+        // }
+    }
+
+    private bool isComponent(decimal Account_Id)
+    {
+        bool result = true;
+        switch (Account_Id)
+        {
+            case 3: /// membser suspense creditor receipt/payment
+                result = true;
+                break;
+            case 4: /// member suspense debtor receipt/payment
+                result = true;
+                break;
+            case 5: /// member share capital receipt/payment
+                result = true;
+                break;
+            case 11: /// bank name receipt/payment
+                result = true;
+                break;
+            case 21: /// ledger entry receipt/payment
+                result = true;
+                break;
+            case 22: /// Staff susepense Creditor receipt/payment
+                result = false;
+                break;
+            case 23: /// Staff suspense Debtor receipt/payment
+                result = false;
+                break;
+        }
+        return result;
+    }
+
+    private async Task ApproveTransactions(decimal stagingId)
+    {
+
+        var response = await _httpClient.PostAsJsonAsync<decimal>("https://localhost:7073/api/Staging/ApproveStaging", stagingId);
+        if (response.IsSuccessStatusCode)
+        {
+            checkerDashboardList = new();
+            try
+            {
+                var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+                checkerDashboardList = query ?? new List<DtoCheckerDashboard>();
+            }
+            catch (HttpRequestException ex)
+            {
+                if (ex.StatusCode == HttpStatusCode.NotFound) // Using System.Net.HttpStatusCode
+                {
+                    checkerDashboardList = new();
+                }
+            }
+            StateHasChanged();
+            await JSRuntime.InvokeVoidAsync("alert", "Transaction approved successfully!");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Approval of Transaction failed!");
+        }
+    }
+
+    private void RejectTransactions(decimal stagingId)
+    {
+
+    }
+
+    private async Task ViewTransactions(DtoCheckerDashboard dashboard)
+    {
+        var trnFromStaging = await _httpClient.GetFromJsonAsync<List<AccountTransactionVM>>($"https://localhost:7073/api/Staging/GetChekerDashboardById/{dashboard.Staging_Id}");
+        if (trnFromStaging != null)
+        {
+            transactionAccountsList = trnFromStaging.ToList();
+            showTransaction = true;
+        }
+    }
+
+    private async Task GetViewComponentName(AccountTransactionVM account)
+    {
+        string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+        try
+        {
+            var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
+            if (isComponent(account.AccountId))
+            {
+                var url = $"https://localhost:7073/api/Transaction/GetViewComponentName/{account.AccountId}";
+                using var response = await _httpClient.GetAsync(url);
+                var jsonString = await response.Content.ReadAsStringAsync();
+                componentName = jsonString;
+                switch (account.AccountId)
+                {
+                    case 3:     /// Member suspense due by
+                    case 4:     /// Member suspense due to
+                    case 5:     /// Member share capital
+                    case 11:    /// bank ledger
+                    case 21:    /// Leder Entry
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.OtherTransactions"}.{componentName},{assemblyName}";
+                        break;
+                    case 7:     /// Fd Interest Payment
+                    case 8:     /// FD Refund
+                    case 9:     /// FD Renewal
+                    case 13:    /// Loan on Fixed Deposit
+                    case 16:    /// fd account creation
+                    case 24:    /// FD loan recovery
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName},{assemblyName}";
+                        break;
+                    case 31:    /// Jewel Loan Recovery
+                    case 37:    /// Jewel Loan disbursement
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName},{assemblyName}";
+                        break;
+                    case 18: /// New SB Account creation
+                    case 36:    /// SB Account Transaction
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.SBAccount"}.{componentName},{assemblyName}";
+                        break;
+                }
+                Type? type = Type.GetType(fullyQualifiedName);
+                if (type == null)
+                {
+                    Console.WriteLine($"Could not find type: {fullyQualifiedName}");
+                    // Try loading the assembly first
+                    var assembly = Assembly.Load(assemblyName);
+                    type = assembly.GetType($"{componentName}");
+                }
+                if (type != null)
+                {
+                    viewComponent = type;
+                    if (viewComponent != null)
+                    {
+                        parameters.Clear();
+                        parameters = new Dictionary<string, object>
+                        {
+                            { "stagingId",account.Staging_Id },
+                            { "relatedAccountId",account.AccountId }
+                        };
+                    }
+                    showModal = true;
+                }
+                StateHasChanged();
+            }
+            else
+            {
+                showModal = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            showModal = false;
+            StateHasChanged();
+        }
+    }
+}

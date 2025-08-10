@@ -16,23 +16,30 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddSBCAMasterAsync(SBCA_Master sbcaMaster)
+        public async Task<(bool result, decimal accId, string accNo)> AddSBCAMasterAsync(SBCA_Master sbcaMaster)
         {
             bool result = false;
+            decimal accId = 0;
+            string accNo = string.Empty;
+
             try
             {
                 decimal maxId = await CSISContext.SBCA_Master.MaxAsync(x => x.Acc_Id);
+                var maxAccountNo = await GetNewSBAccountNo(sbcaMaster.BrCode!);
                 maxId++;
                 sbcaMaster.Acc_Id = maxId;
+                sbcaMaster.Acc_No = maxAccountNo;
                 await AddAsync(sbcaMaster);
                 result = true;
+                accId = maxId;
+                accNo = maxAccountNo;
             }
             catch (Exception ex)
             {
                 result = false;
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while saving new SB Account");
             }
-            return result;
+            return (result,accId,accNo );
         }
 
         public async Task<bool> EditSBCAMasterAsync(SBCA_Master sbcaMaster)
@@ -72,6 +79,36 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching SB account No(s) by member id");
             }
             return list;
+        }
+
+        public async Task<string> GetNewSBAccountNo(string brCode)
+        {
+            string newLoanNo = string.Empty;
+            decimal maxId = 0;
+            try
+            {
+                decimal schemeId = await (from lm in CSISContext.SBCA_Schemes
+                                       where lm.BrCode == brCode && lm.SBCA_Delete == false
+                                       select lm.Scheme_Id).FirstOrDefaultAsync();
+
+                var maxLoanNo = await (from lm in CSISContext.SBCA_Master
+                                       where lm.Scheme_Id == schemeId
+                                       select lm.Acc_No).MaxAsync();
+                if (!string.IsNullOrEmpty(maxLoanNo))
+                {
+                    maxId = Convert.ToDecimal(maxLoanNo) + 1;
+                    newLoanNo = Convert.ToString(maxId);
+                }
+                else
+                {
+                    newLoanNo = brCode + "0000001";
+                }
+            }
+            catch (Exception)
+            {
+                throw new InvalidOperationException("Error in fetching New Loan No based on Loan Scheme");
+            }
+            return newLoanNo;
         }
     }
 }

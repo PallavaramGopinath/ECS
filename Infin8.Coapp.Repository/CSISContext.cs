@@ -154,6 +154,11 @@ namespace Infin8.Coapp.Repository
 
         #region Refresh Token 
         public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+        #endregion
+
+        #region Staging
+        public virtual DbSet<Staging_Master> Staging_Master { get; set; }
+        public virtual DbSet<Staging_Details> Staging_Details { get; set; }
         #endregion 
     }
 

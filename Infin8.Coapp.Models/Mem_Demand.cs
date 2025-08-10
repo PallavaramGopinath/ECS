@@ -127,6 +127,6 @@ namespace Infin8.Coapp.Models
         public int TotalDueByCollectionOnDemand { get; set; }
         public int ReferId { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

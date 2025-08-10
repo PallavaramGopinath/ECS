@@ -1,0 +1,104 @@
+﻿@using Infin8.Coapp.Dto
+@using System.Text.Json
+@using System.Net
+@using Infin8.Coapp.Models
+@* @using System.Text.Json.Serialization; *@
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+@if(jlRecovery !=null)
+{
+    @if (jlRecovery.JewelLoanBalance_List != null && jlRecovery.JewelLoanBalance_List.Any())
+    {
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Loan Balance & Recovery Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Loan No</th>
+                            <th>Scheme</th>
+                            <th>Status</th>
+                            <th>Loan Amount</th>
+                            <th>Loan Date</th>
+                            <th>Due Date</th>
+                            <th>Interest %</th>
+                            <th>Outstanding</th>
+                            <th>Recovery Amount</th>
+                            <th>Int Calc Amount</th>
+                            <th>Int Applied Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < jlRecovery.JewelLoanBalance_List.Count; i++)
+                        {
+                            var loan = jlRecovery.JewelLoanBalance_List[i];
+                            var index = i; // Capture for lambda
+                            <tr>
+                                <td>@loan.Loan_No</td>
+                                <td>@loan.Scheme_Name</td>
+                                <td>@loan.Status</td>
+                                <td>@loan.Loan_Amount.ToString("C2")</td>
+                                <td>@loan.Loan_Date.ToShortDateString()</td>
+                                <td>@loan.Due_Date.ToShortDateString()</td>
+                                <td>@loan.ROI% </td>
+                                <td>@loan.Outstanding.ToString("C2")</td>
+                                <td>@loan.Recovery_Amount.ToString("C2")</td>
+                                <td>@loan.Calculated_Amount.ToString("C2") </td>
+                                <td>@loan.Interest_Application_Date</td>
+                            </tr>
+                        }
+                        <tr class="table-info">
+                            <td colspan="7" class="text-end fw-bold">Total:</td>
+                            <td class="fw-bold">@jlRecovery.JewelLoanBalance_List.Sum(l => l.Outstanding).ToString("C2")</td>
+                            <td class="fw-bold">@jlRecovery.JewelLoanBalance_List.Sum(l => l.Recovery_Amount).ToString("C2")</td>
+                            <td class="fw-bold">@jlRecovery.JewelLoanBalance_List.Sum(l => l.Calculated_Amount).ToString("C2")</td>
+                            <td class="fw-bold"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+    private Staging_Details details = new Staging_Details();
+    private DtoJewelLoanRecovery jlRecovery = new DtoJewelLoanRecovery();
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null)
+                {
+                    jlRecovery = Utility.JsonbObject.ConvertFromJson(details.Related_Account_Data!);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+    // using System.Text.Json;
+    
+    // public DtoJewelLoanRecovery ConvertFromJson(string jsonData)
+    // {
+    //     var options = new JsonSerializerOptions
+    //         {
+    //             PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+    //         };
+
+    //     return JsonSerializer.Deserialize<DtoJewelLoanRecovery>(jsonData, options)!;
+    // }
+}

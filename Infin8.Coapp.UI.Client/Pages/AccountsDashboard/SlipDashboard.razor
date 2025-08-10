@@ -1,0 +1,496 @@
+﻿@page "/slip"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.UI.Client.Components.Voucher
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+
+
+<div class="card mt-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">Transaction dashboard</h5>
+    </div>
+    <div class="card-body">
+
+        @* Step 1: Add Radio Buttons for Selection *@
+        <div class="form-group mb-3">
+            <label class="me-3">Search By:</label>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="searchType" id="searchByReceipt" value="@SearchType.Receipt" @onchange="OnSearchTypeChanged" checked />
+                <label class="form-check-label" for="searchByReceipt">Receipt No</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="searchType" id="searchByPayment" value="@SearchType.Payment" @onchange="OnSearchTypeChanged" />
+                <label class="form-check-label" for="searchByPayment">Payment No</label>
+            </div>
+        </div>
+
+        @* Step 2: Conditionally Display Input Fields *@
+        <div class="row">
+            <div class="col-md-3">
+                @if (SelectedSearchType == SearchType.Receipt)
+                {
+                    <div class="form-group">
+                        <label for="rptNo">Receipt No</label>
+                        <InputText class="form-control shadow-non" @bind-Value="rptNo" @onblur="() => handleSearch(rptNo)">
+                        </InputText>
+                    </div>
+                }
+                @if (SelectedSearchType == SearchType.Payment)
+                {
+                    <div class="form-group">
+                        <label for="pmtNo">Payment No</label>
+                        <InputText class="form-control shadow-non" @bind-Value="pmtNo" @onblur="() => handleSearch(pmtNo)">
+                        </InputText>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* You can add a section to display the results from voucherData here *@
+
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <p><em>Loading voucher...</em></p>
+}
+else
+{
+    <VoucherDisplay Voucher="voucherData" />
+    <!--Print button-->
+    <button type="button" class="btn btn-primary mt-3" @onclick="()=>HandlePrint()">
+        <i class="oi oi-print" aria-hidden="true"></i>
+        Print
+    </button>
+}
+
+
+@* @if (!string.IsNullOrEmpty(pdfDataUrl))
+{
+    <iframe src="@pdfDataUrl" style="width:100%; height:800px;" frameboarder="0"></iframe>
+} *@
+@code {
+
+    private string rptNo = "";
+    private string pmtNo = "";
+    private decimal yrId = 110010000023; // Example value, ensure this is set
+    string brCode = "11001";
+    private bool isLoading = true;
+    private DtoVoucher? voucherData;
+    private byte[] fileBytes;
+    private string pdfDataUrl = string.Empty;
+
+    // Enum to manage the selected option
+    private enum SearchType { Receipt, Payment }
+
+    // Property to hold the current selection. Default to Receipt.
+    private SearchType SelectedSearchType { get; set; } = SearchType.Receipt;
+
+    // Event handler for the radio button's onchange event
+    private void OnSearchTypeChanged(ChangeEventArgs e)
+    {
+        // Parse the selected enum value and update the state
+        if (Enum.TryParse<SearchType>(e.Value.ToString(), out var searchType))
+        {
+            SelectedSearchType = searchType;
+
+            // Clear input fields and results when switching
+            rptNo = "";
+            pmtNo = "";
+            voucherData = null;
+        }
+    }
+
+    // A single search handler that adapts based on the selected radio button
+    private async Task handleSearch(string searchValue)
+    {
+        if (string.IsNullOrWhiteSpace(searchValue))
+        {
+            return;
+        }
+
+        try
+        {
+            string[] parts = searchValue.Split('/');
+            string convertedString = "";
+            if (parts.Length == 2)
+            {
+                // Convert the first part to uppercase and join it back with the second part
+                convertedString = parts[0].ToUpper() + "/" + parts[1];
+                Console.WriteLine(convertedString); // Output: VR/371
+            }
+            else
+            {
+                // Handle cases where the format is not as expected, maybe just convert the whole thing
+                Console.WriteLine(searchValue.ToUpper());
+            }
+            // Reset the non-active search type's value
+            if (SelectedSearchType == SearchType.Receipt)
+            {
+                pmtNo = ""; // Ensure payment number is empty
+                rptNo = convertedString;
+                // rptNo = searchValue.ToUpper();
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}");
+                voucherData = result;
+                isLoading = false;
+            }
+            else
+            {
+                rptNo = ""; // Ensure receipt number is 
+                pmtNo = convertedString;
+                // pmtNo = searchValue.ToUpper();
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByPmtNo?pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}");
+                voucherData = result;
+                isLoading = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching transaction: {ex.Message}");
+            voucherData = null; // Clear data on error
+        }
+
+
+        // try
+        // {
+        //     // The API call remains the same, as empty strings are passed for the unused parameter
+        //     var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByNo?rptNo={Uri.EscapeDataString(rptNo)}&pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}");
+        //     // var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByNo/{rptNo}/{pmtNo}/{yrId}");
+        //     voucherData = result;
+        //     isLoading = false;
+        // }
+        // catch (Exception ex)
+        // {
+        //     Console.WriteLine($"Error fetching transaction: {ex.Message}");
+        //     voucherData = null; // Clear data on error
+        // }
+
+        // Blazor automatically re-renders the component after an await
+
+        StateHasChanged();
+    }
+
+    private async Task HandlePrint()
+    {
+        List<rptReceiptAndPaymentAmount> rptPmtList = new();
+        try
+        {
+            var rptPmtResponse = await _httpClient.GetFromJsonAsync<List<rptReceiptAndPaymentAmount>>($"https://localhost:7073/api/Print/GetReceiptAndPaymentData/{voucherData!.Voc_Id}/{voucherData.brCode}");
+            if(rptPmtResponse!.Count >0)
+            {
+                rptPmtList = rptPmtResponse.ToList();
+            }
+            else
+            {
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            string msg = ex.Message;
+            return;
+        }
+
+        rptReceiptObject rpt = new()
+        {
+            vocId = voucherData!.Voc_Id,
+            receiptAmt = voucherData.Transactions.Sum(l => l.Voc_Rpt),
+            brCode = voucherData.brCode,
+            vocTrnType = voucherData.Transactions.Select(x => x.Voc_Trn_Type).FirstOrDefault()
+        };
+        rptReportObject rptObject = new()
+        {
+            Voc_Id = voucherData.Voc_Id,
+            BrCode = voucherData.brCode,
+            VocTrnType = voucherData.Transactions.Select(x => x.Voc_Trn_Type).FirstOrDefault()
+        };
+
+        foreach(var receipt in rptPmtList )
+        {
+            if(receipt.Voc_Rpt >0)
+            {
+                if (receipt.Voc_Type == 5 ||  receipt.Voc_Type == 11 || receipt.Voc_Type == 14)    /// voc_Type 5 = member transaction,Voc_Type 11 = decreed loan issue)
+                {
+                    if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11)
+                    {
+                        await Print_Member_Receipt(rpt);
+                    }
+                    if (receipt.Voc_Type == 14) /// Voc_type 14 = tsis loan disbursement by ecs
+                    {
+
+                    }
+                }
+                else  /// receipt general (other than member receipt)
+                {
+                    await Print_General_Receipt(rpt);
+                }
+
+            }
+        }
+        foreach (var payment in rptPmtList )
+        {
+            if (payment.Voc_Pmt > 0)
+            {
+                rptObject.VocTrnType = payment.Voc_Trn_Type;
+                break;
+            }
+        }
+        double pmtAmt = 0;
+        pmtAmt = rptPmtList.Sum(x => x.Voc_Pmt);
+        if(pmtAmt >0)
+        {
+            rptObject.ReportId = 89;
+            await Print_Voucher(rptObject);
+        }
+
+        List<string> statusList = new();
+        var statusResult = await _httpClient.GetFromJsonAsync<List<string>>($"https://localhost:7073/api/Print/GetStatus/{voucherData!.Voc_Id}");
+        if(statusResult!.Count >0)
+        {
+            statusList = statusResult!.ToList();
+        }
+        foreach (var status in statusList)
+        {
+            switch (status.Trim())
+            {
+                case "FI":      /// FD Interest payment
+                case "FR":  /// FD Refund report id = 92
+                    await Print_FDPayment(rpt);
+                    break;
+                case "FDR":
+                case "FW":  /// FD Bond Report Id = 116
+                    await Print_FDBond(rpt);
+                    break;
+                case "DVP": /// Dividend paid report id = 124
+
+                    break;
+                case "DVPB":    /// Dividend/int on td payment bulk society type = 1 report id = 90  employee soc, else report id = 146, 154 other soc
+
+                    break;
+                case "MMDTo":    /// Member due to multiple report id = 91
+
+                    break;
+                case "MMDBy":    /// Member due by multiple report id = 91
+
+                    break;
+                case "ECSGB":    /// Member due by multiple report id = 91
+
+                    break;
+                case "JLI": /// Jewel Loan Disbursement (JL Ledger) report id = 136,136,153
+                    rptObject.ReportId = 135;
+                    await Print_JL_Ledger(rptObject);
+                    rptObject.ReportId = 136;
+                    await Print_JL_Ledger(rptObject);
+                    rptObject.ReportId = 153;
+                    await Print_JL_Ledger(rptObject);
+                    break;
+                case "BTOA": /// Transaction between Associate Members to A-Class Members report id = 145
+
+                    break;
+                case "DVPM":    /// bulk dividend payment HSIS report id = 146
+
+                    break;
+                case "HLI":    /// PLDB Loan for MI for Jewels report id = 136,136
+
+                    break;
+            }
+        }
+
+        // #region Member Receipt
+        // var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rpt);
+        // if (response.IsSuccessStatusCode)
+        // {
+        //     fileBytes = await response.Content.ReadAsByteArrayAsync();
+        //     // 1. Convert byte array to a Base64 string
+        //     var base64String = Convert.ToBase64String(fileBytes);
+
+        //     /// 2. Render in iframe commented
+        //     // Set the data URL to a property bound to the iframe's src
+        //     // pdfDataUrl = $"data:application/pdf;base64,{base64String}";
+
+        //     // If fileBytes is null or empty, the API returned nothing.
+        //     if (fileBytes == null || fileBytes.Length == 0)
+        //     {
+        //         Console.WriteLine("Error: API returned a success status code but with no content.");
+        //         return; // Stop here
+        //     }
+        //     // 3. Call the new JavaScript function to open the PDF in a new tab
+        //     await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+
+        //     // 4. Down load pdf commented
+        //     // await JSRuntime.SaveAs("Receipt.pdf", fileBytes!);
+        // }
+        // else
+        // {
+        //     // Log or show error
+        //     Console.WriteLine($"Error: {response.StatusCode}");
+        // }
+        // #endregion 
+    }
+
+    private async Task Print_Member_Receipt(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            /// 2. Render in iframe commented
+            // Set the data URL to a property bound to the iframe's src
+            // pdfDataUrl = $"data:application/pdf;base64,{base64String}";
+
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 3. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+
+            // 4. Down load pdf commented
+            // await JSRuntime.SaveAs("Receipt.pdf", fileBytes!);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_General_Receipt(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt-general", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            /// 2. Render in iframe commented
+            // Set the data URL to a property bound to the iframe's src
+            // pdfDataUrl = $"data:application/pdf;base64,{base64String}";
+
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 3. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+
+            // 4. Down load pdf commented
+            // await JSRuntime.SaveAs("Receipt.pdf", fileBytes!);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_Voucher(rptReportObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"https://localhost:7073/api/Print/print-voucher", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 3. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_FDPayment(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-fdpayment", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // 2. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_FDBond(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-fdbond", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // 2. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+    
+    private async Task Print_JL_Ledger(rptReportObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"https://localhost:7073/api/Print/print-jl-ledger", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // 2. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+}

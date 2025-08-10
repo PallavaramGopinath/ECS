@@ -36,6 +36,15 @@ namespace Infin8.Coapp.BusinessLogic
         //    return fDBond;
         //}
 
+        public async Task<List<DropdownItem>> GetTDNos(string TDSchemeType, DateTime fromDate, DateTime toDate, string brCode)
+        {
+            return await _unitOfWork.ReportsTermDeposits.GetTDNos(TDSchemeType, fromDate, toDate,brCode );
+        }
+
+        public async Task<List<DropdownItem>> GetTDNos(decimal memId, string TDSchemeType, DateTime fromDate, DateTime toDate, string brCode)
+        {
+           return await _unitOfWork.ReportsTermDeposits.GetTDNos(memId,TDSchemeType,fromDate, toDate,brCode);
+        }
         public async Task<List<rptTDRefundBetweenDates>> GetFDRefundBetweenDated(DateTime fromDate, DateTime toDate, string TDSchemeType, string brCode)
         {
             return await _unitOfWork.ReportsTermDeposits.GetFDRefundBetweenDated(fromDate, toDate, TDSchemeType, brCode);
@@ -51,9 +60,9 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.ReportsTermDeposits.GetTermDepositOutstanding(asOnDate, TDSchemeType, brCode);
         }
 
-        public async Task<List<rptFDOutstanding>> GetTermDepositOutstandingIndividual(decimal memId, DateTime asOnDate, string TDSchemeType)
+        public async Task<List<rptFDOutstanding>> GetTermDepositOutstandingIndividual(decimal memId, DateTime asOnDate, string TDSchemeType, string brCode)
         {
-            return await _unitOfWork.ReportsTermDeposits.GetTermDepositOutstandingIndividual(memId, asOnDate, TDSchemeType);
+            return await _unitOfWork.ReportsTermDeposits.GetTermDepositOutstandingIndividual(memId, asOnDate, TDSchemeType , brCode );
         }
 
         public async Task<List<rptTermDepositPayable>> GetTermDepositPayable(DateTime asOnDate, string brCode)
@@ -75,5 +84,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsTermDeposits.GetTermDepositReceivedDuringPeriod(fromDate,toDate, TDSchemeType, brCode);
         }
+
+        
     }
 }

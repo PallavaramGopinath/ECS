@@ -1,0 +1,39 @@
+﻿<div class="modal @(Show ? "d-block" : "d-none")" tabindex="-1" role="dialog" style="display: @(Show ? "flex" : "none");  ">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="width: auto; max-width: 100%; margin: 0.5rem auto; justify-content: center; align-items: center;" role="document">
+        <div class="modal-content" style="width: fit-content; ">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white">@Title</h5>
+                <button type="button" class="close" style="margin-right: 0; margin-left: auto;" @onclick="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-0">
+                @ChildContent
+            </div>
+            <div class="modal-footer">
+                @if (ShowFooter)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="Close">Close</button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string Title { get; set; } ///= "Modal Title";
+                                                  /// </summary> <summary>
+                                                  /// 
+    [Parameter] public string ConfirmText { get; set; } = "Save";
+    [Parameter] public bool ShowFooter { get; set; } = true;
+    [Parameter] public RenderFragment ChildContent { get; set; }
+    [Parameter] public EventCallback<bool> ShowChanged { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    private async Task Close()
+    {
+        Show = false;
+        await ShowChanged.InvokeAsync(Show);
+    }
+}

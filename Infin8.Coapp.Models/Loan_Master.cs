@@ -58,6 +58,6 @@ namespace Infin8.Coapp.Models
         public double DrawingPower { get; set; }
         public int SecurityType { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

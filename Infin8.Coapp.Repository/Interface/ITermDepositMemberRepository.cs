@@ -10,6 +10,7 @@ namespace Infin8.Coapp.Repository
     public interface ITermDepositMemberRepository
     {
         Task<bool> AddTermDepositMemberAsync(TermDeposit_Members termDepositMember);
+        Task<bool> AddTermDepositMemberListAsync(List<TermDeposit_Members> termDepositMemberList);
         Task<bool> EditTermDepositMemberAsync(TermDeposit_Members termDepositMember);
     }
 }

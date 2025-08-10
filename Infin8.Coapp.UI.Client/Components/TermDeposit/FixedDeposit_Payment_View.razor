@@ -1,0 +1,158 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+
+@if (paymentModel != null)
+{
+    @if (paymentModel.Fixed_Deposit_Datas != null && paymentModel.Fixed_Deposit_Datas.Any())
+    {
+        <div class="card mt-4">
+            <div class="card-header mb-3">
+                <h5 class="mb-0"> Fixed Deposit Payment Details</h5>
+            </div>
+
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-strip">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Fixed Deposit No</th>
+                        <th>Interest Paid</th>
+                        <th>Fixed Deposit Paid</th>
+                        <th>Interest Applied Date</th>
+                        <th>Rate of Interest</th>
+                        <th>Rate of Interest Applied</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var fd in paymentModel.Fixed_Deposit_Datas)
+                    {
+                        <tr>
+                            <td>@fd.FD_No</td>
+                            <td>@fd.Total_Interest_Payable.ToString("C")</td>
+                            <td>@fd.Deposit_Refund.ToString("C")</td>
+                            <td>@fd.Current_Interest_Applied_Date</td>
+                            <td>@fd.Rate_Of_Interest</td>
+                            <td>@fd.Rate_Of_Interest_Applied</td>
+
+                        </tr>
+                    }
+                    <tr class="table-info">
+                        <td>Total :</td>
+                        <td class="fw-bold">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Interest_Payable).ToString("C2")</td>
+                        <td class="fw-bold">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Deposit_Refund).ToString("C2")</td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        @if (paymentModel.Loan_On_FixedDeposits != null && paymentModel.Loan_On_FixedDeposits!.Any()  )
+        {
+            <div class="card mt-4">
+                <div class="card-header mb-3">
+                    <h5 class="mb-0">Loan Recoverd on Fixed Deposit</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-strip-">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Loan No</th>
+                                <th>Loan Date</th>
+                                <th>Loan Amount</th>
+                                <th>Rate of Interest</th>
+                                <th>Interest Received</th>
+                                <th>Principal Received</th>
+                                <th>Total Received</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var loan in paymentModel.Loan_On_FixedDeposits)
+                            {
+                                <tr>
+                                    <td>@loan.Loan_No</td>
+                                    <td>@loan.Loan_Date.ToShortDateString()</td>
+                                    <td>@loan.Loan_Amount.ToString("C")</td>
+                                    <td>@loan.Rate_Of_Interest</td>
+                                    <td>@loan.Interest_Balance.ToString("C")</td>
+                                    <td>@loan.Principal_Balance.ToString("C")</td>
+                                    <td>@loan.Total_Balance.ToString("C")</td>
+                                </tr>
+                            }
+                            <tr class="table-info">
+                                <td colspan="4">Total :</td>
+                                <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Interest_Balance).ToString("C2")</td>
+                                <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Principal_Balance).ToString("C2")</td>
+                                <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Total_Balance).ToString("C2")</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <div class="card mt-4">
+            <div class="card-header mb-3">
+                <h5 class="mb-0">Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Interest Paid</label>
+                        <div class="form-control-plaintext">@paymentModel.Total_Interest_Payable</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Deposit Refund</label>
+                        <div class="form-control-plaintext">@paymentModel.Total_Deposit_Payable</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Interest on Fixed Deposit Received</label>
+                        <div class="form-control-plaintext">@paymentModel.Total_Loan_Interest_Receipt</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Principal on Fixed Deposit Received</label>
+                        <div class="form-control-plaintext">@paymentModel.Total_Loan_Principal_Receipt</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Net Amount Paid</label>
+                        <div class="form-control-plaintext">@paymentModel.Net_Payable</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <p>Loading payment details...</p>
+}
+
+
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+    private Staging_Details details = new Staging_Details();
+    private DtoTermDepositFixedDepositPayment paymentModel = new DtoTermDepositFixedDepositPayment();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null)
+                {
+                    paymentModel = Utility.JsonbObject.ConvertFromJsonForNewFixedDepositPayment(details.Related_Account_Data!);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+}

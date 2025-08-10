@@ -1,4 +1,4 @@
-html, body {
+﻿html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
@@ -61,4 +61,23 @@ h1:focus {
 .no-border {
     border: 0;
     box-shadow: none; /* You may want to include this as bootstrap applies these styles too */
+}
+.oi-rupee::before {
+    content: "\20B9"; /* Unicode for Indian Rupee symbol ₹ */
+    font-family: inherit; /* Ensures it uses the surrounding font */
+    /* You might need to adjust font-size or vertical-align if it doesn't align perfectly
+       with other Open Iconic glyphs, though 'inherit' usually works well. */
+    /* Example adjustments if needed: */
+    /* position: relative; */
+    /* top: 0.05em; */ /* Small tweak for vertical alignment */
+    /* font-size: 0.9em; */ /* If it appears too large */
+}
+
+/* Optional: Base styling for custom icons to mimic Open Iconic a bit */
+.oi-custom {
+    display: inline-block;
+    /* Add any other base styles you want your custom icons to share with oi icons */
+    /* For example, if Open Iconic icons have a specific line-height or vertical-align: */
+    /* line-height: 1; */
+    /* vertical-align: -0.125em; */ /* This is a common value for Font Awesome, adjust for OI if needed */
 }

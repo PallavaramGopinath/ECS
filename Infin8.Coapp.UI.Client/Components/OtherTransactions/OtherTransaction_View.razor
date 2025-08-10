@@ -1,0 +1,181 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
+@attribute [StreamRendering]
+@if (details.Related_Account_Id > 0)
+{
+    <div class="card mt-4">
+        <div class="row">
+            @* <div class="col-md-12">
+            <h5 class="mb-0">@details.Module_Name</h5>
+        </div> *@
+            <div class="col-md-12">
+                <div class="card p-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Member Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Member No:</label>
+                                <div class="form-control-plaintext">@modal.Member_No</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Member Name:</label>
+                                <div class="form-control-plaintext">@modal.Member_Name</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            @if (details.Related_Account_Id == 11)
+            {
+                <div class="col-md-12">
+                    <div class="card p-3">
+                        <div class-card-header>
+                            <h5 class="mb-0 text-center">Bank Details @details.Module_Name</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Cheque No:</label>
+                                    <div class="form-control-plaintext">@modal.Cheque_No</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Cheque Date:</label>
+                                    <div class="form-control-plaintext">@details.Cheque_Date</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Issue Bank:</label>
+                                    <div class="form-control-plaintext">@details.Issue_Bank_Name</div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="col-md-12">
+                <div class="card p-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">@details.Module_Name</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Ledger Name:</label>
+                                <div class="form-control-plaintext">@details.Module_Name</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">OB Amount:</label>
+                                <div class="form-control-plaintext">@modal.Balance_Amount</div>
+                            </div>
+                            @if (details.Receipt_Amount > 0)
+                            {
+                                <div class="col-md-3">
+                                    <label class="form-label">Receipt Amount:</label>
+                                    <div class="form-control-plaintext">@details.Receipt_Amount</div>
+                                </div>
+                            }
+                            @if (details.Payment_Amount > 0)
+                            {
+                                <div class="col-md-3">
+                                    <label class="form-label">Payment Amount:</label>
+                                    <div class="form-control-plaintext">@details.Payment_Amount</div>
+                                </div>
+                            }
+                            <div class="col-md-3">
+                                <label class="form-label">CB Amount:</label>
+                                <div class="form-control-plaintext">@CB</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+}
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private Staging_Details details = new Staging_Details();
+    private DtoOtherRelatedData modal = new();
+    double CB = 0;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null)
+                {
+                    modal = Utility.JsonbObject.ConvertFromJsonForOtherRelatedData(details.Related_Account_Data!);
+                    switch (modal.Fin_Id)
+                    {
+                        case 1:
+                        case 4:
+                            if (details.Ledger_Id == modal.Cash_Led_Id)
+                            {
+                                CB += details.Receipt_Amount - details.Payment_Amount; /// rptAmt - pmtAmt;
+                            }
+                            else
+                            {
+                                CB += details.Payment_Amount - details.Receipt_Amount; // CB += pmtAmt - rptAmt;
+                            }
+                            break;
+                        case 2:
+                        case 3:
+                            CB += details.Receipt_Amount - details.Payment_Amount; /// CB += rptAmt - pmtAmt;
+                            break;
+                    }
+                    // @switch (details!.Related_Account_Id)
+                    // {
+                    //     case 3: /// member suspense creditor receipt/payment
+                    //         CB = modal.Balance_Amount + details.Receipt_Amount;
+                    //         CB -= -details.Payment_Amount;
+                    //         break;
+                    //     case 4: /// member suspense debtor receipt/payment
+                    //         CB = modal.Balance_Amount + details.Payment_Amount;
+                    //         CB += details.Receipt_Amount;
+
+                    //         break;
+                    //     case 5: /// member share capital receipt/payment
+                    //         CB = modal.Balance_Amount + details.Receipt_Amount;
+                    //         CB -= details.Payment_Amount;
+                    //         break;
+                    //     case 11: /// bank name receipt/payment
+                    //         CB = modal.Balance_Amount + details.Receipt_Amount;
+                    //         CB -=  details.Payment_Amount;
+                    //         break;
+                    //     case 21: /// ledger entry receipt/payment
+                    //         CB = modal.Balance_Amount + details.Receipt_Amount;
+                    //         CB -= details.Payment_Amount;
+                    //         break;
+                    //     case 22: /// Staff susepense Creditor receipt/payment
+
+                    //         break;
+                    //     case 23: /// Staff suspense Debtor receipt/payment
+
+                    //         break;
+                    // }
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+}

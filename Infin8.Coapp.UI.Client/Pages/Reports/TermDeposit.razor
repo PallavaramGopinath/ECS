@@ -1,0 +1,574 @@
+﻿@page "/report-termdeposit"
+@using Infin8.Coapp.Dto
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Select Report -->
+    <div class="card mt-2">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Select Report</label>
+                        <InputSelect class="form-select shadow-none"
+                                     @bind-Value="rptObject.ReportId"
+                                     @bind-Value:after="handlerSelectRportName">
+                            @foreach (var rpt in reportList)
+                            {
+                                <option value="@rpt.Value">@rpt.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- As on date -->
+    @if (isAsonDate)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>As on date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.AsOnDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Between two dates -->
+    @if (isBetweenDates)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>From date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.FromDate" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>To date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.ToDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Member No -->
+    @if (isMemberNo)
+    {
+        <div class-card mt-2>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label>Member No</label>
+                        <InputText class="form-control shadow-none"
+                                   @bind-Value="rptObject.MemberNo" />
+                    </div>
+                    <div class="col-md-2">
+                        <label>Member Name</label>
+                        <InputText class="form-control shadow-none"
+                                   disabled="true"
+                                   @bind-Value="memDetails.FatherName" />
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-primary mt-3" @onclick="HandleMemberNo">
+                            @if (isSearching)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" area-hidden="true"></span>
+                                <span class="ps-2">Searching....</span>
+                            }
+                            else
+                            {
+                                <i class="oi oi-list-rich" aria-hidden="true"></i>
+                                <span class="ps-2">Search</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Loan List -->
+    @if (isTDList)
+    {
+        <div class="card mb-2">
+            <div class="card-header">
+                <h5>Deposit No(s)</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-primary mb-3" @onclick="HandleGetTDNos"> Load Deposit No(s) </button>
+            </div>
+        </div>
+
+
+        @if (tdList != null && tdList.Any())
+        {
+            <!-- Select All -->
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <!-- Select all -->
+                            <div class="form-check  ms-3">
+                                <input class="form-check-input" type="checkbox" id="selectAllCheckbox"
+                                       checked="@isAllSelected"
+                                       @onchange="SelectAllChanged" />
+                                <label class="form-check-label" for="selectAllCheckbox">
+                                    <strong>Select All</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List of ledgers -->
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <div style="height: 300px; overflow-x: hidden ; overflow-y: auto;">
+                                <div style="white-space: nowrap;">
+                                    @foreach (var led in tdList)
+                                    {
+                                        <div class="form-check ms-3">
+                                            <input class="form-check-input ps-2" type="checkbox" id="@($"ledger_{led.Value}")"
+                                                   checked="@(selectedLedgers.Contains(led))"
+                                                   @onchange="e => ToggleLedgerSelection(led, (bool)e.Value)" />
+                                            <label class="form-check-label" for="@($"ledger_{led.Text}")">
+                                                @led.Text
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+
+    }
+    <!-- Button -->
+    <button type="button" class="btn btn-primary mt-3" disabled="@isPrintDisbled" @onclick="HandlePrint">
+        @* <i class="oi oi-print" aria-hidden="true"></i> *@
+        @if (_isFetchingData)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" area-hidden="true"></span>
+            <span class="ps-2">Loading....</span>
+        }
+        else
+        {
+            <i class="oi oi-print" aria-hidden="true"></i>
+            <span class="ps-2">Print</span>
+        }
+    </button>
+}
+
+
+<!-- Show spinner while loading data -->
+@if (_isFetchingData)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<DropdownItem> reportList = new();
+    private List<DropdownItem> tdList = new();
+    private List<DropdownItem> selectedLedgers = new();
+    private double loanOSLimit = 0;
+    private string memberNo = "";
+    private byte[] fileBytes;
+    private bool _isLoading = true;
+    private bool isAsonDate = false;
+    private bool isBetweenDates = false;
+    private bool isMemberNo = false;
+    private bool isTDList = false;
+    private bool isAllSelected = false;
+    private bool isPrintDisbled = true;
+    private bool isSearching = false;
+    private bool _isFetchingData = false;
+
+    MemberDetailsVM memDetails = new();
+    rptReportTDObject rptObject = new()
+    {
+        AsOnDate = DateTime.UtcNow,
+        FromDate = new DateTime(2025, 4, 1),
+        ToDate = DateTime.UtcNow,
+        MemberNo = "",
+        YrId = 110010000023,
+        BrCode = "11001"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/4");
+                if (result!.Count > 0)
+                {
+                    reportList = result.ToList();
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Optionally handle the error, e.g., log it or show an error message.
+                Console.WriteLine($"Error loading data: {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task handlerSelectRportName()
+    {
+        isAsonDate = false;
+        isBetweenDates = false;
+        isMemberNo = false;
+        isTDList = false;
+        isPrintDisbled = false;
+        try
+        {
+            switch (rptObject.ReportId)
+            {
+                case 39:    /// Recurring Deposit Register
+                    isBetweenDates = true;
+                    isTDList = true;
+                    break;
+                case 40:    /// Fixed Deposit Register
+                    isBetweenDates = true;
+                    isTDList = true;
+                    break;
+                case 41:    /// Fixed Deposit outstanding mem-wise
+                case 42:    /// Fixed Deposit outstanding FD-wise
+                    isAsonDate = true;
+                    break;
+                case 49:    /// Term Deposit Payable
+                    isAsonDate = true;
+                    break;
+                case 51:    /// Recurring Deposit Outstanding Mem-wise
+                case 52:    /// Recurring Deposit outstanding RD-wise
+                    isAsonDate = true;
+                    break;
+                case 54: // RD Marurity Amount Payable
+
+                    break;
+                case 116:   /// FD Bond
+                    isBetweenDates = true;
+                    isTDList = true;
+                    break;
+                case 120:   /// New FD received during the period
+                    isBetweenDates = true;
+                    break;
+                case 122: // FD Marurity Amount Payable
+                    isAsonDate = true;
+                    break;
+                case 123:   /// FD outstanding individual
+                    isAsonDate = true;
+                    isMemberNo = true;
+
+                    break;
+                case 147:   /// FD Bond on Plain Paper
+
+                    break;
+                case 148:   /// FD Refund between dates
+                    isBetweenDates = true;
+                    break;
+                case 149:   /// FD Refund between dates
+                    isBetweenDates = true;
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task HandleMemberNo()
+    {
+        var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{rptObject.MemberNo}/{rptObject.BrCode}");
+        if (mem != null)
+        {
+            memDetails.Mem_Id = mem.Mem_Id;
+            memDetails.MemberName = mem.MemberName;
+            memDetails.FatherName = mem.FatherName;
+            memDetails.Address = mem.Address;
+            memDetails.Dob = mem.Dob;
+            memDetails.Age = mem.Age;
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Member Data not available");
+            memDetails = new();
+            return;
+        }
+    }
+
+    private async Task HandleGetTDNos()
+    {
+        rptObject.FromDateString = rptObject.FromDate.ToString("yyyy-MM-dd");
+        rptObject.ToDateString = rptObject.ToDate.ToString("yyyy-MM-dd");
+        switch(rptObject.ReportId)
+        {
+            case 39: /// RD register
+                rptObject.TDSchemeType = "R";
+                break;
+            case 40: /// FD register
+                rptObject.TDSchemeType = "F";
+                break;
+        }
+        var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/ReportsTD/GetTDNos/{rptObject.FromDateString}/{rptObject.ToDateString}/{rptObject.TDSchemeType}/{rptObject.BrCode}");
+        if (result != null && result.Any())
+        {
+            tdList.Clear();
+            tdList = result.ToList();
+        }
+    }
+
+    private void SelectAllChanged(ChangeEventArgs e)
+    {
+        // Determine if "Select All" was checked or unchecked
+        isAllSelected = (bool)(e.Value ?? false);
+
+        if (isAllSelected)
+        {
+            // If checked, add all ledger values to the selected set
+            selectedLedgers.AddRange(tdList);
+        }
+        else
+        {
+            // If unchecked, clear the selected set
+            selectedLedgers.Clear();
+        }
+        List<decimal> tdIdList = new();
+        foreach (var td in selectedLedgers)
+        {
+            var tdId = Convert.ToDecimal(td.Value);
+            tdIdList.Add(tdId);
+        }
+        rptObject.TDList = tdIdList;
+        StateHasChanged();
+    }
+
+    private void ToggleLedgerSelection(DropdownItem led, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedLedgers.Any(l => l.Value == led.Value))
+            {
+                selectedLedgers.Add(led);
+            }
+        }
+        else
+        {
+            selectedLedgers.RemoveAll(l => l.Value == led.Value);
+        }
+        isAllSelected = selectedLedgers.Count == tdList.Count;
+        List<decimal> loanIdList = new();
+        foreach (var loan in selectedLedgers)
+        {
+            var loanId = Convert.ToDecimal(loan.Value);
+            loanIdList.Add(loanId);
+        }
+        rptObject.TDList = loanIdList;
+    }
+
+    private async Task HandlePrint()
+    {
+        _isFetchingData = true;
+        rptObject.FromDateString = rptObject.FromDate.ToString("yyyy-MM-dd");
+        rptObject.ToDateString = rptObject.ToDate.ToString("yyyy-MM-dd");
+        try
+        {
+            switch (rptObject.ReportId)
+            {
+                case 39:    /// Recurring Deposit Register
+
+                    break;
+                case 40:    /// Fixed Deposit Register
+                    rptObject.TDSchemeType = "F";
+                    await Print_TD_Register();
+                    break;
+                case 41:    /// Fixed Deposit outstanding mem-wise
+                case 42:    /// Fixed Deposit outstanding FD-wise
+                    rptObject.TDSchemeType = "F";
+                    await Print_TD_Outstanding();
+                    break;
+                case 49:    /// Term Deposit Payable
+
+                    break;
+                case 51:    /// Recurring Deposit Outstanding Mem-wise
+                case 52:    /// Recurring Deposit outstanding RD-wise
+
+                    break;
+                case 54: // RD Marurity Amount Payable
+
+                    break;
+                case 116:   /// FD Bond
+
+                    break;
+                case 120:   /// New FD received during the period
+
+                    break;
+                case 122: // FD Marurity Amount Payable
+
+                    break;
+                case 123:   /// FD outstanding individual
+                    rptObject.TDSchemeType = "F";
+                    rptObject.MemId = memDetails.Mem_Id;
+                    await Print_TD_Outstanding_ByMemId();
+                    break;
+                case 147:   /// FD Bond on Plain Paper
+
+                    break;
+                case 148:   /// FD Refund between dates
+
+                    break;
+            }
+        }
+        catch (Exception)
+        {
+            _isFetchingData = false;
+        }
+        _isFetchingData = false;
+    }
+
+    private async Task Print_TD_Register()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportTDObject>($"https://localhost:7073/api/ReportsTD/print-termdeposit-register", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_TD_Outstanding()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportTDObject>($"https://localhost:7073/api/ReportsTD/print-termdeposit-outstanding", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_TD_Outstanding_ByMemId()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportTDObject>($"https://localhost:7073/api/ReportsTD/print-termdeposit-outstanding-byMemId", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}

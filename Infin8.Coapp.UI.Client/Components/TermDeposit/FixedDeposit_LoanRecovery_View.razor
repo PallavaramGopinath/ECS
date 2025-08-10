@@ -1,0 +1,90 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+
+@if(fdRecovery != null && fdRecovery.AccountId >0)
+{
+    <div class="card mb-3 border border-2">
+        <div class="card-header">
+            <h5 class="mb-0">Fixed Deposit Loan Receipt</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Loan Number</th>
+                        <th>Loan Amount</th>
+                        <th>Interest Balance</th>
+                        <th>Principal Balance</th>
+                        <th>Interest Calculated</th>
+                        <th>Last Interest Applied Date</th>
+                        <th>Interest Receipt</th>
+                        <th>Principal Receipt</th>
+                        <th>Total Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(var loan in fdRecovery.Loan_Balance_List!)
+                    {
+                        <tr>
+                            <td>@loan.Loan_No</td>
+                            <td>@loan.Loan_Amount.ToString("C")</td>
+                            <td>@loan.Interest_Outstanding.ToString("C")</td>
+                            <td>@loan.Principal_Balance.ToString("C")</td>
+                            <td>@loan.Current_Interest.ToString("C")</td>
+                            <td>@((loan.IntCalc_Date?.ToString("dd-MM-yyyy")) ?? "N/A")</td>
+                            <td>@loan.Interest_Collection.ToString("C")</td>
+                            <td>@loan.Principal_Collection.ToString("C")</td>
+                            <td>@loan.Total_Collection.ToString("C")</td>
+                        </tr>
+                    }
+                    <tr class="table-info">
+                        <td colspan="1" class="text-end fw-bold">Total:</td>
+                        <td>@fdRecovery.Loan_Balance_List.Sum(l=> l.Loan_Amount).ToString("C")</td>
+                        <td>@fdRecovery.Loan_Balance_List.Sum(l=>l.Interest_Outstanding).ToString("C")</td>
+                        <td>@fdRecovery.Loan_Balance_List.Sum(l=> l.Principal_Balance).ToString("C")</td>
+                        <td>@fdRecovery.Loan_Balance_List.Sum(l=>l.Current_Interest).ToString("C")</td>
+                        <td></td>
+                        <td>@fdRecovery.Loan_Balance_List.Sum(l=> l.Interest_Collection).ToString("C")</td>
+                        <td>@fdRecovery.Loan_Balance_List.Sum(l=> l.Principal_Collection).ToString("C")</td>
+                        <td>@fdRecovery.Loan_Balance_List.Sum(l=> l.Total_Collection).ToString("C")</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <p>No recovery details available.</p>
+}
+
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private DtoTermDepositLoanRecovery fdRecovery = new DtoTermDepositLoanRecovery();
+    private Staging_Details details = new Staging_Details();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+
+                if (details != null)
+                {
+                    fdRecovery = Utility.JsonbObject.ConvertFromJsonForFixedDepositLoanRecovery(details.Related_Account_Data!);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+}

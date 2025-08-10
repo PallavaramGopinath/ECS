@@ -9,7 +9,7 @@ namespace Infin8.Coapp.Repository
 {
     public interface IFinVoucherRepository
     {
-        Task<bool> AddFinVoucherAsync(Fin_Voucher finVouocher);
+        Task<(bool result, decimal vocId)> AddFinVoucherAsync(Fin_Voucher finVouocher);
         Task<bool> EditFinVoucherAsync(Fin_Voucher finVouocher);
     }
 }

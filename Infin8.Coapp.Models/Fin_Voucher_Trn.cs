@@ -24,6 +24,6 @@ namespace Infin8.Coapp.Models
         public double Outstanding { get; set; }
         public double Balance { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

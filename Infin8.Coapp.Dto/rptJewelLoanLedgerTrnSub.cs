@@ -2,7 +2,7 @@
 {
     public class rptJewelLoanLedgerTrnSub
     {
-        public int Loan_Id { get; set; }
+        public decimal Loan_Id { get; set; }
         public DateTime San_Date { get; set; }
         public double San_Amt { get; set; }
         public DateTime Trn_Date { get; set; }

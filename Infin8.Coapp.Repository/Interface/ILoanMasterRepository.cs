@@ -11,9 +11,10 @@ namespace Infin8.Coapp.Repository
 {
     public interface ILoanMasterRepository
     {
-        Task<bool> AddLoanMasterAsync(Loan_Master loanMaster);
+        Task<(bool result, decimal loanId, string loanNo)> AddLoanMasterAsync(Loan_Master loanMaster);
         Task<bool> EditLoanMasterAsync(Loan_Master loanMaster);
         Task<bool> IsLoanSchemeReferedInLoanMaster(int schemeId);
+        Task<string> GetNewLoanNo(int schemeId);
         
     }
 }

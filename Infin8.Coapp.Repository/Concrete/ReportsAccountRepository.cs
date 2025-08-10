@@ -70,11 +70,13 @@ namespace Infin8.Coapp.Repository
             return ledList;
         }
 
-        public async Task<List<rptDayBook2>> GetChittaBook(DateTime fromDate, DateTime toDate, decimal yrId, string brCode)
+        public async Task<List<rptDayBook2>> GetChittaBook(string fromDate, string toDate, decimal yrId, string brCode)
         {
             List<rptDayBook2> dayBookList = new List<rptDayBook2>();
             try
             {
+                DateTime.TryParse(fromDate, out DateTime fromDateParse);
+                DateTime.TryParse(toDate, out DateTime toDateParse);
                 decimal cashLedId = 0;
                 cashLedId = CSISContext.Map_General.Select(x => x.Cash_Led_Id).FirstOrDefault();
 
@@ -103,8 +105,8 @@ namespace Infin8.Coapp.Repository
                                                 on tr.Voc_Id equals vr.Voc_Id
                                             join led in CSISContext.Fin_Ledger // Replace YourFinLedgerEntity
                                                 on tr.Led_Id equals led.Led_Id
-                                            where vr.Voc_Date.Date >= fromDate.Date &&
-                                                  vr.Voc_Date.Date <= toDate.Date &&
+                                            where vr.Voc_Date.Date >= fromDateParse.Date &&
+                                                  vr.Voc_Date.Date <= toDateParse.Date &&
                                                   tr.Led_Id == cashLedId &&
                                                   tr.Voc_Trn_Type == 1 &&
                                                   tr.FinVocTr_Delete == false &&
@@ -117,13 +119,13 @@ namespace Infin8.Coapp.Repository
                                             orderby vr.Voc_Date, vr.Voc_Rpt_SlNo, vr.Voc_Pmt_SlNo
                                             select new rptDayBook2
                                             {
-                                                Voc_Rpt_No = vr.Voc_Rpt_No,
-                                                Voc_Pmt_No = vr.Voc_Pmt_No,
+                                                voc_rpt_No = vr.Voc_Rpt_No,
+                                                voc_pmt_No = vr.Voc_Pmt_No,
                                                 Voc_Date = vr.Voc_Date.Date,
-                                                Voc_Rpt = tr.Voc_Rpt,
-                                                Voc_Pmt = tr.Voc_Pmt,
-                                                Voc_Trn_Type = tr.Voc_Trn_Type,
-                                                Voc_Narr = tr.Voc_Narr
+                                                voc_rpt = tr.Voc_Rpt,
+                                                voc_pmt = tr.Voc_Pmt,
+                                                voc_Trn_Type = tr.Voc_Trn_Type,
+                                                voc_narr = tr.Voc_Narr
                                             }).ToListAsync();
                 #endregion 
                 ///Led.Led_SlNo ASC,
@@ -131,15 +133,15 @@ namespace Infin8.Coapp.Repository
                 //string rsInWords = "";
                 foreach (var dayBook in dayBookListTmp)
                 {
-                    if (dayBook.Voc_Trn_Type == 1)
+                    if (dayBook.voc_Trn_Type == 1)
                     {
-                        dayBook.Voc_Cash_Rpt = dayBook.Voc_Rpt;
-                        dayBook.Voc_Cash_Pmt = dayBook.Voc_Pmt;
+                        dayBook.voc_cash_rpt = dayBook.voc_rpt;
+                        dayBook.voc_cash_pmt = dayBook.voc_pmt;
                     }
                     else
                     {
-                        dayBook.Voc_Adj_Rpt = dayBook.Voc_Rpt;
-                        dayBook.Voc_Adj_Pmt = dayBook.Voc_Pmt;
+                        dayBook.voc_adj_rpt = dayBook.voc_rpt;
+                        dayBook.voc_adj_pmt = dayBook.voc_pmt;
                     }
 
                     //OBCashAmount = 0; CBCashAmount = 0;
@@ -162,14 +164,15 @@ namespace Infin8.Coapp.Repository
             return dayBookList;
         }
 
-        public async Task<List<rptDayBook2>> GetDayBook(DateTime fromDate, DateTime toDate, decimal yrId,string brCode)
+        public async Task<List<rptDayBook2>> GetDayBook(string fromDate, string toDate, decimal yrId,string brCode)
         {
             List<rptDayBook2> dayBookList = new List<rptDayBook2>();
             try
             {
                 decimal cashLedId = 0;
                 cashLedId = CSISContext.Map_General.Select(x => x.Cash_Led_Id).FirstOrDefault();
-
+                DateTime.TryParse(fromDate, out DateTime fromDateParse);
+                DateTime.TryParse(toDate, out DateTime toDateParse);
                 #region query
                 //dayBookList = CSISContext.Database.SqlQueryRaw<rptDayBook2>(
                 //            @"SELECT vr.voc_rpt_No, 
@@ -199,8 +202,8 @@ namespace Infin8.Coapp.Repository
                                                 on tr.Voc_Id equals vr.Voc_Id
                                             join led in CSISContext.Fin_Ledger // Replace YourFinLedgerEntity
                                                 on tr.Led_Id equals led.Led_Id
-                                            where vr.Voc_Date.Date >= fromDate.Date &&
-                                                  vr.Voc_Date.Date <= toDate.Date &&
+                                            where vr.Voc_Date.Date >= fromDateParse.Date &&
+                                                  vr.Voc_Date.Date <= toDateParse.Date &&
                                                   tr.Led_Id != cashLedId &&
                                                   tr.FinVocTr_Delete == false &&
                                                   vr.Voc_Delete == false &&
@@ -212,34 +215,38 @@ namespace Infin8.Coapp.Repository
                                             orderby vr.Voc_Date, led.Led_SlNo, vr.Voc_Rpt_SlNo, vr.Voc_Pmt_SlNo
                                             select new rptDayBook2
                                             {
-                                                Voc_Rpt_No = vr.Voc_Rpt_No,
-                                                Voc_Pmt_No = vr.Voc_Pmt_No,
+                                                voc_rpt_No = vr.Voc_Rpt_No,
+                                                voc_pmt_No = vr.Voc_Pmt_No,
                                                 Voc_Date = vr.Voc_Date.Date,
-                                                Voc_Rpt = tr.Voc_Rpt,
-                                                Voc_Pmt = tr.Voc_Pmt,
-                                                Voc_Trn_Type = tr.Voc_Trn_Type,
-                                                Voc_Narr = tr.Voc_Narr,
+                                                voc_rpt = tr.Voc_Rpt,
+                                                voc_pmt = tr.Voc_Pmt,
+                                                voc_Trn_Type = tr.Voc_Trn_Type,
+                                                voc_narr = tr.Voc_Narr,
                                                 Led_Id = tr.Led_Id,
                                                 Led_Name = led.Led_Name,
                                                 Led_SlNo = led.Led_SlNo,
-                                                Voc_Rpt_SlNo = vr.Voc_Rpt_SlNo,
-                                                Voc_Pmt_SlNo = vr.Voc_Pmt_SlNo
+                                                voc_Rpt_slNo = vr.Voc_Rpt_SlNo,
+                                                voc_Pmt_slNo = vr.Voc_Pmt_SlNo
                                             }).ToListAsync();
                 #endregion 
 
                 //double OBCashAmount = 0, CBCashAmount = 0;
                 //string rsInWords = "";
+                if(dayBookListTmp !=null && dayBookListTmp.Any())
+                {
+                    dayBookList = dayBookListTmp.ToList();
+                }
                 foreach (var dayBook in dayBookList)
                 {
-                    if (dayBook.Voc_Trn_Type == 1)
+                    if (dayBook.voc_Trn_Type == 1)
                     {
-                        dayBook.Voc_Cash_Rpt = dayBook.Voc_Rpt;
-                        dayBook.Voc_Cash_Pmt = dayBook.Voc_Pmt;
+                        dayBook.voc_cash_rpt = dayBook.voc_rpt;
+                        dayBook.voc_cash_pmt = dayBook.voc_pmt;
                     }
                     else
                     {
-                        dayBook.Voc_Adj_Rpt = dayBook.Voc_Rpt;
-                        dayBook.Voc_Adj_Pmt = dayBook.Voc_Pmt;
+                        dayBook.voc_adj_rpt = dayBook.voc_rpt;
+                        dayBook.voc_adj_pmt = dayBook.voc_pmt;
                     }
 
                     //OBCashAmount = 0; CBCashAmount = 0;
@@ -252,7 +259,7 @@ namespace Infin8.Coapp.Repository
                     ////rsInWords = "Zero";
                     //dayBook.RsInWords = rsInWords;
                 }
-                if (dayBookListTmp.Any()) dayBookList = dayBookListTmp;
+                //if (dayBookListTmp.Any()) dayBookList = dayBookListTmp;
             }
             catch (Exception)
             {
@@ -302,42 +309,99 @@ namespace Infin8.Coapp.Repository
                     #endregion
 
                     #region linq
-                    var glListTmp = await (from trn in CSISContext.Fin_Voucher_Trn
-                                           join voc in CSISContext.Fin_Voucher on trn.Voc_Id equals voc.Voc_Id
-                                           join led in CSISContext.Fin_Ledger on trn.Led_Id equals led.Led_Id
-                                           join grp in CSISContext.Fin_Ledger_Grp on led.Grp_Id equals grp.Grp_Id
-                                           where voc.Voc_Date >= fromDate.Date && voc.Voc_Date <= toDate.Date
-                                                 && voc.Voc_Delete == false && trn.FinVocTr_Delete == false && trn.Led_Id == ledgerLedId
-                                           group new { trn, voc, led, grp } by new
-                                           {
-                                               trn.Led_Id,
-                                               grp.Fnl_Id,
-                                               led.Led_Name,
-                                               GL_Month = voc.Voc_Date.Year.ToString() + voc.Voc_Date.Month.ToString("00"),
-                                               GL_MonthName = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(voc.Voc_Date.Month) + " " + voc.Voc_Date.Year.ToString(),
-                                               GL_Date = voc.Voc_Date
-                                           } into g
-                                           orderby g.Key.Led_Id, g.Key.GL_Date
-                                           select new rptFinGeneralLedger
-                                           {
-                                               Led_Id = g.Key.Led_Id,
-                                               Fnl_Id = g.Key.Fnl_Id,
-                                               Led_Name = g.Key.Led_Name,
-                                               GL_Month = g.Key.GL_Month,
-                                               GL_MonthName = g.Key.GL_MonthName,
-                                               GL_Date = g.Key.GL_Date,
-                                               OpeningBalance = 0f,
-                                               Receipts = g.Sum(x => x.trn.Voc_Rpt),
-                                               Payments = g.Sum(x => x.trn.Voc_Pmt),
-                                               ClosingBalance = 0f,
-                                               PreviousRpt = 0f,
-                                               PreviousPmt = 0f,
-                                               TotalReceipts = 0f,
-                                               TotalPayments = 0f
-                                           }).ToListAsync();
-                    glListFinal.AddRange(glList);
+                    //var glListTmp = await (from trn in CSISContext.Fin_Voucher_Trn
+                    //                       join voc in CSISContext.Fin_Voucher on trn.Voc_Id equals voc.Voc_Id
+                    //                       join led in CSISContext.Fin_Ledger on trn.Led_Id equals led.Led_Id
+                    //                       join grp in CSISContext.Fin_Ledger_Grp on led.Grp_Id equals grp.Grp_Id
+                    //                       where voc.Voc_Date >= fromDate.Date && voc.Voc_Date <= toDate.Date
+                    //                             && voc.Voc_Delete == false && trn.FinVocTr_Delete == false && trn.Led_Id == ledgerLedId
+                    //                       group new { trn, voc, led, grp } by new
+                    //                       {
+                    //                           trn.Led_Id,
+                    //                           grp.Fnl_Id,
+                    //                           led.Led_Name,
+                    //                           GL_Month = voc.Voc_Date.Year.ToString() + voc.Voc_Date.Month.ToString("00"),
+                    //                           GL_MonthName = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(voc.Voc_Date.Month) + " " + voc.Voc_Date.Year.ToString(),
+                    //                           GL_Date = voc.Voc_Date
+                    //                       } into g
+                    //                       orderby g.Key.Led_Id, g.Key.GL_Date
+                    //                       select new rptFinGeneralLedger
+                    //                       {
+                    //                           Led_Id = g.Key.Led_Id,
+                    //                           Fnl_Id = g.Key.Fnl_Id,
+                    //                           Led_Name = g.Key.Led_Name,
+                    //                           GL_Month = g.Key.GL_Month,
+                    //                           GL_MonthName = g.Key.GL_MonthName,
+                    //                           GL_Date = g.Key.GL_Date,
+                    //                           OpeningBalance = 0f,
+                    //                           Receipts = g.Sum(x => x.trn.Voc_Rpt),
+                    //                           Payments = g.Sum(x => x.trn.Voc_Pmt),
+                    //                           ClosingBalance = 0f,
+                    //                           PreviousRpt = 0f,
+                    //                           PreviousPmt = 0f,
+                    //                           TotalReceipts = 0f,
+                    //                           TotalPayments = 0f
+                    //                       }).ToListAsync();
+                    //glListFinal.AddRange(glList);
 
                     #endregion
+
+                    // Step 1: Write a translatable query to fetch the raw data from the database.
+                    // We select into a temporary anonymous object.
+                    var rawData = await (from trn in CSISContext.Fin_Voucher_Trn
+                                         join voc in CSISContext.Fin_Voucher on trn.Voc_Id equals voc.Voc_Id
+                                         join led in CSISContext.Fin_Ledger on trn.Led_Id equals led.Led_Id
+                                         join grp in CSISContext.Fin_Ledger_Grp on led.Grp_Id equals grp.Grp_Id
+                                         where voc.Voc_Date >= fromDate.Date && voc.Voc_Date <= toDate.Date
+                                               && voc.Voc_Delete == false && trn.FinVocTr_Delete == false
+                                               && trn.Led_Id == ledgerLedId
+                                         // Order here if it helps the database, or order after grouping.
+                                         // orderby trn.Led_Id, voc.Voc_Date
+                                         select new
+                                         {
+                                             // Select all the fields you will need for the next step
+                                             trn.Led_Id,
+                                             grp.Fnl_Id,
+                                             led.Led_Name,
+                                             voc.Voc_Date,
+                                             trn.Voc_Rpt,
+                                             trn.Voc_Pmt
+                                         }).ToListAsync(); // This executes the SQL query and brings data into memory.
+
+
+                    // Step 2: Now that the data is in memory, group and project it using LINQ to Objects.
+                    // All .NET methods (.ToString(), GetMonthName, etc.) are now perfectly fine to use.
+                    var glListTmp = rawData
+                        .GroupBy(data => new
+                        {
+                            // The grouping logic is now performed in your application
+                            data.Led_Id,
+                            data.Fnl_Id,
+                            data.Led_Name,
+                            GL_Month = data.Voc_Date.Year.ToString() + data.Voc_Date.Month.ToString("00"),
+                            GL_MonthName = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(data.Voc_Date.Month) + " " + data.Voc_Date.Year.ToString(),
+                            GL_Date = data.Voc_Date
+                        })
+                        .OrderBy(g => g.Key.Led_Id)
+                        .ThenBy(g => g.Key.GL_Date)
+                        .Select(g => new rptFinGeneralLedger
+                        {
+                            Led_Id = g.Key.Led_Id,
+                            Fnl_Id = g.Key.Fnl_Id,
+                            Led_Name = g.Key.Led_Name,
+                            GL_Month = g.Key.GL_Month,
+                            GL_MonthName = g.Key.GL_MonthName,
+                            GL_Date = g.Key.GL_Date,
+                            OpeningBalance = 0f, // These will be calculated later
+                            Receipts = g.Sum(x => x.Voc_Rpt),
+                            Payments = g.Sum(x => x.Voc_Pmt),
+                            ClosingBalance = 0f,
+                            PreviousRpt = 0f,
+                            PreviousPmt = 0f,
+                            TotalReceipts = 0f,
+                            TotalPayments = 0f
+                        }).ToList();
+
                     if (glListTmp == null )
                     {
                         int monthNo = 0;
@@ -359,7 +423,10 @@ namespace Infin8.Coapp.Repository
                         glNoTransaction.Fnl_Id = 0;
                         glListFinal.Add(glNoTransaction);
                     }
-                    
+                    else
+                    {
+                        glListFinal.AddRange(glListTmp);
+                    }
                         
                     //if (glListTmp != null) glList = glListTmp;
                     #region to be developed in handler
@@ -436,10 +503,11 @@ namespace Infin8.Coapp.Repository
                     //glListFinal.AddRange(glList);
                     #endregion 
                 }
+                
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                string msg = ex.Message;
             }
             return glListFinal;
         }
@@ -727,14 +795,6 @@ namespace Infin8.Coapp.Repository
             List<rptFinLossAndProfit> lossAndProfitList = new List<rptFinLossAndProfit>();
             try
             {
-                #region to be called from handler
-                //DatabaseAccount dbAccounts = new DatabaseAccount();
-                //if (!dbAccounts.UpdateLedgerBalance_New(yrId, fromDate, toDate, out errorMessage))
-                //{
-                //    return lossAndProfitList;
-                //}
-                #endregion
-
                 #region query
                 //List<rptFinBalanceSheet> profitList = CSISContext.Database.SqlQueryRaw<rptFinBalanceSheet>(
                 //    @"SELECT Fin_Ledger_Trn.Led_Id, 
@@ -885,5 +945,6 @@ namespace Infin8.Coapp.Repository
             }
             return lossAndProfitList;
         }
+
     }
 }

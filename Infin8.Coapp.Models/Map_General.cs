@@ -39,5 +39,8 @@ namespace Infin8.Coapp.Models
         public bool IsFDIntCalcOnMonthBasis { get; set; }
         public double ShareCapitalPercentageOnLoanOS { get; set; }
         public string? BrCode { get; set; }
+        public decimal Appraisal_Fee_Led_Id { get; set; }
+        public decimal Bank_Charges_Led_Id { get; set; }
+        public decimal Service_Tax_Led_Id { get; set; }
     }
 }

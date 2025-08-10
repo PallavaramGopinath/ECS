@@ -36,7 +36,7 @@
             decimal vocId = 110010122511;
             string brCode = "11001";
 
-            rptAndpmtAmt = await _httpClient.GetFromJsonAsync<rptReceiptAndPaymentAmount>($"https://localhost:7020/api/Print/GetReceiptAndPaymentData/{vocId}/{brCode}");
+            rptAndpmtAmt = await _httpClient.GetFromJsonAsync<rptReceiptAndPaymentAmount>($"https://localhost:7073/api/Print/GetReceiptAndPaymentData/{vocId}/{brCode}");
             if (rptAndpmtAmt != null)
             {
                 var rptData = new rptReceiptObject
@@ -47,7 +47,7 @@
                     receiptAmt = rptAndpmtAmt.Voc_Rpt
                 };
                 // Ensure route matches exactly
-                var rpt = await _httpClient.PostAsJsonAsync($"https://localhost:7020/api/Print",rptData);
+                var rpt = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Print/print-receipt", rptData);
 
                 if (rpt.IsSuccessStatusCode)
                 {

@@ -11,6 +11,7 @@ namespace Infin8.Coapp.Repository
     public  interface ILoanTrnRepository
     {
         Task<bool> AddLoanTrnListAsync(List<Loan_Trn> loanTrnList);
+        Task<bool> AddLoanTrn(Loan_Trn loanTrn);
         Task<bool> EditLoanTrnListAsync(List<Loan_Trn> loanTrnList);
         Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(int schemeId);
         Task<double> GetJLExistingLoanOutstandingAsync(decimal memId);
@@ -28,8 +29,9 @@ namespace Infin8.Coapp.Repository
         #region td loan
         Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds);
         Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds);
-
         Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList);
+        Task<List<DtoTermDepositLoanBalance>> GetTDLoanBalanceByTDIds(List<decimal> loanIdList,DateTime toDate, string brCode);
+        
         #endregion 
 
     }

@@ -8,7 +8,7 @@ namespace Infin8.Coapp.Models
         [Key]
         public decimal Acc_Id { get; set; }
         public int Scheme_Id { get; set; }
-        public int Mem_Id { get; set; }
+        public decimal Mem_Id { get; set; }
         public string? Acc_No { get; set; }
         public int Acc_Status { get; set; }
         public bool Acc_OE { get; set; }
@@ -17,6 +17,6 @@ namespace Infin8.Coapp.Models
         public decimal Usr_Id { get; set; }
         public decimal Yr_Id { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

@@ -1,0 +1,810 @@
+﻿@page "/report-jewelloan"
+@using Infin8.Coapp.Dto
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Select Report -->
+    <div class="card mt-2">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Select Report</label>
+                        <InputSelect class="form-select shadow-none"
+                                     @bind-Value="rptJlObject.ReportId"
+                                     @bind-Value:after="handlerSelectRportName">
+                            @foreach (var rpt in reportList)
+                            {
+                                <option value="@rpt.Value">@rpt.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- As on date -->
+    @if (isAsonDate)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>As on date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptJlObject.AsOnDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Between two dates -->
+    @if (isBetweenDates)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>From date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptJlObject.FromDate" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>To date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptJlObject.ToDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Loan Outstanding above maximum loan-->
+    @if (isLoanOSAbove)
+    {
+        <div class-card mt-2>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label>Outstanding above the limit of</label>
+                        <InputNumber class="form-control shadow-none"
+                                     @bind-Value="rptJlObject.MaximumLimit" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- District Name -->
+    @if (isDistrictName)
+    {
+        <div class-card mt-2>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label>District Name</label>
+                        <InputText class="form-control shadow-none"
+                                   @bind-Value="rptJlObject.DistrictName" />
+                    </div>
+                    <div class="col-md-2">
+                        <label>Regional Office Name</label>
+                        <InputText class="form-control shadow-none"
+                                   @bind-Value="rptJlObject.RegionalOfficeName" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Member No -->
+    @if (isMemberNo)
+    {
+        <div class-card mt-2>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label>Member No</label>
+                        <InputText class="form-control shadow-none"
+                                   @bind-Value="rptJlObject.MemberNo" />
+                    </div>
+                    <div class="col-md-2">
+                        <label>Member Name</label>
+                        <InputText class="form-control shadow-none"
+                                   disabled="true"
+                                   @bind-Value="memDetails.FatherName" />
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-primary mt-3" @onclick="HandleMemberNo">
+                            @if (isSearching)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" area-hidden="true"></span>
+                                <span class="ps-2">Searching....</span>
+                            }
+                            else
+                            {
+                                <i class="oi oi-list-rich" aria-hidden="true"></i>
+                                <span class="ps-2">Search</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Loan List -->
+    @if (isLoanList)
+    {
+        <div class="card mb-2">
+            <div class="card-header">
+                <h5>Loan No(s)</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-primary mb-3" @onclick="HandleGetLoanNos"> Load Loan No(s) </button>
+            </div>
+        </div>
+        
+
+        @if (loanList != null && loanList.Any())
+        {
+            <!-- Select All -->
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <!-- Select all -->
+                            <div class="form-check  ms-3">
+                                <input class="form-check-input" type="checkbox" id="selectAllCheckbox"
+                                       checked="@isAllSelected"
+                                       @onchange="SelectAllChanged" />
+                                <label class="form-check-label" for="selectAllCheckbox">
+                                    <strong>Select All</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List of ledgers -->
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <div style="height: 450px; overflow-x: hidden ; overflow-y: auto;">
+                                <div style="white-space: nowrap;">
+                                    @foreach (var led in loanList)
+                                    {
+                                        <div class="form-check ms-3">
+                                            <input class="form-check-input ps-2" type="checkbox" id="@($"ledger_{led.Value}")"
+                                                   checked="@(selectedLedgers.Contains(led))"
+                                                   @onchange="e => ToggleLedgerSelection(led, (bool)e.Value)" />
+                                            <label class="form-check-label" for="@($"ledger_{led.Text}")">
+                                                @led.Text
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+        
+    }
+    <!-- Button -->
+    <button type="button" class="btn btn-primary mt-3" disabled="@isPrintDisbled" @onclick="HandlePrint">
+        @* <i class="oi oi-print" aria-hidden="true"></i> *@
+        @if (_isFetchingData)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" area-hidden="true"></span>
+            <span class="ps-2">Loading....</span>
+        }
+        else
+        {
+            <i class="oi oi-print" aria-hidden="true"></i>
+            <span class="ps-2">Print</span>
+        }
+    </button>
+}
+
+
+<!-- Show spinner while loading data -->
+@if (_isFetchingData)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<DropdownItem> reportList = new();
+    private List<DropdownItem> loanList = new();
+    private List<DropdownItem> selectedLedgers = new();
+    private double loanOSLimit = 0;
+    private string memberNo = "";
+    private byte[] fileBytes;
+    private bool _isLoading = true;
+    private bool isAsonDate = false;
+    private bool isBetweenDates = false;
+    private bool isLoanOSAbove = false;
+    private bool isDistrictName = false;
+    private bool isMemberNo = false;
+    private bool isLoanList = false;
+    private bool isAllSelected = false;
+    private bool isPrintDisbled = true;
+    private bool isSearching = false;
+    private bool _isFetchingData = false;
+    MemberDetailsVM memDetails = new();
+    rptReportJewelObject rptJlObject = new()
+    {
+        AsOnDate = DateTime.UtcNow,
+        FromDate = new DateTime(2025, 4, 1),
+        ToDate = DateTime.UtcNow,
+        MaximumLimit = 0,
+        DistrictName = "Coimbatore",
+        RegionalOfficeName = "Coimbatore Regional Office",
+
+        MemberNo = "",
+        YrId = 110010000023,
+        BrCode = "11001"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/13");
+                if (result!.Count > 0)
+                {
+                    reportList = result.ToList();
+                    StateHasChanged();
+                }
+                var maxLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/ReportsJL/GetJLMaximumLimit/{rptJlObject.AsOnDate.ToString("yyyy-MM-dd")}");
+                rptJlObject.MaximumLimit = maxLimit;
+
+                // var ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/{rptJlObject.BrCode}");
+                // if (ledgers != null && ledgers.Any())
+                // {
+                //     loanList = ledgers.OrderBy(x => x.Text).ToList();
+                // }
+            }
+            catch (Exception ex)
+            {
+                // Optionally handle the error, e.g., log it or show an error message.
+                Console.WriteLine($"Error loading data: {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void handlerSelectRportName()
+    {
+        isAsonDate = false;
+        isBetweenDates = false;
+        isLoanOSAbove = false;
+        isDistrictName = false;
+        isMemberNo = false;
+        isLoanList = false;
+        isPrintDisbled = false;
+        try
+        {
+            switch (rptJlObject.ReportId)
+            {
+                case 99:    /// Jewel Loan Verification List
+                    isAsonDate = true;
+                    break;
+                case 100:    /// Jewel Loan Stock Register
+                    isBetweenDates = true;
+                    break;
+                case 101:    /// Jewel Loan Outstanding
+                    isAsonDate = true;
+                    break;
+                case 102:    /// Jewel Loan Overdue
+                    isAsonDate = true;
+                    break;
+                case 103:    //Jewel Loan Above Maximum Limit
+                    isLoanOSAbove = true;
+                    break;
+                case 105:    ///  Jewel Loan Issue Register
+                    isBetweenDates = true;
+                    break;
+                case 106:    /// Jewel Loan Redemption Statement
+                    isBetweenDates = true;
+                    break;
+                case 137:    /// Jewel Loan Claim
+                    isAsonDate = true;
+                    isBetweenDates = true;
+                    isDistrictName = true;
+                    break;
+                case 139:   /// Jewel Loan outstanding Member-wise
+                    isAsonDate = true;
+                    isMemberNo = true;
+                    break;
+                case 143:   /// Jewel Loan Ledger multiple loans
+                    isBetweenDates = true;
+                    isLoanList = true;
+                    break;
+                case 152:   /// Jewel loan Ledger (annual print)
+                    isBetweenDates = true;
+                    isLoanList = true;
+                    break;
+                case 155:    /// Jewel Loan Outstanding scheme-wise
+                    isAsonDate = true;
+                    break;
+                case 165:   /// Jewel loan claim with ornments
+                    isAsonDate = true;
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task HandleMemberNo()
+    {
+        var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{rptJlObject.MemberNo}/{rptJlObject.BrCode}");
+        if (mem != null)
+        {
+            memDetails.Mem_Id = mem.Mem_Id;
+            memDetails.MemberName = mem.MemberName;
+            memDetails.FatherName = mem.FatherName;
+            memDetails.Address = mem.Address;
+            memDetails.Dob = mem.Dob;
+            memDetails.Age = mem.Age;
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Member Data not available");
+            memDetails = new();
+            return;
+        }
+    }
+
+    private async Task HandleGetLoanNos()
+    {
+        rptJlObject.FromDateString = rptJlObject.FromDate.ToString("yyyy-MM-dd");
+        rptJlObject.ToDateString = rptJlObject.ToDate.ToString("yyyy-MM-dd");
+        var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/ReportsJL/GetJLNos/{rptJlObject.MemId}/{rptJlObject.FromDateString}/{rptJlObject.ToDateString}/{rptJlObject.BrCode}");
+        if (result != null && result.Any())
+        {
+            loanList.Clear();
+            loanList = result.ToList();
+        }
+    }
+
+    private void SelectAllChanged(ChangeEventArgs e)
+    {
+        // Determine if "Select All" was checked or unchecked
+        isAllSelected = (bool)(e.Value ?? false);
+
+        if (isAllSelected)
+        {
+            // If checked, add all ledger values to the selected set
+            selectedLedgers.AddRange(loanList);
+        }
+        else
+        {
+            // If unchecked, clear the selected set
+            selectedLedgers.Clear();
+        }
+        List<decimal> loanIdList = new();
+        foreach (var loan in selectedLedgers)
+        {
+            var loanId = Convert.ToDecimal(loan.Value);
+            loanIdList.Add(loanId);
+        }
+        rptJlObject.LoanNoList = loanIdList;
+        StateHasChanged();
+    }
+
+    private void ToggleLedgerSelection(DropdownItem led, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedLedgers.Any(l => l.Value == led.Value))
+            {
+                selectedLedgers.Add(led);
+            }
+        }
+        else
+        {
+            selectedLedgers.RemoveAll(l => l.Value == led.Value);
+        }
+        isAllSelected = selectedLedgers.Count == loanList.Count;
+        List<decimal> loanIdList = new();
+        foreach (var loan in selectedLedgers)
+        {
+            var loanId = Convert.ToDecimal(loan.Value);
+            loanIdList.Add(loanId);
+        }
+        rptJlObject.LoanNoList = loanIdList;
+    }
+
+    private async Task HandlePrint()
+    {
+        _isFetchingData = true;
+        rptJlObject.FromDateString = rptJlObject.FromDate.ToString("yyyy-MM-dd");
+        rptJlObject.ToDateString = rptJlObject.ToDate.ToString("yyyy-MM-dd");
+        try
+        {
+            switch (rptJlObject.ReportId)
+            {
+                case 99:    /// Jewel Loan Verification List
+                    await Print_JLVerificatonStatement();
+                    break;
+                case 100:    /// Jewel Loan Stock Register
+                    await Print_JLStockRegister();
+                    break;
+                case 101:    /// Jewel Loan Outstanding
+                    await Print_JLOutstanding();
+                    break;
+                case 102:    /// Jewel Loan Overdue
+                    await Print_JLOverdue();
+                    break;
+                case 103:    //Jewel Loan Above Maximum Limit
+                    await Print_JLAboveLimit();
+                    break;
+                case 105:    ///  Jewel Loan Issue Register
+                    await Print_JLIssueRegister();
+                    break;
+                case 106:    /// Jewel Loan Redemption Statement
+                    await Print_JLRedemption();
+                    break;
+                case 137:    /// Jewel Loan Claim
+                    await Print_JLClaim();
+                    break;
+                case 139:   /// Jewel Loan outstanding Member-wise
+
+                    break;
+                case 143:   /// Jewel Loan Ledger for member multiple loans
+
+                    break;
+                case 152:   /// Jewel loan Ledger for all (annual print)
+                    await Print_JLLedger();
+                    break;
+                case 155:    /// Jewel Loan Outstanding scheme-wise
+
+                    break;
+                    // case 165:   /// Jewel loan claim with ornments
+                    //     await Print_JLClaim();
+                    // break;
+            }
+        }
+        catch (Exception)
+        {
+            _isFetchingData = false;
+        }
+        _isFetchingData = false;
+    }
+
+    private async Task Print_JLVerificatonStatement()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-verification", rptJlObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_JLStockRegister()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-stockregister", rptJlObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_JLOutstanding()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-outstanding", rptJlObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_JLOverdue()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-overdue", rptJlObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_JLAboveLimit()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-aboveLimit", rptJlObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_JLIssueRegister()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-issueRegister", rptJlObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_JLRedemption()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-redemption", rptJlObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_JLClaim()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-claim", rptJlObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_JLLedger()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-ledger-fullpath", rptJlObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}

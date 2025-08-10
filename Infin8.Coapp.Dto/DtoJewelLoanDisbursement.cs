@@ -34,5 +34,6 @@ namespace Infin8.Coapp.Dto
         public List<DtoJewelLoanOrnments>? Ornment_List { get; set; }
         public double AppraisalFee { get; set; }
         public double BankCharges { get; set; }
+        public string? BrCode { get; set; }
     }
 }

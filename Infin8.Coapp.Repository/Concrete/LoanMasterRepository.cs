@@ -15,16 +15,23 @@ namespace Infin8.Coapp.Repository
         public LoanMasterRepository(DbContext context) : base(context)
         {
         }
-        public async Task<bool> AddLoanMasterAsync(Loan_Master loanMaster)
+        public async Task<(bool result, decimal loanId, string loanNo)> AddLoanMasterAsync(Loan_Master loanMaster)
         {
             bool result = false;
+            decimal loanId = 0;
+            int maxSlNo = 0;
+            string loanNo = string.Empty;
             try
             {
                 decimal maxId = await CSISContext.Loan_Master.MaxAsync(x => x.Loan_Id);
+                var maxLoanNo = await GetNewLoanNo(loanMaster.Scheme_Id);
                 maxId++;
                 loanMaster.Loan_Id = maxId;
+                loanMaster.Loan_No = maxLoanNo;
                 await AddAsync(loanMaster);
                 result = true;
+                loanId = maxId;
+                loanNo = maxLoanNo;
             }
             catch (Exception ex)
             {
@@ -32,7 +39,7 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Loan Master not saved");
             }
 
-            return result;
+            return (result,loanId,loanNo);
         }
 
         public async Task<bool> EditLoanMasterAsync(Loan_Master loanMaster)
@@ -67,5 +74,48 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
+        public async Task<string> GetNewLoanNo(int schemeId)
+        {
+            string newLoanNo = string.Empty;
+            decimal maxId = 0;
+            try
+            {
+                var maxLoanNo = await  (from lm in CSISContext.Loan_Master
+                                 where lm.Scheme_Id == schemeId
+                                 select lm.Loan_No).MaxAsync();
+                if (string.IsNullOrEmpty(maxLoanNo))
+                {
+                    maxId = Convert.ToDecimal(maxLoanNo) + 1;
+                    newLoanNo = Convert.ToString(maxId);
+                }
+                else
+                {
+                    var LoanNo = await (from ln in CSISContext.Loan_Schemes
+                                  where ln.Scheme_Id == schemeId
+                                  select ln.LoanNoStartWith).FirstOrDefaultAsync();
+                    if(string.IsNullOrWhiteSpace(LoanNo))
+                    {
+                        throw new InvalidOperationException("Loan Scheme does not have Loan No Start With defined");
+                    }
+                    else
+                    {
+                        var brCode = await (from ln in CSISContext.Loan_Schemes
+                                        where ln.Scheme_Id == schemeId
+                                        select ln.BrCode).FirstOrDefaultAsync();
+                        var loanNo2 = brCode! + LoanNo!;
+                        decimal maxId2 = Convert.ToDecimal(loanNo2) + 1;
+                        newLoanNo = LoanNo + maxId2.ToString();
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                throw new InvalidOperationException("Error in fetching New Loan No based on Loan Scheme");
+            }
+            return newLoanNo;
+        }
+
+        
     }
 }

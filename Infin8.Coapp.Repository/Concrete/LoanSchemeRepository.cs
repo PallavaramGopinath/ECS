@@ -19,6 +19,7 @@ namespace Infin8.Coapp.Repository
             Add(loanScheme);
             return true;
         }
+
         public async Task<bool> AddLoanSchemeAsync(Loan_Schemes loanScheme)
         {
             bool result = false;
@@ -37,11 +38,13 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
         public bool EditLoanScheme(Loan_Schemes loanScheme)
         {
             Edit(loanScheme);
             return true;
         }
+
         public async Task<bool> EditLoanSchemeAsync(Loan_Schemes loanScheme)
         {
             bool result = false;
@@ -58,6 +61,7 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
         public List<DropdownItem> GetLoanSchemeItems(int loanType)
         {
             List<DropdownItem> items = new List<DropdownItem>();
@@ -81,6 +85,7 @@ namespace Infin8.Coapp.Repository
             }
             return items;
         }
+
         public async Task<List<DropdownItem>> GetLoanSchemeItemsAsync(int loanType)
         {
             List<DropdownItem> items = new List<DropdownItem>();
@@ -104,7 +109,6 @@ namespace Infin8.Coapp.Repository
             }
             return items;
         }
-       
 
         public async Task<string> GetLoanNoStartWithAsync(int loanType)
         {
@@ -261,6 +265,7 @@ namespace Infin8.Coapp.Repository
             }
             return loanSchemes;
         }
+        
 
         public async Task<List<DropdownItem>> GetLoanSchemesItemsByLoanTypeArrayAsync(int[] loanTypeList)
         {
@@ -295,6 +300,20 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching period of loan from loan scheme data");
             }
             return period;
+        }
+
+        public async Task<Loan_Schemes> GetLoanSchemeByType(int loanType)
+        {
+            Loan_Schemes loanSchemes = new Loan_Schemes();
+            try
+            {
+                loanSchemes = await CSISContext.Loan_Schemes.Where(x => x.Loan_Type == loanType && x.Scheme_Delete == false).FirstAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching loan scheme details");
+            }
+            return loanSchemes;
         }
     }
 }

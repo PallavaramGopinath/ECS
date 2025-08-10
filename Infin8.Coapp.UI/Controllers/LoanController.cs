@@ -235,5 +235,20 @@ namespace Infin8.Coapp.API.Controllers
                 return NotFound();
             }
         }
+        [HttpGet]
+        [Route("GetTDLoanBalanceByLoanId")]
+        public async Task<ActionResult<List<DtoTermDepositLoanBalance>>> GetFDLoanBalanceByLoanId([FromQuery] List<decimal> loanIdList, [FromQuery] DateTime toDate, [FromQuery] string brCode)
+        {
+            List<DtoTermDepositLoanBalance>LoanList = new List<DtoTermDepositLoanBalance>();
+            try
+            {
+                LoanList = await _loanTrnHandler.GetTDLoanBalanceByTDIds(loanIdList, toDate, brCode);
+                return Ok(LoanList);
+            }
+            catch (Exception)
+            {
+                return NotFound();
+            }
+        }
     }
 }

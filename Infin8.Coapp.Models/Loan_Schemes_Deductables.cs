@@ -12,6 +12,6 @@ namespace Infin8.Coapp.Models
         public int Usr_Id { get; set; }
         public int Yr_Id { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

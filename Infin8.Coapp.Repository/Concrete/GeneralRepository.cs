@@ -14,10 +14,16 @@ namespace Infin8.Coapp.Repository
         public GeneralRepository(CSISContext context) : base(context)
         {
         }
-
         public async Task<string> GetSocietyName(string brCode)
         {
             return await CSISContext.Gen_Bank_Name.Where(x => x.BrCode == brCode).Select(x => x.Bank_Name!).FirstAsync();
+        }
+        public async Task<Gen_Bank_Name> GetSocietyData(string brCode)
+        {
+            Gen_Bank_Name bank = new();
+            var result =  await CSISContext.Gen_Bank_Name.Where(x=>x.BrCode == brCode).FirstOrDefaultAsync();
+            if (result != null) bank = result;
+            return bank;
         }
     }
 }

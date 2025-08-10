@@ -24,6 +24,6 @@ namespace Infin8.Coapp.Models
         public double MarketRatePerGram { get; set; }
         public double EligiblePercentageOnMarketValue { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

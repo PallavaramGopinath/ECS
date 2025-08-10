@@ -1,0 +1,146 @@
+﻿@page "/voucher"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.UI.Client.Components.Voucher
+@inject HttpClient _httpClient
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+
+<div class="card mt-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">Transaction dashboard</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="rptNo">Receipt No</label>
+                    <InputText class="form-control shadow-non" @bind-Value="rptNo" @onblur="() => handleRptNo(rptNo)">
+
+                    </InputText>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="rptNo">Payment No</label>
+                    <InputText class="form-control shadow-non" @bind-Value="pmtNo" @onblur="() => handlePmtNo(pmtNo)">
+
+                    </InputText>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@if (isLoading)
+{
+    <p><em>Loading voucher...</em></p>
+}
+else
+{
+    <VoucherDisplay Voucher="voucherData" />
+}
+
+
+@code {
+
+    [Parameter]
+    public long VoucherId { get; set; }
+
+    private DtoVoucher? voucherData;
+    private bool isLoading = true;
+    decimal yrId = 110010000023;
+    string? rptNo = string.Empty;
+    string? pmtNo = string.Empty;
+    decimal vocId = 110010122511;
+    string brCode = "11001";
+    private bool isDisposed = false;
+
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     // In a real application, you would await a call to your data service
+    //     // using the VoucherId to fetch the data from the database.
+    //     // voucherData = await VoucherService.GetVoucherByIdAsync(VoucherId);
+
+    //     // For demonstration, we will use sample data.
+    //     await LoadSampleData();
+    //     isLoading = false;
+    // }
+
+    private async Task LoadSampleData()
+    {
+        #region ai code
+        // This method simulates fetching data based on the provided SQL query logic
+        // voucherData = new DtoVoucher
+        // {
+        //     Voc_Id = this.VoucherId,
+        //     Voc_Rpt_No = "RPT-2024-08-15",
+        //     Voc_Pmt_No = "PMT-2024-08-123",
+        //     Voc_Date = new DateTime(2024, 8, 15),
+        //     Voc_Type = 5,
+        //     Voc_Narration = "Payment for monthly office supplies and utilities.",
+        //     Transactions = new List<DtoVoucherTrn>
+        //     {
+        //         new() {
+        //             Led_Id = 20201, Led_Name = "Office Supplies", Voc_Trn_Type = 1, Voc_Pmt = 350.50f, Voc_Narr = "Purchase of stationery"
+        //         },
+
+        //         new() {
+        //             Led_Id = 20202, Led_Name = "Utilities Expense", Voc_Trn_Type = 1, Voc_Pmt = 1200.00f, Voc_Narr = "Electricity bill for July"
+        //         },
+        //         new() {
+        //             Led_Id = 10101, Led_Name = "Main Bank Account", Voc_Trn_Type = 1, Voc_Rpt = 1550.50f, Voc_Narr = "Total amount paid"
+        //         }
+        //     }
+        // };
+        #endregion 
+        var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByVocId/{vocId}/{brCode}");
+        if (result != null) voucherData = result;
+
+        await Task.CompletedTask;
+    }
+
+    private async Task handleRptNo(string rptNo)
+    {
+        if (string.IsNullOrWhiteSpace(rptNo))
+        {
+            return;
+        }
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}");
+            if (!isDisposed)
+            {
+                voucherData = result;
+                isLoading = false;
+                StateHasChanged(); // Manually trigger a UI update
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log the exception. This can help diagnose if the issue is with the HTTP call itself.
+            Console.WriteLine($"Error fetching transaction: {ex.Message}");
+
+            // You might want to handle the NotFound case from your API gracefully here
+            if (!isDisposed)
+            {
+                voucherData = null; // Clear previous data on error
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task handlePmtNo(string pmtNo)
+    {
+        if (pmtNo.Length > 0)
+        {
+            rptNo = "";
+            var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByNo/{rptNo}/{pmtNo}/{yrId}");
+        }
+    }
+
+    public void Dispose()
+    {
+        isDisposed = true;
+    }
+}

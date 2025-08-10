@@ -112,8 +112,12 @@ namespace Infin8.Coapp.Repository
         IReportsTermDepositsRepository ReportsTermDeposits { get; }
         IReportsFinalAccountsRepository ReportsFinalAccounts { get; }
         IReportsEmployeeRepository ReportsEmployee { get; }
-        #endregion 
+        #endregion
 
+        #region staging
+        IStagingMasterRepository StagingMaster { get; }
+        IStagingDetailsRepository StagingDetails { get; }
+        #endregion 
         ITransactionsRepository TransactionsRepository { get; }
         IMaxId MaxId { get; }
         int Complete();

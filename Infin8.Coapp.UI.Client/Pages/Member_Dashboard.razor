@@ -1,0 +1,489 @@
+﻿@page "/member-dashboard"
+@inject HttpClient Http // Or a dedicated service to fetch data
+
+@* You might want to add a CSS file for custom styles, e.g., MemberDashboard.razor.css *@
+
+<PageTitle>Member Dashboard</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3><i class="fas fa-tachometer-alt me-2"></i>Primary Agriculture & Rural Development Bank - Overview</h3>
+        <button class="btn btn-sm btn-outline-primary" @onclick="LoadDashboardDataAsync">
+            <i class="fas fa-sync-alt me-1"></i> Refresh Data
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 50vh;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <strong class="ms-3">Loading dashboard data...</strong>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>@errorMessage
+        </div>
+    }
+    else
+    {
+        <!-- Row 1: Member Demographics & Key Summaries -->
+        <div class="row mb-4">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-users me-2"></i>Member Segments</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Members.Any())
+                        {
+                            <table class="table table-hover table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Member Type</th>
+                                        <th class="text-end">No. of Members</th>
+                                        <th class="text-end">Total Share Capital</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var memberType in Members)
+                                    {
+                                        <tr>
+                                            <td>@memberType.Member_Type</td>
+                                            <td class="text-end">@memberType.NoofMembers.ToString("N0")</td>
+                                            <td class="text-end">@memberType.Share_Capital.ToString("C")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="fw-bold">
+                                    <tr>
+                                        <td>Total</td>
+                                        <td class="text-end">@Members.Sum(m => m.NoofMembers).ToString("N0")</td>
+                                        <td class="text-end">@Members.Sum(m => m.Share_Capital).ToString("C")</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center">No member segment data available.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-5 col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Suspense Accounts</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (MemberSuspenseAccounts.Any())
+                        {
+                            <table class="table table-hover table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Suspense Account</th>
+                                        <th class="text-end">Receipts</th>
+                                        <th class="text-end">Payments</th>
+                                        <th class="text-end">Net Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var suspense in MemberSuspenseAccounts)
+                                    {
+                                        <tr>
+                                            <td>@suspense.Sus_Name </td>
+                                            <td class="text-end">@suspense.Rpt_Amt.ToString("C")</td>
+                                            <td class="text-end">@suspense.Pmt_Amt.ToString("C")</td>
+                                            <td class="text-end @((suspense.Rpt_Amt - suspense.Pmt_Amt) < 0 ? "text-danger" : "text-success")">
+                                                @((suspense.Rpt_Amt - suspense.Pmt_Amt).ToString("C"))
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center">No suspense account data available.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Loans & Term Deposits -->
+        <div class="row mb-4">
+            <div class="col-lg-7">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-hand-holding-usd me-2"></i>Loans to Members</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Loans.Any())
+                        {
+                            <table class="table table-hover table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Scheme Name</th>
+                                        <th class="text-end">No. of Loans</th>
+                                        <th class="text-end">Total Disbursed</th>
+                                        <th class="text-end">Principal Outstanding</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var loan in Loans)
+                                    {
+                                        <tr>
+                                            <td>@loan.Scheme_Name</td>
+                                            <td class="text-end">@loan.NoOfLoans.ToString("N0")</td>
+                                            <td class="text-end">@loan.Disb_Amt.ToString("C")</td>
+                                            <td class="text-end">@loan.Prl_OS.ToString("C")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="fw-bold">
+                                    <tr>
+                                        <td>Total</td>
+                                        <td class="text-end">@Loans.Sum(l => l.NoOfLoans).ToString("N0")</td>
+                                        <td class="text-end">@Loans.Sum(l => l.Disb_Amt).ToString("C")</td>
+                                        <td class="text-end">@Loans.Sum(l => l.Prl_OS).ToString("C")</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            <!-- Placeholder for a Loan Distribution Chart -->
+                            <div class="text-center mt-3">
+                                <small class="text-muted_">[Chart: Loan Amount by Scheme Placeholder]</small>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center">No loan data available.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-piggy-bank me-2"></i>Term Deposits</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (TermDeposits.Any())
+                        {
+                            <table class="table table-hover table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Scheme Name</th>
+                                        <th class="text-end">No. of TDs</th>
+                                        <th class="text-end">Total Deposit Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var td in TermDeposits)
+                                    {
+                                        <tr>
+                                            <td>@td.TDScheme_Name</td>
+                                            <td class="text-end">@td.NoofTDs.ToString("N0")</td>
+                                            <td class="text-end">@td.DepositReceiptAmount.ToString("C")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="fw-bold">
+                                    <tr>
+                                        <td>Total</td>
+                                        <td class="text-end">@TermDeposits.Sum(td => td.NoofTDs).ToString("N0")</td>
+                                        <td class="text-end">@TermDeposits.Sum(td => td.DepositReceiptAmount).ToString("C")</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            <!-- Placeholder for a TD Distribution Chart -->
+                            <div class="text-center mt-3">
+                                <small class="text-muted">[Chart: Deposit Amount by Scheme Placeholder]</small>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center">No term deposit data available.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: Bank Account Balances -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-landmark me-2"></i>Bank Account Balances</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (BankAccounts.Any())
+                        {
+                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3">
+                                @foreach (var account in BankAccounts)
+                                {
+                                    <div class="col">
+                                        <div class="card border-light h-100">
+                                            <div class="card-body text-center">
+                                                <h6 class="card-title text-truncate">@account.Led_Name</h6>
+                                                <p class="card-text fs-4 fw-bold @(account.Balance_Amount >= 0 ? "text-success-emphasis" : "text-danger-emphasis")">
+                                                    @account.Balance_Amount.ToString("C")
+                                                </p>
+                                                <small class="text-muted">Ledger ID: @account.Led_Id</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center">No bank account data available.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Row 4: Loan Collections -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header" style="background-color: #6f42c1; color: white;">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Loan Collection (During The Month)</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (CollectionDuringTheMonth.Any())
+                        {
+                            <table class="table table-hover table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Scheme Name</th>
+                                        <th class="text-end">Principal</th>
+                                        <th class="text-end">Interest</th>
+                                        <th class="text-end">IOD</th>
+                                        <th class="text-end">Penal Int.</th>
+                                        <th class="text-end fw-bold">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var collection in CollectionDuringTheMonth)
+                                    {
+                                        <tr>
+                                            <td>@collection.Scheme_Name</td>
+                                            <td class="text-end">@collection.PrlColl_Amt.ToString("C")</td>
+                                            <td class="text-end">@collection.IntColl_Amt.ToString("C")</td>
+                                            <td class="text-end">@collection.IODColl_Amt.ToString("C")</td>
+                                            <td class="text-end">@collection.PIColl_Amt.ToString("C")</td>
+                                            <td class="text-end fw-bold">
+                                                @((collection.PrlColl_Amt + collection.IntColl_Amt + collection.IODColl_Amt + collection.PIColl_Amt).ToString("C"))
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center">No monthly loan collection data available.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header" style="background-color: #fd7e14; color: white;">
+                        <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Loan Collection (For The Year)</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (CollectionForTheYear.Any())
+                        {
+                            <table class="table table-hover table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Scheme Name</th>
+                                        <th class="text-end">Principal</th>
+                                        <th class="text-end">Interest</th>
+                                        <th class="text-end">IOD</th>
+                                        <th class="text-end">Penal Int.</th>
+                                        <th class="text-end fw-bold">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var collection in CollectionForTheYear)
+                                    {
+                                        <tr>
+                                            <td>@collection.Scheme_Name</td>
+                                            <td class="text-end">@collection.PrlColl_Amt.ToString("C")</td>
+                                            <td class="text-end">@collection.IntColl_Amt.ToString("C")</td>
+                                            <td class="text-end">@collection.IODColl_Amt.ToString("C")</td>
+                                            <td class="text-end">@collection.PIColl_Amt.ToString("C")</td>
+                                            <td class="text-end fw-bold">
+                                                @((collection.PrlColl_Amt + collection.IntColl_Amt + collection.IODColl_Amt + collection.PIColl_Amt).ToString("C"))
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center">No yearly loan collection data available.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<DashBoardMembers> Members { get; set; } = new();
+    private List<DashBoardMemberSuspense> MemberSuspenseAccounts { get; set; } = new();
+    private List<DashBoardLoanToMembers> Loans { get; set; } = new();
+    private List<DashBoardTermDepoist> TermDeposits { get; set; } = new();
+    private List<DashBoardBankAccounts> BankAccounts { get; set; } = new();
+    private List<DashBoardLoanCollection> CollectionDuringTheMonth { get; set; } = new();
+    private List<DashBoardLoanCollection> CollectionForTheYear { get; set; } = new();
+
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardDataAsync();
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        StateHasChanged(); // Update UI to show loading state
+
+        try
+        {
+            // Simulate API calls - replace with actual Http.GetFromJsonAsync calls
+            // Example: Members = await Http.GetFromJsonAsync<List<DashBoardMembers>>("api/dashboard/members") ?? new();
+
+            await Task.Delay(1500); // Simulate network latency
+
+            // Dummy Data Population (Replace with API calls)
+            Members = new List<DashBoardMembers>
+            {
+                new DashBoardMembers { Member_Type = "Regular", NoofMembers = 1250, Share_Capital = 2500000 },
+                new DashBoardMembers { Member_Type = "Associate", NoofMembers = 300, Share_Capital = 300000 },
+                new DashBoardMembers { Member_Type = "Nominal", NoofMembers = 50, Share_Capital = 5000 }
+            };
+
+            MemberSuspenseAccounts = new List<DashBoardMemberSuspense>
+            {
+                new DashBoardMemberSuspense { Sus_Type = 101, Sus_Name ="Member due to", Rpt_Amt = 50000, Pmt_Amt = 10000 },
+                new DashBoardMemberSuspense { Sus_Type = 102, Sus_Name ="Member due by", Rpt_Amt = 25000, Pmt_Amt = 5000 }
+            };
+
+            Loans = new List<DashBoardLoanToMembers>
+            {
+                new DashBoardLoanToMembers { Scheme_Id = 1, Scheme_Name = "Personal Loan", NoOfLoans = 150, Disb_Amt = 7500000, Prl_OS = 6200000 },
+                new DashBoardLoanToMembers { Scheme_Id = 2, Scheme_Name = "Housing Loan", NoOfLoans = 30, Disb_Amt = 15000000, Prl_OS = 13500000 },
+                new DashBoardLoanToMembers { Scheme_Id = 3, Scheme_Name = "Vehicle Loan", NoOfLoans = 75, Disb_Amt = 4500000, Prl_OS = 3800000 }
+            };
+
+            TermDeposits = new List<DashBoardTermDepoist>
+            {
+                new DashBoardTermDepoist { TDScheme_Id = 1, TDScheme_Name = "Fixed Deposit", NoofTDs = 500, DepositReceiptAmount = 12000000 },
+                new DashBoardTermDepoist { TDScheme_Id = 2, TDScheme_Name = "Recurring Deposit", NoofTDs = 800, DepositReceiptAmount = 3500000 }
+            };
+
+            BankAccounts = new List<DashBoardBankAccounts>
+            {
+                new DashBoardBankAccounts { Led_Id = 201, Led_Name = "Main Current Account (SBI)", Balance_Amount = 1250340.50 },
+                new DashBoardBankAccounts { Led_Id = 202, Led_Name = "Savings Account (HDFC)", Balance_Amount = 54200.75 },
+                new DashBoardBankAccounts { Led_Id = 203, Led_Name = "Petty Cash Account", Balance_Amount = 15000.00 },
+                new DashBoardBankAccounts { Led_Id = 204, Led_Name = "Overdraft Account (ICICI)", Balance_Amount = -50000.00 }
+            };
+
+            CollectionDuringTheMonth = new List<DashBoardLoanCollection>
+            {
+                new DashBoardLoanCollection { Scheme_Id = 1, Scheme_Name = "Personal Loan", PrlColl_Amt = 150000, IntColl_Amt = 30000, IODColl_Amt = 1000, PIColl_Amt = 500 },
+                new DashBoardLoanCollection { Scheme_Id = 2, Scheme_Name = "Housing Loan", PrlColl_Amt = 250000, IntColl_Amt = 120000, IODColl_Amt = 0, PIColl_Amt = 0 }
+            };
+
+            CollectionForTheYear = new List<DashBoardLoanCollection>
+            {
+                new DashBoardLoanCollection { Scheme_Id = 1, Scheme_Name = "Personal Loan", PrlColl_Amt = 1800000, IntColl_Amt = 350000, IODColl_Amt = 8000, PIColl_Amt = 3000 },
+                new DashBoardLoanCollection { Scheme_Id = 2, Scheme_Name = "Housing Loan", PrlColl_Amt = 3000000, IntColl_Amt = 1400000, IODColl_Amt = 1000, PIColl_Amt = 0 },
+                new DashBoardLoanCollection { Scheme_Id = 3, Scheme_Name = "Vehicle Loan", PrlColl_Amt = 900000, IntColl_Amt = 150000, IODColl_Amt = 2000, PIColl_Amt = 1000 }
+            };
+
+        }
+        catch (Exception ex)
+        {
+            // Log the exception (using ILogger or similar)
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+            errorMessage = "Failed to load dashboard data. Please try again later.";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged(); // Update UI to hide loading state and show data/error
+        }
+    }
+
+    // Your model classes here (or in a separate .cs file imported with @using)
+    public class DashBoardMembers
+    {
+        public int NoofMembers { get; set; }
+        public string Member_Type { get; set; } = string.Empty;
+        public double Share_Capital { get; set; }
+    }
+
+    public class DashBoardMemberSuspense
+    {
+        public int Sus_Type { get; set; }
+        public string? Sus_Name { get; set; }
+        public double Rpt_Amt { get; set; }
+        public double Pmt_Amt { get; set; }
+    }
+
+    public class DashBoardLoanToMembers
+    {
+        public int Scheme_Id { get; set; }
+        public string Scheme_Name { get; set; } = string.Empty;
+        public int NoOfLoans { get; set; }
+        public double Disb_Amt { get; set; }
+        public double Prl_OS { get; set; }
+    }
+
+    public class DashBoardTermDepoist
+    {
+        public int TDScheme_Id { get; set; }
+        public string TDScheme_Name { get; set; } = string.Empty;
+        public int NoofTDs { get; set; }
+        public double DepositReceiptAmount { get; set; }
+    }
+
+    public class DashBoardBankAccounts
+    {
+        public int Led_Id { get; set; }
+        public string Led_Name { get; set; } = string.Empty;
+        public double Balance_Amount { get; set; }
+    }
+
+    public class DashBoardLoanCollection
+    {
+        public int Scheme_Id { get; set; }
+        public string Scheme_Name { get; set; } = string.Empty;
+        public double PrlColl_Amt { get; set; }
+        public double IntColl_Amt { get; set; }
+        public double IODColl_Amt { get; set; }
+        public double PIColl_Amt { get; set; }
+    }
+}
+

@@ -71,8 +71,11 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+        public async Task<string> GetTransactedAccountNameFromAccount_Transactions(int accId)
+        {
+            return await CSISContext.Account_Transactions.Where(x => x.Acc_Id == accId).Select(x => x.Acc_Name).FirstAsync();
+        }
 
-        
 
         #region general
         public async Task<decimal> GetCashLedgerId(string brCode)
@@ -327,19 +330,19 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate)
+        public async Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate,string brCode)
         {
             double ledgerOB = 0;
             double rptAmt = 0;
             double pmtAmt = 0;
             int fnlId = 0;
-            //decimal cashLedId = 0;
+            decimal cashLedId = 0;
             LedgerBalanceModel ledObj = new LedgerBalanceModel();
             LedgerReceiptAndPaymentsModel ledRptAndPmt = new LedgerReceiptAndPaymentsModel();
             try
             {
                 /// Get Cash Ledger Id
-                //cashLedId = GetCashLedgerId();
+                cashLedId = await CSISContext.Map_General.Select(x => x.Cash_Led_Id).FirstAsync();
                 /// Get OB and final Ledger Id
                 #region query
                 //var ledObjTmp = CSISContext.Database.SqlQueryRaw<LedgerBalanceModel>(
@@ -361,6 +364,9 @@ namespace Infin8.Coapp.Repository
                                           && trn.LedgerTrn_Delete == false
                                           && ledger.Led_Delete == false
                                           && trn.Led_Id == ledId
+                                          && trn.BrCode == brCode 
+                                          && ledger.BrCode == brCode 
+                                          && trn.BrCode == brCode
                                        select new LedgerBalanceModel
                                        {
                                            LedgerBalance = trn.OB_Amt,
@@ -400,6 +406,8 @@ namespace Infin8.Coapp.Repository
                                                 && voucherTr.FinVocTr_Delete == false
                                                 && voucher.Voc_Delete == false
                                                 && voucher.Voc_Date.Date < upToDate
+                                                && voucher.BrCode == brCode 
+                                                && voucherTr.BrCode == brCode 
                                              select new { voucherTr.Voc_Rpt, voucherTr.Voc_Pmt })
                   .GroupBy(x => 1) // Group by a constant for single-row aggregation
                   .Select(g => new LedgerReceiptAndPaymentsModel
@@ -419,24 +427,24 @@ namespace Infin8.Coapp.Repository
 
                 /// calculate ledger balance
                 #region do it in handler
-                //switch (fnlId)
-                //{
-                //    case 1:
-                //    case 4:
-                //        if (ledId == cashLedId)
-                //        {
-                //            ledgerOB += rptAmt - pmtAmt;
-                //        }
-                //        else
-                //        {
-                //            ledgerOB += pmtAmt - rptAmt;
-                //        }
-                //        break;
-                //    case 2:
-                //    case 3:
-                //        ledgerOB += rptAmt - pmtAmt;
-                //        break;
-                //}
+                switch (fnlId)
+                {
+                    case 1:
+                    case 4:
+                        if (ledId == cashLedId)
+                        {
+                            ledgerOB += rptAmt - pmtAmt;
+                        }
+                        else
+                        {
+                            ledgerOB += pmtAmt - rptAmt;
+                        }
+                        break;
+                    case 2:
+                    case 3:
+                        ledgerOB += rptAmt - pmtAmt;
+                        break;
+                }
                 #endregion 
             }
 
@@ -445,6 +453,115 @@ namespace Infin8.Coapp.Repository
                 throw;
             }
             return ledgerOB;
+        }
+
+        public async Task<DtoLedgerBalance> GetLedgerBalanceWithFnlId(decimal ledId, decimal yrId, DateTime upToDate, string brCode)
+        {
+            double ledgerOB = 0;
+            double rptAmt = 0;
+            double pmtAmt = 0;
+            int fnlId = 0;
+            decimal cashLedId = 0;
+            
+            LedgerBalanceModel ledObj = new LedgerBalanceModel();
+            DtoLedgerBalance dtoLedgerBalance = new();
+            LedgerReceiptAndPaymentsModel ledRptAndPmt = new LedgerReceiptAndPaymentsModel();
+            try
+            {
+                /// Get Cash Ledger Id
+                cashLedId = await CSISContext.Map_General.Select(x => x.Cash_Led_Id).FirstAsync();
+                /// Get OB and final Ledger Id
+                #region linq
+                var ledObjTmp = await(from trn in CSISContext.Fin_Ledger_Trn
+                                      join ledger in CSISContext.Fin_Ledger
+                                          on trn.Led_Id equals ledger.Led_Id
+                                      join grp in CSISContext.Fin_Ledger_Grp
+                                          on ledger.Grp_Id equals grp.Grp_Id
+                                      where trn.Yr_Id == yrId
+                                         && trn.LedgerTrn_Delete == false
+                                         && ledger.Led_Delete == false
+                                         && trn.Led_Id == ledId
+                                         && trn.BrCode == brCode
+                                         && ledger.BrCode == brCode
+                                         && trn.BrCode == brCode
+                                      select new LedgerBalanceModel
+                                      {
+                                          LedgerBalance = trn.OB_Amt,
+                                          FnlId = grp.Fnl_Id
+                                      }).FirstOrDefaultAsync();
+                if (ledObjTmp != null) ledObj = ledObjTmp;
+                #endregion 
+
+                if (ledObj != null)
+                {
+                    ledgerOB = Convert.ToDouble(ledObj.LedgerBalance);
+                    fnlId = Convert.ToInt16(ledObj.FnlId);
+                }
+                else
+                {
+                    ledgerOB = 0;
+                    fnlId = 0;
+                }
+                /// Get receipt and payment amount
+
+                #region linq
+                var ledRptAndPmtTmp = await(from voucher in CSISContext.Fin_Voucher
+                                            join voucherTr in CSISContext.Fin_Voucher_Trn
+                                                on voucher.Voc_Id equals voucherTr.Voc_Id
+                                            where voucher.Yr_Id == yrId
+                                               && voucherTr.Led_Id == ledId
+                                               && voucherTr.FinVocTr_Delete == false
+                                               && voucher.Voc_Delete == false
+                                               && voucher.Voc_Date.Date < upToDate
+                                               && voucher.BrCode == brCode
+                                               && voucherTr.BrCode == brCode
+                                            select new { voucherTr.Voc_Rpt, voucherTr.Voc_Pmt })
+                  .GroupBy(x => 1) // Group by a constant for single-row aggregation
+                  .Select(g => new LedgerReceiptAndPaymentsModel
+                  {
+                      ReceiptAmount = g.Sum(x => x.Voc_Rpt),
+                      PaymentAmount = g.Sum(x => x.Voc_Pmt)
+                  })
+                  .FirstOrDefaultAsync();
+                if (ledRptAndPmtTmp != null) ledRptAndPmt = ledRptAndPmtTmp;
+                #endregion 
+
+                if (ledRptAndPmt != null)
+                {
+                    rptAmt = Convert.ToDouble(ledRptAndPmt.ReceiptAmount);
+                    pmtAmt = Convert.ToDouble(ledRptAndPmt.PaymentAmount);
+                }
+
+                /// calculate ledger balance
+                #region do it in handler
+                switch (fnlId)
+                {
+                    case 1:
+                    case 4:
+                        if (ledId == cashLedId)
+                        {
+                            ledgerOB += rptAmt - pmtAmt;
+                        }
+                        else
+                        {
+                            ledgerOB += pmtAmt - rptAmt;
+                        }
+                        break;
+                    case 2:
+                    case 3:
+                        ledgerOB += rptAmt - pmtAmt;
+                        break;
+                }
+                #endregion 
+                dtoLedgerBalance.Ledger_Balance = ledgerOB;
+                dtoLedgerBalance.Fin_Id = fnlId;
+                dtoLedgerBalance.Cash_Led_Id = cashLedId;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return dtoLedgerBalance;
         }
 
         public string GetLedgerNameByLedId(decimal ledId)
@@ -461,7 +578,7 @@ namespace Infin8.Coapp.Repository
             decimal cashLedId = 0;
             double ledgerbalance = 0, totalReceipts = 0, totalPayments = 0;
             List<FinBal> obList = new List<FinBal>();
-            FinBal trn = new FinBal();
+            FinBal? trn = new ();
             try
             {
                 cashLedId = await GetCashLedgerId(brCode);
@@ -473,7 +590,7 @@ namespace Infin8.Coapp.Repository
                     .SetProperty(t => t.CB_Amt, 0));
 
                 #region query
-                //obList = CSISContext.Database.SqlQueryRaw<FinBal>(
+                //var obListTmp = CSISContext.Database.SqlQueryRaw<FinBal>(
                 //        @"SELECT Fin_Ledger_Trn.Led_Id, 
                 //        Fin_Ledger_Trn.OB_Amt, 
                 //        Fin_Ledger_Trn.Tot_Rpt_Amt AS TotalReceipts, 
@@ -482,28 +599,35 @@ namespace Infin8.Coapp.Repository
                 //        Fin_Ledger_Grp.Fnl_Id
                 //        FROM Fin_Ledger_Trn INNER JOIN Fin_Ledger ON Fin_Ledger_Trn.Led_Id = Fin_Ledger.Led_Id
                 //        INNER JOIN Fin_Ledger_Grp ON Fin_Ledger.Grp_Id = Fin_Ledger_Grp.Grp_Id 
-                //        WHERE Fin_Ledger_Trn.Yr_Id = @yrId AND Fin_Ledger_Trn.LedgerTrn_Delete = 0 AND Fin_Ledger.Led_Delete = 0"
+                //        WHERE Fin_Ledger_Trn.Yr_Id = @yrId AND Fin_Ledger_Trn.LedgerTrn_Delete = false AND Fin_Ledger.Led_Delete = false"
                 //        , new NpgsqlParameter("@yrId", yrId)).ToList();
+                //if(obListTmp !=null && obListTmp.Any())
+                //{
+                //    obList = obListTmp.ToList();
+                //}
                 #endregion
 
                 #region linq
-                var obListTmp = (from ledTrn in CSISContext.Fin_Ledger_Trn
-                                 join led in CSISContext.Fin_Ledger on trn.Led_Id equals led.Led_Id
-                                 join grp in CSISContext.Fin_Ledger_Grp on led.Grp_Id equals grp.Grp_Id
-                                 where ledTrn.Yr_Id == yrId
-                                    && ledTrn.LedgerTrn_Delete == false
-                                    && led.Led_Delete == false
-                                 select new FinBal
-                                 {
-                                     Led_Id = ledTrn.Led_Id,
-                                     OB_Amt = ledTrn.OB_Amt,
-                                     TotalReceipts = ledTrn.Tot_Rpt_Amt,
-                                     TotalPayments = ledTrn.Tot_Pmt_Amt,
-                                     CB_Amt = ledTrn.CB_Amt,
-                                     Fnl_Id = grp.Fnl_Id
-                                 }).ToList();
+                var obListTmp = await (from ledTrn in CSISContext.Fin_Ledger_Trn
+                                       join led in CSISContext.Fin_Ledger on ledTrn.Led_Id equals led.Led_Id
+                                       join grp in CSISContext.Fin_Ledger_Grp on led.Grp_Id equals grp.Grp_Id
+                                       where ledTrn.Yr_Id == yrId
+                                          && !ledTrn.LedgerTrn_Delete
+                                          && !led.Led_Delete
+                                       select new FinBal
+                                       {
+                                           Led_Id = ledTrn.Led_Id,
+                                           OB_Amt = ledTrn.OB_Amt,
+                                           TotalReceipts = ledTrn.Tot_Rpt_Amt,
+                                           TotalPayments = ledTrn.Tot_Pmt_Amt,
+                                           CB_Amt = ledTrn.CB_Amt,
+                                           Fnl_Id = grp.Fnl_Id
+                                       }).ToListAsync();
                 #endregion 
-
+                if (obListTmp != null && obListTmp.Any())
+                {
+                    obList = obListTmp.ToList();
+                }
                 foreach (var ob in obList)
                 {
                     ledgerbalance = 0;
@@ -524,7 +648,7 @@ namespace Infin8.Coapp.Repository
                     #endregion
 
                     #region linq
-                    trn = (from vtr in CSISContext.Fin_Voucher_Trn
+                    var trnTmp = (from vtr in CSISContext.Fin_Voucher_Trn
                            join v in CSISContext.Fin_Voucher on vtr.Voc_Id equals v.Voc_Id
                            where v.Voc_Date.Date >= fromDate.Date
                               && v.Voc_Date.Date <= toDate.Date
@@ -537,11 +661,11 @@ namespace Infin8.Coapp.Repository
                            select new FinBal
                            {
                                Led_Id = g.Key,
-                               TotalReceipts = g.Sum(x => x.Voc_Rpt),
-                               TotalPayments = g.Sum(x => x.Voc_Pmt)
-                           }).First();
+                               TotalReceipts = g.Sum(x => (double?)x.Voc_Rpt) ?? 0,
+                               TotalPayments = g.Sum(x => (double?)x.Voc_Pmt) ?? 0
+                           }).FirstOrDefault();
                     #endregion 
-
+                    if(trnTmp != null) trn = trnTmp; else trn = null;
                     if (trn != null)
                     {
 
@@ -580,25 +704,26 @@ namespace Infin8.Coapp.Repository
                     var recordsToUpdate = CSISContext.Fin_Ledger_Trn
                     .Where(t => t.Led_Id == ob.Led_Id && t.Yr_Id == yrId);
 
-                    foreach (var record in recordsToUpdate)
+                    if (recordsToUpdate != null)
                     {
-                        record.CB_Amt = Math.Round(ledgerbalance, 2);
-                        record.Tot_Rpt_Amt = Math.Round(totalReceipts, 2);
-                        record.Tot_Pmt_Amt = Math.Round(totalPayments, 2);
+                        foreach (var record in recordsToUpdate)
+                        {
+                            record.CB_Amt = Math.Round(ledgerbalance, 2);
+                            record.Tot_Rpt_Amt = Math.Round(totalReceipts, 2);
+                            record.Tot_Pmt_Amt = Math.Round(totalPayments, 2);
+                        }
+                        CSISContext.SaveChanges();
                     }
-
-                    CSISContext.SaveChanges();
                     #endregion 
                 }
                 result = true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.ToString());
                 result = false;
             }
             return result;
         }
-
-        
     }
 }

@@ -1,0 +1,268 @@
+﻿@using System.Globalization
+@using Infin8.Coapp.Dto
+@using System.Text.Json
+@using System.Net
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+@if (fdModal != null)
+{
+    <div class="container-fluid" style="width: 95%;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Member Details</h5>
+                <h5 class="mb-2">@fdModal.Common.Tdh_Name</h5>
+            </div>
+            <div class="card-body">
+
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Member No</th>
+                            <th>Member Name</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var mem in fdModal.Members)
+                        {
+                            <tr>
+                                <td>@mem.Member_No</td>
+                                <td>@mem.Member_Name</td>
+                                <td>@mem.Age</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+            </div>
+
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Fixed Deposit Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Scheme Name</label>
+                        <div class="form-control-plaintext">@fdModal.Common.Tdscheme_Id</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Mode of Operation</label>
+                        <div class="form-control-plaintext">@fdModal.Common.Mode_Of_Operation</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Account Open Date</label>
+                        <div class="form-control-plaintext">@fdModal.Common.Account_Opendate.ToString("dd-MM-yyyy")</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Value Date</label>
+                        <div class="form-control-plaintext">@fdModal.Common.Value_Date.ToString("dd-MM-yyyy")</div>
+                    </div>
+
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Fixed Deposit No</label>
+                        <div class="form-control-plaintext">@fdModal.Common.Td_No</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Deposit Amount</label>
+                        <div class="form-control-plaintext">@fdModal.Deposit_Amount.ToString("C2")</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Interest Payment Frequency</label>
+                        <div class="form-control-plaintext">@Payable_Frequency</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Period</label>
+                        <div class="form-control-plaintext">@Period</div>
+                    </div>
+                    @if (fdModal.Is_DiscountRate)
+                    {
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">is Discount Rate</label>
+                            <div class="form-control-plaintext">True</div>
+                        </div>
+                    }
+                    @* @if (fdModal.compoundfrequency > 0)
+                    { *@
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Compound Frequency</label>
+                        <div class="form-control-plaintext">@Compound_Frequency</div>
+                    </div>
+                    @* } *@
+
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Rate of Interest</label>
+                        <div class="form-control-plaintext">@fdModal.Rate_Of_Interest </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Maturity Amount</label>
+                        <div class="form-control-plaintext">@fdModal.Maturity_Amount.ToString("C2")</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Maturity Date</label>
+                        <div class="form-control-plaintext">@fdModal.Maturity_Date.ToString("dd-MM-yyyy")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Nominee Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                                <th>Name</th>
+                                <th>Relation</th>
+                                <th>Age</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var nominee in nominees)
+                            {
+                                <tr>
+                                    <td>@nominee.Name</td>
+                                    <td>@nominee.Relation</td>
+                                    <td>@nominee.Age</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+               </div>
+        </div>
+    </div>
+}
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private Staging_Details details = new Staging_Details();
+    private DtoTermDepositFixedDepositCreation fdModal = new DtoTermDepositFixedDepositCreation();
+    private string Payable_Frequency = "";
+    private string Period = "";
+    private string ModeOfOperation = "";
+    private string Compound_Frequency = "";
+    List<Nominee> nominees = new List<Nominee>();
+    private class Nominee
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Relation { get; set; } = string.Empty;
+        public int Age { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+
+
+                if (details != null)
+                {
+                    fdModal = Utility.JsonbObject.ConvertFromJsonForNewFixedDeposit(details.Related_Account_Data!);
+
+                    /// Mode of operation
+                    switch (fdModal.Common.Mode_Of_Operation)
+                    {
+                        case 1:
+                            ModeOfOperation = "Single";
+                            break;
+                        case 2:
+                            ModeOfOperation = "Joint";
+                            break;
+                        case 3:
+                            ModeOfOperation = "Either or Survivor";
+                            break;
+                    }
+
+                    /// Payable Frequency
+                    switch (fdModal.Interest_Payable_Frequency)
+                    {
+                        case 1:
+                            Payable_Frequency = "Monthly";
+                            break;
+                        case 3:
+                            Payable_Frequency = "Quarterly";
+                            break;
+                        case 6:
+                            Payable_Frequency = "Half Yearly";
+                            break;
+                        case 12:
+                            Payable_Frequency = "Yearly";
+                            break;
+                        case 13:
+                            Payable_Frequency = "At Maturity";
+                            break;
+                    }
+
+                    /// Period
+                    if (fdModal.Period_In_Months > 0)
+                        Period = fdModal.Period_In_Months + " Months";
+                    if (fdModal.Period_In_Days > 0)
+                        Period += " " + fdModal.Period_In_Days + " Days";
+
+                    /// Compound Frequency
+                    switch (fdModal.compoundfrequency)
+                    {
+                        case 1:
+                            Compound_Frequency = "Monthly Compound";
+                            break;
+                        case 3:
+                            Compound_Frequency = "Quarterly Compound";
+                            break;
+                        case 6:
+                            Compound_Frequency = "Half Yearly Compound";
+                            break;
+                        case 12:
+                            Compound_Frequency = "Annual Compound";
+                            break;
+                        default:
+                            Compound_Frequency = "No Compound";
+                            break;
+                    }
+
+                    /// Nominee Details
+                    
+                    if(fdModal.Common.Nominee1Name!= null)
+                    {
+                        nominees.Add(new Nominee
+                        {
+                            Name = fdModal.Common.Nominee1Name,
+                            Relation = fdModal.Common.Nominee1Relationship!,
+                            Age = fdModal.Common.Nominee1Age
+                        });
+                    }
+                    if (fdModal.Common.Nominee2Name!=null)
+                    {
+                        nominees.Add(new Nominee
+                        {
+                            Name = fdModal.Common.Nominee2Name,
+                            Relation = fdModal.Common.Nominee2Relationship!,
+                            Age = fdModal.Common.Nominee2Age
+                        });
+                    }
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+}

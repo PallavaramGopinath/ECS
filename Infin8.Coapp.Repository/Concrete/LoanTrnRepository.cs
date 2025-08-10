@@ -2,6 +2,7 @@
 using Infin8.Coapp.Models;
 using Infin8.Coapp.Utility;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.VisualBasic;
 using Npgsql;
 using System;
@@ -25,15 +26,37 @@ namespace Infin8.Coapp.Repository
         {
             bool result = false;
             decimal maxId = 0;
+            int maxSlNo = 0;
             try
             {
                 foreach (var loan in loanTrnList)
                 {
                     maxId = await CSISContext.Loan_Trn.MaxAsync(x => x.Trn_Id);
                     maxId++;
+                    maxSlNo = Get_MaxLoanSlNo(loan.Loan_Id);
                     loan.Trn_Id = maxId;
+                    loan.Trn_SlNo = maxSlNo;
                     await AddAsync(loan);
                 }
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Loan trn list not saved");
+            }
+            return result;
+        }
+        public async Task<bool> AddLoanTrn(Loan_Trn loanTrn)
+        {
+            bool result = false;
+            decimal maxId = 0;
+            try
+            {
+                maxId = await CSISContext.Loan_Trn.MaxAsync(x => x.Trn_Id);
+                maxId++;
+                loanTrn.Trn_Id = maxId;
+                await AddAsync(loanTrn);
                 result = true;
             }
             catch (Exception ex)
@@ -517,8 +540,6 @@ namespace Infin8.Coapp.Repository
             }
             return list;
         }
-
-
 
         public async Task<List<DropdownItem>> GetLoanNosByMemIdAndLoanTypeAsync(decimal memId, int loanType)
         {
@@ -1495,6 +1516,7 @@ namespace Infin8.Coapp.Repository
             }
             return list;
         }
+
         public async Task<List<LoanDetailsHL>> GetLoanDetailsListByLoanIdLTAsync(decimal[] loanIds, DateTime trnDate)
         {
             double intDemand = 0, prlDemand = 0, piDemand = 0, emiDemand = 0;
@@ -1988,6 +2010,7 @@ namespace Infin8.Coapp.Repository
             }
             return loanIds;
         }
+
         public async Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds)
         {
             List<TDLoanData> loanList = new List<TDLoanData>();
@@ -2112,6 +2135,184 @@ namespace Infin8.Coapp.Repository
             }
             return loanList;
         }
+
+        public async Task<List<DtoTermDepositLoanBalance>> GetTDLoanBalanceByTDIds(List<decimal> loanIdList, DateTime  toDate, string brCode)
+        {
+            List<DtoTermDepositLoanBalance> loanList = new List<DtoTermDepositLoanBalance>();
+            DateTime IntCalcDate;
+            double intCalc = 0;
+            try
+            {
+                //var result = await (from master in CSISContext.Loan_Master
+                //                    join scheme in CSISContext.Loan_Schemes on master.Scheme_Id equals scheme.Scheme_Id
+                //                    join trn in CSISContext.Loan_Trn on master.Loan_Id equals trn.Loan_Id
+                //                    where !trn.TrnTr_Delete && !master.Loan_Delete
+                //                    && master.BrCode == brCode && trn.BrCode == brCode && scheme.BrCode == brCode
+                //                    group trn by new
+                //                    {
+                //                        master.Loan_Id,
+                //                        master.Loan_No,
+                //                        master.San_Date,
+                //                        master.San_Amt,
+                //                        master.Roi,
+                //                        scheme.PrlLed_Id,
+                //                        scheme.IntLed_Id
+                //                    } into g
+                //                    let principalBalance = g.Key.San_Amt - g.Sum(x => x.PrlColl_Amt)
+                //                    where loanIdList.Contains(g.Key.Loan_Id) && principalBalance > 0
+
+                //                    select new DtoTermDepositLoanBalance
+                //                    {
+                //                        Loan_Id = g.Key.Loan_Id,
+                //                        Loan_No = g.Key.Loan_No,
+                //                        Loan_Date = g.Key.San_Date,
+                //                        Loan_Amount = g.Key.San_Amt,
+                //                        Rate_Of_Interest = g.Key.Roi,
+                //                        Interest_Balance = g.Sum(x => x.IntColl_Amt) - g.Sum(x => x.IntColl_Amt), // always 0
+                //                        Current_Interest = 0.0f,
+                //                        IntCalc_Date = g.Max(x => x.IntCalc_Date),
+                //                        Principal_Balance = principalBalance,
+                //                        Total_Collection = 0.0f,
+                //                        Interest_Collection = 0.0f,
+                //                        Principal_Collection = 0.0f,
+                //                        Total_Balance = 0.0f,
+                //                        PrlLed_Id = g.Key.PrlLed_Id,
+                //                        IntLed_Id = g.Key.IntLed_Id
+                //                    }).ToListAsync();
+
+                //var result = await (from master in CSISContext.Loan_Master
+                //                    join scheme in CSISContext.Loan_Schemes on master.Scheme_Id equals scheme.Scheme_Id
+                //                    join trn in CSISContext.Loan_Trn on master.Loan_Id equals trn.Loan_Id
+                //                    where !trn.TrnTr_Delete && !master.Loan_Delete
+                //                          && master.BrCode == brCode && trn.BrCode == brCode && scheme.BrCode == brCode
+                //                    group trn by new
+                //                    {
+                //                        master.Loan_Id,
+                //                        master.Loan_No,
+                //                        master.San_Date,
+                //                        master.San_Amt,
+                //                        master.Roi,
+                //                        scheme.PrlLed_Id,
+                //                        scheme.IntLed_Id
+                //                    } into g
+                //                    select new
+                //                    {
+                //                        g,
+                //                        principalBalance = g.Key.San_Amt - g.Sum(x => x.PrlColl_Amt)
+                //                    })
+                //    .AsEnumerable() // 👈 move to client-side processing
+                //    .Where(x => loanIdList.Contains(x.g.Key.Loan_Id) && x.principalBalance > 0)
+                //    .Select(x => new DtoTermDepositLoanBalance
+                //    {
+                //        Loan_Id = x.g.Key.Loan_Id,
+                //        Loan_No = x.g.Key.Loan_No,
+                //        Loan_Date = x.g.Key.San_Date,
+                //        Loan_Amount = x.g.Key.San_Amt,
+                //        Rate_Of_Interest = x.g.Key.Roi,
+                //        Interest_Balance = 0.0f,
+                //        Current_Interest = 0.0f,
+                //        IntCalc_Date = x.g.Max(t => t.IntCalc_Date),
+                //        Principal_Balance = x.principalBalance,
+                //        Total_Collection = 0.0f,
+                //        Interest_Collection = 0.0f,
+                //        Principal_Collection = 0.0f,
+                //        Total_Balance = 0.0f,
+                //        PrlLed_Id = x.g.Key.PrlLed_Id,
+                //        IntLed_Id = x.g.Key.IntLed_Id
+                //    }).ToListAsync();
+
+                var result = await (from master in CSISContext.Loan_Master
+                                    join scheme in CSISContext.Loan_Schemes on master.Scheme_Id equals scheme.Scheme_Id
+                                    join trn in CSISContext.Loan_Trn on master.Loan_Id equals trn.Loan_Id
+                                    where !trn.TrnTr_Delete && !master.Loan_Delete
+                                    && master.BrCode == brCode && trn.BrCode == brCode && scheme.BrCode == brCode
+                                    group trn by new
+                                    {
+                                        master.Loan_Id,
+                                        master.Loan_No,
+                                        master.San_Date,
+                                        master.San_Amt,
+                                        master.Roi,
+                                        scheme.PrlLed_Id,
+                                        scheme.IntLed_Id
+                                    } into g
+                                    where loanIdList.Contains(g.Key.Loan_Id) && g.Key.San_Amt - g.Sum(x => x.PrlColl_Amt) > 0
+
+                                    select new DtoTermDepositLoanBalance
+                                    {
+                                        Loan_Id = g.Key.Loan_Id,
+                                        Loan_No = g.Key.Loan_No,
+                                        Loan_Date = g.Key.San_Date,
+                                        Loan_Amount = g.Key.San_Amt,
+                                        Rate_Of_Interest = g.Key.Roi,
+                                        Interest_Balance = g.Sum(x => x.IntColl_Amt) - g.Sum(x => x.IntColl_Amt), // always 0
+                                        Current_Interest = 0.0f,
+                                        IntCalc_Date = g.Max(x => x.IntCalc_Date),
+                                        Principal_Balance = g.Key.San_Amt - g.Sum(x => x.PrlColl_Amt),
+                                        Total_Collection = 0.0f,
+                                        Interest_Collection = 0.0f,
+                                        Principal_Collection = 0.0f,
+                                        Total_Balance = 0.0f,
+                                        PrlLed_Id = g.Key.PrlLed_Id,
+                                        IntLed_Id = g.Key.IntLed_Id
+                                    }).ToListAsync();
+
+                if (result != null)
+                {
+
+                    var maxMaturityDate = (from lien in CSISContext.Lien_Trn
+                                           join td in CSISContext.TermDeposit_Master
+                                           on lien.TD_Id equals td.TD_Id
+                                           where loanIdList.Contains(lien.Loan_Id)
+                                           select td.MaturityDate).Max();
+                    if (toDate > maxMaturityDate)
+                    {
+                        toDate = maxMaturityDate;
+                        if (toDate > maxMaturityDate) toDate = maxMaturityDate;
+                        loanList = result.ToList();
+                        foreach (var loan in loanList)
+                        {
+                            if (loan.IntCalc_Date != null)
+                                IntCalcDate = Convert.ToDateTime(loan.IntCalc_Date);
+                            else
+                                IntCalcDate = loan.Loan_Date;
+                            intCalc = 0;
+                            intCalc = Utilities.Calculate_Interest(loan.Principal_Balance, loan.Rate_Of_Interest, Utilities.GetNoOfDays(toDate, IntCalcDate));
+                            loan.Current_Interest = intCalc;
+                            loan.Interest_Outstanding = loan.Interest_Balance + intCalc;
+                            loan.Total_Balance = loan.Principal_Balance + loan.Interest_Balance + intCalc;
+                            loan.IntCalc_Date = IntCalcDate;
+                            loan.Interest_Applied_Date = toDate ;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                string error = ex.Message;
+            }
+            return loanList;
+        }
+
+
         #endregion
+
+        public int Get_MaxLoanSlNo(decimal LoanId)
+        {
+            int MaxSlNo = 0;
+            try
+            {
+                MaxSlNo = (CSISContext.Loan_Trn
+                  .Where(t => t.Loan_Id == LoanId)
+                  .Select(t => (int?)t.Trn_SlNo) // Cast to nullable int to handle empty sequences
+                  .Max() ?? 0) + 1;
+
+            }
+            catch
+            {
+                MaxSlNo = 1;
+            }
+            return MaxSlNo;
+        }
     }
 }

@@ -9,9 +9,11 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface IReportsTermDepositsHandler
     {
+        Task<List<DropdownItem>> GetTDNos(string TDSchemeType, DateTime fromDate, DateTime toDate, string brCode);
+        Task<List<DropdownItem>> GetTDNos(decimal memId, string TDSchemeType, DateTime fromDate, DateTime toDate, string brCode);
         Task<List<rptTermDepositRegister>> GetTermDepositRegister(List<decimal> TDIdList, DateTime fromDate, DateTime toDate, string TDSchemeType);
         Task<List<rptFDOutstanding>> GetTermDepositOutstanding(DateTime asOnDate, string TDSchemeType, string brCode);
-        Task<List<rptFDOutstanding>> GetTermDepositOutstandingIndividual(decimal memId, DateTime asOnDate, string TDSchemeType);
+        Task<List<rptFDOutstanding>> GetTermDepositOutstandingIndividual(decimal memId, DateTime asOnDate, string TDSchemeType, string brCode);
         Task<List<rptTermDepositPayable>> GetTermDepositPayable(DateTime asOnDate, string brCode);
         Task<List<rptTermDepositPayable>> GetTermDepositMaturityPayable(DateTime asOnDate, string tdSchemeType, string brCode);
 

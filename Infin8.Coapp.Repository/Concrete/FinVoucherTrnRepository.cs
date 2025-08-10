@@ -34,6 +34,27 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+        public async Task<bool> AddFinVoucherTrnList(List<Fin_Voucher_Trn> finVoucherTrnList)
+        {
+            bool result = false;
+            try
+            {
+                decimal maxId = CSISContext.Fin_Voucher_Trn.Max(x => x.Voc_Trn_Id);
+                foreach (var finVoucherTrn in finVoucherTrnList)
+                {
+                    maxId++;
+                    finVoucherTrn.Voc_Trn_Id = maxId;
+                    await AddAsync(finVoucherTrn);
+                }
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Voucher transaction not saved");
+            }
+            return result;
+        }
 
         public async Task<bool> EditFinVoucherTrnAsync(Fin_Voucher_Trn finVoucherTrn)
         {
@@ -210,6 +231,123 @@ namespace Infin8.Coapp.Repository
         public async Task<decimal> GetCashLedgerId(string brCode)
         {
             return await CSISContext.Map_General.Where(x=> x.BrCode == brCode ).Select(x=> x.Cash_Led_Id ).FirstOrDefaultAsync();
+        }
+
+        public async Task<DtoVoucher> GetTransactionById(decimal vocId,string brCode)
+        {
+            DtoVoucher dtoVoucher = new(); 
+            try
+            {
+                decimal cashLedId = CSISContext.Map_General.Where(x=> x.BrCode == brCode).Select(x=> x.Cash_Led_Id).FirstOrDefault();
+                // This query populates the master-detail ViewModel directly
+                var voucherViewModel = await CSISContext.Fin_Voucher
+                    .Where(v => v.Voc_Id == vocId && !v.Voc_Delete)
+                    .Select(v => new DtoVoucher // Project into your ViewModel
+                    {
+                        // Master Details
+                        Voc_Id = v.Voc_Id,
+                        Voc_Rpt_No = v.Voc_Rpt_No,
+                        Voc_Pmt_No = v.Voc_Pmt_No,
+                        Voc_Date = v.Voc_Date,
+                        Voc_Type = v.Voc_Type,
+                        Voc_Narration = v.Voc_Narration
+                    }).FirstOrDefaultAsync();
+                if (voucherViewModel != null) dtoVoucher = voucherViewModel;
+
+                var trans = await (from trn in CSISContext.Fin_Voucher_Trn
+                             join ledger in CSISContext.Fin_Ledger on trn.Led_Id equals ledger.Led_Id
+                             where trn.Led_Id != cashLedId && trn.Voc_Id == vocId && trn.FinVocTr_Delete == false
+                             orderby trn.Voc_Trn_Id
+                             select new DtoVoucherTrn
+                             {
+                                 Led_Id = trn.Led_Id,
+                                 Led_Name = ledger.Led_Name ,
+                                 Voc_Rpt = trn.Voc_Rpt ,
+                                 Voc_Pmt = trn.Voc_Pmt ,
+                                 Voc_Narr = trn.Voc_Narr ,
+                                 Voc_Trn_Type = trn.Voc_Trn_Type ,
+                             }).ToListAsync();
+                if(trans != null)
+                {
+                    dtoVoucher.Transactions = trans;
+                }
+            }
+            catch (Exception)
+            {
+                dtoVoucher = new();
+            }
+            return dtoVoucher;
+        }
+
+        public async Task<DtoVoucher> GetTransactionByNo(string rptNo, string pmtNo, decimal yrId)
+        {
+            DtoVoucher dtoVoucher = new();
+            decimal vocId = 0;
+            try
+            {
+
+                
+                if (rptNo.Length > 0)
+                {
+                    var vocModal = await CSISContext.Fin_Voucher
+                    .Where(v => v.Voc_Rpt_No == rptNo && v.Yr_Id == yrId  && !v.Voc_Delete)
+                    .Select(v => new DtoVoucher // Project into your ViewModel
+                    {
+                        // Master Details
+                        Voc_Id = v.Voc_Id,
+                        Voc_Rpt_No = v.Voc_Rpt_No,
+                        Voc_Pmt_No = v.Voc_Pmt_No,
+                        Voc_Date = v.Voc_Date,
+                        Voc_Type = v.Voc_Type,
+                        Voc_Narration = v.Voc_Narration,
+                        brCode = v.BrCode 
+                    }).FirstOrDefaultAsync();
+                    if (vocModal != null) dtoVoucher = vocModal;
+                }
+                if (pmtNo.Length > 0)
+                {
+                    var vocModal = await CSISContext.Fin_Voucher
+                    .Where(v => v.Voc_Pmt_No == pmtNo && v.Yr_Id == yrId && !v.Voc_Delete)
+                    .Select(v => new DtoVoucher // Project into your ViewModel
+                    {
+                        // Master Details
+                        Voc_Id = v.Voc_Id,
+                        Voc_Rpt_No = v.Voc_Rpt_No,
+                        Voc_Pmt_No = v.Voc_Pmt_No,
+                        Voc_Date = v.Voc_Date,
+                        Voc_Type = v.Voc_Type,
+                        Voc_Narration = v.Voc_Narration,
+                        brCode = v.BrCode 
+                    }).FirstOrDefaultAsync();
+                    if (vocModal != null) dtoVoucher = vocModal;
+                }
+                decimal cashLedId = CSISContext.Map_General.Where(x => x.BrCode == dtoVoucher.brCode).Select(x => x.Cash_Led_Id).FirstOrDefault();
+                vocId = dtoVoucher.Voc_Id;
+                
+
+                var trans = await (from trn in CSISContext.Fin_Voucher_Trn
+                                   join ledger in CSISContext.Fin_Ledger on trn.Led_Id equals ledger.Led_Id
+                                   where trn.Led_Id != cashLedId && trn.Voc_Id == vocId && trn.FinVocTr_Delete == false
+                                   orderby trn.Voc_Trn_Id
+                                   select new DtoVoucherTrn
+                                   {
+                                       Led_Id = trn.Led_Id,
+                                       Led_Name = ledger.Led_Name,
+                                       Voc_Rpt = trn.Voc_Rpt,
+                                       Voc_Pmt = trn.Voc_Pmt,
+                                       Voc_Narr = trn.Voc_Narr,
+                                       Voc_Trn_Type = trn.Voc_Trn_Type,
+                                   }).ToListAsync();
+                if (trans != null)
+                {
+                    dtoVoucher.Transactions = trans;
+                }
+            }
+            catch (Exception)
+            {
+                dtoVoucher = new();
+            }
+            return dtoVoucher;
         }
     }
 }

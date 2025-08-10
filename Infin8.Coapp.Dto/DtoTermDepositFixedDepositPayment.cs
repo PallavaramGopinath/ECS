@@ -13,6 +13,8 @@ namespace Infin8.Coapp.Dto
         public decimal Mem_Id { get; set; }
         public string? Member_No { get; set; }
         public string? Member_Name { get; set; }
+        public int Age { get; set; }
+        public DateTime? DOB { get; set; }
         public DateTime Transaction_Date { get; set; }
         public string? PaymentStatus { get; set; }
         public List<DtoTermDepositFixedDepositPayable>? Fixed_Deposit_Datas { get; set; }

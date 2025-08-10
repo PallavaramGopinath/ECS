@@ -2,11 +2,15 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Text.Json
+@using System.Text.Json.Serialization;
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using System.Net
 @rendermode InteractiveAuto
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@using Infin8.Coapp.Dto
-@using Infin8.Coapp.Utility
+@inject TransactionStateService TransactionState
 
 <div class="mt-4">
     <h3 class="mb-2">Jewel Loan Disbursement</h3>
@@ -222,13 +226,13 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="appraisalFee">Appraisal Fee:</label>
-                            <InputNumber id="appraisalFee" class="form-control" disabled="true" @bind-Value="loanDetails.AppraisalFee"   />
+                            <InputNumber id="appraisalFee" class="form-control" disabled="true" @bind-Value="loanDetails.AppraisalFee" />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="bankCharges">Bank Charges:</label>
-                            <InputNumber id="bankCharges" class="form-control" disabled="true"  @bind-Value="loanDetails.BankCharges"  />
+                            <InputNumber id="bankCharges" class="form-control" disabled="true" @bind-Value="loanDetails.BankCharges" />
                         </div>
                     </div>
                 </div>
@@ -317,6 +321,12 @@
     }
 </div>
 
+<!--Display Image in checker dashboard-->
+@* @if (!string.IsNullOrEmpty(loanDetails.Jewels_Photo_Path))
+{
+    <img src="@loanDetails.Jewels_Photo_Path" style="max-width: 100%;" />
+} *@
+
 @code {
     #region parameters
     [Parameter] public int AccountId { get; set; }
@@ -330,7 +340,7 @@
     #endregion
 
     #region declarations
-    private bool isValidSubmit = true;
+    private bool isValidSubmit = false;
     private DtoJewelLoanDisbursement loanDetails = new DtoJewelLoanDisbursement();
     private DtoJewelLoanOrnments newOrnament = new DtoJewelLoanOrnments();
     private string memberNo = "";
@@ -339,6 +349,8 @@
     private bool showSuccessMessage = false;
     private bool showErrorMessage = false;
     private string errorMessage = "";
+    private Staging_Details stagingDetails = new();
+    private bool isCameraInitialized = false;
     #endregion
 
     protected override async Task OnInitializedAsync()
@@ -349,8 +361,9 @@
         // loanDetails.Member_Name = "Suresh R"; // This would come from your service
         //                                       // Initialize the date to current date
         // loanDetails.Tranaction_Date = DateTime.Now;
-        loanDetails.AccountId = AccountId ;
-        loanDetails.CashOrAdjustment = CashOrAdjustment ;
+        loanDetails = new();
+        loanDetails.AccountId = AccountId;
+        loanDetails.CashOrAdjustment = CashOrAdjustment;
         loanDetails.Mem_Id = MemberId;
         loanDetails.Member_No = MemberNumber;
         loanDetails.Member_Name = MemberName;
@@ -372,17 +385,6 @@
             {
                 loanSchemes = result.ToList();
             }
-
-            // Example: Fetch loan schemes from API
-            // loanSchemes = await Http.GetFromJsonAsync<List<LoanScheme>>("api/loanschemes");
-
-            // For demo, use sample data
-            // loanSchemes = new List<LoanScheme>
-            // {
-            //     new LoanScheme { Id = 1, Name = "Jewel Loan Normal" },
-            //     new LoanScheme { Id = 2, Name = "Jewel Loan for Agriculture" },
-            //     new LoanScheme { Id = 3, Name = "Jewel Loan Special" }
-            // };
         }
         catch (Exception ex)
         {
@@ -403,10 +405,17 @@
 
         try
         {
-            loanDetails.Mem_Id = 110010008801;
-            memberNo = "1100120006887";
-            loanDetails.Member_No = "1100120006887";
-            loanDetails.Member_Name = "Suresh R";
+            // loanDetails.Mem_Id = 110010008801;
+            // memberNo = "1100120006887";
+            // loanDetails.Member_No = "1100120006887";
+            // loanDetails.Member_Name = "Suresh R";
+
+            loanDetails.Mem_Id = MemberId;
+            loanDetails.Member_No = memberNo;
+            loanDetails.Member_Name = MemberName;
+            loanDetails.Tranaction_Date = TransactionDate;
+            loanDetails.CashOrAdjustment = CashOrAdjustment;
+            loanDetails.Ornment_List = null;
         }
         catch (Exception ex)
         {
@@ -559,7 +568,8 @@
 
     private void CalculateEligibleAmount()
     {
-        if(loanDetails.Ornment_List == null || loanDetails.Ornment_List.Count == 0){
+        if (loanDetails.Ornment_List == null || loanDetails.Ornment_List.Count == 0)
+        {
             JSRuntime.InvokeVoidAsync("alert", "Ornment details are empty");
             loanDetails.Jewels_Value = 0;
             return;
@@ -592,7 +602,7 @@
         {
             loanDetails.Jewels_Value = loanDetails.Maximum_Loan_Limit;
         }
-        if(loanDetails.Existing_Loan_Outstanding + loanDetails.Loan_Amount > loanDetails.Maximum_Loan_Limit )
+        if (loanDetails.Existing_Loan_Outstanding + loanDetails.Loan_Amount > loanDetails.Maximum_Loan_Limit)
         {
             loanDetails.Loan_Amount = loanDetails.Maximum_Loan_Limit - loanDetails.Existing_Loan_Outstanding;
         }
@@ -612,7 +622,7 @@
         CalculateAppraisalFee();
     }
 
-    private async Task InitCamera()
+    private async Task InitCamera_old()
     {
         try
         {
@@ -626,7 +636,35 @@
         }
     }
 
-    private async Task CapturePhoto()
+    private async Task InitCamera()
+    {
+        try
+        {
+            // Use InvokeAsync<bool> since we're now returning a proper boolean
+            var success = await JSRuntime.InvokeAsync<bool>("initializeCamera");
+
+            if (!success)
+            {
+                errorMessage = "Could not access camera";
+                showErrorMessage = true;
+            }
+            // isCameraInitialized = await JSRuntime.InvokeAsync<bool>("initializeCamera");
+            // if (!isCameraInitialized)
+            // {
+            //     errorMessage = "Could not access camera";
+            //     showErrorMessage = true;
+            // }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing camera: {ex.Message}");
+            errorMessage = $"Camera error: {ex.Message}";
+            // errorMessage = "Failed to initialize camera. Please check permissions.";
+            showErrorMessage = true;
+        }
+    }
+
+    private async Task CapturePhoto_old()
     {
         try
         {
@@ -639,6 +677,119 @@
             errorMessage = "Failed to capture photo.";
             showErrorMessage = true;
         }
+    }
+
+    private async Task CapturePhoto_old2()
+    {
+        try
+        {
+            // First verify camera is ready
+            var isCameraReady = await JSRuntime.InvokeAsync<bool>(
+                "eval",
+                "!!document.getElementById('cameraFeed')?.srcObject");
+
+            if (!isCameraReady)
+            {
+                errorMessage = "Please initialize camera first";
+                showErrorMessage = true;
+                return;
+            }
+
+            // Now capture the image
+            capturedImageData = await JSRuntime.InvokeAsync<string>("captureImage");
+
+            if (string.IsNullOrEmpty(capturedImageData))
+            {
+                throw new Exception("Empty image data");
+            }
+
+            loanDetails.Jewels_Photo_Path = capturedImageData;
+            StateHasChanged(); // Refresh UI
+            // // Check if camera is initialized first
+            // var videoElement = await JSRuntime.InvokeAsync<object>("eval",
+            //     "document.getElementById('cameraFeed').srcObject !== null");
+
+            // if (videoElement == null || !(bool)videoElement)
+            // {
+            //     errorMessage = "Please initialize the camera first";
+            //     showErrorMessage = true;
+            //     return;
+            // }
+
+            // // Add timeout for safety
+            // using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            // capturedImageData = await JSRuntime.InvokeAsync<string>(
+            //     "captureImage",
+            //     cancellationToken: cts.Token);
+
+            // if (string.IsNullOrEmpty(capturedImageData))
+            // {
+            //     throw new Exception("Captured image data is empty");
+            // }
+
+            // // Store in your model
+            // loanDetails.Jewels_Photo_Path = capturedImageData;
+
+            // // Optional: Log the first 50 chars of the base64 string for debugging
+            // Console.WriteLine($"Image captured: {capturedImageData[..50]}...");
+        }
+        catch (OperationCanceledException)
+        {
+            errorMessage = "Image capture timed out";
+            showErrorMessage = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error capturing photo: {ex.ToString()}");
+            errorMessage = $"Failed to capture photo: {ex.Message}";
+            showErrorMessage = true;
+        }
+    }
+
+    private async Task CapturePhoto()
+    {
+        try
+        {
+            // Get base64 image
+            capturedImageData = await JSRuntime.InvokeAsync<string>("captureImage");
+
+            // Upload to server
+            var response = await _httpClient.PostAsJsonAsync("https://localhost:7073/api/Transaction/upload",
+                new { ImageData = capturedImageData });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ImageUploadResult>();
+                loanDetails.Jewels_Photo_Path = result!.Path;
+
+                // Now store in staging_details with just the path
+                // stagingDetails = new()
+                // {
+                //     // ... other properties
+                //     Related_Account_Data = JsonSerializer.Serialize(loanDetails)
+                // };
+
+                // await _httpClient.PostAsJsonAsync("api/Staging", stagingDetails);
+            }
+            else
+            {
+                errorMessage = "Failed to upload image";
+                showErrorMessage = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+            showErrorMessage = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        // Stop camera when component disposes
+        _ = JSRuntime.InvokeVoidAsync("eval",
+            "document.getElementById('cameraFeed')?.srcObject?.getTracks()?.forEach(t => t.stop())");
     }
 
     private async Task HandleValidSubmit()
@@ -739,6 +890,7 @@
             isValidSubmit = false;
         return result;
     }
+
     private void ResetForm()
     {
         loanDetails = new DtoJewelLoanDisbursement
@@ -761,14 +913,140 @@
 
     protected async Task JLDisbursementInitiate()
     {
-        await OnJLDisbursementInitiate.InvokeAsync(loanDetails);
+        if (string.IsNullOrEmpty(loanDetails.Jewels_Photo_Path))
+        {
+            errorMessage = "Please capture a photo of the jewels before submitting.";
+            showErrorMessage = true;
+            return;
+        }
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        string jewelLoanJsonData = ConvertToJson(loanDetails);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id =0,
+            Member_Id = MemberId,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = loanDetails.AppraisalFee + loanDetails.BankCharges,
+            Payment_Amount = loanDetails.Loan_Amount,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = jewelLoanJsonData,
+            Created_By = 110010000001,
+            Created_Date =  TransactionDate,
+            Checked_By =0,
+            Checked_Date = null,
+            Staging_Status ="I",
+            BrCode = "11001"
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        // await OnJLDisbursementInitiate.InvokeAsync(loanDetails);
+        await TransactionState.NotifyIntiate(true);
     }
 
+    private string ConvertToJson(DtoJewelLoanDisbursement disbursement)
+    {
+        string jsonData = string.Empty;
+        try
+        {
+            jsonData = JsonSerializer.Serialize(loanDetails, new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            });
+            // var options = new JsonSerializerOptions
+            // {
+            //     WriteIndented = false, // Compact JSON
+            //     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            // };
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to prepare loan data: {ex.Message}";
+            showErrorMessage = true;
+            jsonData = string.Empty;
+        }
+        return jsonData;
+        // return JsonSerializer.Serialize(disbursement, options);
+    }
 
-    // Additional classes for the demo
-    // public class LoanScheme
-    // {
-    //     public int Id { get; set; }
-    //     public string? Name { get; set; }
-    // }
+    // using System.Text.Json;
+    public DtoJewelLoanDisbursement ConvertFromJson(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+        };
+
+        return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData, options)!;
+    }
+
+    // Handling Potential Errors
+    // You might want to add error handling:
+    public DtoJewelLoanDisbursement? ConvertFromJson2(string jsonData)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData);
+        }
+        catch (JsonException ex)
+        {
+            // Log the error
+            Console.WriteLine($"Error deserializing JSON: {ex.Message}");
+            return null;
+        }
+    }
+
+    // Customizing the Deserialization
+    // If you need special handling for certain properties(like date formats), you can configure the serializer:
+    public DtoJewelLoanDisbursement ConvertFromJson3(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // If your JSON uses camelCase
+            Converters = { new JsonStringEnumConverter() } // If you have enums
+        };
+        return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData, options)!;
+    }
+
+    // Customizing the Deserialization
+    // If you need special handling for certain properties(like date formats), you can configure the serializer:
+    public DtoJewelLoanDisbursement ConvertFromJson4(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // If your JSON uses camelCase
+                Converters = { new JsonStringEnumConverter() } // If you have enums
+            };
+
+        return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData, options)!;
+    }
+
+    
+        
+
 }

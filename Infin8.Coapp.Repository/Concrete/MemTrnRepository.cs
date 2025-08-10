@@ -16,14 +16,16 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddMemTrnAsync(Mem_Trn memTrn, string brCode)
+        public async Task<bool> AddMemTrnAsync(Mem_Trn memTrn)
         {
             bool result = false;
             try
             {
-                decimal maxId = await CSISContext.Mem_Trn.Where(x => x.BrCode == brCode).MaxAsync(x => x.Mem_Trn_Id);
+                decimal maxId = await CSISContext.Mem_Trn.Where(x => x.BrCode == memTrn.BrCode).MaxAsync(x => x.Mem_Trn_Id);
+                int maxTrnId = await CSISContext.Mem_Trn.Where(x=> x.Mem_Id == memTrn.Mem_Id && x.Trn_Type == memTrn.Trn_Type && x.Led_Id == memTrn.Led_Id && x.BrCode == memTrn.BrCode).MaxAsync(x => x.Trn_SlNo);
                 maxId++;
                 memTrn.Mem_Trn_Id = maxId;
+                memTrn.Trn_SlNo = maxTrnId;
                 await AddAsync(memTrn);
                 result = true;
             }
@@ -51,6 +53,43 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<DtoSBAccountBalanceWithIds> GetSBAccountBalanceWithIds(decimal memId, string brCode)
+        {
+            DtoSBAccountBalanceWithIds sbData = new();
+            try
+            {
+                var query = await  (from mt in CSISContext.Mem_Trn
+                            join sm in CSISContext.SBCA_Master on mt.Acc_Id equals sm.Acc_Id
+                            join ss in CSISContext.SBCA_Schemes on sm.Scheme_Id equals ss.Scheme_Id
+                            where mt.Trn_Type == 7
+                               && mt.Mem_Id == memId
+                               && mt.MemTrn_Delete == false
+                               && sm.Acc_Delete == false
+                               && mt.BrCode == brCode
+                               && sm.BrCode == brCode
+                            group new { mt, sm, ss } by new // Group by the necessary fields
+                            {
+                                sm.Acc_Id,
+                                sm.Acc_No,
+                                ss.SBCA_Led_Id
+                            } into g // 'g' is now an IGrouping
+                            select new DtoSBAccountBalanceWithIds // Or an anonymous type: new { ... }
+                            {
+                                Acc_Id = g.Key.Acc_Id,
+                                Acc_No = g.Key.Acc_No,
+                                SBCA_Led_Id = g.Key.SBCA_Led_Id,
+                                Balance_Amount = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)
+                            }).FirstOrDefaultAsync();
+                if (query != null) sbData = query;
+                
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            return sbData;
+        }
         public async Task<double> GetSBAccountBalanceByAccId(decimal accId, string brCode)
         {
             double balance = 0;
@@ -161,5 +200,7 @@ namespace Infin8.Coapp.Repository
             }
             return suspenseAmt;
         }
+
+       
     }
 }

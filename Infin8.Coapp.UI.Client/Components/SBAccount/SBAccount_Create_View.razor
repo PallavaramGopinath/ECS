@@ -1,0 +1,80 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+<div class="card mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h5 class="mb-0">New Savings Bank Account Details</h5>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Member Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Member No:</label>
+                            <div class="form-control-plaintext">@sbAccountModel.Member_No</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Member Name:</label>
+                            <div class="form-control-plaintext">@sbAccountModel.Member_Name</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        <div class="col-md-6">
+            <div class="card p-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Savings Bank Account Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Savings Bank Account No:</label>
+                            <div class="form-control-plaintext">@sbAccountModel.SBAccount_No</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Member Name:</label>
+                            <div class="form-control-plaintext">@sbAccountModel.Receipt_Amount</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+            
+</div>
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private Staging_Details details = new Staging_Details();
+    private DtoSBAccountCreate sbAccountModel = new DtoSBAccountCreate();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null)
+                {
+                    sbAccountModel = Utility.JsonbObject.ConvertFromJsonForNewSBAccount(details.Related_Account_Data!);
+                    sbAccountModel.SBAccount_No = "Not yet assigned";
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+}

@@ -15,6 +15,7 @@ namespace Infin8.Coapp.Dto
         public double Previous_Interest_Paid { get; set; }
         public double Pending_Interest { get; set; }
         public double Current_Interest_Calculated { get; set; }
+        public double Rate_Of_Interest { get; set; }
         public double Rate_Of_Interest_Applied { get; set; }
         public DateTime? Current_Interest_Applied_Date { get; set; }
         public double Total_Interest_Payable { get; set; }

@@ -33,6 +33,6 @@ namespace Infin8.Coapp.Models
         public decimal Demand_Id { get; set; }
         public decimal TDCalc_Id { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

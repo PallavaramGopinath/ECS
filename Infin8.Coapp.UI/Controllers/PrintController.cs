@@ -28,7 +28,7 @@ namespace Infin8.Coapp.API.Controllers
             _generalHandler = generalHandler;
         }
 
-        
+        #region commented
         //public async Task<FileContentResult> PrintMemberReceipt(decimal vocId,string brCode)
         //{
         //    rptReceiptAndPaymentAmount rptAndPmtAmt = new rptReceiptAndPaymentAmount();
@@ -39,13 +39,13 @@ namespace Infin8.Coapp.API.Controllers
         //        societyName = await _generalHandler.GetSocietyName(brCode);
         //        //var path = $"{this._webHostEnvironment.ContentRootPath}\\wwwroot\\Reports\\SKSMChecklist.rdlc";
         //        var path = $"{this._webHostEnvironment.ContentRootPath}\\wwwroot\\Reports\\"; // + report.ReportFileName;
-                
+
         //        rptAndPmtAmt = await _reportHandler.GetReceiptAndPaymentAmount(vocId);
         //        LocalReport localReport = new LocalReport
         //        {
         //            EnableExternalImages = true,
         //        };
-                
+
         //        using (FileStream stream = System.IO.File.OpenRead(path))
         //        {
         //            localReport.LoadReportDefinition(stream);
@@ -61,9 +61,9 @@ namespace Infin8.Coapp.API.Controllers
         //            }
         //            else if(rptAndPmtAmt .Voc_Type == 14)
         //            {
-                        
+
         //            }
-                   
+
         //        }
         //        /// print voucher
         //        if (rptAndPmtAmt.Voc_Pmt > 0)
@@ -78,26 +78,59 @@ namespace Infin8.Coapp.API.Controllers
         //    }
         //    return CreatePDFAsBytes(pdfAsBytes);
         //}
+        #endregion 
 
         [HttpGet]
-        [Route("GetReceiptAndPaymentData/{vocId:decimal}/{brCode}")]
-        public async Task<rptReceiptAndPaymentAmount> GetReceiptAndPaymentAmountByVocId(decimal vocId, string brCode)
+        [Route("GetReportNameList/{grpId:int}")]
+        public async Task<ActionResult<List<DropdownItem>>> GetReportNameList(int grpId)
         {
-            rptReceiptAndPaymentAmount rptAndPmtAmt = new rptReceiptAndPaymentAmount();
-            try
+            List<DropdownItem> rptList = new();
+            var response = await _reportHandler.GetReportNameList(grpId);
+            if (response.Count > 0)
             {
-                rptAndPmtAmt = await _reportHandler.GetReceiptAndPaymentAmount(vocId,brCode);
+                rptList = response.ToList();
+                return Ok(rptList);
             }
-            catch (Exception)
+            else
             {
-                //_logger.LogError(ex, "Error in GetReceiptAndPaymentAmountByVocId");
-                //return null; // Or handle more gracefully
+                return NotFound();
             }
-            return rptAndPmtAmt;
+        }
+        #region Status
+        [HttpGet]
+        [Route("GetStatus/{vocId:decimal}")]
+        public async Task<ActionResult<List<string>>> GetStatusList(decimal vocId)
+        {
+            List<string> statusList = new();
+            var result = await _reportHandler.GetStatusForMemberTransaction(vocId);
+            if (result.Count > 0)
+            {
+                statusList = result.ToList();
+                return Ok(statusList);
+            }
+            else
+            {
+                return NotFound();
+            }
+        }
+        #endregion
+
+        #region Receipt items
+        [HttpGet]
+        [Route("GetReceiptAndPaymentData/{vocId:decimal}/{brCode}")]
+        public async Task<ActionResult< List<rptReceiptAndPaymentAmount>>> GetReceiptAndPaymentAmountByVocId(decimal vocId, string brCode)
+        {
+            List<rptReceiptAndPaymentAmount> rptAndPmtAmt = new();
+
+            rptAndPmtAmt = await _reportHandler.GetReceiptAndPaymentAmount(vocId, brCode);
+            if (rptAndPmtAmt.Count  == 0)
+            {
+                return NotFound(); ;
+            }
+            return Ok(rptAndPmtAmt);
         }
 
         [HttpPost]
-        //[Route("print-receipt/{vocTrnType:int}/{vocId:decimal}/{brCode}")]
         [Route("print-receipt")]
         public async Task<FileContentResult> Print_MemberReceipt( [FromBody] rptReceiptObject rptObject)
         {
@@ -229,6 +262,254 @@ namespace Infin8.Coapp.API.Controllers
             return CreatePDFAsBytes(pdfAsBytes);
         }
 
+        [HttpPost]
+        [Route("print-voucher")]
+        public async Task<FileContentResult> Print_Voucher([FromBody] rptReportObject rptObject)
+        {
+            Reports_Master report = new Reports_Master();
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            string rsInWords = "";
+            string chequeDetails = "";
+            try
+            {
+                societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
+                string receiptHeader = rptObject.VocTrnType == 1 ? "CASH RECEIPT" : "ADJUSTMENT RECEIPT";
+                List<rptPaymentVoucher> voucherList = new ();
+                report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId); /// .GetReportNameWithSignature("Receipt General");
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                LocalReport localReport = new LocalReport
+                {
+                    EnableExternalImages = true,
+                };
+
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    localReport.LoadReportDefinition(stream);
+                }
+                
+                var paymentData = await _reportHandler.GetPaymentData(rptObject.Voc_Id); /// .GetReceiptGeneralData(rptObject.vocId, rptObject.brCode!);
+                voucherList = paymentData.paymentData;
+                chequeDetails = paymentData.chequeDetails;
+                double rs = voucherList.Sum(x => x.PaymentAmt);
+                rsInWords = _utilityHandler.RupeesInWords(rs);
+
+                DataTable dth = new DataTable();
+                dth.Columns.Add("RsInWords");
+                dth.Columns.Add("SocietyName");
+                dth.Columns.Add("ReportHeader");
+                dth.Columns.Add("ChequeDetails");
+                DataRow dr = dth.NewRow();
+                dr["RsInWords"] = rsInWords;
+                dr["SocietyName"] = societyName;
+                if (rptObject.VocTrnType == 1)
+                    dr["ReportHeader"] = "Payment Voucher by Cash";
+                else
+                    dr["ReportHeader"] = "Payment Voucher by Adjustment";
+                dr["ChequeDetails"] = chequeDetails;
+                dth.Rows.Add(dr);
+
+                var parameters = new[]
+                {
+                    new ReportParameter("ParamFirstSignature", report.FirstSignature ) ,
+                    new ReportParameter("ParamSecondSignature", report.SecondSignature ),
+                    new ReportParameter("ParamThirdSignature", report.ThirdSignature ),
+                };
+
+                localReport.DataSources.Clear();
+                localReport.DataSources.Add(new ReportDataSource("Ds_PaymentVoucher", voucherList));
+                localReport.DataSources.Add(new ReportDataSource("Ds_PaymentVoucherHeader", dth));
+                localReport.SetParameters(parameters);
+                localReport.Refresh();
+                pdfAsBytes = localReport.Render("PDF");
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        #endregion 
+
+        #region Fixed Deposit
+        [HttpPost]
+        [Route("print-fdpayment")]
+        public async Task<FileContentResult> Print_FDPayment([FromBody] rptReceiptObject rptObject)
+        {
+            Reports_Master report = new();
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            List<rptFDPaymentList> fdPmtList = new();
+            string rsInWords = "";
+            string chequeDetails = "";
+            try
+            {
+                societyName = await _generalHandler.GetSocietyName(rptObject.brCode!);
+                //string receiptHeader = rptObject.vocTrnType == 1 ? "CASH RECEIPT" : "ADJUSTMENT RECEIPT";
+               
+                report = await _reportHandler.GetReportNameWithSignature(92);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                LocalReport localReport = new LocalReport
+                {
+                    EnableExternalImages = true,
+                };
+
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    localReport.LoadReportDefinition(stream);
+                }
+
+                var fdPmtData = await _reportHandler.GetFDPaymentList(rptObject.vocId);
+                
+                fdPmtList = fdPmtData.fdPaymentList;
+                double pmtAmt = fdPmtList.Select(x => x.InterestPaidAmount + x.DepositPaidAmount).Sum();
+                string FDNos = "";
+                foreach (var fd in fdPmtList)
+                {
+                    FDNos += fd.TD_No!.Trim() + ",";
+                }
+                chequeDetails = fdPmtData.chequeDetails;
+                //var receiptData = await _reportHandler.GetReceiptGeneralData(rptObject.vocId, rptObject.brCode!);
+                //rptList = receiptData.receiptData;
+                //receiptAmt = rptList.Sum(x => x.Voc_Rpt);
+                //chequeDetails = receiptData.chequeDetails;
+
+                rsInWords = _utilityHandler.RupeesInWords(pmtAmt);
+
+                var parameters = new[]
+                {
+                    new ReportParameter("paramSocietyName", societyName ) ,
+                    new ReportParameter("ParamFirstSignature", report.FirstSignature ) ,
+                    new ReportParameter("ParamSecondSignature", report.SecondSignature ),
+                    new ReportParameter("ParamThirdSignature", report.ThirdSignature )
+                };
+                DataTable dth = new DataTable();
+                dth.Columns.Add("Contentent");
+                dth.Columns.Add("ChequeDetails");
+                dth.Columns.Add("RsInWords");
+                DataRow dr = dth.NewRow();
+                dr["Contentent"] = "Received from " + societyName.Trim() + " the sum of Rs. " + pmtAmt.ToString() + " (Rupees " + rsInWords + " paid towards FD No(s) " + FDNos;
+                dr["RsInWords"] = rsInWords;
+                dr["ChequeDetails"] = chequeDetails;
+                dth.Rows.Add(dr);
+
+
+                localReport.DataSources.Add(new ReportDataSource("Ds_FDPaymentList", fdPmtList));
+                localReport.DataSources.Add(new ReportDataSource("Ds_FDPayment", dth));
+                localReport.SetParameters(parameters);
+                pdfAsBytes = localReport.Render("PDF");
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        [HttpPost]
+        [Route("print-fdbond")]
+        public async Task<FileContentResult> Print_FDBond([FromBody] rptReceiptObject rptObject)
+        {
+            Reports_Master report = new();
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            rptFDBond fDBond = new();
+            try
+            {
+                societyName = await _generalHandler.GetSocietyName(rptObject.brCode!);
+                report = await _reportHandler.GetReportNameWithSignature(116);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                LocalReport localReport = new LocalReport
+                {
+                    EnableExternalImages = true,
+                };
+
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    localReport.LoadReportDefinition(stream);
+                }
+
+                var fdBondData = await _reportHandler.GetFDBondPreprinted(rptObject.vocId); ///  .GetFDPaymentList(rptObject.vocId);
+                if (fdBondData != null) 
+                {
+                    fDBond = fdBondData;
+                }
+                DataTable dth = new DataTable();
+                dth = ObjectToDataTable(fDBond);
+
+                var parameters = new[]
+                {
+                    new ReportParameter("paramSocietyName", societyName ) ,
+                    new ReportParameter("ParamFirstSignature", report.FirstSignature ) ,
+                    new ReportParameter("ParamSecondSignature", report.SecondSignature ),
+                    new ReportParameter("ParamThirdSignature", report.ThirdSignature )
+                };
+
+                localReport.DataSources.Add(new ReportDataSource("Ds_FDBond", dth));
+                localReport.SetParameters(parameters);
+                pdfAsBytes = localReport.Render("PDF");
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+        #endregion
+
+        #region Jewel Loan 
+        [HttpPost]
+        [Route("print-jl-ledger")]
+        public async Task<FileContentResult> Print_JL_Ledger([FromBody] rptReportObject rptObject)
+        {
+            Reports_Master report = new();
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            List<rptJewelLoanLedger> loanList = new();
+            string rsInWords = "";
+            try
+            {
+                societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
+                report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                LocalReport localReport = new LocalReport
+                {
+                    EnableExternalImages = true,
+                };
+
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    localReport.LoadReportDefinition(stream);
+                }
+
+                var loanListData = await _reportHandler.GetJewelLoanLedger(rptObject.Voc_Id); ///  .GetFDPaymentList(rptObject.vocId);
+                if (loanListData.Count > 0)
+                {
+                    loanList = loanListData.ToList();
+                }
+                rsInWords = _utilityHandler.RupeesInWords(loanList.Select(x => x.San_Amt).FirstOrDefault());
+
+                var parameters = new[]
+                {
+                    new ReportParameter("paramSocietyName", societyName ) ,
+                    new ReportParameter("paramRupeesInWords", rsInWords ) ,
+                    new ReportParameter("ParamFirstSignature", report.FirstSignature ) ,
+                    new ReportParameter("ParamSecondSignature", report.SecondSignature ),
+                    new ReportParameter("ParamThirdSignature", report.ThirdSignature )
+                };
+
+                localReport.DataSources.Add(new ReportDataSource("Ds_JLLedger", loanList));
+                localReport.SetParameters(parameters);
+                pdfAsBytes = localReport.Render("PDF");
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+        
+        #endregion 
+
+        #region Create PDF AS Bytes
         private FileContentResult CreatePDFAsBytes(byte[] pdfAsBytes)
         {
             try
@@ -241,5 +522,37 @@ namespace Infin8.Coapp.API.Controllers
                 return File(Array.Empty<byte>(), "application/pdf");
             }
         }
+        #endregion
+
+        public  System.Data.DataTable ObjectToDataTable(object o)
+        {
+            Type t = o.GetType();
+            System.Data.DataTable dt = new System.Data.DataTable(t.Name);
+            DataRow dr = dt.NewRow();
+            dt.Rows.Add(dr);
+            o.GetType().GetProperties().ToList().ForEach(f =>
+            {
+                try
+                {
+                    f.GetValue(o, null);
+                    dt.Columns.Add(f.Name, f.PropertyType);
+                    dt.Rows[0][f.Name] = f.GetValue(o, null);
+                }
+                catch { }
+            });
+            return dt;
+        }
+
+        #region Print
+        //[HttpPost]
+        //[Route("Print_Member_Receipt")]
+        //public async Task<IActionResult> Print_Member_Receipt([FromBody] rptReceiptObject rptObject)
+        //{
+
+        //    await _reportHandler.Print_Member_Receipt(rptObject);
+
+        //}
+        #endregion 
+
     }
 }

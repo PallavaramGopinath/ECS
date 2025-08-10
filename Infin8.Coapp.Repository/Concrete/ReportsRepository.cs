@@ -1,22 +1,53 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-
+//using Microsoft.JSInterop;
+//using System.Net.Http.Json;
 namespace Infin8.Coapp.Repository
 {
     public class ReportsRepository : Repository<Reports_Master>, IReportsRepository
     {
         public CSISContext CSISContext => (CSISContext)Context;
-        public ReportsRepository(CSISContext context) : base(context)
+        //private readonly IJSRuntime _jsRuntime;
+        //private readonly HttpClient _httpClient;
+        
+        public ReportsRepository(CSISContext context ) : base(context)
         {
+            //_jsRuntime = jsRuntime;
+            //_httpClient = httpClient;
         }
+
+        public async Task<List<DropdownItem>> GetReportNameList(int grpId)
+        {
+            List<DropdownItem> reportList = new();
+            try
+            {
+                var result = await (from r in CSISContext.Reports_Master
+                                    where r.ReportGrp_Id == grpId && r.ReportDelete == false
+                                    select new DropdownItem
+                                    {
+                                        Value = r.Report_Id.ToString(),
+                                        Text = r.ReportName
+                                    }).ToListAsync();
+                if (result.Count > 0) reportList = result.ToList();
+            }
+            catch (Exception)
+            {
+                reportList = new();
+            }
+            return reportList;
+        }
+        #region Report name and id
         public async Task<int> GetReportId(string reportName)
         {
             return await  CSISContext.Reports_Master.Where(x => x.ReportName == reportName).Select(x => x.Report_Id).FirstOrDefaultAsync();
@@ -27,42 +58,125 @@ namespace Infin8.Coapp.Repository
             report =   await CSISContext.Reports_Master.Where(x => x.Report_Id == reportId).FirstAsync();
             return report;
         }
-
         public async  Task<Reports_Master> GetReportNameWithSignature(string reportName)
         {
             Reports_Master report = new Reports_Master();
             report = await CSISContext.Reports_Master.Where(x => x.ReportName == reportName).FirstAsync();
             return report;
         }
-        public async Task<rptReceiptAndPaymentAmount> GetReceiptAndPaymentAmount(decimal vocId)
+        #endregion
+
+        #region Status
+        public async Task<List<string>> GetStatusForMemberTransaction(decimal vocId)
         {
-            rptReceiptAndPaymentAmount? rptAmtPmt = new rptReceiptAndPaymentAmount();
+            List<string> status = new();
             try
             {
-                var result  = await (from vocTrn in CSISContext.Fin_Voucher_Trn
-                              join voc in CSISContext.Fin_Voucher on vocTrn.Voc_Id equals voc.Voc_Id
-                              where vocTrn.Voc_Id == vocId &&
-                                    !CSISContext.Map_General.Any(m => m.Cash_Led_Id == vocTrn.Led_Id) &&
-                                    vocTrn.FinVocTr_Delete == false
-                              group new { voc, vocTrn } by new { voc.Voc_Type, vocTrn.Voc_Trn_Type } into g
-                              select new rptReceiptAndPaymentAmount
-                              {
-                                  Voc_Type = g.Key.Voc_Type,
-                                  Voc_Trn_Type = g.Key.Voc_Trn_Type,
-                                  Voc_Rpt = g.Sum(x => x.vocTrn.Voc_Rpt),
-                                  Voc_Pmt = g.Sum(x => x.vocTrn.Voc_Pmt)
-                              }).FirstOrDefaultAsync();
-                if (result == null) rptAmtPmt = result;
-                
+                var result = await  (from fvt in CSISContext.Fin_Voucher_Trn
+                              where fvt.Voc_Id == vocId && fvt.FinVocTr_Delete == false && fvt.Status!.Length > 0
+                              select fvt.Status).Distinct().ToListAsync();
+                if (result.Count > 0) status = result.ToList();
             }
             catch (Exception)
             {
-
-                throw;
+                status = new();
             }
-            return rptAmtPmt!;
+            return status;
         }
-        public async Task<rptReceiptAndPaymentAmount> GetReceiptAndPaymentAmount(decimal vocId, string brCode)
+
+        #endregion
+
+        #region Receipt and Payment
+        public async Task<List<rptReceiptAndPaymentAmount>> GetReceiptAndPaymentAmount(decimal vocId,string brCode)
+        {
+            List<rptReceiptAndPaymentAmount> rptPmtList = new();
+            //rptReceiptAndPaymentAmount? rptAmtPmt = new rptReceiptAndPaymentAmount();
+            bool isChequeOnlyReceipt = false;
+            try
+            {
+                var bankLedgerIds = CSISContext.Map_Banks.Select(b => b.Led_Id).ToList();
+
+                #region Receipt items
+                var voc_rpt_sum = (from fv in CSISContext.Fin_Voucher
+                                   join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
+                                   // The join to Fin_Ledger is not necessary as it's not used for filtering or selection.
+                                   // It has been removed for optimization. See note below.
+                                   where fv.Voc_Id == vocId
+                                         && fv.Voc_Delete == false
+                                         && fvt.FinVocTr_Delete == false
+                                         && fv.BrCode == brCode 
+                                         && fvt.BrCode == brCode 
+                                         && !CSISContext.Map_General.Any(m => m.Cash_Led_Id == fvt.Led_Id)
+                                         && !bankLedgerIds.Contains(fvt.Led_Id) // Handles the NOT IN clause
+                                   select fvt.Voc_Rpt)
+                   .Sum();
+                if (voc_rpt_sum > 0)
+                {
+                    isChequeOnlyReceipt = false;
+                }
+                var cheque_rpt_sum = (from fv in CSISContext.Fin_Voucher
+                                   join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
+                                   // The join to Fin_Ledger is not necessary as it's not used for filtering or selection.
+                                   // It has been removed for optimization. See note below.
+                                   where fv.Voc_Id == vocId
+                                         && fv.Voc_Delete == false
+                                         && fvt.FinVocTr_Delete == false
+                                         && fv.BrCode == brCode
+                                         && fvt.BrCode == brCode 
+                                         && !CSISContext.Map_General.Any(m => m.Cash_Led_Id == fvt.Led_Id)
+                                         && bankLedgerIds.Contains(fvt.Led_Id) // Handles the NOT IN clause
+                                   select fvt.Voc_Rpt)
+                   .Sum();
+                if (cheque_rpt_sum > 0)
+                    isChequeOnlyReceipt = true;
+
+                if(isChequeOnlyReceipt == false)
+                {
+                    var result = await (from vocTrn in CSISContext.Fin_Voucher_Trn
+                                        join voc in CSISContext.Fin_Voucher on vocTrn.Voc_Id equals voc.Voc_Id
+                                        where vocTrn.Voc_Id == vocId &&
+                                              voc.BrCode == brCode &&
+                                              vocTrn.BrCode == brCode &&
+                                              !CSISContext.Map_General.Any(m => m.Cash_Led_Id == vocTrn.Led_Id) &&
+                                              vocTrn.FinVocTr_Delete == false
+                                        group new { voc, vocTrn } by new { voc.Voc_Type, vocTrn.Voc_Trn_Type } into g
+                                        select new rptReceiptAndPaymentAmount
+                                        {
+                                            Voc_Type = g.Key.Voc_Type,
+                                            Voc_Trn_Type = g.Key.Voc_Trn_Type,
+                                            Voc_Rpt = g.Sum(x => x.vocTrn.Voc_Rpt),
+                                            Voc_Pmt = g.Sum(x => x.vocTrn.Voc_Pmt)
+                                        }).ToListAsync();
+                    if(result.Count > 0) rptPmtList.AddRange(result);
+                }
+                if(isChequeOnlyReceipt == true)
+                {
+                    var result = await (from vocTrn in CSISContext.Fin_Voucher_Trn
+                                        join voc in CSISContext.Fin_Voucher on vocTrn.Voc_Id equals voc.Voc_Id
+                                        where vocTrn.Voc_Id == vocId &&
+                                              vocTrn.BrCode == brCode &&
+                                              voc.BrCode == brCode &&
+                                              CSISContext.Map_General.Any(m => m.Cash_Led_Id == vocTrn.Led_Id) &&
+                                              vocTrn.FinVocTr_Delete == false 
+                                        group new { voc, vocTrn } by new { voc.Voc_Type, vocTrn.Voc_Trn_Type } into g
+                                        select new rptReceiptAndPaymentAmount
+                                        {
+                                            Voc_Type = g.Key.Voc_Type,
+                                            Voc_Trn_Type = g.Key.Voc_Trn_Type,
+                                            Voc_Rpt = g.Sum(x => x.vocTrn.Voc_Rpt),
+                                            Voc_Pmt = g.Sum(x => x.vocTrn.Voc_Pmt)
+                                        }).ToListAsync();
+                    if (result.Count > 0) rptPmtList.AddRange(result);
+                }
+                #endregion 
+            }
+            catch (Exception)
+            {
+                rptPmtList = new();
+            }
+            return rptPmtList;
+        }
+        public async Task<rptReceiptAndPaymentAmount> GetReceiptAndPaymentAmount2(decimal vocId, string brCode)
         {
             rptReceiptAndPaymentAmount? rptAmtPmt = new rptReceiptAndPaymentAmount();
             try
@@ -258,7 +372,6 @@ namespace Infin8.Coapp.Repository
             }
             return (receiptData, intCalcDate);
         }
-
         public async Task<(List<rptReceiptMemberList> receiptData, string chequeDetails)> GetReceiptGeneralData(decimal vocId, string brCode)
         {
             List<rptReceiptMemberList> receiptData = new List<rptReceiptMemberList>();
@@ -536,7 +649,324 @@ namespace Infin8.Coapp.Repository
                 throw;
             }
         }
+        #endregion 
 
-        
+        #region Fixed Deposit Reports
+        public async Task<(List<rptFDPaymentList> fdPaymentList, string chequeDetails)> GetFDPaymentList(decimal vocId)
+        {
+            List<rptFDPaymentList> fdPmtList = new();
+            string chequeDetails = "";
+            List<rptChequeDetails> chequeList = new();
+            try
+            {
+                var result = await (from tdm in CSISContext.TermDeposit_Master
+                                    join tdt in CSISContext.TermDeposit_Trn on tdm.TD_Id equals tdt.TD_Id
+                                    join fv in CSISContext.Fin_Voucher on tdt.Voc_Id equals fv.Voc_Id
+                                    where tdt.Voc_Id == 110010122205 && (tdt.InterestPaidAmount > 0 || tdt.DepositPaidAmount > 0) && tdt.TD_Delete == false
+                                    orderby tdm.TD_No
+                                    select new rptFDPaymentList
+                                    {
+                                        Voc_Date = fv.Voc_Date,
+                                        Voc_Pmt_No =  fv.Voc_Pmt_No,
+                                        TD_No =  tdm.TD_No,
+                                        TDH_Name = tdm.TDH_Name,
+                                        ValueDate = tdm.ValueDate,
+                                        DepositAmount = tdm.DepositAmount,
+                                        MaturityDate = tdm.MaturityDate,
+                                        MaturityAmount = tdm.MaturityAmount,
+                                        RateOfInterest = tdm.RateOfInterest,
+                                        InterestAppliedDate = tdt.InterestAppliedDate,
+                                        DepositPaidAmount = tdt.DepositReceiptAmount,
+                                        InterestPaidAmount = tdt.InterestPaidAmount
+                                    }).ToListAsync();
+                var result2 = await (from voucherTrn in CSISContext.Fin_Voucher_Trn
+                                    join bank in CSISContext.Fin_Voucher_Bank on voucherTrn.Voc_Id equals bank.Voc_Id
+                                    join mapBank in CSISContext.Map_Banks on voucherTrn.Led_Id equals mapBank.Led_Id
+                                    where voucherTrn.Voc_Id == vocId
+                                    && voucherTrn.Voc_Rpt > 0
+                                    && voucherTrn.FinVocTr_Delete == false
+                                    && bank.Fvb_Delete == false
+                                    select new rptChequeDetails
+                                    {
+                                        Fvb_Cheque_No = bank.Fvb_Cheque_No,
+                                        Fvb_Cheque_Date = bank.Fvb_Cheque_Date.ToString(),
+                                        Fvb_Bank_Name = bank.Fvb_Bank_Name
+                                    }).ToListAsync();
+                foreach (var cheq in result2)
+                {
+                    chequeDetails += "Cheque No " + cheq.Fvb_Cheque_No + " Dated " + cheq.Fvb_Cheque_Date + " " + cheq.Fvb_Bank_Name + " ";
+                }
+                if (result.Count > 0) fdPmtList = result.ToList();
+            }
+            catch (Exception)
+            {
+                fdPmtList = new();
+                chequeDetails = "";
+            }
+            return (fdPmtList,chequeDetails);
+        }
+
+        public async Task<rptFDBond> GetFDBondPreprinted(decimal vocId)
+        {
+            rptFDBond fDBond = new rptFDBond();
+            try
+            {
+                fDBond = await GetFDBondData(vocId);
+
+                switch (fDBond.InterestPayableFrequency)
+                {
+                    case 1:
+                        fDBond.TDFrequency = "Monthly";
+                        break;
+                    case 3:
+                        fDBond.TDFrequency = "Quarterly";
+                        break;
+                    case 6:
+                        fDBond.TDFrequency = "Half Yearly";
+                        break;
+                    case 12:
+                        fDBond.TDFrequency = "Annual";
+                        break;
+                    case 0:
+                        fDBond.TDFrequency = "On Maturity";
+                        break;
+                }
+
+                switch (fDBond.ModeOfOperation)
+                {
+                    case 1:
+                        fDBond.ModeOfOperationString = "Single";
+                        break;
+                    case 2:
+                        fDBond.ModeOfOperationString = "Either or Survivor";
+                        break;
+                    case 3:
+                        fDBond.ModeOfOperationString = "Any one or Survivor/s";
+                        break;
+                    case 4:
+                        fDBond.ModeOfOperationString = "Any Two or Survivior/s";
+                        break;
+                    case 5:
+                        fDBond.ModeOfOperationString = "All Parents Jointly";
+                        break;
+                    case 6:
+                        fDBond.ModeOfOperationString = "Any two jointly";
+                        break;
+                    case 7:
+                        fDBond.ModeOfOperationString = "Former or Survivior";
+                        break;
+                    case 8:
+                        fDBond.ModeOfOperationString = "Later or Survivor";
+                        break;
+                    case 9:
+                        fDBond.ModeOfOperationString = "By Guardian";
+                        break;
+                    case 10:
+                        fDBond.ModeOfOperationString = "By Mandate";
+                        break;
+                    case 11:
+                        fDBond.ModeOfOperationString = "Power of attorney";
+                        break;
+                    case 12:
+                        fDBond.ModeOfOperationString = "Proprietor";
+                        break;
+                }
+                //fDBond.RsInWords = Utilities.RupeesInWords(fDBond.DepositAmount);
+                fDBond.RateOfInterest = fDBond.RateOfInterest / 100;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return fDBond;
+        }
+
+        public async Task<rptFDBond> GetFDBondData(decimal vocId)
+        {
+            rptFDBond _bond = new rptFDBond();
+            try
+            {
+                #region sql query
+                //          var _bondTmp = await CSISContext.Database.SqlQueryRaw<rptFDBond>(
+                //              @"SELECT
+                //                  TermDeposit_Master.TD_No, TermDeposit_Master.TDH_Name, TermDeposit_Master.AccountOpenDate, 
+                //                  TermDeposit_Master.ValueDate,TermDeposit_Master.DepositAmount, TermDeposit_Master.PeriodInMonths, 
+                //                  TermDeposit_Master.PeriodInDays, TermDeposit_Master.RateOfInterest, 
+                //                  TermDeposit_Master.MaturityDate, TermDeposit_Master.MaturityAmount, TermDeposit_Master.InterestPayableFrequency, 
+                //                  TermDeposit_Master.Nominee1Name, TermDeposit_Master.Nominee1Age, TermDeposit_Master.Nominee1Relationship, 
+                //                  TermDeposit_Master.Nominee2Name, TermDeposit_Master.Nominee2Age, TermDeposit_Master.Nominee2Relationship, 
+                //                  TermDeposit_Schemes.TDScheme_Name, TermDeposit_Master.RenewalTD_No,
+                //                  Fin_Voucher.voc_rpt_No, Fin_Voucher.Voc_No,
+                //                  Mem_Master.memberNo,Mem_Master.memberName,Mem_Master.mobileNo, 
+                //                  CONCAT (
+                //    COALESCE(Mem_Master.PreAdd1, ''),
+                //    ',',
+                //    COALESCE(Mem_Master.PreAdd2 || ',', ''),
+                //    COALESCE(Mem_Master.PreAdd3 || ',', ''),
+                //    COALESCE(Mem_Master.PrePin, '') 
+                //                  ) AS Address,
+                //              ModeOfOperation 
+                //              From 
+                //                  TermDeposit_Master TermDeposit_Master INNER JOIN TermDeposit_Schemes TermDeposit_Schemes ON 
+                //                      TermDeposit_Master.TDScheme_Id = TermDeposit_Schemes.TDScheme_Id
+                //                   INNER JOIN Mem_Master Mem_Master ON
+                //                      TermDeposit_Master.Mem_Id = Mem_Master.mem_Id
+                //                   LEFT OUTER JOIN Fin_Voucher Fin_Voucher ON
+                //                      TermDeposit_Master.Voc_Id = Fin_Voucher.Voc_Id
+                //                  WHERE TermDeposit_Master.Voc_Id = @vocId
+                //                  AND TermDeposit_Master.td_delete = FALSE
+                //AND Fin_Voucher.voc_delete = FALSE AND
+                //                  TermDeposit_Master.voc_status ='V' AND Fin_Voucher.voc_status ='V'"
+                //              , new NpgsqlParameter("@vocId", vocId)).FirstOrDefaultAsync();
+                #endregion
+
+                #region linq
+                var query = await (from tdm in CSISContext.TermDeposit_Master
+                                   join tds in CSISContext.TermDeposit_Schemes on tdm.TDScheme_Id equals tds.TDScheme_Id
+                                   join mm in CSISContext.mem_master on tdm.Mem_Id equals mm.mem_id
+                                   join fv in CSISContext.Fin_Voucher on tdm.Voc_Id equals fv.Voc_Id into fvGroup
+                                   from fv in fvGroup.DefaultIfEmpty()
+                                   where tdm.Voc_Id == vocId
+                                         && tdm.TD_Delete == false
+                                         && fv.Voc_Delete == false
+                                         && tdm.Voc_Status == "V"
+                                         && fv.Voc_Status == "V"
+                                   select new rptFDBond
+                                   {
+                                       TD_No = tdm.TD_No,
+                                       TDH_Name = tdm.TDH_Name,
+                                       AccountOpenDate = tdm.AccountOpenDate,
+                                       ValueDate = tdm.ValueDate,
+                                       DepositAmount = tdm.DepositAmount,
+                                       PeriodInMonths = tdm.PeriodInMonths,
+                                       PeriodInDays = tdm.PeriodInDays,
+                                       RateOfInterest = tdm.RateOfInterest,
+                                       MaturityDate = tdm.MaturityDate,
+                                       MaturityAmount = tdm.MaturityAmount,
+                                       InterestPayableFrequency = tdm.InterestPayableFrequency,
+                                       Nominee1Name = tdm.Nominee1Name,
+                                       Nominee1Age = tdm.Nominee1Age,
+                                       Nominee1Relationship = tdm.Nominee1Relationship,
+                                       Nominee2Name = tdm.Nominee2Name,
+                                       Nominee2Age = tdm.Nominee2Age,
+                                       Nominee2Relationship = tdm.Nominee2Relationship,
+                                       TDScheme_Name = tds.TDScheme_Name,
+                                       RenewalTD_No = tdm.RenewalTD_No,
+                                       Voc_Rpt_No = fv.Voc_Rpt_No,
+                                       Voc_No = fv.Voc_No,
+                                       MemberNo = mm.memberno,
+                                       MemberName = mm.membername,
+                                       MobileNo = mm.mobileno,
+                                       Address = (mm.preadd1 ?? "") + "," +
+                                         (mm.preadd2 != null ? mm.preadd2 + "," : "") +
+                                         (mm.preadd3 != null ? mm.preadd3 + "," : "") +
+                                         (mm.prepin ?? ""),
+                                       ModeOfOperation = tdm.ModeOfOperation
+
+                                   }).FirstOrDefaultAsync();
+                #endregion 
+                if (query !=null) { _bond = query; }
+            }
+            catch (Exception)
+            {
+                _bond = new();
+            }
+            return _bond;
+        }
+        #endregion
+
+        #region Jewel Loan ledger
+        public async Task<List<rptJewelLoanLedger>> GetJewelLoanLedger(decimal vocId)
+        {
+            List<rptJewelLoanLedger> loanList = new();
+            try
+            {
+                var query = await  (from lm in CSISContext.Loan_Master
+                join mm in CSISContext.mem_master on lm.Mem_Id equals mm.mem_id
+                join jld in CSISContext.JL_Details on lm.Loan_Id equals jld.Loan_Id
+                join jlo in CSISContext.JL_Ornments on lm.Loan_Id equals jlo.Loan_Id
+                join fv in CSISContext.Fin_Voucher on lm.Voc_Id equals fv.Voc_Id
+                where lm.Voc_Id == vocId
+                      && lm.Loan_Delete == false
+                      && jld.JL_Delete == false
+                      && jlo.JLO_Delete == false
+                      && fv.Voc_Delete == false
+                select new rptJewelLoanLedger // Select raw data needed for the final projection
+                {
+                    Loan_Id = lm.Loan_Id,
+                    Mem_Id =  lm.Mem_Id,
+                    MemberNo =  mm.memberno,
+                    PerNo =  mm.perno,
+                    MemberName =  mm.membername,
+                    MemberPhoto = mm.memberphoto,
+                    Address = (mm.preadd1 ?? "") + "," +
+                                             (mm.preadd2 != null ? mm.preadd2 + "," : "") +
+                                             (mm.preadd3 != null ? mm.preadd3 + "," : "") +
+                                             (mm.prepin ?? ""),
+                    MobileNo =  mm.mobileno,
+                    PANNo =  mm.panno,
+                    AadharNo =  mm.aadharno,
+                    SmartCardNo =  mm.smartcardno,
+                    Loan_No =  lm.Loan_No,
+                    San_Date =  lm.San_Date,
+                    San_Amt = lm.San_Amt,
+                    Roi = lm.Roi,
+                    Pi = lm.Pi,
+                    JL_DueDate =  jld.JL_DueDate,
+                    GovtRatePerGram = jld.MarketRatePerGram,
+                    RatePerGram = jld.RatePerGram,
+                    GrossWeight = jld.GrossWeight,
+                    Wastage = jld.Wastage,
+                    NetWeight = jld.NetWeight,
+                    JLO_Name = jlo.JLO_Name,
+                    JLO_Nos = jlo.JLO_Nos,
+                    JewelsImage = jld.JewelsImagePath
+                }).ToListAsync();
+                if (query.Count > 0)
+                    loanList = query.ToList();
+                
+            }
+            catch (Exception)
+            {
+                loanList = new();
+            }
+            return loanList;
+        }
+        #endregion
+
+        #region Print methods
+        //public async Task Print_Member_Receipt(rptReceiptObject rptObject)
+        //{
+        //    byte[] fileBytes;
+        //    var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rptObject);
+        //    if (response.IsSuccessStatusCode)
+        //    {
+        //        fileBytes = await response.Content.ReadAsByteArrayAsync();
+        //        // 1. Convert byte array to a Base64 string
+        //        var base64String = Convert.ToBase64String(fileBytes);
+
+        //        /// 2. Render in iframe commented
+        //        // Set the data URL to a property bound to the iframe's src
+        //        // pdfDataUrl = $"data:application/pdf;base64,{base64String}";
+
+        //        // If fileBytes is null or empty, the API returned nothing.
+        //        if (fileBytes == null || fileBytes.Length == 0)
+        //        {
+        //            Console.WriteLine("Error: API returned a success status code but with no content.");
+        //            return; // Stop here
+        //        }
+        //        // 3. Call the new JavaScript function to open the PDF in a new tab
+        //        await _jsRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+
+        //        // 4. Down load pdf commented
+        //        // await JSRuntime.SaveAs("Receipt.pdf", fileBytes!);
+        //    }
+        //    else
+        //    {
+        //        // Log or show error
+        //        Console.WriteLine($"Error: {response.StatusCode}");
+        //    }
+        //}
+        #endregion
     }
 }

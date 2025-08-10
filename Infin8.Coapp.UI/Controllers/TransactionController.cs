@@ -10,17 +10,22 @@ namespace Infin8.Coapp.API.Controllers
     public class TransactionController : ControllerBase
     {
         readonly ITransactionsHandler _transactionHandler;
-        public TransactionController(ITransactionsHandler transactionsHandler)
+        private readonly IWebHostEnvironment _environment;
+        private readonly IStagingDetailsHandler _stagingDetailsHandler;
+
+        public TransactionController(ITransactionsHandler transactionsHandler, IWebHostEnvironment environment, IStagingDetailsHandler stagingDetailsHandler)
         {
             _transactionHandler = transactionsHandler;
+            _environment = environment;
+            _stagingDetailsHandler = stagingDetailsHandler;
         }
         [HttpGet]
         [Route("GetAccountNames/{accountStatus}/{accountBelongTo}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetTransactionAccounts(string accountStatus,string accountBelongTo)
+        public async Task<ActionResult<List<DropdownItem>>> GetTransactionAccounts(string accountStatus, string accountBelongTo)
         {
             List<DropdownItem> accounts = new List<DropdownItem>();
-            accounts =  await _transactionHandler.GetTransactionAccounts(accountStatus, accountBelongTo);
-            if(accounts == null)
+            accounts = await _transactionHandler.GetTransactionAccounts(accountStatus, accountBelongTo);
+            if (accounts == null)
             {
                 return NotFound();
             }
@@ -41,12 +46,25 @@ namespace Infin8.Coapp.API.Controllers
         }
 
         [HttpGet]
-        [Route("GetSuspenseAccounts/{suspenseType:int}/{brCode}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetSuspenseLedgerItems(int suspenseType,string brCode)
+        [Route("GetAllLedgers/{brCode}")]
+        public async Task<ActionResult<List<DropdownItem>>> GetAllLedgers(string brcode)
         {
             List<DropdownItem> ledgers = new List<DropdownItem>();
-            ledgers = await _transactionHandler.GetSuspenseLedgerItems(suspenseType,brCode);
-            if(ledgers == null)
+            ledgers = await _transactionHandler.GetAllLedgerItems(brcode);
+            if (ledgers == null)
+            {
+                return NotFound();
+            }
+            return Ok(ledgers);
+        }
+
+        [HttpGet]
+        [Route("GetSuspenseAccounts/{suspenseType:int}/{brCode}")]
+        public async Task<ActionResult<List<DropdownItem>>> GetSuspenseLedgerItems(int suspenseType, string brCode)
+        {
+            List<DropdownItem> ledgers = new List<DropdownItem>();
+            ledgers = await _transactionHandler.GetSuspenseLedgerItems(suspenseType, brCode);
+            if (ledgers == null)
             {
                 return NotFound();
             }
@@ -92,11 +110,78 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetComponentName/{accountId:int}")]
-        public async Task<ActionResult< string>> GetComponentName(int accountId)
+        public async Task<ActionResult<string>> GetComponentName(int accountId)
         {
             string componentName = await _transactionHandler.GetComponentName(accountId);
             if (string.IsNullOrWhiteSpace(componentName)) return NotFound();
             else return Ok(componentName);
+        }
+
+        [HttpGet]
+        [Route("GetViewComponentName/{accountId:int}")]
+        public async Task<ActionResult<string>> GetViewComponentName(int accountId)
+        {
+            string componentName = await _transactionHandler.GetViewComponentName(accountId);
+            if (string.IsNullOrWhiteSpace(componentName)) return NotFound();
+            else return Ok(componentName);
+        }
+
+        [HttpPost("upload")]
+        [RequestSizeLimit(5_000_000)] // 5MB limit
+        public async Task<IActionResult> UploadImage([FromBody] ImageUploadModel model)
+        {
+            try
+            {
+                // In ImageController
+                if (!model.ImageData.StartsWith("data:image/jpeg;base64,") &&
+                    !model.ImageData.StartsWith("data:image/png;base64,"))
+                {
+                    return BadRequest("Invalid image format");
+                }
+                // Extract base64 data
+                var base64Data = model.ImageData.Split(',')[1];
+                var bytes = Convert.FromBase64String(base64Data);
+
+                // Create unique filename
+                var fileName = $"jewel_{Guid.NewGuid()}.jpg";
+                var uploadsPath = Path.Combine(_environment.WebRootPath, "uploads", "jewels");
+
+                // Ensure directory exists
+                Directory.CreateDirectory(uploadsPath);
+
+                // Save file
+                var filePath = Path.Combine(uploadsPath, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+
+                // Return relative path
+                return Ok(new { path = $"/uploads/jewels/{fileName}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex}");
+            }
+        }
+
+        [HttpPut]
+        [Route("MakeStagingDetails/{stagingId:decimal}")]
+        public async Task<IActionResult> MakeStagingDetails(decimal stagingId)
+        {
+            try
+            {
+                bool result = await _stagingDetailsHandler.MakeStagingDetails(stagingId);
+                if (result)
+                {
+                    return Ok(new { message = "Staging details made successfully." });
+                }
+                else
+                {
+                    return BadRequest(new { message = "Failed to make staging details." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

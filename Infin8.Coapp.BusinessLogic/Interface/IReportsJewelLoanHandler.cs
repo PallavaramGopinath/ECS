@@ -37,7 +37,11 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<rptJewelLoanOutstandingList>> GetJewelLoanOutstandingForMember(decimal memId, DateTime asOnDate);
         Task<List<rptJewelLoanOutstandingSchemeWiseList>> GetJewelLoanOutstandingSchemeWiseList(DateTime asOnDate, string brCode);
         Task<List<rptJewelLoanLedgerToMember>> GetJewelLoanLedgerToMembers(List<decimal> loanIdList, DateTime fromDate, DateTime toDate);
-        Task<List<rptJewelLoanLedgerMain>> Print_JewelLoanLedgerMain(List<decimal> loanIdList);
+        Task<List<rptJewelLoanLedgerMain>> GetJewelLoanLedger(List<decimal> loanIdList);
         Task<List<rptJewelLoanOverdueSchemeWiseList>> GetJewelLoanOverdueSchemeWiseList(DateTime asOnDate, string brCode);
+        Task<List<DropdownItem>> GetJewelLoanNosForLedger(DateTime fromDate, DateTime toDate, string brCode);
+        Task<List<DropdownItem>> GetJewelLoanNosForLedger(decimal memId, DateTime fromDate, DateTime toDate, string brCode);
+        List<rptJewelLoanLedgerOrnmentsSub> GetJewelLoanLedgerOrnmentsSub(decimal loanId);
+        List<rptJewelLoanLedgerTrnSub> GetJewelLoanLedgerTrnSub(decimal loanId, DateTime fromDate, DateTime toDate, string brCode);
     }
 }

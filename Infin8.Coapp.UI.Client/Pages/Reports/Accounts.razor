@@ -1,0 +1,557 @@
+﻿@page "/report-accounts"
+@using Infin8.Coapp.Dto
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+
+<!-- loading spinner -->
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else 
+{
+    <!-- Select Report -->
+    <div class="card mt-2">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Select Report</label>
+                        <InputSelect class="form-select shadow-none"
+                                     @bind-Value="rptAccObject.ReportId"
+                                     @bind-Value:after="handlerSelectRportName">
+                            @foreach (var rpt in reportList)
+                            {
+                                <option value="@rpt.Value">@rpt.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- As on date -->
+    @if (isAsonDate)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>As on date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptAccObject.ToDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Between two dates -->
+    @if (isBetweenDates)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>From date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptAccObject.FromDate" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>To date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptAccObject.ToDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- General Ledger List -->
+    @if (isLedgerList)
+    {
+        @if (ledgerList != null && ledgerList.Any())
+        {
+            <!-- Select All -->
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <!-- Select all -->
+                            <div class="form-check  ms-3">
+                                <input class="form-check-input" type="checkbox" id="selectAllCheckbox"
+                                       checked="@isAllSelected"
+                                       @onchange="SelectAllChanged" />
+                                <label class="form-check-label" for="selectAllCheckbox">
+                                    <strong>Select All</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List of ledgers -->
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <div style="height: 450px; overflow-x: hidden ; overflow-y: auto;">
+                                <div style="white-space: nowrap;">
+                                    @foreach (var led in ledgerList)
+                                    {
+                                        <div class="form-check ms-3">
+                                            <input class="form-check-input ps-2" type="checkbox" id="@($"ledger_{led.Value}")"
+                                                   checked="@(selectedLedgers.Contains(led))"
+                                                   @onchange="e => ToggleLedgerSelection(led, (bool)e.Value)" />
+                                            <label class="form-check-label" for="@($"ledger_{led.Text}")">
+                                                @led.Text
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- Button -->
+    <button type="button" class="btn btn-primary mt-3" disabled="@isPrintDisbled" @onclick="HandlePrint">
+        @* <i class="oi oi-print" aria-hidden="true"></i> *@
+        @if(_isFetchingData)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" area-hidden="true"></span>
+            <span class="ps-2">Loading....</span>
+        }
+        else
+        {
+            <i class="oi oi-print" aria-hidden="true"></i>
+            <span class="ps-2">Print</span>
+        }
+    </button>
+}
+<!-- Show spinner while loading data -->
+
+@if (_isFetchingData)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<DropdownItem> reportList = new();
+    private List<DropdownItem> ledgerList = new();
+    private List<DropdownItem> selectedLedgers = new();
+
+    rptReportAccountObject rptAccObject = new()
+    {
+        FromDate = new DateTime(2025,4,1),
+        ToDate = DateTime.UtcNow ,
+        YrId  = 110010000023,
+        BrCode = "11001"
+    };
+
+    private byte[] fileBytes;
+    private bool _isLoading = true;
+    private bool isAsonDate = false;
+    private bool isBetweenDates = false;
+    private bool isLedgerList = false;
+    private bool isAllSelected = false;
+    private bool isPrintDisbled = true;
+    private bool _isFetchingData = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                rptAccObject.ToDate = DateTime.UtcNow;
+                rptAccObject.FromDate = new DateTime(2025, 4, 1);
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/3");
+                if (result!.Count > 0)
+                {
+                    reportList = result.ToList();
+                    StateHasChanged();
+                }
+                var ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/{rptAccObject.BrCode}");
+                if (ledgers != null && ledgers.Any())
+                {
+                    ledgerList = ledgers.OrderBy(x => x.Text).ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Optionally handle the error, e.g., log it or show an error message.
+                Console.WriteLine($"Error loading data: {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void handlerSelectRportName()
+    {
+        isAsonDate = false;
+        isBetweenDates = false;
+        isLedgerList = false;
+        isPrintDisbled = false;
+        try
+        {
+            switch (rptAccObject.ReportId )
+            {
+                case 31:    /// ledger Name List
+                    isAsonDate = false;
+                    isBetweenDates = false;
+                    isLedgerList = false;
+                    break;
+                case 32:    /// Chitta book
+                    isBetweenDates = true;
+                    break;
+                case 33:    /// Day book
+                    isBetweenDates = true;
+                    break;
+                case 34:    /// General ledger
+                    isBetweenDates = true;
+                    isLedgerList = true;
+                    break;
+                case 35:    /// Receipt & charges
+                    isBetweenDates = true;
+                    break;
+                case 36:    /// Receipt & charges group-wise
+                    isBetweenDates = true;
+                    break;
+                case 37:    /// Balance sheet
+                    isBetweenDates = true;
+                    break;
+                case 38:    /// Loss and profit statement
+                    isBetweenDates = true;
+                    break;
+                case 125:   /// Receipt print
+                    isBetweenDates = true;
+                    break;
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    private void ToggleLedgerSelection(DropdownItem led, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedLedgers.Any(l => l.Value == led.Value))
+            {
+                selectedLedgers.Add(led);
+            }
+        }
+        else
+        {
+            selectedLedgers.RemoveAll(l => l.Value == led.Value);
+        }
+        isAllSelected = selectedLedgers.Count == ledgerList.Count;
+    }
+
+    private void SelectAllChanged(ChangeEventArgs e)
+    {
+        // Determine if "Select All" was checked or unchecked
+        isAllSelected = (bool)(e.Value ?? false);
+
+        if (isAllSelected)
+        {
+            // If checked, add all ledger values to the selected set
+            selectedLedgers.AddRange(ledgerList);
+        }
+        else
+        {
+            // If unchecked, clear the selected set
+            selectedLedgers.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandlePrint()
+    {
+        _isFetchingData = true;
+        rptAccObject.FromDateString = rptAccObject.FromDate.ToString("yyyy-MM-dd");
+        rptAccObject.ToDateString = rptAccObject.ToDate.ToString("yyyy-MM-dd");
+        try
+        {
+            switch (rptAccObject.ReportId)
+            {
+                case 31:    /// Ledger name list
+                    break;
+                case 32:    /// Chitta book
+                    await Print_ChittaBook();
+                    break;
+                case 33:    /// Day book
+                    await Print_DayBook();
+                    break;
+                case 34:    /// General ledger
+                    await Print_GeneralLedger();
+                    break;
+                case 35:    ///Receipt & charges
+                    await Print_ReceiptAndCharges();
+                    break;
+                case 36:    /// Receipt & charges group-wise
+                    break;
+                case 37:    /// Balance sheet
+                    await Print_BalanceSheet();
+                    break;
+                case 38:    /// Loss and profit statement
+                    await Print_LossAndProfit(); /// 2025-08-06 all zero shows (error)
+                    break;
+                case 125:   /// Receipt during the year
+                    break;
+            }
+        }
+        catch (Exception)
+        {
+            _isFetchingData = false;
+        }
+        _isFetchingData = false;
+    }
+
+    private async Task Print_ChittaBook()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-chitta", rptAccObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_DayBook()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-daybook", rptAccObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_GeneralLedger()
+    {
+        try
+        {
+            // rptAccObject.LedgerList!.Clear();
+            if (selectedLedgers != null)
+            {
+                rptAccObject.LedgerList = selectedLedgers
+                    .Select(item =>
+                    {
+                        // Use decimal.TryParse for safe conversion
+                        bool success = decimal.TryParse(item.Value, out decimal decimalValue);
+                        return new { success, decimalValue }; // Project to an anonymous type
+                    })
+                    .Where(parsed => parsed.success) // Filter out unsuccessful conversions
+                    .Select(parsed => parsed.decimalValue) // Select only the decimal value
+                    .ToList();
+            }
+            else
+            {
+                rptAccObject.LedgerList = new List<decimal>(); // Ensure the list is not null
+            }
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-generalLedger", rptAccObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_ReceiptAndCharges()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-receiptAndCharges", rptAccObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+                // await JSRuntime.InvokeVoidAsync("openExcelInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_BalanceSheet()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-balanceSheet", rptAccObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_LossAndProfit()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-lossAndProfit", rptAccObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}

@@ -1,0 +1,384 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+
+@if (fdModal != null && fdModal.AccountId != 0)
+{
+    <div class="container-fluid" style="width: 95%;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Member Details</h5>
+                <h5 class="mb-2">@fdModal.FixedDepositCreate!.Common.Tdh_Name</h5>
+            </div>
+            <div class="card-body">
+
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Member No</th>
+                            <th>Member Name</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var mem in fdModal.FixedDepositCreate.Members)
+                        {
+                            <tr>
+                                <td>@mem.Member_No</td>
+                                <td>@mem.Member_Name</td>
+                                <td>@mem.Age</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+            </div>
+
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Fixed Deposit Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Scheme Name</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositCreate.Common.Tdscheme_Id</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Mode of Operation</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositCreate.Common.Mode_Of_Operation</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Account Open Date</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositCreate.Common.Account_Opendate.ToString("dd-MM-yyyy")</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Value Date</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositCreate.Common.Value_Date.ToString("dd-MM-yyyy")</div>
+                    </div>
+
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Fixed Deposit No</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositCreate.Common.Td_No</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Deposit Amount</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositCreate.Deposit_Amount.ToString("C2")</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Interest Payment Frequency</label>
+                        <div class="form-control-plaintext">@Payable_Frequency</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Period</label>
+                        <div class="form-control-plaintext">@Period</div>
+                    </div>
+                    @if (fdModal.FixedDepositCreate.Is_DiscountRate)
+                    {
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">is Discount Rate</label>
+                            <div class="form-control-plaintext">True</div>
+                        </div>
+                    }
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Compound Frequency</label>
+                        <div class="form-control-plaintext">@Compound_Frequency</div>
+                    </div>
+
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Rate of Interest</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositCreate.Rate_Of_Interest </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Maturity Amount</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositCreate.Maturity_Amount.ToString("C2")</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Maturity Date</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositCreate.Maturity_Date.ToString("dd-MM-yyyy")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Nominee Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Name</th>
+                            <th>Relation</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var nominee in nominees)
+                        {
+                            <tr>
+                                <td>@nominee.Name</td>
+                                <td>@nominee.Relation</td>
+                                <td>@nominee.Age</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @if (fdModal.FixedDepositPayment!.Fixed_Deposit_Datas != null && fdModal.FixedDepositPayment.Fixed_Deposit_Datas.Any())
+    {
+        <div class="card mt-4">
+            <div class="card-header mb-3">
+                <h5 class="mb-0"> Fixed Deposit Payment Details</h5>
+            </div>
+
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-strip">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Fixed Deposit No</th>
+                        <th>Interest Paid</th>
+                        <th>Fixed Deposit Paid</th>
+                        <th>Interest Applied Date</th>
+                        <th>Rate of Interest</th>
+                        <th>Rate of Interest Applied</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var fd in fdModal.FixedDepositPayment.Fixed_Deposit_Datas)
+                    {
+                        <tr>
+                            <td>@fd.FD_No</td>
+                            <td>@fd.Total_Interest_Payable.ToString("C")</td>
+                            <td>@fd.Deposit_Refund.ToString("C")</td>
+                            <td>@fd.Current_Interest_Applied_Date</td>
+                            <td>@fd.Rate_Of_Interest</td>
+                            <td>@fd.Rate_Of_Interest_Applied</td>
+
+                        </tr>
+                    }
+                    <tr class="table-info">
+                        <td>Total :</td>
+                        <td class="fw-bold">@fdModal.FixedDepositPayment.Fixed_Deposit_Datas.Sum(l => l.Total_Interest_Payable).ToString("C2")</td>
+                        <td class="fw-bold">@fdModal.FixedDepositPayment.Fixed_Deposit_Datas.Sum(l => l.Deposit_Refund).ToString("C2")</td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        @if (fdModal.FixedDepositPayment.Loan_On_FixedDeposits != null && fdModal.FixedDepositPayment.Loan_On_FixedDeposits!.Any())
+        {
+            <div class="card mt-4">
+                <div class="card-header mb-3">
+                    <h5 class="mb-0">Loan Recoverd on Fixed Deposit</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-strip-">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Loan No</th>
+                                <th>Loan Date</th>
+                                <th>Loan Amount</th>
+                                <th>Rate of Interest</th>
+                                <th>Interest Received</th>
+                                <th>Principal Received</th>
+                                <th>Total Received</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var loan in fdModal.FixedDepositPayment.Loan_On_FixedDeposits)
+                            {
+                                <tr>
+                                    <td>@loan.Loan_No</td>
+                                    <td>@loan.Loan_Date.ToShortDateString()</td>
+                                    <td>@loan.Loan_Amount.ToString("C")</td>
+                                    <td>@loan.Rate_Of_Interest</td>
+                                    <td>@loan.Interest_Balance.ToString("C")</td>
+                                    <td>@loan.Principal_Balance.ToString("C")</td>
+                                    <td>@loan.Total_Balance.ToString("C")</td>
+                                </tr>
+                            }
+                            <tr class="table-info">
+                                <td colspan="4">Total :</td>
+                                <td class="fw-bold">@fdModal.FixedDepositPayment.Loan_On_FixedDeposits.Sum(l => l.Interest_Balance).ToString("C2")</td>
+                                <td class="fw-bold">@fdModal.FixedDepositPayment.Loan_On_FixedDeposits.Sum(l => l.Principal_Balance).ToString("C2")</td>
+                                <td class="fw-bold">@fdModal.FixedDepositPayment.Loan_On_FixedDeposits.Sum(l => l.Total_Balance).ToString("C2")</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <div class="card mt-4">
+            <div class="card-header mb-3">
+                <h5 class="mb-0">Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Interest Paid</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositPayment.Total_Interest_Payable</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Deposit Refund</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositPayment.Total_Deposit_Payable</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Interest on Fixed Deposit Received</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositPayment.Total_Loan_Interest_Receipt</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Principal on Fixed Deposit Received</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositPayment.Total_Loan_Principal_Receipt</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Net Amount Paid</label>
+                        <div class="form-control-plaintext">@fdModal.FixedDepositPayment.Net_Payable</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private DtoTermDepositFixedDepositCreation _fixedDepositModel = new DtoTermDepositFixedDepositCreation();
+    private DtoTermDepositFixedDepositRenewal fdModal = new DtoTermDepositFixedDepositRenewal();
+    private Staging_Details details = new Staging_Details();
+
+    private string Payable_Frequency = "";
+    private string Period = "";
+    private string ModeOfOperation = "";
+    private string Compound_Frequency = "";
+    List<Nominee> nominees = new List<Nominee>();
+    private class Nominee
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Relation { get; set; } = string.Empty;
+        public int Age { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+
+
+                if (details != null)
+                {
+                    fdModal = Utility.JsonbObject.ConvertFromJsonForRenewalFixedDepositPayment(details.Related_Account_Data!);
+
+                    /// Mode of operation
+                    switch (fdModal.FixedDepositCreate!.Common.Mode_Of_Operation)
+                    {
+                        case 1:
+                            ModeOfOperation = "Single";
+                            break;
+                        case 2:
+                            ModeOfOperation = "Joint";
+                            break;
+                        case 3:
+                            ModeOfOperation = "Either or Survivor";
+                            break;
+                    }
+
+                    /// Payable Frequency
+                    switch (fdModal.FixedDepositCreate.Interest_Payable_Frequency)
+                    {
+                        case 1:
+                            Payable_Frequency = "Monthly";
+                            break;
+                        case 3:
+                            Payable_Frequency = "Quarterly";
+                            break;
+                        case 6:
+                            Payable_Frequency = "Half Yearly";
+                            break;
+                        case 12:
+                            Payable_Frequency = "Yearly";
+                            break;
+                        case 13:
+                            Payable_Frequency = "At Maturity";
+                            break;
+                    }
+
+                    /// Period
+                    if (fdModal.FixedDepositCreate.Period_In_Months > 0)
+                        Period = fdModal.FixedDepositCreate.Period_In_Months + " Months";
+                    if (fdModal.FixedDepositCreate.Period_In_Days > 0)
+                        Period += " " + fdModal.FixedDepositCreate.Period_In_Days + " Days";
+
+                    /// Compound Frequency
+                    switch (fdModal.FixedDepositCreate.compoundfrequency)
+                    {
+                        case 1:
+                            Compound_Frequency = "Monthly Compound";
+                            break;
+                        case 3:
+                            Compound_Frequency = "Quarterly Compound";
+                            break;
+                        case 6:
+                            Compound_Frequency = "Half Yearly Compound";
+                            break;
+                        case 12:
+                            Compound_Frequency = "Annual Compound";
+                            break;
+                        default:
+                            Compound_Frequency = "No Compound";
+                            break;
+                    }
+
+                    /// Nominee Details
+                    if (fdModal.FixedDepositCreate.Common.Nominee1Name != null)
+                    {
+                        nominees.Add(new Nominee
+                        {
+                            Name = fdModal.FixedDepositCreate.Common.Nominee1Name,
+                            Relation = fdModal.FixedDepositCreate.Common.Nominee1Relationship!,
+                            Age = fdModal.FixedDepositCreate.Common.Nominee1Age
+                        });
+                    }
+                    if (fdModal.FixedDepositCreate.Common.Nominee2Name != null)
+                    {
+                        nominees.Add(new Nominee
+                        {
+                            Name = fdModal.FixedDepositCreate.Common.Nominee2Name,
+                            Relation = fdModal.FixedDepositCreate.Common.Nominee2Relationship!,
+                            Age = fdModal.FixedDepositCreate.Common.Nominee2Age
+                        });
+                    }
+                }
+
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+}

@@ -14,12 +14,23 @@ namespace Infin8.Coapp.Repository
         Task<List<rptJewelLoanOutstandingList>> GetJewelLoanOutstandingList(DateTime asOnDate, string brCode);
         Task<List<rptJewelLoanOverdueList>> GetJewelLoanOverdueList(DateTime asOnDate,string brCode);
         Task<List<rptJewelLoanOverdueList>> GetJewelLoanAboveLimitList(DateTime asOnDate, double limitAmt,string brCode);
+        
+        ///  Issue register is for jewel loan claim, new GetJewelLoanClaim is develoved
+        ///  hence it is discarded
         Task<List<rptJewelLoanIssueRegister>> GetJewelLoanIssueRegisterList(DateTime fromDate, DateTime toDate, string brCode);
+
+        Task<List<rptJewelLoanClaim>> GetJewelLoanClaim(DateTime fromDate, DateTime toDate, string brCode);
         Task<List<rptJewelLoanRedemptionList>> GetJewelLoanRedemptionList(DateTime fromDate, DateTime toDate,string brCode);
+        Task<List<rptJewelLoanRedemption>> GetJewelLoanRedemption(DateTime fromDate, DateTime toDate, string brCode);
         Task<List<rptJewelLoanOutstandingList>> GetJewelLoanOutstandingForMember(decimal memId, DateTime asOnDate);
         Task<List<rptJewelLoanOutstandingSchemeWiseList>> GetJewelLoanOutstandingSchemeWiseList(DateTime asOnDate, string brCode);
         Task<List<rptJewelLoanLedgerToMember>> GetJewelLoanLedgerToMembers(List<decimal> loanIdList, DateTime fromDate, DateTime toDate);
-        Task<List<rptJewelLoanLedgerMain>> Print_JewelLoanLedgerMain(List<decimal> loanIdList);
+        Task<List<rptJewelLoanLedgerMain>> GetJewelLoanLedger(List<decimal> loanIdList);
         Task<List<rptJewelLoanOverdueSchemeWiseList>> GetJewelLoanOverdueSchemeWiseList(DateTime asOnDate,string brCode);
+        Task<List<DropdownItem>> GetJewelLoanNosForLedger(DateTime fromDate, DateTime toDate,string brCode);
+
+        Task<List<DropdownItem>> GetJewelLoanNosForLedger(decimal memId, DateTime fromDate, DateTime toDate, string brCode);
+        List<rptJewelLoanLedgerOrnmentsSub> GetJewelLoanLedgerOrnmentsSub(decimal loanId);
+        List<rptJewelLoanLedgerTrnSub> GetJewelLoanLedgerTrnSub(decimal loanId, DateTime fromDate, DateTime toDate, string brCode);
     }
 }

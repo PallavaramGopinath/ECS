@@ -21,11 +21,14 @@ namespace Infin8.Coapp.Repository
         public async Task<bool> AddTermDepositTrnAsync(TermDeposit_Trn termDepositTrn)
         {
             bool result = false;
+            int maxSlNo = 0;
             try
             {
                 decimal maxId = await CSISContext.TermDeposit_Trn.MaxAsync(x => x.TDTrn_Id);
+                maxSlNo = Get_MaxTDTrnSlNo(termDepositTrn.TD_Id);
                 maxId++;
                 termDepositTrn.TDTrn_Id = maxId;
+                termDepositTrn.Trn_SlNo = maxSlNo;
                 await AddAsync(termDepositTrn);
                 result = true;
             }
@@ -33,6 +36,31 @@ namespace Infin8.Coapp.Repository
             {
                 result = false;
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit trn not saved");
+            }
+            return result;
+        }
+
+        public async Task<bool> AddTermDepositTrnListAsync(List<TermDeposit_Trn> termDepositTrnList)
+        {
+            bool result = false;
+            int maxSlNo = 0;
+            try
+            {
+                decimal maxId = CSISContext.TermDeposit_Trn.Max(x => x.TDTrn_Id);
+                foreach (var td in termDepositTrnList)
+                {
+                    maxId++;
+                    maxSlNo = Get_MaxTDTrnSlNo(td.TD_Id);
+                    td.TDTrn_Id = maxId;
+                    td.Trn_SlNo = maxSlNo;
+                    await AddAsync(td);
+                }
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Term Deposit Payment not saved");
             }
             return result;
         }
@@ -242,6 +270,24 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Term deposit nominee data");
             }
             return nominee;
+        }
+
+        public int Get_MaxTDTrnSlNo(decimal TDId)
+        {
+            int MaxSlNo = 0;
+            try
+            {
+                var maxSlNo = CSISContext.TermDeposit_Trn.Where(x=> x.TD_Id == TDId).Max(x => x.Trn_SlNo);
+                if (maxSlNo == 0) MaxSlNo = 1;
+                else
+                    MaxSlNo++;
+            }
+            catch (Exception)
+            {
+                MaxSlNo = 1;
+            }
+            int.TryParse(MaxSlNo.ToString(), out int result);
+            return result;
         }
     }
 }

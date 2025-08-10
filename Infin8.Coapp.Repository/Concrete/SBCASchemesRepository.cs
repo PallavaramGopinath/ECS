@@ -69,5 +69,25 @@ namespace Infin8.Coapp.Repository
             }
             return (prlLedId, intledId);    
         }
+
+        public async Task<SBCA_Schemes> GetSBCAScheme(string brCode)
+        {
+            SBCA_Schemes sbcaScheme = new();
+            try
+            {
+                var scheme = await CSISContext.SBCA_Schemes
+                    .Where(x => x.BrCode == brCode)
+                    .FirstOrDefaultAsync();
+                if (scheme !=null)
+                {
+                    sbcaScheme = scheme;
+                }
+            }
+            catch (Exception)
+            {
+                sbcaScheme = new() ;
+            }
+            return sbcaScheme;
+        }
     }
 }

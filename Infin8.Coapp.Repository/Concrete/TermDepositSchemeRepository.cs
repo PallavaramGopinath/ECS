@@ -103,5 +103,10 @@ namespace Infin8.Coapp.Repository
             }
             return schemeList;
         }
+
+        public async Task<TermDeposit_Schemes> GetTermDepositSchemeByIdAsync(int schemeId)
+        {
+            return await CSISContext.TermDeposit_Schemes.Where(x => x.TDScheme_Id == schemeId).FirstAsync();
+        }
     }
 }

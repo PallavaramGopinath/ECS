@@ -1,9 +1,15 @@
 ﻿@page "/jewel-loan-recovery"
 @using System.ComponentModel.DataAnnotations
-@inject IJSRuntime JSRuntime
-@rendermode InteractiveAuto
 @using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
+@using System.Net
+@rendermode InteractiveAuto
 @inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject TransactionStateService TransactionState
 
 <div >
     <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
@@ -94,7 +100,7 @@
                                     <td>@loan.Loan_Amount.ToString("C2")</td>
                                     <td>@loan.Loan_Date.ToShortDateString()</td>
                                     <td>@loan.Due_Date.ToShortDateString()</td>
-                                    <td>@loan.ROI%</td>
+                                    <td>@loan.ROI% </td>
                                     <td>@loan.Outstanding.ToString("C2")</td>
                                     <td>@loan.Recovery_Amount.ToString("C2")</td>
                                     <td>@loan.Calculated_Amount.ToString("C2") </td>
@@ -202,13 +208,15 @@
     [Parameter] public EventCallback<DtoJewelLoanRecovery> OnJLRecoveryInitiate { get; set; }
     #endregion 
 
+    #region declarations
     private DtoJewelLoanRecovery model = new DtoJewelLoanRecovery();
     private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
     private List<DtoJewelLoanBalance> JewelLoanBalanceFromDB = new List<DtoJewelLoanBalance>();
     private bool loanNumbersLoaded = false;
     private string? processingMessage;
     private bool isError = false;
-
+    private Staging_Details stagingDetails = new();
+    #endregion 
 
     protected override void OnInitialized()
     {
@@ -396,7 +404,7 @@
                             Status = "Penal Interest",
                             Loan_Amount = loan.San_Amt,
                             Loan_Date = loan.San_Date,
-                            ROI = loan.Roi,
+                            ROI = loan.Pi,
                             PI_Rate = loan.Pi,
                             Due_Date = loan.JL_DueDate,
                             Interest_Application_Date = loan.PICalc_DateNow,
@@ -585,6 +593,61 @@
 
     protected async Task JLRecoveryInitiate()
     {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        string jewelRecoveryJsonData = ConvertToJson(model);
+        stagingDetails = new()
+            {
+                Id = 0,
+                Staging_Id = 0,
+                Member_Id = MemberId,
+                Ledger_Id = 0,
+                Related_Account_Id = AccountId,
+                Receipt_Amount = model.Recovery_Amount,
+                Payment_Amount = 0,
+                Module_Name = accountName,
+                Cash_Or_Adjustment = CashOrAdjustment,
+                Related_Account_Data = jewelRecoveryJsonData,
+                Created_By = 110010000001,
+                Created_Date = TransactionDate,
+                Checked_By = 0,
+                Checked_Date = null,
+                Staging_Status ="I",
+                BrCode = "11001",
+            };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
         await OnJLRecoveryInitiate.InvokeAsync(model);
+    }
+
+    private string ConvertToJson(DtoJewelLoanRecovery jlRecovery)
+    {
+        var options = new JsonSerializerOptions
+            {
+                WriteIndented = false, // Compact JSON
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            };
+        return JsonSerializer.Serialize(jlRecovery, options);
     }
 }

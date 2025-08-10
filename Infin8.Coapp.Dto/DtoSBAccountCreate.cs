@@ -9,11 +9,15 @@ namespace Infin8.Coapp.Dto
 {
     public  class DtoSBAccountCreate
     {
+        public int AccountId { get; set; }
+        public int CashOrAdjustment { get; set; }
         public decimal Mem_Id { get; set; }
         public string? Member_No { get; set; }
-        public string? Membe_Name { get; set; }
+        public string? Member_Name { get; set; }
         public DateTime Transaction_Date { get; set; }
         public string? SBAccount_No { get; set; }
+        public decimal Led_Id { get; set; }
+        public string BrCode { get; set; }
 
         [Required]
         public double Receipt_Amount { get; set; }

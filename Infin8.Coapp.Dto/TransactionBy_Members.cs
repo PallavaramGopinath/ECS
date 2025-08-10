@@ -13,6 +13,8 @@ namespace Infin8.Coapp.Dto
         public string?   Member_No { get; set; }
         public string? Member_Name { get; set; }
         public string? Father_Name { get; set; }
+        public DateTime? Dob { get; set; }
+        public int? Age { get; set; }
         public string? Address { get; set; }
         public int Cash_Adjustment { get; set; }
         public int Receipt_Payment { get; set; }
@@ -24,5 +26,7 @@ namespace Infin8.Coapp.Dto
         public double Ledger_Balance { get; set; }
         public double Ledger_Entry { get; set; }
         public decimal Yr_Id { get; set; }
+        public int Fnl_Id { get; set; }
+        public decimal Cash_Led_Id { get; set; }
     }
 }

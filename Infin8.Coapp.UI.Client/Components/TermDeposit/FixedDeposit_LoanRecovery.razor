@@ -1,7 +1,15 @@
 ﻿@page "/fixed-deposit-loan_recovery"
+
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Net
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
+
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@using Infin8.Coapp.Dto
+@inject TransactionStateService TransactionState
 
 
 <EditForm Model="@fdRecovery" OnValidSubmit="HandleSubmit">
@@ -57,7 +65,7 @@
         </div>
     }
 
-    @if(fdRecovery.Loan_Balance_List != null && fdRecovery.Loan_Balance_List.Any())
+    @if (fdRecovery.Loan_Balance_List != null && fdRecovery.Loan_Balance_List.Any())
     {
         <div class="card mt-4">
             <div class="card-header">
@@ -72,6 +80,7 @@
                             <th>Interest Balance</th>
                             <th>Principal Balance</th>
                             <th>Total Balance</th>
+                            <th>Interest Calcualted</th>
                             <th>Interest Collection</th>
                             <th>Principal Collection</th>
                             <th>Total Collection</th>
@@ -83,9 +92,10 @@
                             <tr>
                                 <td>@loan.Loan_No</td>
                                 <td>@loan.Loan_Amount.ToString("C2")</td>
-                                <td>@loan.Interest_Balance.ToString("C2")</td>
+                                <td>@loan.Interest_Outstanding.ToString("C2")</td>
                                 <td>@loan.Principal_Balance.ToString("C2")</td>
                                 <td>@loan.Total_Balance.ToString("C2")</td>
+                                <td>@loan.Current_Interest.ToString("C2")</td>
                                 <td>@loan.Interest_Collection.ToString("C2")</td>
                                 <td>@loan.Principal_Collection.ToString("C2")</td>
                                 <td>@loan.Total_Collection.ToString("C2")</td>
@@ -93,16 +103,36 @@
                         }
                         <tr class="table-info">
                             <td colspan="1" class="text-end fw-bold">Total:</td>
-                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Loan_Amount).ToString("C2")</td>
-                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Balance).ToString("C2")</td>
-                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Balance).ToString("C2")</td>
-                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Total_Balance).ToString("C2")</td>
-                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Collection).ToString("C2")</td>
-                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Collection).ToString("C2")</td>
-                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Total_Collection).ToString("C2")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Loan_Amount).ToString("C")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Outstanding).ToString("C")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Balance).ToString("C")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Total_Balance).ToString("C")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Current_Interest).ToString("C")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Collection).ToString("C")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Collection).ToString("C")</td>
+                            <td class="fw-bold">@fdRecovery.Loan_Balance_List.Sum(l => l.Total_Collection).ToString("C")</td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Loan Recovery</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="recoveryAmount" class="form-label">Enter Recovery Amount</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="recoveryAmount"
+                            @bind=fdRecovery.Total_Collection
+                            @bind:event="oninput"
+                            @onchange="() => ValidateTotalRecoveryAmount()" />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     }
@@ -120,7 +150,7 @@
     <div class="d-flex justify-content-between mt-4 mb-4">
         <div>
             <!-- Left-aligned buttons -->
-            <button type="button" class="btn btn-secondary me-2">
+            <button type="button" class="btn btn-secondary me-2" @onclick="ClosePage">
                 <i class="oi oi-x"></i>
                 Close
             </button>
@@ -131,20 +161,26 @@
         </div>
 
         <!-- Right-aligned submit button -->
-        <button type="submit" class="btn btn-primary" disabled="@(!IsRecoveryValid())" @onclick="ProcessRecovery">
+        <button type="submit" class="btn btn-primary" disabled="@(!IsRecoveryValid())" @onclick="FDLoanRecoveryInitiate">
             <i class="oi oi-check"></i>
             Initiate Fixed Deposit Loan Recovery
         </button>
     </div>
-    @isError 
+    @isError
 </EditForm>
+
 @code {
     #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
     [Parameter] public decimal MemberId { get; set; }
     [Parameter] public string? MemberNumber { get; set; }
     [Parameter] public string? MemberName { get; set; }
     [Parameter] public DateTime TransactionDate { get; set; }
-    #endregion 
+
+    [Parameter] public EventCallback<bool> OnFDLoanRecoveryComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoTermDepositLoanRecovery> OnFDLoanRecoveryInitiate { get; set; }
+    #endregion
 
     #region declarations
     private DtoTermDepositLoanRecovery fdRecovery = new DtoTermDepositLoanRecovery();
@@ -153,21 +189,26 @@
     private bool loanNumbersLoaded = false;
     private string? processingMessage;
     private bool isError = false;
-    #endregion 
+    private Staging_Details stagingDetails = new();
+    #endregion
 
     protected override void OnInitialized()
     {
+        /// memberNo = 1100110009991
+        fdRecovery.AccountId = AccountId;
+        fdRecovery.CashOrAdjustment = CashOrAdjustment;
         fdRecovery.Mem_Id = MemberId;
         fdRecovery.Member_No = MemberNumber;
         fdRecovery.Member_Name = MemberName;
         fdRecovery.Transaction_Date = TransactionDate;
     }
+
     private async Task GetLoanNumbers()
     {
         try
         {
             List<DropdownItem> lnNoList = new List<DropdownItem>();
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetJLNosByMemId/{fdRecovery.Mem_Id}/3");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{fdRecovery.Mem_Id}/3");
             List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
             if (result != null && result.Count > 0)
             {
@@ -237,11 +278,11 @@
                     queryString.Append("&loanIdList=");
             }
             // Add other parameters with proper formatting
-            queryString.Append($"&endDate={Uri.EscapeDataString(fdRecovery.Transaction_Date.ToString("yyyy-MM-dd"))}");
+            queryString.Append($"&toDate={Uri.EscapeDataString(fdRecovery.Transaction_Date.ToString("yyyy-MM-dd"))}");
             queryString.Append("&brCode=11001");
 
             // Make the API call with proper URL format
-            var result = await _httpClient.GetFromJsonAsync<List<DtoTermDepositLoanBalance>>($"api/TermDeposit/GetJLBalance?{queryString}");
+            var result = await _httpClient.GetFromJsonAsync<List<DtoTermDepositLoanBalance>>($"https://localhost:7073/api/Loan/GetTDLoanBalanceByLoanId?{queryString}");
 
             if (result != null && result.Count > 0) loanBalanceList = result.ToList();
             fdRecovery.Loan_Balance_List = new List<DtoTermDepositLoanBalance>();
@@ -257,19 +298,24 @@
                             Loan_Date = loan.Loan_Date,
                             Rate_Of_Interest = loan.Rate_Of_Interest,
                             Due_Date = loan.Due_Date,
-                            Interest_Application_Date = loan.Interest_Application_Date,
-                            Principal_Balance = loan.Principal_Balance ,
-                            Interest_Balance = loan.Interest_Balance ,
+                            IntCalc_Date = loan.IntCalc_Date,
+                            Principal_Balance = loan.Principal_Balance,
+                            Interest_Balance = loan.Interest_Balance,
                             Current_Interest = loan.Current_Interest,
+                            Interest_Applied_Date = loan.Interest_Applied_Date,
+                            Interest_Outstanding = loan.Interest_Outstanding,
+                            Total_Balance = loan.Total_Balance,
                             Interest_Collection = 0,
-                            Principal_Collection =0,
-                            Total_Collection =0
+                            Principal_Collection = 0,
+                            Total_Collection = 0,
+                            PrlLed_Id = loan.PrlLed_Id,
+                            IntLed_Id = loan.IntLed_Id  
                         });
                 }
             }
-            fdRecovery.Total_Interest_Balance = fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Balance);
+            fdRecovery.Total_Interest_Balance = fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Outstanding);
             fdRecovery.Total_Principal_Balance = fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Balance);
-            fdRecovery.Total_Balance = fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Balance) + fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Balance);
+            fdRecovery.Total_Balance = fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Outstanding) + fdRecovery.Loan_Balance_List.Sum(l => l.Principal_Balance);
             processingMessage = null;
         }
         catch (Exception ex)
@@ -287,7 +333,7 @@
         }
 
         // Check if any recovery amount is greater than outstanding
-        if (fdRecovery.Loan_Balance_List.Any(l => l.Interest_Collection > l.Interest_Balance))
+        if (fdRecovery.Loan_Balance_List.Any(l => l.Interest_Collection > l.Interest_Outstanding ))
         {
             return false;
         }
@@ -299,6 +345,57 @@
         }
 
         return true;
+    }
+
+    private void ValidateTotalRecoveryAmount()
+    {
+        if (fdRecovery.Total_Collection > fdRecovery.Total_Balance)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Total recovery amount is greater than total outstanding amount");
+            fdRecovery.Total_Collection = fdRecovery.Total_Balance;
+            AppropriateRecovery();
+        }
+        else
+        {
+            AppropriateRecovery();
+        }
+    }
+
+    private void AppropriateRecovery()
+    {
+        double totalRecovery = fdRecovery.Total_Collection;
+        foreach (var rec in fdRecovery.Loan_Balance_List!.OrderBy(x => x.Loan_Id))
+        {
+            rec.Total_Collection = 0;
+        }
+        foreach (var rec in fdRecovery.Loan_Balance_List!)
+        {
+            if (totalRecovery > 0)
+            {
+                if (totalRecovery >= rec.Interest_Outstanding)
+                {
+                    rec.Interest_Collection = rec.Interest_Outstanding;
+                    totalRecovery -= rec.Interest_Outstanding;
+                }
+                else
+                {
+                    rec.Interest_Collection = totalRecovery;
+                    totalRecovery = 0;
+                }
+                if (totalRecovery >= rec.Principal_Balance)
+                {
+                    rec.Principal_Collection = rec.Principal_Balance;
+                    totalRecovery -= rec.Principal_Balance;
+                }
+                else
+                {
+                    rec.Principal_Collection = totalRecovery;
+                    totalRecovery = 0;
+                }
+                rec.Total_Collection = rec.Interest_Collection + rec.Principal_Collection;
+            }
+        }
+        IsRecoveryValid();
     }
 
     private async Task ProcessRecovery()
@@ -332,9 +429,79 @@
             isError = true;
         }
     }
+
     private void HandleSubmit()
     {
         // Submit payment logic (e.g., API call to save paymentModel)
         // NavigationManager.NavigateTo("/payment-success");
+    }
+
+    protected async Task ClosePage()
+    {
+        // Navigation.NavigateTo("/member-transactions"); // or any other route
+        await OnFDLoanRecoveryComponentClose.InvokeAsync(true);
+    }
+
+    protected async Task FDLoanRecoveryInitiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+
+        string fdLoanRecoveryJsonData = ConvertToJson(fdRecovery);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = MemberId,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount =fdRecovery.Total_Collection,
+            Payment_Amount = 0,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = fdLoanRecoveryJsonData,
+            Created_By = 110010000001,
+            Created_Date = TransactionDate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = "11001"
+        };
+        
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        await TransactionState.NotifyIntiate(true);
+        // await OnFDLoanRecoveryInitiate.InvokeAsync(fdRecovery);
+    }
+
+    private string ConvertToJson(DtoTermDepositLoanRecovery fdLoanRecovery)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(fdLoanRecovery, options);
     }
 }

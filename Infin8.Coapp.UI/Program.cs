@@ -6,6 +6,8 @@ using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Repository;
 using Infin8.Coapp.Utility;
 using Microsoft.EntityFrameworkCore;
+using Infin8.Coapp.ReportServices.Interface;
+using Infin8.Coapp.ReportServices.Concrete;
 var builder = WebApplication.CreateBuilder(args);
 
 /// server client time out end
@@ -15,6 +17,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 builder.Services.AddControllers();
+
 //builder.Services.AddScoped(http => new HttpClient
 //{
 //    BaseAddress = new Uri(builder.Configuration.GetSection("BaseUri").Value!),
@@ -53,10 +56,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDashboardMemberHandler, DashboardMemberHandler>();
 builder.Services.AddScoped<IGeneralHandler, GeneralHandler>();
+builder.Services.AddSingleton<TransactionStateService>();
 
 #region accounts
 builder.Services.AddScoped<IAccountsHandler, AccountsHandler>();
+builder.Services.AddScoped<IFinVoucherTrnHandler, FinVoucherTrnHandler>();
 #endregion 
+
 #region Loan
 builder.Services.AddScoped<ILoanSchemeHandler, LoanSchemeHandler>();
 builder.Services.AddScoped<ILoanMasterHandler, LoanMasterHandler>();
@@ -90,7 +96,13 @@ builder.Services.AddScoped<IReferenceConstituencyHandler, ReferenceConstituencyH
 
 #region Reports
 builder.Services.AddScoped<IReportsHandler, ReportsHandler>();
-builder.Services.AddScoped<IReportsJewelLoanRepository, ReportsJewelLoanRepository>();
+builder.Services.AddScoped<IReportsTermDepositsHandler, ReportsTermDepositsHandler>();
+builder.Services.AddScoped<IReportsJewelLoanHandler, ReportsJewelLoanHandler>();
+builder.Services.AddScoped<IReportsMemberHandler, ReportsMemberHandler>();
+builder.Services.AddScoped<IReportsLoanHandler, ReportsLoanHandler>();
+builder.Services.AddScoped<IReportsFinalAccountsHandler, ReportsFinalAccountsHandler>();
+builder.Services.AddScoped<IReportsAccountHandler, ReportsAccountHandler>();
+builder.Services.AddScoped<IReportsEmployeeHandler, ReportsEmployeeHandler>();
 #endregion 
 
 #region TermDeposit
@@ -116,6 +128,26 @@ builder.Services.AddScoped<IUserHandler, UserHandler>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
 builder.Services.AddScoped<ITransactionsHandler, TransactionsHandler>();
+
+#region staging
+builder.Services.AddScoped<IStagingMasterHandler, StagingMasterHandler>();
+builder.Services.AddScoped<IStagingDetailsHandler, StagingDetailsHandler>();
+#endregion 
+
+#region SBAccount
+builder.Services.AddScoped<ISBCAMasterHandler, SBCAMasterHandler>();
+builder.Services.AddScoped<ISBCASchemesHandler, SBCASchemesHandler>();
+#endregion 
+
+#region reports
+builder.Services.AddScoped<IReportsHandler, ReportsHandler>();
+#endregion 
+
+
+#region Report Servces
+//builder.Services.AddScoped<IInstant_Reports, Instant_Reports>();
+#endregion 
+
 
 //builder.Services.AddHttpClient().ConfigurePrimaryHttpMessageHandler(() =>
 //{
@@ -160,5 +192,7 @@ app.MapRazorComponents<App>()
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+// Enable static file serving from wwwroot
+app.UseStaticFiles();
 
 app.Run();

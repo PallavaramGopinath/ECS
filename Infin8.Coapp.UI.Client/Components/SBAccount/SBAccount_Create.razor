@@ -1,9 +1,18 @@
 ﻿@page "/sbAccount-create"
-@rendermode InteractiveAuto
-@inject NavigationManager Navigation
 @using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Net
+@rendermode InteractiveAuto
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+@inject TransactionStateService TransactionState
 
-<div class="container-sm mt-4">
+
+@* container-sm *@
+<div class="mt-4">
     <h4 class="mb-2">Savings Bank Account Creation</h4>
     <hr class="mt-0" />
     <EditForm Model="@sbAccountModel">
@@ -43,7 +52,7 @@
                             </div>
 
                             <!-- Right-aligned submit button -->
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" @onclick="SBCreateInitiate">
                                 <i class="oi oi-check"></i>
                                 Create Savings Bank Account
                             </button>
@@ -57,30 +66,118 @@
 
 @code {
     #region parameter
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
     [Parameter] public decimal MemberId { get; set; }
     [Parameter] public string? MemberNumber { get; set; }
     [Parameter] public string? MemberName { get; set; }
     [Parameter] public DateTime Transactiondate { get; set; }
+
+    [Parameter] public EventCallback<bool> OnSBCreateComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoSBAccountCreate> OnSBCreateInitiate { get; set; }
     #endregion
 
     #region declarations
     private DtoSBAccountCreate sbAccountModel = new DtoSBAccountCreate();
+    private Staging_Details stagingDetails = new();
+    // private decimal ledId = 0, intLedId = 0;
+    private SBCA_Schemes schemes = new();
     #endregion
 
-    protected override void OnInitialized()
+    /// <summary>
+    /// Member No: 1100110009991
+    /// </summary>
+    protected override async Task OnInitializedAsync()
     {
+        sbAccountModel.AccountId = AccountId;
+        sbAccountModel.CashOrAdjustment = CashOrAdjustment;
         sbAccountModel.Mem_Id = MemberId;
         sbAccountModel.Member_No = MemberNumber;
-        sbAccountModel.Membe_Name = MemberName;
+        sbAccountModel.Member_Name = MemberName;
         sbAccountModel.Transaction_Date = Transactiondate;
+        sbAccountModel.BrCode = "11001"; // Assuming a default branch code, can be parameterized if needed
+        sbAccountModel.Led_Id = 0;
+        var result = await _httpClient.GetFromJsonAsync<SBCA_Schemes>($"https://localhost:7073/api/SBAccpimt/GetSBCAScheme/{11001}");
+        if (result != null)
+        {
+            schemes = result;
+            sbAccountModel.Led_Id = schemes.SBCA_Led_Id;
+        }
+        else
+        {
+            // Handle the case where no scheme is found
+            Console.WriteLine("No scheme found for the given branch code.");
+        }
     }
 
     private void ResetForm()
     {
         sbAccountModel.Receipt_Amount = 0;
     }
-    private void ClosePage()
+    protected async Task ClosePage()
     {
-        Navigation.NavigateTo("/member-transactions"); // or any other route
+        // Navigation.NavigateTo("/member-transactions"); // or any other route
+        await OnSBCreateComponentClose.InvokeAsync(true);
+    }
+
+    protected async Task SBCreateInitiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        string newSBAccountJsonData = ConvertToJson(sbAccountModel);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = MemberId,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount =  sbAccountModel.Receipt_Amount, 
+            Payment_Amount = 0,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = newSBAccountJsonData,
+            Created_By = 110010000001,
+            Created_Date = Transactiondate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = "11001"
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        await TransactionState.NotifyIntiate(true);
+        // await OnSBCreateInitiate.InvokeAsync(sbAccountModel);
+    }
+
+    private string ConvertToJson(DtoSBAccountCreate newSB)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(newSB, options);
     }
 }

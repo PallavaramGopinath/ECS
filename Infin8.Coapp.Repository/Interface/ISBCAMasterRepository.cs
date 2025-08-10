@@ -10,7 +10,7 @@ namespace Infin8.Coapp.Repository
 {
     public  interface ISBCAMasterRepository
     {
-        Task<bool> AddSBCAMasterAsync(SBCA_Master sbcaMaster);
+        Task<(bool result,decimal accId, string accNo)> AddSBCAMasterAsync(SBCA_Master sbcaMaster);
         Task<bool> EditSBCAMasterAsync(SBCA_Master sbcaMaster);
         Task<List<DropdownItem>> GetSBCANosByMemIdAsync(decimal memId);
     }

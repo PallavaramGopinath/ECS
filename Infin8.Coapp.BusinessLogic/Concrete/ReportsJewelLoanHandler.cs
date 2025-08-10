@@ -20,12 +20,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanAboveLimitList(asOnDate, limitAmt,brCode );
         }
-
         public async Task<List<rptJewelLoanIssueRegister>> GetJewelLoanIssueRegisterList(DateTime fromDate, DateTime toDate, string brCode)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanIssueRegisterList(fromDate, toDate, brCode);
         }
-
         public async Task<List<rptJewelLoanClaim>> GetJewelLoanClaim(DateTime fromDate, DateTime toDate, string brCode)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanClaim(fromDate, toDate, brCode);
@@ -34,32 +32,26 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanLedgerToMembers(loanIdList, fromDate, toDate);
         }
-
         public async Task<List<rptJewelLoanOutstandingList>> GetJewelLoanOutstandingForMember(decimal memId, DateTime asOnDate)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanOutstandingForMember(memId, asOnDate);
         }
-
         public async Task<List<rptJewelLoanOutstandingList>> GetJewelLoanOutstandingList(DateTime asOnDate, string brCode)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanOutstandingList(asOnDate,brCode );
         }
-
         public async Task<List<rptJewelLoanOutstandingSchemeWiseList>> GetJewelLoanOutstandingSchemeWiseList(DateTime asOnDate, string brCode)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanOutstandingSchemeWiseList(asOnDate, brCode);
         }
-
         public async Task<List<rptJewelLoanOverdueList>> GetJewelLoanOverdueList(DateTime asOnDate, string brCode)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanOverdueList(asOnDate, brCode);
         }
-
         public async Task<List<rptJewelLoanOverdueSchemeWiseList>> GetJewelLoanOverdueSchemeWiseList(DateTime asOnDate, string brCode)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanOverdueSchemeWiseList(asOnDate, brCode);
         }
-
         public async Task<List<rptJewelLoanRedemptionList>> GetJewelLoanRedemptionList(DateTime fromDate, DateTime toDate, string brCode)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanRedemptionList(fromDate, toDate, brCode);
@@ -72,17 +64,33 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanStockRegisteList(fromDate,toDate,loanType,brCode );
         }
-
         public async Task<List<rptJewelLoanVerificationList>> GetJewelLoanVerificationList(DateTime asOnDate, string brCode)
         {
             return await _unitOfWork.ReportsJewelLoan.GetJewelLoanVerificationList(asOnDate, brCode);
         }
-
-        public async Task<List<rptJewelLoanLedgerMain>> Print_JewelLoanLedgerMain(List<decimal> loanIdList)
+        public async Task<List<rptJewelLoanLedgerMain>> GetJewelLoanLedger(List<decimal> loanIdList)
         {
-            return await _unitOfWork.ReportsJewelLoan.Print_JewelLoanLedgerMain(loanIdList);
+            return await _unitOfWork.ReportsJewelLoan.GetJewelLoanLedger(loanIdList);
         }
 
-        
+        public async Task<List<DropdownItem>> GetJewelLoanNosForLedger(DateTime fromDate, DateTime toDate, string brCode)
+        {
+            return await _unitOfWork.ReportsJewelLoan.GetJewelLoanNosForLedger(fromDate,toDate,brCode);
+        }
+
+        public async Task<List<DropdownItem>> GetJewelLoanNosForLedger(decimal memId, DateTime fromDate, DateTime toDate, string brCode)
+        {
+            return await _unitOfWork.ReportsJewelLoan.GetJewelLoanNosForLedger(memId ,fromDate,toDate,brCode);
+        }
+
+        public List<rptJewelLoanLedgerOrnmentsSub> GetJewelLoanLedgerOrnmentsSub(decimal loanId)
+        {
+            return  _unitOfWork.ReportsJewelLoan.GetJewelLoanLedgerOrnmentsSub(loanId);
+        }
+
+        public List<rptJewelLoanLedgerTrnSub> GetJewelLoanLedgerTrnSub(decimal loanId, DateTime fromDate, DateTime toDate, string brCode)
+        {
+            return _unitOfWork.ReportsJewelLoan.GetJewelLoanLedgerTrnSub(loanId ,fromDate,toDate,brCode);
+        }
     }
 }

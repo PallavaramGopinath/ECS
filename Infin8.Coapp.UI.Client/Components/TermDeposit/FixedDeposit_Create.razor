@@ -1,13 +1,17 @@
 ﻿@page "/fixed-deposit-create"
 @using System.ComponentModel.DataAnnotations
+@using Infin8.Coapp.Models
 @using Microsoft.AspNetCore.Components.Forms
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Utility;
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Net
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveAuto
 @inject HttpClient _httpClient
 @inject NavigationManager Navigation
-
+@inject TransactionStateService TransactionState
 <h3 class="mb-2">Create Fixed Deposit</h3>
 <hr class="mt-0" />
 <EditForm Model="@_fixedDepositModel" OnValidSubmit="@HandleValidSubmit">
@@ -71,6 +75,7 @@
                                         <thead class="table-dark">
                                             <tr>
                                                 <th> Member ID </th>
+                                                <th> Member No</th>
                                                 <th> Member Name </th>
                                                 <th> Father Name </th>
                                                 <th>Age</th>
@@ -83,6 +88,7 @@
                                                 var index = i;
                                                 <tr>
                                                     <td>@_fixedDepositModel.Members[i].Mem_Id</td>
+                                                    <td>@_fixedDepositModel.Members[i].Member_No</td>
                                                     <td>@_fixedDepositModel.Members[i].Member_Name</td>
                                                     <td>@_fixedDepositModel.Members[i].Father_Name</td>
                                                     <td>@_fixedDepositModel.Members[i].Age</td>
@@ -167,6 +173,7 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="row">
                         <div class="col-md-3 mb-3 d-flex align-items-end">
                             <button type="button" class="btn btn-secondary rounded-pill" style="width:100%" @onclick="GetNewFDNo">
@@ -211,7 +218,7 @@
                         <div class="col-md-3 mb-3">
                             <div class="form-group">
                                 <label for="periodType">Period Type:</label>
-                                <InputSelect id="periodType" class="form-control shadow-none"
+                                <InputSelect id="periodType" class="form-control shadow-none" disabled="@isddlPeriodDisabled"
                                 @bind-Value="_fixedDepositModel.Period_Type" @onchange="PeriodTypeChanged">
                                     <option value="">--Select Type--</option>
                                     <option value="Months">Months</option>
@@ -395,31 +402,49 @@
     [Parameter] public string? MemberNumber { get; set; }
     [Parameter] public string? MemberName { get; set; }
     [Parameter] public int Age { get; set; }
+    [Parameter] public DateTime? DOB { get; set; }
     [Parameter] public double NewFDAmount { get; set; }
     [Parameter] public DateTime ValueDate { get; set; }
     [Parameter] public bool IsRenewal { get; set; }
     [Parameter] public DateTime TransactionDate { get; set; }
+
+    [Parameter] public DtoTermDepositFixedDepositPayment? FixedDepositPayment { get; set; }
+
     [Parameter] public EventCallback<bool> OnFDNewComponentClose { get; set; }
     [Parameter] public EventCallback<DtoTermDepositFixedDepositCreation> OnFDNewInitiate { get; set; }
+
+    [Parameter] public EventCallback<DtoTermDepositFixedDepositRenewal> OnFDRenewalInitiate  { get; set; }
+
     #endregion
 
     #region variables
     bool isDiscountRate = false;
     bool isCompound = false;
-
+    bool isddlPeriodDisabled = false;
     private DtoTermDepositFixedDepositCreation _fixedDepositModel = new DtoTermDepositFixedDepositCreation();
-
+    private DtoTermDepositFixedDepositRenewal _fixedDepositRenewal = new DtoTermDepositFixedDepositRenewal();
     private List<DropdownItem> schemeList = new();
+
+    private Staging_Details stagingDetails = new();
 
     public class TdNoResponse
     {
         public string? TdNo { get; set; }
     }
+
     private string CreateButtonText = "Initiate Fixed Deposit";
     #endregion
 
+    /// <summary>
+    ///  member no 1100120006915
+    ///  for renewal mem no = 1100110009991
+    ///  for renewal fd no 1001030008257
+    ///  for renewal fd with loan outstanding 11001030010866
+    /// </summary>
+    /// <returns></returns>
     protected override async Task OnInitializedAsync()
     {
+        _fixedDepositRenewal.Transaction_Date = TransactionDate;
         _fixedDepositModel.AccountId = AccountId;
         _fixedDepositModel.CashorAdjustment = CashOrAdjustment;
         _fixedDepositModel.Mem_Id = MemberId;
@@ -434,12 +459,16 @@
         if (schemeListTmp != null) schemeList = schemeListTmp.ToList();
         // if (IsRenewal)
         // {
+        if (DOB != null)
+        {
+            Age = Utilities.GetAge((DateTime)DOB, TransactionDate);
+        }
         _fixedDepositModel.Deposit_Amount = NewFDAmount;
         var member = new DtoTermDepositMember
             {
                 Mem_Id = MemberId,
-                Member_Name = MemberNumber,
-                Father_Name = MemberName,
+                Member_No = MemberNumber,
+                Member_Name = MemberName,
                 Age = Age
             };
         _fixedDepositModel.Members.Add(member);
@@ -680,6 +709,7 @@
         {
             _fixedDepositModel.Period_In_Months = 0;
         }
+        isddlPeriodDisabled = true;
     }
 
     private void DdlInterestFrequencyChange()
@@ -690,16 +720,21 @@
             case 1: /// monthly
                 isDiscountRate = true;
                 isCompound = false;
+                _fixedDepositModel.Period_In_Months = 12;
+                _fixedDepositModel.Period_Type = "Months";
+                isddlPeriodDisabled = true;
                 break;
             case 3: /// quarterly
             case 6: /// half yearly
                 isDiscountRate = false;
                 isCompound = false;
+                isddlPeriodDisabled = true;
                 break;
             case 12:     /// annual
             case 13:    /// on maturity
                 isCompound = true;
                 isDiscountRate = false;
+                isddlPeriodDisabled = false;
                 break;
         }
     }
@@ -731,8 +766,114 @@
 
     protected async Task FDNewInitiate()
     {
-        await OnFDNewInitiate.InvokeAsync(_fixedDepositModel);
+        string accountName = "";
+        try
+        {
+            var response = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                accountName = await response.Content.ReadAsStringAsync();
+            }
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+
+        /// is nominee
+        if (!string.IsNullOrWhiteSpace(_fixedDepositModel.Common.Nominee1Name))
+            _fixedDepositModel.IsNomineeProvided = true;
+        else _fixedDepositModel.IsNomineeProvided = false;
+
+        /// is compound interest
+        if (_fixedDepositModel.compoundfrequency > 0)
+            _fixedDepositModel.IsCompoundInterest = true;
+        else _fixedDepositModel.IsCompoundInterest = false;
+
+        if (!IsRenewal)
+        {
+            // accountName = "Fixed Deposit New Account";
+            string newFDJsonData = ConvertNewFDToJson(_fixedDepositModel);
+            stagingDetails = new()
+            {
+                Id = 0,
+                Staging_Id = 0,
+                Member_Id = MemberId,
+                Ledger_Id =0,
+                Related_Account_Id = AccountId,
+                Receipt_Amount = _fixedDepositModel.Deposit_Amount,
+                Payment_Amount =0,
+                Module_Name = accountName,
+                Cash_Or_Adjustment = CashOrAdjustment,
+                Related_Account_Data = newFDJsonData,
+                Created_By =110010000001,
+                Created_Date = TransactionDate,
+                Checked_By = 0,
+                Checked_Date = null,
+                Staging_Status = "I",
+                BrCode = "11001"
+            };
+            var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+            await TransactionState.NotifyIntiate(true);
+            // await OnFDNewInitiate.InvokeAsync(_fixedDepositModel);
+        }
+        else
+        {
+            _fixedDepositModel.Mem_Id = MemberId;
+            _fixedDepositModel.Member_No = MemberNumber;
+            _fixedDepositModel.Member_Name = MemberName;
+            _fixedDepositModel.CashorAdjustment = CashOrAdjustment;
+            _fixedDepositModel.AccountId = AccountId;
+
+            _fixedDepositRenewal.Mem_Id = MemberId;
+            _fixedDepositRenewal.Member_No = MemberNumber;
+            _fixedDepositRenewal.Member_Name = MemberName;
+            _fixedDepositRenewal.CashOrAdjustment = CashOrAdjustment;
+            _fixedDepositRenewal.AccountId = AccountId;
+            _fixedDepositRenewal.FixedDepositPayment = new();
+            _fixedDepositRenewal.FixedDepositCreate = new();
+            _fixedDepositRenewal.FixedDepositPayment = FixedDepositPayment;
+            _fixedDepositRenewal.FixedDepositCreate = _fixedDepositModel;
+            // accountName = "Fixed Deposit Renewal";
+            string renewalFDJsonData = ConvertRenewalFDToJson(_fixedDepositRenewal);
+            stagingDetails = new()
+            {
+                Id = 0,
+                Staging_Id = 0,
+                Member_Id = MemberId,
+                Ledger_Id = 0,
+                Related_Account_Id = AccountId,
+                Receipt_Amount = _fixedDepositRenewal.FixedDepositCreate.Deposit_Amount,
+                Payment_Amount = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable,
+                Module_Name = accountName,
+                Cash_Or_Adjustment = CashOrAdjustment,
+                Related_Account_Data = renewalFDJsonData,
+                Created_By = 110010000001,
+                Created_Date = TransactionDate,
+                Checked_By = 0,
+                Checked_Date = null,
+                Staging_Status = "I",
+                BrCode = "11001"
+            };
+            var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+            // await OnFDRenewalInitiate.InvokeAsync(_fixedDepositRenewal);
+            // await OnFDNewInitiate.InvokeAsync(_fixedDepositModel);
+            await TransactionState.NotifyIntiate(true);
+        }
     }
+
+    
     #endregion
 
     #region  Validation classes derived from your DTOs
@@ -793,5 +934,25 @@
 
 
     #endregion
+
+    private string ConvertNewFDToJson(DtoTermDepositFixedDepositCreation newFD)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(newFD, options);
+    }
+
+    private string ConvertRenewalFDToJson(DtoTermDepositFixedDepositRenewal renewalFD)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(renewalFD, options);
+    }
 }
 

@@ -45,6 +45,6 @@ namespace Infin8.Coapp.Models
         public double Lumpsum { get; set; }
         public double FWD { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

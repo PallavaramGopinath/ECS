@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -15,8 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--<ProjectReference Include="..\Infin8.Coapp.BusinessLogic\Infin8.Coapp.BusinessLogic.csproj" />-->
     <ProjectReference Include="..\Infin8.Coapp.Dto\Infin8.Coapp.Dto.csproj" />
+    <!--<ProjectReference Include="..\Infin8.Coapp.ReportServices\Infin8.Coapp.ReportServices.csproj" />-->
     <ProjectReference Include="..\Infin8.Coapp.Utility\Infin8.Coapp.Utility.csproj" />
   </ItemGroup>
-
 </Project>

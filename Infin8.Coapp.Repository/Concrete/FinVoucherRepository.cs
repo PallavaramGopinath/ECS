@@ -16,13 +16,15 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddFinVoucherAsync(Fin_Voucher finVouocher)
+        public async Task<(bool result, decimal vocId)> AddFinVoucherAsync(Fin_Voucher finVouocher)
         {
             bool result = false;
+            decimal vocId = 0;
             try
             {
                 decimal maxId = await CSISContext.Fin_Voucher.MaxAsync(x => x.Voc_Id);
                 maxId++;
+                vocId = maxId;
                 finVouocher.Voc_Id = maxId;
                 await AddAsync(finVouocher);
                 result = true;
@@ -32,7 +34,7 @@ namespace Infin8.Coapp.Repository
                 result = false;
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Voucher not saved");
             }
-            return result;
+            return (result,vocId);
         }
 
         public async Task<bool> EditFinVoucherAsync(Fin_Voucher finVouocher)

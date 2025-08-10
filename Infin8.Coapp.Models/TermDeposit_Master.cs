@@ -44,9 +44,9 @@ namespace Infin8.Coapp.Models
         public decimal Usr_Id { get; set; }
         public decimal Yr_Id { get; set; }
         public string? Status { get; set; }
-        public int RenewalTD_Id { get; set; }
+        public decimal RenewalTD_Id { get; set; }
         public string? RenewalTD_No { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

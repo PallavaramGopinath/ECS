@@ -50,6 +50,6 @@ namespace Infin8.Coapp.Models
         //public double PI_Bal { get; set; }
         //public double IOD_Bal { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

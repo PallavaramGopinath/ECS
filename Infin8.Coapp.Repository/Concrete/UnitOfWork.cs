@@ -125,6 +125,11 @@ namespace Infin8.Coapp.Repository
         private ReportsEmployeeRepository? _reportsEmployeeRepository;
         #endregion
 
+        #region staging
+        private StagingMasterRepository? _stagingMasterRepository;
+        private StagingDetailsRepository? _stagingDetailsRepository;
+        #endregion 
+
         private TransactionsRepository? _transactionsRepository;
 
         
@@ -210,6 +215,12 @@ namespace Infin8.Coapp.Repository
 
         public ISBCAMasterRepository SBCAMaster => _sbCAMasterRepository ??= new SBCAMasterRepository(_context);
         public ISBCASchemesRepository SBCASchemes => _sbCASchemesRepository ??= new SBCASchemesRepository(_context);
+
+        #region staging
+        public IStagingMasterRepository StagingMaster => _stagingMasterRepository ??= new StagingMasterRepository(_context);
+        public IStagingDetailsRepository StagingDetails => _stagingDetailsRepository ??= new StagingDetailsRepository(_context);
+        #endregion
+
         #region Termdeposit
         public ITermDepositFCTemplateRepository TermDepositFCTemplate => _termDepositFCTemplateRepository ??= new TermDepositFCTemplateRepository(_context);    
         public ITermDepositIntCalcCalendarRepository TermDepositIntCalcCalendar => _termDepositIntCalcCalendarRepository ??= new TermDepositIntCalcCalendarRepository(_context);

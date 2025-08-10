@@ -1,0 +1,230 @@
+﻿@page "/sbAccount-transaction"
+@rendermode InteractiveAuto 
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Net
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject TransactionStateService TransactionState
+<div class="mt-4">
+    <h4 class="mb-2">Savings Bank Account Transaction</h4>
+    <hr class="mt-0" />
+    <EditForm Model="@sbAccountTransaction">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card p-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Saving Bank Account Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-2 mb-3">
+                                <div class="form-group">
+                                    <label for="Receipt_Amount">SB Account Number</label>
+                                    <InputText TValue="double"
+                                    id="Receipt_Amount"
+                                    class="form-control shadow-none"
+                                    @bind-Value="sbAccountTransaction.SBAccount_No"
+                                    disabled="true" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-2 mb-3">
+                                <div class="form-group">
+                                    <label for="Receipt_Amount">Balance Amount</label>
+                                    <InputNumber TValue="double"
+                                    id="Receipt_Amount"
+                                    class="form-control shadow-none"
+                                    @bind-Value="sbAccountTransaction.Balance_Amount"
+                                    disabled="true" />
+                                </div>
+                            </div>
+
+                            @if (ReceiptOrPayment == 1)
+                            {
+                                <div class="col-md-2 mb-3">
+                                    <div class="form-group">
+                                        <label for="Receipt_Amount">Receipt Amount</label>
+                                        <InputNumber TValue="double"
+                                        id="Receipt_Amount"
+                                        class="form-control shadow-none"
+                                        @bind-Value="sbAccountTransaction.Receipt_Amount" />
+                                    </div>
+                                </div>
+                            }
+                            @if (ReceiptOrPayment == 2)
+                            {
+                                <div class="col-md-2 mb-3">
+                                    <div class="form-group">
+                                        <label for="Receipt_Amount">Payment Amount</label>
+                                        <InputNumber TValue="double"
+                                        id="Receipt_Amount"
+                                        class="form-control shadow-none"
+                                        @bind-Value="sbAccountTransaction.Payment_Amount"
+                                        @bind-Value:after="Validate_Input" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Button group -->
+                        <div class="d-flex justify-content-between mt-4 mb-4">
+                            <div>
+                                <!-- Left-aligned buttons -->
+                                <button type="button" class="btn btn-secondary me-2" @onclick="ClosePage">
+                                    <i class="oi oi-x"></i>
+                                    Close
+                                </button>
+                                <button type="reset" class="btn btn-outline-secondary">
+                                    <i class="oi oi-action-undo"></i>
+                                    Reset
+                                </button>
+                            </div>
+
+                            <!-- Right-aligned submit button -->
+                            <button type="submit" class="btn btn-primary" @onclick="SBCreateInitiate">
+                                <i class="oi oi-check"></i>
+                                @initiateButtonText 
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    #region parameter
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public int ReceiptOrPayment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime Transactiondate { get; set; }
+
+    [Parameter] public EventCallback<bool> OnSBTransactionComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoSBAccountTransaction> OnSBTransactionInitiate { get; set; }
+    #endregion
+
+    #region declarations
+    private DtoSBAccountTransaction sbAccountTransaction = new();
+    private string initiateButtonText="";
+    private Staging_Details stagingDetails = new();
+    #endregion
+
+    protected override async Task OnInitializedAsync()
+    {
+        sbAccountTransaction.AccountId = AccountId;
+        sbAccountTransaction.CashOrAdjustment = CashOrAdjustment;
+        sbAccountTransaction.Mem_Id = MemberId;
+        sbAccountTransaction.Member_No = MemberNumber;
+        sbAccountTransaction.Member_Name = MemberName;
+        sbAccountTransaction.Transaction_Date = Transactiondate;
+        sbAccountTransaction.BrCode = "11001"; // Assuming a default branch code, can be parameterized if needed
+        if (ReceiptOrPayment == 1) initiateButtonText = "Initiate Receipt";
+        else initiateButtonText = "Initiate Payment";
+        var result = await _httpClient.GetFromJsonAsync<DtoSBAccountBalanceWithIds>($"https://localhost:7073/api/SBAccount/GetSBAccountBalanceWithIds/{sbAccountTransaction.Mem_Id}/11001");
+        if (result != null)
+        {
+            sbAccountTransaction.Balance_Amount = result.Balance_Amount;
+            sbAccountTransaction.SBAccount_Id = result.Acc_Id;
+            sbAccountTransaction.SBLed_Id = result.SBCA_Led_Id;
+            sbAccountTransaction.SBAccount_No = result.Acc_No;
+        }
+    }
+
+
+    private void ResetForm()
+    {
+        sbAccountTransaction.Receipt_Amount = 0;
+        sbAccountTransaction.Payment_Amount = 0;
+        sbAccountTransaction.Balance_Amount = 0;
+    }
+
+    private void Validate_Input()
+    {
+        if (ReceiptOrPayment == 2)
+        {
+            if (sbAccountTransaction.Payment_Amount > sbAccountTransaction.Balance_Amount)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Payment amount is greater than balance amount");
+                sbAccountTransaction.Payment_Amount = sbAccountTransaction.Balance_Amount;
+            }
+        }
+    }
+
+    protected async Task ClosePage()
+    {
+        // Navigation.NavigateTo("/member-transactions"); // or any other route
+        await OnSBTransactionComponentClose.InvokeAsync(true);
+    }
+
+    protected async Task SBCreateInitiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        string newSBAccountJsonData = ConvertToJson(sbAccountTransaction);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = MemberId,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = sbAccountTransaction.Receipt_Amount,
+            Payment_Amount = sbAccountTransaction.Payment_Amount,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = newSBAccountJsonData,
+            Created_By = 110010000001,
+            Created_Date = Transactiondate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = "11001"
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        await TransactionState.NotifyIntiate(true);
+
+        // await OnSBTransactionInitiate.InvokeAsync(sbAccountTransaction);
+    }
+    
+    private string ConvertToJson(DtoSBAccountTransaction sbTransaction)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(sbTransaction, options);
+    }
+}

@@ -28,9 +28,9 @@ namespace Infin8.Coapp.Models
         public int Amt_OB { get; set; }
         public string? Status { get; set; }
         public decimal PbleMaster_Id { get; set; }
-        public int Acc_Id { get; set; }
+        public decimal Acc_Id { get; set; }
         public int Demand_Amt { get; set; }
         public string?  BrCode { get; set; }
-        public string? Voc_Status { get; set; }
+        public string? Voc_Status { get; set; } = "V";
     }
 }

@@ -2,6 +2,9 @@
 {
     public class AccountTransactionVM
     {
+        public decimal Staging_Id { get; set; }
+        public decimal Created_By { get; set; }
+        public DateTime Created_Date { get; set; }
         public int CashAdjId { get; set; }
         public decimal LedId { get; set; }
         public int AccountId { get; set; }

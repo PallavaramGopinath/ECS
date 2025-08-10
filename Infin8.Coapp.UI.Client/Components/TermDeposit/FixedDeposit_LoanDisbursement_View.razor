@@ -1,0 +1,121 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+
+@inject HttpClient _httpClient
+
+@if (loanModel != null && loanModel.AccountId > 0)
+{
+    <div class="row">
+    <div class="col-6">
+        <div class="card mb-3 border border-2">
+            <div class="card-header">
+                <h5 class="mb-0">Fixed Deposit Loan Amount</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <tbody>
+                        <tr>
+                            <td>Loan Amount</td>
+                            <td>@loanModel.Loan_Amount.ToString("C")</td>
+                        </tr>
+                        <tr>
+                            <td>Interest Rate</td>
+                            <td>@loanModel.Loan_Rate_Of_Interest %</td>
+                        </tr>
+                        <tr>
+                            <td>Loan Date</td>
+                            <td>@loanModel.Transaction_Date.ToString("dd-MM-yyyy")</td>
+                        </tr>
+                        <tr>
+                            <td>Eligible Loan Amount</td>
+                            <td>@loanModel.Eligible_Loan_Amount.ToString("C")</td>
+                        </tr>
+                        <tr>
+                            <td>Total Borrowing Power</td>
+                            <td>@loanModel.Total_Borrowing_Power.ToString("C")</td>
+                        </tr>
+                            <tr>
+                                <td>Eligible Percentage</td>
+                                <td>@loanModel.Loan_Eligible_Percentage %</td>
+                            </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="card mb-3 border border-2">
+            <div class=card-header>
+                <h5 class="mb-0">Fixed Deposit Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>FD No</th>
+                            <th>Deposit Amount</th>
+                            <th>Value Date</th>
+                            <th>Maturity Amount</th>
+                            <th>Maturity Date</th>
+                            <th>Interest Rate</th>
+                            <th>Period</th>
+                            <th>Existing Loan If Any</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var fd in loanModel.FD_Datas!)
+                        {
+                            <tr>
+                                <td>@fd.FD_No</td>
+                                <td>@fd.FD_Amount.ToString("C")</td>
+                                <td>@fd.Value_Date.ToString("dd-MM-yyyy")</td>
+                                <td>@fd.Maturity_Amount.ToString("C")</td>
+                                <td>@fd.Maturity_Date.ToString("dd-MM-yyyy")</td>
+                                <td>@fd.Rate_Of_Interest %</td>
+                                <td>@fd.Period_In_Months (Months) @fd.Period_In_Days (Days)</td>
+                                <td>@fd.Loan_Amount.ToString("C")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+}
+else
+{
+<p>Loading loan details...</p>
+}
+
+
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private DtoTermDepositFixedDepositLoan loanModel = new();
+    private Staging_Details details = new Staging_Details();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+
+
+                if (details != null)
+                {
+                    loanModel = Utility.JsonbObject.ConvertFromJsonForFixedDepositLoanDisbursement(details.Related_Account_Data!);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+}
