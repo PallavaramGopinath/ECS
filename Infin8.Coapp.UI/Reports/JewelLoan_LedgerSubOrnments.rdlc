@@ -366,7 +366,7 @@
   </ReportSections>
   <ReportParameters>
     <ReportParameter Name="LoanId">
-      <DataType>Integer</DataType>
+      <DataType>String</DataType>
       <Prompt>ReportParameter1</Prompt>
     </ReportParameter>
   </ReportParameters>

@@ -46,7 +46,7 @@
         </Field>
         <Field Name="Loan_Id">
           <DataField>Loan_Id</DataField>
-          <rd:TypeName>System.Int32</rd:TypeName>
+          <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
         <Field Name="PI_Bal">
           <DataField>PI_Bal</DataField>
@@ -732,7 +732,7 @@
   </ReportSections>
   <ReportParameters>
     <ReportParameter Name="LoanId">
-      <DataType>Integer</DataType>
+      <DataType>String</DataType>
       <Prompt>ReportParameter1</Prompt>
     </ReportParameter>
   </ReportParameters>

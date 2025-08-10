@@ -39,11 +39,11 @@
         </Field>
         <Field Name="Loan_Id">
           <DataField>Loan_Id</DataField>
-          <rd:TypeName>System.Int32</rd:TypeName>
+          <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
         <Field Name="Loan_No">
           <DataField>Loan_No</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
+          <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
         <Field Name="MarketRatePerGram">
           <DataField>MarketRatePerGram</DataField>
@@ -51,7 +51,7 @@
         </Field>
         <Field Name="Mem_Id">
           <DataField>Mem_Id</DataField>
-          <rd:TypeName>System.Int32</rd:TypeName>
+          <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
         <Field Name="MemberName">
           <DataField>MemberName</DataField>
@@ -1402,7 +1402,7 @@
                     <TablixCell>
                       <CellContents>
                         <Subreport Name="Ornments">
-                          <ReportName>JewelLoan_LedgerSubOrnments</ReportName>
+                          <ReportName>Ornments</ReportName>
                           <Parameters>
                             <Parameter Name="LoanId">
                               <Value>=Fields!Loan_Id.Value</Value>
@@ -1465,7 +1465,7 @@
                     <TablixCell>
                       <CellContents>
                         <Subreport Name="LoanTrn">
-                          <ReportName>JewelLoan_LedgerSubTrn</ReportName>
+                          <ReportName>LoanTrn</ReportName>
                           <Parameters>
                             <Parameter Name="LoanId">
                               <Value>=Fields!Loan_Id.Value</Value>
