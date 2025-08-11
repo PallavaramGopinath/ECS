@@ -8,7 +8,7 @@ namespace Infin8.Coapp.Models
     {
         [Key]
         public decimal TDTrn_Id { get; set; }
-        public Nullable<System.DateTime> Trn_Date { get; set; }
+        public DateTime  Trn_Date { get; set; }
         public decimal TD_Id { get; set; }
         public double DepositDemandAmount { get; set; }
         public double DepositReceiptAmount { get; set; }

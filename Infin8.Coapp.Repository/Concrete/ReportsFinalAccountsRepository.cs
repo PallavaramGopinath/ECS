@@ -68,7 +68,7 @@ namespace Infin8.Coapp.Repository
         }
         public async Task<List<rptMemberTrn>> GetRptMemberTrnSchedule(DateTime fromDate, DateTime toDate, int trnType, string brCode)
         {
-            List<rptMemberTrn> memTrnList = new List<rptMemberTrn>();
+            List<rptMemberTrn> memTrnList = new();
             //string sql = "";
             try
             {
@@ -138,84 +138,255 @@ namespace Infin8.Coapp.Repository
                 //    , new NpgsqlParameter("@toDate", toDate.Date)).ToListAsync();
                 #endregion
 
-                #region linq
-                // First part: Get opening balances based on transaction type
-                var openingBalancesQuery = trnType switch
+                #region linq old
+                //// First part: Get opening balances based on transaction type
+                //var openingBalancesQuery = trnType switch
+                //{
+                //    1 or 5 => // member due to or staff due to
+                //        from memTrn in CSISContext.Mem_Trn
+                //        join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
+                //        join finLedger in CSISContext.Fin_Ledger on memTrn.Led_Id equals finLedger.Led_Id
+                //        where memTrn.MemTrn_Delete == false && memTrn.Trn_Date < fromDate && memTrn.Trn_Type == trnType &&
+                //        memTrn.BrCode == brCode && memTrn.Voc_Status == "V" &&
+                //        memMaster.brcode == brCode &&
+                //        finLedger.BrCode == brCode 
+                //        group new { memTrn, memMaster, finLedger } by new
+                //        {
+                //            memTrn.Mem_Id,
+                //            memMaster.memberno,
+                //            memMaster.perno,
+                //            memMaster.membername,
+                //            memTrn.Trn_Type,
+                //            memTrn.Led_Id,
+                //            finLedger.Led_Name
+                //        } into g
+                //        let difference = g.Sum(x => x.memTrn.Pmt_Amt) - g.Sum(x => x.memTrn.Rpt_Amt)
+                //        where difference > 0
+                //        select new rptMemberTrn
+                //        {
+                //            Mem_Id = g.Key.Mem_Id,
+                //            MemberNo = g.Key.memberno,
+                //            PerNo = g.Key.perno,
+                //            MemberName = g.Key.membername,
+                //            Trn_Type = g.Key.Trn_Type,
+                //            Led_Id = g.Key.Led_Id,
+                //            Amt_OB = (float)(g.Sum(x => x.memTrn.Pmt_Amt) - g.Sum(x => x.memTrn.Rpt_Amt)),
+                //            Rpt_Amt = 0f,
+                //            Pmt_Amt = 0f,
+                //            Led_Name = g.Key.Led_Name
+                //        },
+
+                //    2 or 3 or 6 => // member due by, share capital, or staff due by
+                //        from memTrn in CSISContext.Mem_Trn
+                //        join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
+                //        join finLedger in CSISContext.Fin_Ledger on memTrn.Led_Id equals finLedger.Led_Id
+                //        where memTrn.MemTrn_Delete == false 
+                //        && memTrn.Voc_Status == "V"
+                //        && memTrn.Trn_Date < fromDate && memTrn.Trn_Type == trnType &&
+                //        memTrn.BrCode == brCode &&
+                //        memMaster.brcode == brCode &&
+                //        finLedger.BrCode == brCode
+                //        group new { memTrn, memMaster, finLedger } by new
+                //        {
+                //            memTrn.Mem_Id,
+                //            memMaster.memberno,
+                //            memMaster.perno,
+                //            memMaster.membername,
+                //            memTrn.Trn_Type,
+                //            memTrn.Led_Id,
+                //            finLedger.Led_Name
+                //        } into g
+                //        let difference = g.Sum(x => x.memTrn.Rpt_Amt) - g.Sum(x => x.memTrn.Pmt_Amt)
+                //        where difference > 0
+                //        select new rptMemberTrn
+                //        {
+                //            Mem_Id = g.Key.Mem_Id,
+                //            MemberNo = g.Key.memberno,
+                //            PerNo = g.Key.perno,
+                //            MemberName = g.Key.membername,
+                //            Trn_Type = g.Key.Trn_Type,
+                //            Led_Id = g.Key.Led_Id,
+                //            Amt_OB = (float)(g.Sum(x => x.memTrn.Rpt_Amt) - g.Sum(x => x.memTrn.Pmt_Amt)),
+                //            Rpt_Amt = 0f,
+                //            Pmt_Amt = 0f,
+                //            Led_Name = g.Key.Led_Name
+                //        },
+
+                //    _ => Enumerable.Empty<rptMemberTrn>()
+                //};
+
+                //// Second part: Get transactions between from and to dates
+                //var transactionsQuery =
+                //    from memTrn in CSISContext.Mem_Trn
+                //    join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
+                //    join finLedger in CSISContext.Fin_Ledger on memTrn.Led_Id equals finLedger.Led_Id
+                //    where memTrn.MemTrn_Delete == false &&
+                //          memTrn.Trn_Date >= fromDate &&
+                //          memTrn.Trn_Date <= toDate &&
+                //          memTrn.Trn_Type == trnType && memTrn.Voc_Status == "V" &&
+                //          memTrn.BrCode == brCode &&
+                //          memMaster.brcode == brCode &&
+                //          finLedger.BrCode == brCode
+                //    group new { memTrn, memMaster, finLedger } by new
+                //    {
+                //        memTrn.Mem_Id,
+                //        memMaster.memberno,
+                //        memMaster.perno,
+                //        memMaster.membername,
+                //        memTrn.Trn_Type,
+                //        memTrn.Led_Id,
+                //        finLedger.Led_Name
+                //    } into g
+                //    where g.Sum(x => x.memTrn.Rpt_Amt) > 0 || g.Sum(x => x.memTrn.Pmt_Amt) > 0
+                //    select new rptMemberTrn
+                //    {
+                //        Mem_Id = g.Key.Mem_Id,
+                //        MemberNo = g.Key.memberno,
+                //        PerNo = g.Key.perno,
+                //        MemberName = g.Key.membername,
+                //        Trn_Type = g.Key.Trn_Type,
+                //        Led_Id = g.Key.Led_Id,
+                //        Amt_OB = 0f,
+                //        Rpt_Amt = (float)g.Sum(x => x.memTrn.Rpt_Amt),
+                //        Pmt_Amt = (float)g.Sum(x => x.memTrn.Pmt_Amt),
+                //        Led_Name = g.Key.Led_Name
+                //    };
+
+                //// Union the queries and order the results
+                //var combinedQuery = openingBalancesQuery.Union(transactionsQuery)
+                //    .OrderBy(r => r.Trn_Type)
+                //    .ThenBy(r => r.Mem_Id)
+                //    .ThenBy(r => r.Led_Id);
+
+                //// Execute the query and get results
+                //// Since we're working with Entity Framework Core, we need to add the right async method
+                //memTrnList = await combinedQuery.AsQueryable().ToListAsync();
+
+                //// Alternatively, if ToListAsync() is still not available, use one of these approaches:
+                //// Option 1: If using Entity Framework Core, make sure to add the Microsoft.EntityFrameworkCore namespace
+                //// using Microsoft.EntityFrameworkCore;
+                //// memTrnList = await EntityFrameworkQueryableExtensions.ToListAsync(combinedQuery);
+
+                //// Option 2: If ToListAsync is not available at all, use synchronous version
+                //// memTrnList = combinedQuery.ToList();
+
+                //memTrnList = (from mem in memTrnList
+                //              group mem by new
+                //              {
+                //                  mem.Mem_Id,
+                //                  mem.MemberNo,
+                //                  mem.PerNo,
+                //                  mem.MemberName,
+                //                  mem.Trn_Type,
+                //                  mem.Led_Id,
+                //                  mem.Led_Name
+                //              } into g
+                //              select new rptMemberTrn
+                //              {
+                //                  Mem_Id = g.Key.Mem_Id,
+                //                  MemberNo = g.Key.MemberNo,
+                //                  PerNo = g.Key.PerNo,
+                //                  MemberName = g.Key.MemberName,
+                //                  Trn_Type = g.Key.Trn_Type,
+                //                  Led_Id = g.Key.Led_Id,
+                //                  Led_Name = g.Key.Led_Name,
+                //                  Amt_OB = g.Sum(trn => trn.Amt_OB),
+                //                  Rpt_Amt = g.Sum(trn => trn.Rpt_Amt),
+                //                  Pmt_Amt = g.Sum(trn => trn.Pmt_Amt)
+                //              }).ToList();
+                #endregion
+
+                #region linq new
+                IQueryable<rptMemberTrn> openingBalancesQuery = null;
+
+                if (trnType == 1 || trnType == 5) // member due to or staff due to
                 {
-                    1 or 5 => // member due to or staff due to
-                        from memTrn in CSISContext.Mem_Trn
-                        join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
-                        join finLedger in CSISContext.Fin_Ledger on memTrn.Led_Id equals finLedger.Led_Id
-                        where memTrn.MemTrn_Delete == false && memTrn.Trn_Date < fromDate && memTrn.Trn_Type == trnType &&
-                        memTrn.BrCode == brCode && memTrn.Voc_Status == "V" &&
-                        memMaster.brcode == brCode &&
-                        finLedger.BrCode == brCode 
-                        group new { memTrn, memMaster, finLedger } by new
-                        {
-                            memTrn.Mem_Id,
-                            memMaster.memberno,
-                            memMaster.perno,
-                            memMaster.membername,
-                            memTrn.Trn_Type,
-                            memTrn.Led_Id,
-                            finLedger.Led_Name
-                        } into g
-                        let difference = g.Sum(x => x.memTrn.Pmt_Amt) - g.Sum(x => x.memTrn.Rpt_Amt)
-                        where difference > 0
-                        select new rptMemberTrn
-                        {
-                            Mem_Id = g.Key.Mem_Id,
-                            MemberNo = g.Key.memberno,
-                            PerNo = g.Key.perno,
-                            MemberName = g.Key.membername,
-                            Trn_Type = g.Key.Trn_Type,
-                            Led_Id = g.Key.Led_Id,
-                            Amt_OB = (float)(g.Sum(x => x.memTrn.Pmt_Amt) - g.Sum(x => x.memTrn.Rpt_Amt)),
-                            Rpt_Amt = 0f,
-                            Pmt_Amt = 0f,
-                            Led_Name = g.Key.Led_Name
-                        },
+                    openingBalancesQuery = from memTrn in CSISContext.Mem_Trn
+                                           join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
+                                           join finLedger in CSISContext.Fin_Ledger on memTrn.Led_Id equals finLedger.Led_Id
+                                           where memTrn.MemTrn_Delete == false && memTrn.Trn_Date < fromDate && memTrn.Trn_Type == trnType &&
+                                           memTrn.BrCode == brCode && 
+                                           memMaster.brcode == brCode &&
+                                           finLedger.BrCode == brCode
+                                           group new { memTrn, memMaster, finLedger } by new
+                                           {
+                                               memTrn.Mem_Id,
+                                               memMaster.memberno,
+                                               memMaster.perno,
+                                               memMaster.membername,
+                                               memTrn.Trn_Type,
+                                               memTrn.Led_Id,
+                                               finLedger.Led_Name
+                                           } into g
+                                           where g.Sum(x => x.memTrn.Pmt_Amt) - g.Sum(x => x.memTrn.Rpt_Amt) > 0
+                                           select new rptMemberTrn
+                                           {
+                                               Mem_Id = g.Key.Mem_Id,
+                                               MemberNo = g.Key.memberno,
+                                               PerNo = g.Key.perno,
+                                               MemberName = g.Key.membername,
+                                               Trn_Type = g.Key.Trn_Type,
+                                               Led_Id = g.Key.Led_Id,
+                                               Amt_OB = (float)(g.Sum(x => x.memTrn.Pmt_Amt) - g.Sum(x => x.memTrn.Rpt_Amt)),
+                                               Rpt_Amt = 0f,
+                                               Pmt_Amt = 0f,
+                                               Led_Name = g.Key.Led_Name
+                                           };
+                }
+                else if (trnType == 2 || trnType == 3 || trnType == 6) // member due by, share capital, or staff due by
+                {
+                    openingBalancesQuery = from memTrn in CSISContext.Mem_Trn
+                                           join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
+                                           join finLedger in CSISContext.Fin_Ledger on memTrn.Led_Id equals finLedger.Led_Id
+                                           where memTrn.MemTrn_Delete == false && memTrn.Voc_Status == "V" &&
+                                           memTrn.Trn_Date < fromDate && memTrn.Trn_Type == trnType &&
+                                           memTrn.BrCode == brCode &&
+                                           memMaster.brcode == brCode &&
+                                           finLedger.BrCode == brCode
+                                           group new { memTrn, memMaster, finLedger } by new
+                                           {
+                                               memTrn.Mem_Id,
+                                               memMaster.memberno,
+                                               memMaster.perno,
+                                               memMaster.membername,
+                                               memTrn.Trn_Type,
+                                               memTrn.Led_Id,
+                                               finLedger.Led_Name
+                                           } into g
+                                           where g.Sum(x => x.memTrn.Rpt_Amt) - g.Sum(x => x.memTrn.Pmt_Amt) > 0
+                                           select new rptMemberTrn
+                                           {
+                                               Mem_Id = g.Key.Mem_Id,
+                                               MemberNo = g.Key.memberno,
+                                               PerNo = g.Key.perno,
+                                               MemberName = g.Key.membername,
+                                               Trn_Type = g.Key.Trn_Type,
+                                               Led_Id = g.Key.Led_Id,
+                                               Amt_OB = (float)(g.Sum(x => x.memTrn.Rpt_Amt) - g.Sum(x => x.memTrn.Pmt_Amt)),
+                                               Rpt_Amt = 0f,
+                                               Pmt_Amt = 0f,
+                                               Led_Name = g.Key.Led_Name
+                                           };
+                }
+                else
+                {
+                    // Create an empty EF queryable instead of Enumerable.Empty
+                    openingBalancesQuery = CSISContext.Mem_Trn.Where(x => false).Select(x => new rptMemberTrn
+                    {
+                        Mem_Id = 0,
+                        MemberNo = "",
+                        PerNo = "",
+                        MemberName = "",
+                        Trn_Type = 0,
+                        Led_Id = 0,
+                        Amt_OB = 0f,
+                        Rpt_Amt = 0f,
+                        Pmt_Amt = 0f,
+                        Led_Name = ""
+                    });
+                }
 
-                    2 or 3 or 6 => // member due by, share capital, or staff due by
-                        from memTrn in CSISContext.Mem_Trn
-                        join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
-                        join finLedger in CSISContext.Fin_Ledger on memTrn.Led_Id equals finLedger.Led_Id
-                        where memTrn.MemTrn_Delete == false 
-                        && memTrn.Voc_Status == "V"
-                        && memTrn.Trn_Date < fromDate && memTrn.Trn_Type == trnType &&
-                        memTrn.BrCode == brCode &&
-                        memMaster.brcode == brCode &&
-                        finLedger.BrCode == brCode
-                        group new { memTrn, memMaster, finLedger } by new
-                        {
-                            memTrn.Mem_Id,
-                            memMaster.memberno,
-                            memMaster.perno,
-                            memMaster.membername,
-                            memTrn.Trn_Type,
-                            memTrn.Led_Id,
-                            finLedger.Led_Name
-                        } into g
-                        let difference = g.Sum(x => x.memTrn.Rpt_Amt) - g.Sum(x => x.memTrn.Pmt_Amt)
-                        where difference > 0
-                        select new rptMemberTrn
-                        {
-                            Mem_Id = g.Key.Mem_Id,
-                            MemberNo = g.Key.memberno,
-                            PerNo = g.Key.perno,
-                            MemberName = g.Key.membername,
-                            Trn_Type = g.Key.Trn_Type,
-                            Led_Id = g.Key.Led_Id,
-                            Amt_OB = (float)(g.Sum(x => x.memTrn.Rpt_Amt) - g.Sum(x => x.memTrn.Pmt_Amt)),
-                            Rpt_Amt = 0f,
-                            Pmt_Amt = 0f,
-                            Led_Name = g.Key.Led_Name
-                        },
-
-                    _ => Enumerable.Empty<rptMemberTrn>()
-                };
-
-                // Second part: Get transactions between from and to dates
+                // Your existing transactionsQuery...
                 var transactionsQuery =
                     from memTrn in CSISContext.Mem_Trn
                     join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
@@ -223,7 +394,7 @@ namespace Infin8.Coapp.Repository
                     where memTrn.MemTrn_Delete == false &&
                           memTrn.Trn_Date >= fromDate &&
                           memTrn.Trn_Date <= toDate &&
-                          memTrn.Trn_Type == trnType && memTrn.Voc_Status == "V" &&
+                          memTrn.Trn_Type == trnType && 
                           memTrn.BrCode == brCode &&
                           memMaster.brcode == brCode &&
                           finLedger.BrCode == brCode
@@ -258,43 +429,9 @@ namespace Infin8.Coapp.Repository
                     .ThenBy(r => r.Mem_Id)
                     .ThenBy(r => r.Led_Id);
 
-                // Execute the query and get results
-                // Since we're working with Entity Framework Core, we need to add the right async method
-                memTrnList = await combinedQuery.AsQueryable().ToListAsync();
-
-                // Alternatively, if ToListAsync() is still not available, use one of these approaches:
-                // Option 1: If using Entity Framework Core, make sure to add the Microsoft.EntityFrameworkCore namespace
-                // using Microsoft.EntityFrameworkCore;
-                // memTrnList = await EntityFrameworkQueryableExtensions.ToListAsync(combinedQuery);
-
-                // Option 2: If ToListAsync is not available at all, use synchronous version
-                // memTrnList = combinedQuery.ToList();
-
+                // Now this should work with async
+                memTrnList = await combinedQuery.ToListAsync();
                 #endregion 
-                memTrnList = (from mem in memTrnList
-                              group mem by new
-                              {
-                                  mem.Mem_Id,
-                                  mem.MemberNo,
-                                  mem.PerNo,
-                                  mem.MemberName,
-                                  mem.Trn_Type,
-                                  mem.Led_Id,
-                                  mem.Led_Name
-                              } into g
-                              select new rptMemberTrn
-                              {
-                                  Mem_Id = g.Key.Mem_Id,
-                                  MemberNo = g.Key.MemberNo,
-                                  PerNo = g.Key.PerNo,
-                                  MemberName = g.Key.MemberName,
-                                  Trn_Type = g.Key.Trn_Type,
-                                  Led_Id = g.Key.Led_Id,
-                                  Led_Name = g.Key.Led_Name,
-                                  Amt_OB = g.Sum(trn => trn.Amt_OB),
-                                  Rpt_Amt = g.Sum(trn => trn.Rpt_Amt),
-                                  Pmt_Amt = g.Sum(trn => trn.Pmt_Amt)
-                              }).ToList();
 
                 foreach (var trn in memTrnList)
                 {
@@ -312,9 +449,10 @@ namespace Infin8.Coapp.Repository
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine("Error in fecthing member transaction data " + ex.Message);
+                memTrnList = new();
             }
             return memTrnList;
         }
@@ -622,9 +760,9 @@ namespace Infin8.Coapp.Repository
                     where loanTrn.TrnTr_Delete == false &&
                           loanTrn.Trn_Date.Date < fromDate.Date &&
                           loanMaster.Loan_Type == loanType &&
-                          loanTrn.BrCode == brCode && loanTrn.Voc_Status == "V" &&
-                          loanMaster.BrCode == brCode && loanMaster.Voc_Status == "V" && 
-                          memMaster.brcode == brCode
+                          loanTrn.BrCode == brCode && 
+                          loanMaster.BrCode == brCode && 
+                          memMaster.brcode == brCode  
                     group new { loanTrn, loanMaster, memMaster, loanSchemes } by new
                     {
                         loanTrn.Loan_Id,
@@ -640,11 +778,15 @@ namespace Infin8.Coapp.Repository
                         loanMaster.Scheme_Id,
                         loanSchemes.Scheme_Name
                     } into g
-                    let prlOS = g.Sum(x => x.loanTrn.Disb_Amt) - g.Sum(x => x.loanTrn.PrlColl_Amt)
-                    let intOB = g.Sum(x => x.loanTrn.IntCalc_Amt) - g.Sum(x => x.loanTrn.IntColl_Amt)
-                    let piOB = g.Sum(x => x.loanTrn.PICalc_Amt) - g.Sum(x => x.loanTrn.PIColl_Amt)
-                    let iodOB = g.Sum(x => x.loanTrn.IODCalc_Amt) - g.Sum(x => x.loanTrn.IODColl_Amt)
-                    where prlOS > 0 || intOB > 0 || piOB > 0 || iodOB > 0
+                    //let prlOS = g.Sum(x => x.loanTrn.Disb_Amt) - g.Sum(x => x.loanTrn.PrlColl_Amt)
+                    //let intOB = g.Sum(x => x.loanTrn.IntCalc_Amt) - g.Sum(x => x.loanTrn.IntColl_Amt)
+                    //let piOB = g.Sum(x => x.loanTrn.PICalc_Amt) - g.Sum(x => x.loanTrn.PIColl_Amt)
+                    //let iodOB = g.Sum(x => x.loanTrn.IODCalc_Amt) - g.Sum(x => x.loanTrn.IODColl_Amt)
+                    //where prlOS > 0 || intOB > 0 || piOB > 0 || iodOB > 0
+                    where g.Sum(x => x.loanTrn.Disb_Amt) - g.Sum(x => x.loanTrn.PrlColl_Amt) >0 ||
+                            g.Sum(x => x.loanTrn.IntCalc_Amt) - g.Sum(x => x.loanTrn.IntColl_Amt) >0 ||
+                            g.Sum(x => x.loanTrn.PICalc_Amt) - g.Sum(x => x.loanTrn.PIColl_Amt) >0 ||
+                            g.Sum(x => x.loanTrn.IODCalc_Amt) - g.Sum(x => x.loanTrn.IODColl_Amt) >0
                     select new LoanQueryResult // Create a common class to ensure type compatibility
                     {
                         Loan_Id = g.Key.Loan_Id,
@@ -659,11 +801,11 @@ namespace Infin8.Coapp.Repository
                         Loan_Type = g.Key.Loan_Type,
                         Scheme_Id = g.Key.Scheme_Id,
                         Scheme_Name = g.Key.Scheme_Name,
-                        Prl_OS = prlOS,
-                        Prl_OB = prlOS,
-                        Int_OB = intOB,
-                        PI_OB = piOB,
-                        IOD_OB = iodOB,
+                        Prl_OS = g.Sum(x => x.loanTrn.Disb_Amt) - g.Sum(x => x.loanTrn.PrlColl_Amt), ///prlOS,
+                        Prl_OB = g.Sum(x => x.loanTrn.Disb_Amt) - g.Sum(x => x.loanTrn.PrlColl_Amt), ///prlOS,
+                        Int_OB = g.Sum(x => x.loanTrn.IntCalc_Amt) - g.Sum(x => x.loanTrn.IntColl_Amt), ///intOB,
+                        PI_OB = g.Sum(x => x.loanTrn.PICalc_Amt) - g.Sum(x => x.loanTrn.PIColl_Amt), ///piOB,
+                        IOD_OB = g.Sum(x => x.loanTrn.IODCalc_Amt) - g.Sum(x => x.loanTrn.IODColl_Amt), ///iodOB,
                         Prl_Sched = 0f,
                         Disb_Amt = g.Sum(x => x.loanTrn.Disb_Amt),
                         PrlPayment = 0f,
@@ -690,9 +832,9 @@ namespace Infin8.Coapp.Repository
                           loanTrn.Trn_Date.Date >= fromDate.Date &&
                           loanTrn.Trn_Date.Date <= toDate.Date &&
                           loanMaster.Loan_Type == loanType &&
-                          loanTrn.BrCode == brCode && loanTrn.Voc_Status == "V" &&
-                          loanMaster.BrCode == brCode && loanMaster.Voc_Status == "V" &&
-                          memMaster.brcode == brCode
+                          loanTrn.BrCode == brCode && 
+                          loanMaster.BrCode == brCode && 
+                          memMaster.brcode == brCode 
                     group new { loanTrn, loanMaster, memMaster, loanSchemes } by new
                     {
                         loanTrn.Loan_Id,
@@ -799,26 +941,108 @@ namespace Infin8.Coapp.Repository
 
                 // Execute the query
                 loanList = await finalQuery.ToListAsync();
+                DateTime maxIntCalcDate;
+                double intCalc = 0;
+                double piCalc = 0;
+                DateTime DueDate = toDate;
+                DateTime PIFromDate;
+                int noOfMonths = 0;
                 #endregion 
-
-                foreach (var os in loanList)
+                foreach (var os in loanList )
                 {
-                    //os.Prl_OS = os.Prl_OB +  os.Disb_Amt - os.PrlColl_Amt;
-                    os.PI_Bal = os.PI_OB + os.PICalc_Amt - os.PIColl_Amt;
-                    os.Int_Bal = os.Int_OB + os.IntCalc_Amt - os.IntColl_Amt;
-                    os.IOD_Bal = os.IOD_OB + os.IODCalc_Amt - os.IODColl_Amt;
                     if (os.Prl_OD < 0) os.Prl_OD = 0;
-                    if (os.Int_Bal < 0) os.Int_Bal = 0;
-                    if (os.PI_Bal < 0) os.PI_Bal = 0;
-                    if (os.IOD_Bal < 0) os.IOD_Bal = 0;
-                    if (os.Int_OB < 0) os.Int_OB = 0;
-                    if (os.PI_OB < 0) os.PI_OB = 0;
-                    if (os.IOD_OB < 0) os.IOD_OB = 0;
+                    var result = await (from lt in CSISContext.Loan_Trn
+                                        join lm in CSISContext.Loan_Master on lt.Loan_Id equals lm.Loan_Id
+                                        where lt.Loan_Id == os.Loan_Id &&
+                                              lt.Trn_Date.Date <= toDate.Date &&
+                                              lt.TrnTr_Delete == false
+                                        group new { lt, lm } by new
+                                        {
+                                            lm.Roi,
+                                            lm.San_Date,
+                                            lm.Prl_Prd
+                                        } into g
+                                        select new rptLoanOutstanding
+                                        {
+                                            Roi = g.Key.Roi,
+                                            Prl_Prd = g.Key.Prl_Prd,
+                                            Disb_Date = g.Key.San_Date,
+                                            IntCalc_Date = g.Max(x => x.lt.IntCalc_Date),
+                                            PICalc_Date = g.Max(x => x.lt.PICalc_Date)
+                                        }).FirstOrDefaultAsync();
+                    if (result!.IntCalc_Date == null)
+                        maxIntCalcDate = result.Disb_Date;
+                    else
+                        maxIntCalcDate = (DateTime)result.IntCalc_Date;
+                    if (loanType == 2 || loanType == 5)
+                    {
+                        DueDate = Utilities.AddMonths(result.Disb_Date, result.Prl_Prd );
+                    }
+                    if (loanType == 3 || loanType == 4)
+                    {
+                        DueDate = await (from lt in CSISContext.Lien_Trn
+                                         join td in CSISContext.TermDeposit_Master on lt.TD_Id equals td.TD_Id
+                                         where lt.Loan_Id == os.Loan_Id
+                                         select td.MaturityDate.Date).FirstOrDefaultAsync();
+                    }
+                    if (Utilities.GetNoOfDays(toDate, DueDate) > 0)
+                    {
+                        intCalc = Utilities.Calculate_Interest(os.Prl_OS, result.Roi, Utilities.GetNoOfDays(DueDate, maxIntCalcDate));
+                        intCalc += Utilities.Calculate_Interest(os.Prl_OS, result.Roi, Utilities.GetNoOfDays(toDate.AddDays(1), DueDate));
+                        os.Int_Bal = os.IntCalc_Amt - os.IntColl_Amt + intCalc;
+                        if (result.PICalc_Date != null)
+                            PIFromDate = (DateTime)result.PICalc_Date;
+                        else
+                            PIFromDate = DueDate;
+                        piCalc = Utilities.Calculate_Interest(os.Prl_OS, result.Roi, Utilities.GetNoOfDays(toDate.AddDays(1), PIFromDate));
+                        os.PI_Bal = os.PICalc_Amt - os.PIColl_Amt + piCalc;
+                    }
+                    else
+                    {
+                        intCalc = Utilities.Calculate_Interest(os.Prl_OS, result.Roi, Utilities.GetNoOfDays(toDate.AddDays(1), maxIntCalcDate));
+                        os.AccruedInt = os.IntCalc_Amt - os.IntColl_Amt + intCalc;
+                        os.Int_Bal = 0;
+                    }
+                    noOfMonths = Utilities.GetNoOfMonths(DueDate, toDate);
+                    //noOfMonths = Utilities.GetNoOfMonths(DueDate, toDate);
+                    //if (noOfMonths == 0)
+                    //{
+                    //    if(DueDate.Month == toDate.Month && DueDate.Year == toDate.Year )
+                    //    noOfMonths = 1;
+                    //}
+                    if (noOfMonths <= 3)
+                        os.OD3M = os.Prl_OD;
+                    if (noOfMonths > 3 && noOfMonths >= 6)
+                        os.OD3M_6M = os.Prl_OD;
+                    if (noOfMonths > 6 && noOfMonths >= 12)
+                        os.OD7M_12M = os.Prl_OD;
+                    if (noOfMonths > 13 && noOfMonths <= 24)
+                        os.OD25M_36M = os.Prl_OD;
+                    if (noOfMonths > 24 && noOfMonths <= 36)
+                        os.OD25M_36M = os.Prl_OD;
+                    if (noOfMonths > 36)
+                        os.OD37M_Above = os.Prl_OD;
                 }
+            
+                //foreach (var os in loanList)
+                //{
+                //    //os.Prl_OS = os.Prl_OB +  os.Disb_Amt - os.PrlColl_Amt;
+                //    os.PI_Bal = os.PI_OB + os.PICalc_Amt - os.PIColl_Amt;
+                //    os.Int_Bal = os.Int_OB + os.IntCalc_Amt - os.IntColl_Amt;
+                //    os.IOD_Bal = os.IOD_OB + os.IODCalc_Amt - os.IODColl_Amt;
+                //    if (os.Prl_OD < 0) os.Prl_OD = 0;
+                //    if (os.Int_Bal < 0) os.Int_Bal = 0;
+                //    if (os.PI_Bal < 0) os.PI_Bal = 0;
+                //    if (os.IOD_Bal < 0) os.IOD_Bal = 0;
+                //    if (os.Int_OB < 0) os.Int_OB = 0;
+                //    if (os.PI_OB < 0) os.PI_OB = 0;
+                //    if (os.IOD_OB < 0) os.IOD_OB = 0;
+                //}
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine ("Error in fetching loan data for audit schedule " + ex.Message);
+                loanList = new();
             }
             return loanList;
         }
@@ -1087,25 +1311,28 @@ namespace Infin8.Coapp.Repository
                 var fromDateOnly = fromDate.Date;
                 var toDateOnly = toDate.Date;
                 #region linq
+                /// 11001400
+                int.TryParse(brCode +"400", out int tdSchemeId);
                 var tdSchemeCondition = TDType == "F"
-                    ? (Func<int, bool>)(id => id < 40000)
-                    : (id => id > 40000);
+                    ? (Func<int, bool>)(id => id < tdSchemeId)
+                    : (id => id > tdSchemeId);
 
                 // First SELECT (Deposit_OB and Interest_OB before fromDate)
                 var q1 = from trn in CSISContext.TermDeposit_Trn
                          join master in CSISContext.TermDeposit_Master on trn.TD_Id equals master.TD_Id
+                         join scheme in CSISContext.TermDeposit_Schemes on master.TDScheme_Id equals scheme.TDScheme_Id
                          where trn.Trn_Date < fromDateOnly
                                && trn.TD_Delete == false
-                               && trn.BrCode == brCode && trn.Voc_Status == "V" 
-                               && master.BrCode == brCode && master.Voc_Status == "V"
-                               && tdSchemeCondition(master.TDScheme_Id)
+                               && trn.BrCode == brCode
+                               && master.BrCode == brCode
+                               && scheme.TDSchemeType == TDType ///     && tdSchemeCondition(master.TDScheme_Id)
                          group trn by trn.TD_Id into g
-                         let depositOB = g.Sum(x => x.DepositReceiptAmount) - g.Sum(x => x.DepositPaidAmount)
-                         where depositOB > 0
+                         //let depositOB = g.Sum(x => x.DepositReceiptAmount) - g.Sum(x => x.DepositPaidAmount)
+                         where g.Sum(x => x.DepositReceiptAmount) - g.Sum(x => x.DepositPaidAmount) >0 ///depositOB > 0
                          select new
                          {
                              TD_Id = g.Key,
-                             Deposit_OB = depositOB,
+                             Deposit_OB = g.Sum(x => x.DepositReceiptAmount) - g.Sum(x => x.DepositPaidAmount), ///depositOB,
                              Interest_OB = g.Sum(x => x.InterestCalculatedAmount) - g.Sum(x => x.InterestPaidAmount),
                              DepositReceiptAmount = 0.0,
                              DepositPaidAmount = 0.0,
@@ -1117,12 +1344,13 @@ namespace Infin8.Coapp.Repository
                 // Second SELECT (Transactions between fromDate and toDate)
                 var q2 = from trn in CSISContext.TermDeposit_Trn
                          join master in CSISContext.TermDeposit_Master on trn.TD_Id equals master.TD_Id
+                         join scheme in CSISContext.TermDeposit_Schemes on master.TDScheme_Id equals scheme.TDScheme_Id
                          where trn.Trn_Date >= fromDateOnly
                                && trn.Trn_Date <= toDateOnly
                                && trn.TD_Delete == false
-                               && trn.BrCode == brCode && trn.Voc_Status == "V"
-                               && master.BrCode == brCode && master.Voc_Status == "V"
-                               && tdSchemeCondition(master.TDScheme_Id)
+                               && trn.BrCode == brCode 
+                               && master.BrCode == brCode 
+                               && scheme.TDSchemeType == TDType  ////         && tdSchemeCondition(master.TDScheme_Id)
                          group trn by trn.TD_Id into g
                          select new
                          {
@@ -1139,13 +1367,14 @@ namespace Infin8.Coapp.Repository
                 // Third SELECT (InterestPaidAmount only)
                 var q3 = from trn in CSISContext.TermDeposit_Trn
                          join master in CSISContext.TermDeposit_Master on trn.TD_Id equals master.TD_Id
+                         join scheme in CSISContext.TermDeposit_Schemes on master.TDScheme_Id equals scheme.TDScheme_Id
                          where trn.InterestPaidAmount > 0
                                && trn.Trn_Date >= fromDateOnly
                                && trn.Trn_Date <= toDate
                                && trn.TD_Delete == false
-                               && trn.BrCode == brCode && trn.Voc_Status =="V"
-                               && master.BrCode == brCode && master.Voc_Status == "V"
-                               && tdSchemeCondition(master.TDScheme_Id)
+                               && trn.BrCode == brCode 
+                               && master.BrCode == brCode 
+                               && scheme.TDSchemeType == TDType     ////  && tdSchemeCondition(master.TDScheme_Id)
                          group trn by trn.TD_Id into g
                          select new
                          {
@@ -1220,8 +1449,10 @@ namespace Infin8.Coapp.Repository
 
                 //if (tdListTmp != null) tdList = tdListTmp;
             }
-            catch (Exception)
+            catch (Exception  ex)
             {
+                Console.Write("Error in fetching term deposit data schedule " + ex.Message);
+                tdList = new();
             }
             return tdList;
         }
@@ -1634,14 +1865,14 @@ namespace Infin8.Coapp.Repository
                           j => j.l.Grp_Id,
                           g => g.Grp_Id,
                           (j, g) => new { j.vt, j.v, j.l, g })
-                    .Where(j => j.v.Voc_Date >= FinYearBegin &&
-                                j.v.Voc_Date < fromDate &&
+                    .Where(j => j.v.Voc_Date >= fromDate  &&
+                                j.v.Voc_Date <= toDate  &&
                                 (j.g.Fnl_Id == 1 || j.g.Fnl_Id == 4) &&
                                 j.vt.Led_Id != cashLedId &&
                                 j.v.Voc_Delete == false &&
                                 j.vt.FinVocTr_Delete == false &&
-                                j.v.BrCode == brCode && j.v.Voc_Status == "V" &&
-                                j.vt.BrCode == brCode && j.vt.Voc_Status == "V" &&
+                                j.v.BrCode == brCode && 
+                                j.vt.BrCode == brCode && 
                                 j.l.BrCode == brCode )
                     .GroupBy(j => j.vt.Led_Id)
                     .Select(g => new
@@ -1666,14 +1897,14 @@ namespace Infin8.Coapp.Repository
                           j => j.l.Grp_Id,
                           g => g.Grp_Id,
                           (j, g) => new { j.vt, j.v, j.l, g })
-                    .Where(j => j.v.Voc_Date >= FinYearBegin &&
-                                j.v.Voc_Date < fromDate &&
+                    .Where(j => j.v.Voc_Date >= fromDate  &&
+                                j.v.Voc_Date <= toDate  &&
                                 (j.g.Fnl_Id == 2 || j.g.Fnl_Id == 3) &&
                                 j.vt.Led_Id != cashLedId &&
                                 j.v.Voc_Delete == false &&
                                 j.vt.FinVocTr_Delete == false &&
-                                j.vt.BrCode == brCode && j.vt.Voc_Status == "V" &&
-                                j.v.BrCode == brCode && j.v.Voc_Status == "V" &&
+                                j.vt.BrCode == brCode && 
+                                j.v.BrCode == brCode && 
                                 j.l.BrCode == brCode)
                     .GroupBy(j => j.vt.Led_Id)
                     .Select(g => new
@@ -1698,13 +1929,13 @@ namespace Infin8.Coapp.Repository
                           j => j.l.Grp_Id,
                           g => g.Grp_Id,
                           (j, g) => new { j.vt, j.v, j.l, g })
-                    .Where(j => j.v.Voc_Date >= FinYearBegin &&
-                                j.v.Voc_Date < fromDate &&
+                    .Where(j => j.v.Voc_Date >= fromDate &&
+                                j.v.Voc_Date <= toDate  &&
                                 j.vt.Led_Id == cashLedId &&
                                 j.v.Voc_Delete == false &&
                                 j.vt.FinVocTr_Delete == false &&
-                                j.vt.BrCode == brCode && j.vt.Voc_Status == "V" &&
-                                j.v.BrCode == brCode && j.v.Voc_Status != "V" &&
+                                j.vt.BrCode == brCode && 
+                                j.v.BrCode == brCode && 
                                 j.l.BrCode == brCode)
                     .GroupBy(j => j.vt.Led_Id)
                     .Select(g => new
@@ -1733,8 +1964,8 @@ namespace Infin8.Coapp.Repository
                                 j.v.Voc_Date <= toDate &&
                                 j.v.Voc_Delete == false &&
                                 j.vt.FinVocTr_Delete == false &&
-                                j.vt.BrCode == brCode && j.vt.Voc_Status == "V" &&
-                                j.v.BrCode == brCode && j.v.Voc_Status == "V" &&
+                                j.vt.BrCode == brCode && 
+                                j.v.BrCode == brCode && 
                                 j.l.BrCode == brCode)
                     .GroupBy(j => j.vt.Led_Id)
                     .Select(g => new
@@ -1845,9 +2076,10 @@ namespace Infin8.Coapp.Repository
                 }
                 if (ledList != null) ledListFnl = ledList;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine("Error in fetching ledger shedule data " + ex.Message);
+                ledListFnl = new();
             }
             return ledListFnl;
         }

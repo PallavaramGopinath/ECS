@@ -17,7 +17,7 @@ namespace Infin8.Coapp.UI.Controllers
         private readonly IReportsTermDepositsHandler _reportsTermDepositsHandler;
         private readonly IGeneralHandler _generalHandler;
         string societyName = "";
-        public ReportsTDController( IWebHostEnvironment webHostEnvironment,IReportsHandler  reportsHandler , 
+        public ReportsTDController(IWebHostEnvironment webHostEnvironment, IReportsHandler reportsHandler,
             IReportsTermDepositsHandler reportsTermDepositsHandler, IGeneralHandler generalHandler)
         {
             _reportHandler = reportsHandler;
@@ -28,20 +28,20 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpGet]
         [Route("GetTDNos/{fromDate}/{toDate}/{tdSchemeType}/{brCode}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetTDNos(int tdSchemeId, string fromDate, string toDate,string tdSchemeType, string brCode)
+        public async Task<ActionResult<List<DropdownItem>>> GetTDNos(int tdSchemeId, string fromDate, string toDate, string tdSchemeType, string brCode)
         {
             List<DropdownItem> loanlist = new();
             DateTime.TryParse(fromDate, out DateTime fromDateParse);
             DateTime.TryParse(toDate, out DateTime toDateParse);
 
-                var result = await _reportsTermDepositsHandler.GetTDNos(tdSchemeType,fromDateParse ,toDateParse,brCode );
-                if (result != null && result.Any())
-                {
-                    loanlist = result.ToList();
-                    return Ok(loanlist);
-                }
-                else
-                    return NotFound();
+            var result = await _reportsTermDepositsHandler.GetTDNos(tdSchemeType, fromDateParse, toDateParse, brCode);
+            if (result != null && result.Any())
+            {
+                loanlist = result.ToList();
+                return Ok(loanlist);
+            }
+            else
+                return NotFound();
         }
         [HttpGet]
         [Route("GetTDNosByMemId/{memId:decimal}/{fromDate}/{toDate}/{tdSchemeType}/{brCode}")]
@@ -83,7 +83,7 @@ namespace Infin8.Coapp.UI.Controllers
                     localReport.LoadReportDefinition(stream);
                 }
 
-                var tdList = await _reportsTermDepositsHandler.GetTermDepositRegister(rptObject.TDList!, rptObject.FromDate,rptObject.ToDate,rptObject.TDSchemeType!);
+                var tdList = await _reportsTermDepositsHandler.GetTermDepositRegister(rptObject.TDList!, rptObject.FromDate, rptObject.ToDate, rptObject.TDSchemeType!);
                 if (tdList != null && tdList.Any())
                 {
                     tdRegisterList = tdList.ToList();
@@ -130,19 +130,19 @@ namespace Infin8.Coapp.UI.Controllers
                     localReport.LoadReportDefinition(stream);
                 }
 
-                var tdList = await _reportsTermDepositsHandler.GetTermDepositOutstanding( rptObject.AsOnDate, rptObject.TDSchemeType!,rptObject.BrCode! );
+                var tdList = await _reportsTermDepositsHandler.GetTermDepositOutstanding(rptObject.AsOnDate, rptObject.TDSchemeType!, rptObject.BrCode!);
                 if (tdList != null && tdList.Any())
                 {
                     tdOutstandingList = tdList.ToList();
                 }
 
-                if (rptObject.TDSchemeType  == "F")
+                if (rptObject.TDSchemeType == "F")
                 {
                     if (rptObject.ReportId == 42)
                         reportHeader = "Fixed Deposit Outstanding as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy") + " FD No-Wise";
                     if (rptObject.ReportId == 41)
                     {
-                        reportHeader = "Fixed Deposit Outstanding as on " + rptObject.AsOnDate .ToString("dd-MM-yyyy") + " Mem No-Wise";
+                        reportHeader = "Fixed Deposit Outstanding as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy") + " Mem No-Wise";
                         tdList = tdList!.OrderBy(x => x.MemberNo).ThenBy(x => x.TD_No).ToList();
                     }
                     if (rptObject.ReportId == 123)
@@ -217,7 +217,7 @@ namespace Infin8.Coapp.UI.Controllers
                     }
                     if (rptObject.ReportId == 123)
                     {
-                        reportHeader = "Fixed Deposit Outstanding for the Member " + rptObject.MemberNo + " as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy") ;
+                        reportHeader = "Fixed Deposit Outstanding for the Member " + rptObject.MemberNo + " as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy");
                     }
                 }
 
@@ -244,6 +244,209 @@ namespace Infin8.Coapp.UI.Controllers
             {
 
                 throw;
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        [HttpPost]
+        [Route("print-termdeposit-InterestPayable")]
+        public async Task<FileContentResult> Print_TermDeposit_InterestPayable(rptReportTDObject rptObject)
+        {
+            Reports_Master report = new Reports_Master();
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            string reportHeader = "";
+            try
+            {
+                List<rptTermDepositPayable> tdPayableList = new();
+                societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
+                report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                LocalReport localReport = new LocalReport
+                {
+                    EnableExternalImages = true,
+                };
+
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    localReport.LoadReportDefinition(stream);
+                }
+
+                var tdList = await _reportsTermDepositsHandler.GetTermDepositPayable(rptObject.AsOnDate, rptObject.TDSchemeType!, rptObject.BrCode!);
+                if (tdList != null && tdList.Any())
+                {
+                    tdPayableList = tdList.ToList();
+                }
+                reportHeader = "Term Deposit Payable as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy");
+
+                var parameters = new[]
+                {
+                    new ReportParameter("paramSocietyName", societyName ),
+                     new ReportParameter("paramReportHeader", reportHeader )
+                };
+
+                localReport.DataSources.Clear();
+                localReport.DataSources.Add(new ReportDataSource("Ds_TermDepositPayable", tdPayableList));
+                localReport.SetParameters(parameters);
+                localReport.Refresh();
+                pdfAsBytes = localReport.Render("PDF");
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        [HttpPost]
+        [Route("print-termdeposit-maturityamount-payable")]
+        public async Task<FileContentResult> Print_TermDeposit_MaturityAmount_Payable(rptReportTDObject rptObject)
+        {
+            Reports_Master report = new Reports_Master();
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            string reportHeader = "";
+            try
+            {
+                List<rptTermDepositPayable> tdPayableList = new();
+                societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
+                report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                LocalReport localReport = new LocalReport
+                {
+                    EnableExternalImages = true,
+                };
+
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    localReport.LoadReportDefinition(stream);
+                }
+
+                var tdList = await _reportsTermDepositsHandler.GetTermDepositMaturityPayable(rptObject.AsOnDate, rptObject.TDSchemeType!, rptObject.BrCode!);
+                if (tdList != null && tdList.Any())
+                {
+                    tdPayableList = tdList.ToList();
+                }
+                reportHeader = "Term Deposit Payable as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy");
+
+                var parameters = new[]
+                {
+                    new ReportParameter("paramSocietyName", societyName ),
+                     new ReportParameter("paramReportHeader", reportHeader )
+                };
+
+                localReport.DataSources.Clear();
+                localReport.DataSources.Add(new ReportDataSource("Ds_TermDepositPayable", tdPayableList));
+                localReport.SetParameters(parameters);
+                localReport.Refresh();
+                pdfAsBytes = localReport.Render("PDF");
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        [HttpPost]
+        [Route("print-termdeposit-received-duringperiod")]
+        public async Task<FileContentResult> Print_TermDeposit_Received_DuringPeriod(rptReportTDObject rptObject)
+        {
+            Reports_Master report = new Reports_Master();
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            string reportHeader = "";
+            try
+            {
+                List<rptTDNewBetweenDates> tdReceivedList = new();
+                societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
+                report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                LocalReport localReport = new LocalReport
+                {
+                    EnableExternalImages = true,
+                };
+
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    localReport.LoadReportDefinition(stream);
+                }
+
+                var tdList = await _reportsTermDepositsHandler.GetTermDepositrReceivedDuringPeriod(rptObject.FromDate, rptObject.ToDate, rptObject.TDSchemeType!, rptObject.BrCode!);
+                if (tdList != null && tdList.Any())
+                {
+                    tdReceivedList = tdList.ToList();
+                }
+                if (rptObject.TDSchemeType == "F")
+                {
+                    if (rptObject.ReportId == 120)
+                        reportHeader = "New Fixed Deposit for the period from  " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+                }
+
+                var parameters = new[]
+                {
+                    new ReportParameter("paramSocietyName", societyName ),
+                     new ReportParameter("paramReportHeader", reportHeader )
+                };
+
+                localReport.DataSources.Clear();
+                localReport.DataSources.Add(new ReportDataSource("Ds_NewTDBetweenDates", tdReceivedList));
+                localReport.SetParameters(parameters);
+                localReport.Refresh();
+                pdfAsBytes = localReport.Render("PDF");
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        [HttpPost]
+        [Route("print-termdeposit-refund-duringperiod")]
+        public async Task<FileContentResult> Print_TermDeposit_Refund_DuringPeriod(rptReportTDObject rptObject)
+        {
+            Reports_Master report = new Reports_Master();
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            string reportHeader = "";
+            try
+            {
+                List<rptTDRefundBetweenDates> tdRefundList = new();
+                societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
+                report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                LocalReport localReport = new LocalReport
+                {
+                    EnableExternalImages = true,
+                };
+
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    localReport.LoadReportDefinition(stream);
+                }
+
+                var tdList = await _reportsTermDepositsHandler.GetFDRefundBetweenDated(rptObject.FromDate, rptObject.ToDate, rptObject.TDSchemeType!, rptObject.BrCode!);
+                if (tdList != null && tdList.Any())
+                {
+                    tdRefundList = tdList.ToList();
+                }
+                reportHeader = "Fixed Deposit Refund between  " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+
+                var parameters = new[]
+                {
+                    new ReportParameter("paramSocietyName", societyName ),
+                     new ReportParameter("paramReportHeader", reportHeader )
+                };
+
+                localReport.DataSources.Clear();
+                localReport.DataSources.Add(new ReportDataSource("Ds_TDRefundBetweenDates", tdRefundList));
+                localReport.SetParameters(parameters);
+                localReport.Refresh();
+                pdfAsBytes = localReport.Render("PDF");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine (ex.Message );
             }
             return CreatePDFAsBytes(pdfAsBytes);
         }

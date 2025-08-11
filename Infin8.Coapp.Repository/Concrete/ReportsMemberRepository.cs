@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Infin8.Coapp.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Npgsql;
@@ -153,53 +154,58 @@ namespace Infin8.Coapp.Repository
                 #endregion 
 
                 var memTrnTmp = memTrnList.OrderBy(x => x.Led_Id).ThenBy(x => x.Mem_Id).ThenBy(x => x.Trn_Date).ThenBy(x => x.Trn_SlNo).ToList();
-                double OB = 0, CB = 0;
-                decimal memId = 0, ledId = 0;
-                foreach (var trn in memTrnTmp)
-                {
-                    if (memId == trn.Mem_Id && ledId != trn.Led_Id)
-                    {
-                        ledId = trn.Led_Id;
-                        OB = trn.Amt_OB;
-                        CB = trn.Amt_OB;
-                    }
 
-                    if (memId != trn.Mem_Id && ledId != trn.Led_Id)
-                    {
-                        memId = trn.Mem_Id;
-                        ledId = trn.Led_Id;
-                        OB = trn.Amt_OB;
-                        CB = trn.Amt_OB;
-                    }
+                #region commented, this code moved to handler
+                //double OB = 0, CB = 0;
+                //decimal memId = 0, ledId = 0;
+                //foreach (var trn in memTrnTmp)
+                //{
+                //    if (memId == trn.Mem_Id && ledId != trn.Led_Id)
+                //    {
+                //        ledId = trn.Led_Id;
+                //        OB = trn.Amt_OB;
+                //        CB = trn.Amt_OB;
+                //    }
 
-                    if (memId != trn.Mem_Id && ledId == trn.Led_Id)
-                    {
-                        memId = trn.Mem_Id;
-                        OB = trn.Amt_OB;
-                        CB = trn.Amt_OB;
-                    }
-                    switch (trn.Trn_Type)
-                    {
-                        case 1:
-                        case 5:
-                            CB += Convert.ToDouble(trn.Pmt_Amt) - Convert.ToDouble(trn.Rpt_Amt);
-                            break;
-                        case 2:
-                        case 3:
-                        case 6:
-                            CB += Convert.ToDouble(trn.Rpt_Amt) - Convert.ToDouble(trn.Pmt_Amt);
-                            break;
-                    }
-                    trn.Amt_CB = CB;
-                }
+                //    if (memId != trn.Mem_Id && ledId != trn.Led_Id)
+                //    {
+                //        memId = trn.Mem_Id;
+                //        ledId = trn.Led_Id;
+                //        OB = trn.Amt_OB;
+                //        CB = trn.Amt_OB;
+                //    }
+
+                //    if (memId != trn.Mem_Id && ledId == trn.Led_Id)
+                //    {
+                //        memId = trn.Mem_Id;
+                //        OB = trn.Amt_OB;
+                //        CB = trn.Amt_OB;
+                //    }
+                //    switch (trn.Trn_Type)
+                //    {
+                //        case 1:
+                //        case 5:
+                //            CB += Convert.ToDouble(trn.Pmt_Amt) - Convert.ToDouble(trn.Rpt_Amt);
+                //            break;
+                //        case 2:
+                //        case 3:
+                //        case 6:
+                //            CB += Convert.ToDouble(trn.Rpt_Amt) - Convert.ToDouble(trn.Pmt_Amt);
+                //            break;
+                //    }
+                //    trn.Amt_CB = CB;
+                //}
+                #endregion 
+
                 if (memTrnTmp != null)
                 {
                     memTrnList = memTrnTmp.ToList();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine("Error in fetching Member's transaction data " + ex.Message);
+                memTrnList = new();
             }
             return memTrnList;
         }
@@ -209,8 +215,7 @@ namespace Infin8.Coapp.Repository
             var memTrnList = new List<rptMemberTrn>();
             try
             {
-                // LINQ conversion of the SQL query
-
+                #region old linq
                 if (trnType == 2 || trnType == 3 || trnType == 6)    // type 2= dueby, type 3= share capital, type 6= staff due by
                 {
                     memTrnList = await (from mt in CSISContext.Mem_Trn
@@ -219,10 +224,10 @@ namespace Infin8.Coapp.Repository
                                         where mt.Trn_Type == trnType &&
                                               mt.Trn_Date <= toDate &&
                                               mt.MemTrn_Delete == false &&
-                                              mm.membertype <= 4 && 
-                                              mt.BrCode == brCode && mt.Voc_Status == "V" &&
-                                              fl.BrCode == brCode && 
-                                              mm.brcode == brCode 
+                                              mm.membertype <= 4 &&
+                                              mt.BrCode == brCode &&
+                                              fl.BrCode == brCode &&
+                                              mm.brcode == brCode
                                         group new { mt, fl, mm } by new
                                         {
                                             mt.Trn_Type,
@@ -233,15 +238,15 @@ namespace Infin8.Coapp.Repository
                                             mm.perno,
                                             mm.membername
                                         } into g
-                                        let balance = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)
-                                        where balance > 0
+                                        // let balance = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)
+                                        where g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt) > 0
                                         orderby g.Key.Led_Name, g.Key.memberno
                                         select new rptMemberTrn
                                         {
                                             Trn_Type = g.Key.Trn_Type,
                                             Mem_Id = g.Key.Mem_Id,
                                             Led_Id = g.Key.Led_Id,
-                                            Amt_CB = (double)balance,
+                                            Amt_CB = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt), ///(double)balance,
                                             Led_Name = g.Key.Led_Name,
                                             MemberNo = g.Key.memberno,
                                             PerNo = g.Key.perno,
@@ -257,9 +262,9 @@ namespace Infin8.Coapp.Repository
                                               mt.Trn_Date <= toDate &&
                                               mt.MemTrn_Delete == false &&
                                               mm.membertype <= 4 &&
-                                              mt.BrCode == brCode && mt.Voc_Status =="V" &&
-                                              fl.BrCode == brCode && 
-                                              mm.brcode == brCode 
+                                              mt.BrCode == brCode &&
+                                              fl.BrCode == brCode &&
+                                              mm.brcode == brCode
                                         group new { mt, fl, mm } by new
                                         {
                                             mt.Trn_Type,
@@ -270,27 +275,200 @@ namespace Infin8.Coapp.Repository
                                             mm.perno,
                                             mm.membername
                                         } into g
-                                        let balance = g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt)
-                                        where balance > 0
+                                        //let balance = g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt)
+                                        where g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt) > 0
                                         orderby g.Key.Led_Name, g.Key.memberno
                                         select new rptMemberTrn
                                         {
                                             Trn_Type = g.Key.Trn_Type,
                                             Mem_Id = g.Key.Mem_Id,
                                             Led_Id = g.Key.Led_Id,
-                                            Amt_CB = (double)balance,
+                                            Amt_CB = g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt), ///(double)balance,
                                             Led_Name = g.Key.Led_Name,
                                             MemberNo = g.Key.memberno,
                                             PerNo = g.Key.perno,
                                             MemberName = g.Key.membername
                                         }).ToListAsync();
                 }
+                #endregion
+
+                #region linq new
+                //    // First part - Opening Balance query
+                //    var openingBalanceQuery = GetOpeningBalanceQuery(toDate, trnType);
+
+                //    // Second part - Transaction period query
+                //    var transactionPeriodQuery = GetTransactionPeriodQuery(fromDate , toDate, trnType);
+
+                //    // Union the two queries
+                //    var unionQuery = openingBalanceQuery.Union(transactionPeriodQuery);
+
+                //    // Execute the query
+                //    var rawResults = unionQuery.ToList();
+
+                //    // Group and aggregate the results
+                //    memTrnList = (from mem in rawResults
+                //                  group mem by new
+                //                  {
+                //                      mem.Mem_Id,
+                //                      mem.memberNo,
+                //                      mem.PerNo,
+                //                      mem.memberName,
+                //                      mem.Trn_Type,
+                //                      mem.Led_Id,
+                //                      mem.Led_Name
+                //                  } into g
+                //                  select new rptMemberTrn
+                //                  {
+                //                      Mem_Id = g.Key.Mem_Id,
+                //                      memberNo = g.Key.memberNo,
+                //                      PerNo = g.Key.PerNo,
+                //                      memberName = g.Key.memberName,
+                //                      Trn_Type = g.Key.Trn_Type,
+                //                      Led_Id = g.Key.Led_Id,
+                //                      Led_Name = g.Key.Led_Name,
+                //                      Amt_OB = g.Sum(trn => trn.Amt_OB),
+                //                      Rpt_Amt = g.Sum(trn => trn.Rpt_Amt),
+                //                      Pmt_Amt = g.Sum(trn => trn.Pmt_Amt)
+                //                  })
+                //                  .OrderBy(x => x.Trn_Type)
+                //                  .ThenBy(x => x.Mem_Id)
+                //                  .ThenBy(x => x.Led_Id)
+                //                  .ToList();
+
+                //    // Calculate closing balance for each transaction
+                //    foreach (var trn in memTrnList)
+                //    {
+                //        switch (trn.Trn_Type)
+                //        {
+                //            case 1: /// member due to
+                //            case 5: /// staff due to
+                //                trn.Amt_CB = trn.Amt_OB + Convert.ToDouble(trn.Pmt_Amt) - Convert.ToDouble(trn.Rpt_Amt);
+                //                break;
+                //            case 2: /// member due by
+                //            case 3: /// share capital
+                //            case 6: /// staff due by
+                //                trn.Amt_CB = trn.Amt_OB + Convert.ToDouble(trn.Rpt_Amt) - Convert.ToDouble(trn.Pmt_Amt);
+                //                break;
+                //        }
+                //    }
+                #endregion
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine("Error in fecthing member shedule " + ex.Message);
             }
             return memTrnList;
+        }
+
+        private IQueryable<rptMemberTrn> GetOpeningBalanceQuery( DateTime toDate, int trnType)
+        {
+            switch (trnType)
+            {
+                case 1: /// member due to
+                case 5: /// staff due to
+                    return  (from mt in CSISContext.Mem_Trn
+                            join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
+                            join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
+                            where mt.MemTrn_Delete == false &&
+                                  mt.Trn_Date < toDate &&
+                                  mt.Trn_Type == trnType
+                            group new { mt, mm, fl } by new
+                            {
+                                mt.Mem_Id,
+                                mm.memberno,
+                                mm.perno,
+                                mm.membername,
+                                mt.Trn_Type,
+                                mt.Led_Id,
+                                fl.Led_Name
+                            } into g
+                            where g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt) > 0
+                            select new rptMemberTrn
+                            {
+                                Mem_Id = g.Key.Mem_Id,
+                                MemberNo = g.Key.memberno,
+                                PerNo = g.Key.perno,
+                                MemberName = g.Key.membername,
+                                Trn_Type = g.Key.Trn_Type,
+                                Led_Id = g.Key.Led_Id,
+                                Led_Name = g.Key.Led_Name,
+                                Amt_OB = (double)(g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt)),
+                                Rpt_Amt = 0,
+                                Pmt_Amt = 0
+                            });
+
+                case 2: /// member due by
+                case 3: /// share capital
+                case 6: /// staff due by
+                    return  (from mt in CSISContext.Mem_Trn
+                            join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
+                            join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
+                            where mt.MemTrn_Delete == false &&
+                                  mt.Trn_Date < toDate &&
+                                  mt.Trn_Type == trnType
+                            group new { mt, mm, fl } by new
+                            {
+                                mt.Mem_Id,
+                                mm.memberno,
+                                mm.perno,
+                                mm.membername,
+                                mt.Trn_Type,
+                                mt.Led_Id,
+                                fl.Led_Name
+                            } into g
+                            where g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt) > 0
+                            select new rptMemberTrn
+                            {
+                                Mem_Id = g.Key.Mem_Id,
+                                MemberNo = g.Key.memberno,
+                                PerNo = g.Key.perno,
+                                MemberName = g.Key.membername,
+                                Trn_Type = g.Key.Trn_Type,
+                                Led_Id = g.Key.Led_Id,
+                                Led_Name = g.Key.Led_Name,
+                                Amt_OB = (double)(g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)),
+                                Rpt_Amt = 0,
+                                Pmt_Amt = 0
+                            });
+
+                default:
+                    return CSISContext.Mem_Trn.Where(x => false).Select(x => new rptMemberTrn()); // Empty query
+            }
+        }
+
+        private IQueryable<rptMemberTrn> GetTransactionPeriodQuery( DateTime fromDate, DateTime toDate, int trnType)
+        {
+            return  (from mt in CSISContext.Mem_Trn
+                    join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
+                    join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
+                    where mt.MemTrn_Delete == false &&
+                          mt.Trn_Date >= fromDate &&
+                          mt.Trn_Date <= toDate &&
+                          mt.Trn_Type == trnType
+                    group new { mt, mm, fl } by new
+                    {
+                        mt.Mem_Id,
+                        mm.memberno,
+                        mm.perno,
+                        mm.membername,
+                        mt.Trn_Type,
+                        mt.Led_Id,
+                        fl.Led_Name
+                    } into g
+                    where g.Sum(x => x.mt.Rpt_Amt) > 0 || g.Sum(x => x.mt.Pmt_Amt) > 0
+                    select new rptMemberTrn
+                    {
+                        Mem_Id = g.Key.Mem_Id,
+                        MemberNo = g.Key.memberno,
+                        PerNo = g.Key.perno,
+                        MemberName = g.Key.membername,
+                        Trn_Type = g.Key.Trn_Type,
+                        Led_Id = g.Key.Led_Id,
+                        Led_Name = g.Key.Led_Name,
+                        Amt_OB = 0,
+                        Rpt_Amt = (double)g.Sum(x => x.mt.Rpt_Amt),
+                        Pmt_Amt = (double)g.Sum(x => x.mt.Pmt_Amt)
+                    });
         }
 
         public async Task<List<rptMemberCancellation>> GetMemberCancellation(DateTime fromDate, DateTime toDate, string brCode)

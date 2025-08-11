@@ -1,0 +1,513 @@
+﻿@page "/report-audit"
+@using Infin8.Coapp.Dto
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Select Report -->
+    <div class="card mt-2">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Select Report</label>
+                        <InputSelect class="form-select shadow-none"
+                                     @bind-Value="rptObject.ReportId"
+                                     @bind-Value:after="handlerSelectRportName">
+                            @foreach (var rpt in reportList)
+                            {
+                                <option value="@rpt.Value">@rpt.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Between two dates -->
+    @if (isBetweenDates)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>From date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.FromDate" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>To date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.ToDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Order by Member-->
+    @if (isOrderBy)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Select Order by</label>
+                            <InputSelect class="form-select shadow-none"
+                                         @bind-Value="rptObject.OrderById">
+                                @foreach (var rpt in orderBy)
+                                {
+                                    <option value="@rpt.Value">@rpt.Text</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Order by final account type -->
+    @if (isFinalLedger)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Select Account</label>
+                            <InputSelect class="form-select shadow-none"
+                                         @bind-Value="rptObject.FnlId"
+                                         @bind-Value:after="handlerSelectRportName">
+                                @foreach (var rpt in fnlList)
+                                {
+                                    <option value="@rpt.Value">@rpt.Text</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Button -->
+    <button type="button" class="btn btn-primary mt-3" disabled="@isPrintDisbled" @onclick="HandlePrint">
+        @* <i class="oi oi-print" aria-hidden="true"></i> *@
+        @if (_isFetchingData)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" area-hidden="true"></span>
+            <span class="ps-2">Loading....</span>
+        }
+        else
+        {
+            <i class="oi oi-print" aria-hidden="true"></i>
+            <span class="ps-2">Print</span>
+        }
+    </button>
+}
+
+<!-- Show spinner while loading data -->
+@if (_isFetchingData)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<DropdownItem> reportList = new();
+    private List<DropdownItem> orderBy = new();
+    private List<DropdownItem> fnlList = new();
+
+    private List<DropdownItem> tdList = new();
+    private List<DropdownItem> selectedLedgers = new();
+    private double loanOSLimit = 0;
+    private string memberNo = "";
+    private byte[] fileBytes;
+    private bool _isLoading = true;
+    private bool isBetweenDates = true;
+    private bool isOrderBy = false;
+    private bool isFinalLedger = false;
+    private bool isPrintDisbled = true;
+    // private bool isSearching = false;
+    private bool _isFetchingData = false;
+
+    rptReportAuditObject rptObject = new()
+    {
+        AsOnDate = DateTime.UtcNow,
+        FromDate = new DateTime(2025, 4, 1),
+        ToDate = DateTime.UtcNow,
+        YrId = 110010000023,
+        BrCode = "11001"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                List<DropdownItem> orderByResult = new()
+                {
+                     new DropdownItem { Text = "Order by Mem No", Value = "1" },
+                     new DropdownItem { Text = "Order by Loan No", Value = "3" }
+                };
+                orderBy.AddRange(orderByResult);
+                // orderByMem.Add(new DropdownItem { Text = "Order by Mem No", Value = "1" });
+                // orderByMem.Add(new DropdownItem { Text = "Order by Per No", Value = "2" });
+                // orderByMem.Add(new DropdownItem { Text = "Order by Loan No", Value = "3" });
+                // orderByMem.Add(new DropdownItem { Text = "Order by Token No", Value = "4" });
+
+
+                List<DropdownItem> fnlListResult = new()
+                {
+                    new DropdownItem { Text = "Cash Ledger", Value = "0" },
+                    new DropdownItem { Text = "Assets", Value = "1" },
+                    new DropdownItem { Text = "Liability", Value = "2" },
+                    new DropdownItem { Text = "Income", Value = "3" },
+                    new DropdownItem { Text = "Expenditure", Value = "4" },
+                    new DropdownItem { Text = "All Ledgers", Value = "5" }
+                };
+                fnlList.AddRange(fnlListResult);
+
+
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/8");
+                if (result!.Count > 0)
+                {
+                    reportList = result.ToList();
+                }
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                // Optionally handle the error, e.g., log it or show an error message.
+                Console.WriteLine($"Error loading data: {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void handlerSelectRportName()
+    {
+        isFinalLedger = false;
+        isPrintDisbled = false;
+        try
+        {
+            switch (rptObject.ReportId)
+            {
+                case 83:    /// All ledger statemets
+                    isFinalLedger = true;
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task HandleGetTDNos()
+    {
+        rptObject.FromDateString = rptObject.FromDate.ToString("yyyy-MM-dd");
+        rptObject.ToDateString = rptObject.ToDate.ToString("yyyy-MM-dd");
+        switch (rptObject.ReportId)
+        {
+
+        }
+        var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/ReportsTD/GetTDNos/{rptObject.FromDateString}/{rptObject.ToDateString}/F/{rptObject.BrCode}");
+        if (result != null && result.Any())
+        {
+            tdList.Clear();
+            tdList = result.ToList();
+        }
+    }
+
+    private async Task HandlePrint()
+    {
+        _isFetchingData = true;
+        rptObject.FromDateString = rptObject.FromDate.ToString("yyyy-MM-dd");
+        rptObject.ToDateString = rptObject.ToDate.ToString("yyyy-MM-dd");
+        try
+        {
+            switch (rptObject.ReportId)
+            {
+                case 71:    /// Share capital
+                    rptObject.TrnType = 3;
+                    await Print_MemberTrn();
+                    // Print_MemberTrnFA(rptId, 3);
+                    break;
+                case 72:    /// Member due to
+                    rptObject.TrnType = 1;
+                    await Print_MemberTrn();
+                    // Print_MemberTrnFA(rptId, 1);
+                    break;
+                case 73:    /// Member due by
+                    rptObject.TrnType = 2;
+                    await Print_MemberTrn();
+                    // Print_MemberTrnFA(rptId, 2);
+                    break;
+                case 74:    /// Loan outstanding
+                    // if (TSISGlobalVariables.gSocietyType == 1)
+                    //     loanType = 1;
+                    // else
+                    //     loanType = 6;
+                    // Print_LoanOutstandingFA(rptId, loanType);
+                    break;
+                case 75:    ///Jewel Loan outstanding
+                    rptObject.LoanType = 2;
+                    await Print_JewelLoan_Outstanding();
+                    // Print_LoanOutstandingOthersFA(rptId, 2);
+                    break;
+                case 76:    /// FD loan outstanding
+                    rptObject.LoanType = 3;
+                    await Print_JewelLoan_Outstanding();
+                    // Print_LoanOutstandingOthersFA(rptId, 3);
+                    break;
+                case 77:    /// RD Loan outstanding
+                    rptObject.LoanType = 4;
+                    await Print_JewelLoan_Outstanding();
+                    // Print_LoanOutstandingOthersFA(rptId, 4);
+                    break;
+                case 78:    /// Staff loan outstanding
+                    rptObject.LoanType = 5;
+                    await Print_JewelLoan_Outstanding();
+                    // Print_LoanOutstandingOthersFA(rptId, 5);
+                    break;
+                case 79:    /// fixed deposit outstanding
+                    rptObject.TDType = "F";
+                    await Print_TermDeposit_Outstanding();
+                    // Print_TermDepositOutstandingFA(rptId, "F");
+                    break;
+                case 80:    /// Deposit outstanding
+                    // if (cboOrderBy.SelectedIndex == -1)
+                    // {
+                    //     MessageBox.Show("Order by not selected", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    //     return;
+                    // }
+                    // int orderBy = ExtensionMethods.GetValueFromComboBox(cboOrderBy);
+                    // Print_DepositOutstandingFA(rptId, orderBy);
+                    break;
+                case 81:    /// Dividend
+                    // Print_DividendFA(rptId);
+                    break;
+                case 82:    /// Thrift Society audit report tsp
+                    break;
+                case 83:    /// All ledger statemets
+                    // if (cboFnlLedger.SelectedIndex == -1)
+                    // {
+                    //     MessageBox.Show("Ledger Name not selected", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    //     return;
+                    // }
+                    // int fnlId = ExtensionMethods.GetValueFromComboBox(cboFnlLedger);
+                    // Print_LedgerOutstandingFA(rptId, fnlId);
+                    await Print_Ledgger();
+                    break;
+                case 86:    /// Recurring deposit outstanding
+                    // Print_TermDepositOutstandingFA(rptId, "R");
+                    break;
+                case 113:   /// employee due to outstanding
+                    // Print_MemberTrnFA(rptId, 5);
+                    break;
+                case 114:   /// employee due by outstanding
+                    // Print_MemberTrnFA(rptId, 6);
+                    break;
+                case 115:
+                    // if (TSISGlobalVariables.gSocietyType == 1)
+                    //     loanType = 1;
+                    // else
+                    //     loanType = 6;
+                    // Print_LoanOutstandingFA(rptId, loanType);
+                    break;
+                case 150:   /// Interest paid and payable on Fixed Deposit
+                    // Print_InterestPaidPayableOnFixedDepositFA(rptId);
+                    break;
+                case 158:   /// Loan outstanding HL-2 with last prl receipt date and last int receipt date
+                    // if (TSISGlobalVariables.gSocietyType == 1)
+                    //     loanType = 1;
+                    // else
+                    //     loanType = 6;
+                    // Print_LoanOutstandingFA_HL2(rptId, loanType);
+                    break;
+                case 159:   /// Member wise Fixed Deposit outstanding
+                    // Print_TermDepositOutstandingFA(rptId, "F");
+                    break;
+                case 160:   /// Member wise Recurring Deposit outstanding
+                    // Print_TermDepositOutstandingFA(rptId, "R");
+                    break;
+                case 161:   /// Share Capital and Dividend
+                    // Print_ShareCapital_DividendFA(rptId);
+                    break;
+                case 163:   /// SB Account
+                    // Print_SBAccountFA(rptId);
+                    break;
+                case 164:   /// Interest paid and payable on RD
+                    // Print_InterestPaidPayableOnRecurringDepositFA(rptId);
+                    break;
+            }
+        }
+        catch (Exception)
+        {
+            _isFetchingData = false;
+        }
+        _isFetchingData = false;
+    }
+
+    private async Task Print_MemberTrn()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"https://localhost:7073/api/ReportsAudit/print-audit-memtrn", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_JewelLoan_Outstanding()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"https://localhost:7073/api/ReportsAudit/print-audit-jewelloan", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_TermDeposit_Outstanding()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"https://localhost:7073/api/ReportsAudit/print-audit-termdeposit", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_Ledgger()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"https://localhost:7073/api/ReportsAudit/print-audit-ledger", rptObject);
+
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+}

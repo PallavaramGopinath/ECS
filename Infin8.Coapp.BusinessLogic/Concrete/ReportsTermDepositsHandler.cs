@@ -65,9 +65,9 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.ReportsTermDeposits.GetTermDepositOutstandingIndividual(memId, asOnDate, TDSchemeType , brCode );
         }
 
-        public async Task<List<rptTermDepositPayable>> GetTermDepositPayable(DateTime asOnDate, string brCode)
+        public async Task<List<rptTermDepositPayable>> GetTermDepositPayable(DateTime asOnDate, string tdSchemeType, string brCode)
         {
-            return await _unitOfWork.ReportsTermDeposits.GetTermDepositPayable(asOnDate, brCode);
+            return await _unitOfWork.ReportsTermDeposits.GetTermDepositPayable(asOnDate, tdSchemeType , brCode);
         }
 
         public async Task<List<rptTermDepositRegister>> GetTermDepositRegister(List<decimal> TDIdList, DateTime fromDate, DateTime toDate, string TDSchemeType)

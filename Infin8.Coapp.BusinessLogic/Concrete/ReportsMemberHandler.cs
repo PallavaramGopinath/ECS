@@ -19,7 +19,62 @@ namespace Infin8.Coapp.BusinessLogic
         }
         public async Task<List<rptMemberTrn>> GetRptMemberTrn(DateTime fromDate, DateTime toDate, int trnType,string brCode)
         {
-            return await _unitOfWork.ReportsMember.GetRptMemberTrn (fromDate , toDate,  trnType,brCode  );
+            List<rptMemberTrn> memTrnList = new();
+            double OB = 0, CB = 0;
+            decimal memId = 0, ledId = 0;
+            try
+            {
+                var trnList = await  _unitOfWork.ReportsMember.GetRptMemberTrn(fromDate , toDate, trnType, brCode);
+                if(trnList != null && trnList.Any())
+                {
+                    memTrnList = trnList.ToList();
+                    foreach (var trn in trnList)
+                    {
+                        if (memId == trn.Mem_Id && ledId != trn.Led_Id)
+                        {
+                            ledId = trn.Led_Id;
+                            OB = trn.Amt_OB;
+                            CB = trn.Amt_OB;
+                        }
+
+                        if (memId != trn.Mem_Id && ledId != trn.Led_Id)
+                        {
+                            memId = trn.Mem_Id;
+                            ledId = trn.Led_Id;
+                            OB = trn.Amt_OB;
+                            CB = trn.Amt_OB;
+                        }
+
+                        if (memId != trn.Mem_Id && ledId == trn.Led_Id)
+                        {
+                            memId = trn.Mem_Id;
+                            OB = trn.Amt_OB;
+                            CB = trn.Amt_OB;
+                        }
+                        switch (trn.Trn_Type)
+                        {
+                            case 1:
+                            case 5:
+                                CB += Convert.ToDouble(trn.Pmt_Amt) - Convert.ToDouble(trn.Rpt_Amt);
+                                break;
+                            case 2:
+                            case 3:
+                            case 6:
+                                CB += Convert.ToDouble(trn.Rpt_Amt) - Convert.ToDouble(trn.Pmt_Amt);
+                                break;
+                        }
+                        trn.Amt_CB = CB;
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in fetching member transaction list from handler " + ex.Message);
+                memTrnList = new();
+            }
+            return memTrnList;
+            //return await _unitOfWork.ReportsMember.GetRptMemberTrn (fromDate , toDate,  trnType,brCode  );
         }
 
         public async Task<List<rptMemberTrn>> GetRptMemberTrn(DateTime toDate, int trnType,string brCode)

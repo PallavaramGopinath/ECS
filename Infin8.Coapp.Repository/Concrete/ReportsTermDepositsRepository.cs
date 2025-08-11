@@ -1,6 +1,7 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Infin8.Coapp.Utility;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Npgsql;
@@ -547,53 +548,188 @@ namespace Infin8.Coapp.Repository
             return tdList;
         }
 
-        public async Task<List<rptTermDepositPayable>> GetTermDepositPayable(DateTime asOnDate, string brCode)
+        public async Task<List<rptTermDepositPayable>> GetTermDepositPayable(DateTime asOnDate, string tdSchemeType,string brCode)
         {
             List<rptTermDepositPayable> tdList = new List<rptTermDepositPayable>();
             try
             {
-                var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTermDepositPayable>(
-                        @"With Db1
-                        AS
-                        (
-                        select Trn.TD_Id, Mas.TD_No,Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id, Mas.TDH_Name, Mas.DepositAmount, Mas.RateOfInterest, Mas.MaturityDate,
-                            Max(Trn.Trn_Date) AS Trn_Date, SUM(Trn.DepositReceiptAmount) AS DepositReceiptAmount,
-                            Max(Trn.InterestAppliedDate) AS InterestAppliedDate, Sum(Trn.InterestCalculatedAmount) AS InterestCalculatedAmount,
-                            Sum(Trn.InterestPaidAmount) AS InterestPaidAmount, Sum(Trn.InterestCalculatedAmount - Trn.InterestPaidAmount) AS IntPayable
-                            FROM TermDeposit_Trn AS Trn
-                            INNER JOIN TermDeposit_Master AS Mas ON Trn.TD_Id = Mas.TD_Id
-                            WHERE Trn.TD_Delete = FALSE AND Mas.td_delete = FALSE
-                            AND Trn.voc_status ='V' AND Mas.voc_status ='V' 
-                            and  CAST(Trn.Trn_Date AS date) <= @asOnDate
-                            GROUP BY Trn.TD_Id, Mas.TD_No,Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id, Mas.TDH_Name, Mas.DepositAmount, Mas.RateOfInterest, Mas.MaturityDate
-                            HAVING Sum(Trn.InterestCalculatedAmount - Trn.InterestPaidAmount) > 0
-                        UNION
-                            SELECT Trn.TD_Id, Mas.TD_No,Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id, Mas.TDH_Name, Mas.DepositAmount, Mas.RateOfInterest, Mas.MaturityDate,
-                            Max(Trn.Trn_Date) AS Trn_Date, Sum(Trn.DepositReceiptAmount) AS DepositReceiptAmount,
-                            Max(Trn.InterestAppliedDate) AS InterestAppliedDate, 0 :: DOUBLE PRECISION AS InterestCalculatedAmount,
-                            0 :: DOUBLE PRECISION AS InterestPaidAmount, 0 :: DOUBLE PRECISION AS IntPayable
-                            FROM TermDeposit_Master AS Mas
-                            INNER JOIN TermDeposit_Trn AS Trn ON Mas.TD_Id = Trn.TD_Id
-                            WHERE  Mas.voc_status = 'V' AND Trn.voc_status = 'V' AND Mas.MaturityDate :: DATE <= @asOnDate AND Trn.TD_Delete = FALSE AND Mas.TD_Delete = FALSE
-                            GROUP BY Trn.TD_Id, Mas.TD_No,Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id, Mas.TD_No, Mas.TDH_Name, Mas.DepositAmount, Mas.RateOfInterest, Mas.MaturityDate
-                            HAVING Sum(Trn.DepositReceiptAmount) - Sum(Trn.DepositPaidAmount) > 0
-                        )
-                        SELECT Db1.TD_Id, Db1.TD_No,Db1.ValueDate,Db1.PeriodInMonths,Db1.PeriodInDays,Db1.RateOfInterest, Db1.TDScheme_Id, Db1.TDH_Name, Db1.DepositAmount, Db1.MaturityDate, Db1.Trn_Date,
-                            Sum(Db1.DepositReceiptAmount) AS DepositReceiptAmount,
-                            Sum(Db1.InterestCalculatedAmount) AS InterestCalculatedAmount, Sum(Db1.InterestPaidAmount) AS InterestPaidAmount,
-                            Sum(Db1.IntPayable) AS IntPayable, Max(Db1.InterestAppliedDate) AS InterestAppliedDate,
-                            Sch.TDScheme_Name, Sum(Db1.IntPayable) AS TotalPayable
-                        FROM Db1
-                            INNER JOIN TermDeposit_Schemes AS Sch ON Db1.TDScheme_Id = Sch.TDScheme_Id
-                            GROUP BY Db1.TD_Id, Db1.TD_No,Db1.ValueDate,Db1.PeriodInMonths,Db1.PeriodInDays,Db1.RateOfInterest, Db1.TDScheme_Id, Db1.TDH_Name, Db1.DepositAmount, Db1.MaturityDate, Db1.Trn_Date, Sch.TDScheme_Name
-                            HAVING Sum(Db1.IntPayable) > 0
-                            ORDER BY Db1.TDScheme_Id, Db1.TD_No"
-                            , new NpgsqlParameter("@asOnDate", asOnDate)).ToListAsync();
+                #region query
+                //var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTermDepositPayable>(
+                //        @"With Db1
+                //        AS
+                //        (
+                //        select Trn.TD_Id, Mas.TD_No,Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id, Mas.TDH_Name, Mas.DepositAmount, Mas.RateOfInterest, Mas.MaturityDate,
+                //            Max(Trn.Trn_Date) AS Trn_Date, SUM(Trn.DepositReceiptAmount) AS DepositReceiptAmount,
+                //            Max(Trn.InterestAppliedDate) AS InterestAppliedDate, Sum(Trn.InterestCalculatedAmount) AS InterestCalculatedAmount,
+                //            Sum(Trn.InterestPaidAmount) AS InterestPaidAmount, Sum(Trn.InterestCalculatedAmount - Trn.InterestPaidAmount) AS IntPayable
+                //            FROM TermDeposit_Trn AS Trn
+                //            INNER JOIN TermDeposit_Master AS Mas ON Trn.TD_Id = Mas.TD_Id
+                //            WHERE Trn.TD_Delete = FALSE AND Mas.td_delete = FALSE
+                //            AND Trn.voc_status ='V' AND Mas.voc_status ='V' 
+                //            and  CAST(Trn.Trn_Date AS date) <= @asOnDate
+                //            GROUP BY Trn.TD_Id, Mas.TD_No,Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id, Mas.TDH_Name, Mas.DepositAmount, Mas.RateOfInterest, Mas.MaturityDate
+                //            HAVING Sum(Trn.InterestCalculatedAmount - Trn.InterestPaidAmount) > 0
+                //        UNION
+                //            SELECT Trn.TD_Id, Mas.TD_No,Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id, Mas.TDH_Name, Mas.DepositAmount, Mas.RateOfInterest, Mas.MaturityDate,
+                //            Max(Trn.Trn_Date) AS Trn_Date, Sum(Trn.DepositReceiptAmount) AS DepositReceiptAmount,
+                //            Max(Trn.InterestAppliedDate) AS InterestAppliedDate, 0 :: DOUBLE PRECISION AS InterestCalculatedAmount,
+                //            0 :: DOUBLE PRECISION AS InterestPaidAmount, 0 :: DOUBLE PRECISION AS IntPayable
+                //            FROM TermDeposit_Master AS Mas
+                //            INNER JOIN TermDeposit_Trn AS Trn ON Mas.TD_Id = Trn.TD_Id
+                //            WHERE  Mas.voc_status = 'V' AND Trn.voc_status = 'V' AND Mas.MaturityDate :: DATE <= @asOnDate AND Trn.TD_Delete = FALSE AND Mas.TD_Delete = FALSE
+                //            GROUP BY Trn.TD_Id, Mas.TD_No,Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id, Mas.TD_No, Mas.TDH_Name, Mas.DepositAmount, Mas.RateOfInterest, Mas.MaturityDate
+                //            HAVING Sum(Trn.DepositReceiptAmount) - Sum(Trn.DepositPaidAmount) > 0
+                //        )
+                //        SELECT Db1.TD_Id, Db1.TD_No,Db1.ValueDate,Db1.PeriodInMonths,Db1.PeriodInDays,Db1.RateOfInterest, Db1.TDScheme_Id, Db1.TDH_Name, Db1.DepositAmount, Db1.MaturityDate, Db1.Trn_Date,
+                //            Sum(Db1.DepositReceiptAmount) AS DepositReceiptAmount,
+                //            Sum(Db1.InterestCalculatedAmount) AS InterestCalculatedAmount, Sum(Db1.InterestPaidAmount) AS InterestPaidAmount,
+                //            Sum(Db1.IntPayable) AS IntPayable, Max(Db1.InterestAppliedDate) AS InterestAppliedDate,
+                //            Sch.TDScheme_Name, Sum(Db1.IntPayable) AS TotalPayable
+                //        FROM Db1
+                //            INNER JOIN TermDeposit_Schemes AS Sch ON Db1.TDScheme_Id = Sch.TDScheme_Id
+                //            GROUP BY Db1.TD_Id, Db1.TD_No,Db1.ValueDate,Db1.PeriodInMonths,Db1.PeriodInDays,Db1.RateOfInterest, Db1.TDScheme_Id, Db1.TDH_Name, Db1.DepositAmount, Db1.MaturityDate, Db1.Trn_Date, Sch.TDScheme_Name
+                //            HAVING Sum(Db1.IntPayable) > 0
+                //            ORDER BY Db1.TDScheme_Id, Db1.TD_No"
+                //            , new NpgsqlParameter("@asOnDate", asOnDate)).ToListAsync();
+                #endregion
+
+                #region linq
+                // First part of the UNION - Interest Payable records
+                var db1Part1 = from trn in CSISContext.TermDeposit_Trn
+                               join mas in CSISContext.TermDeposit_Master on trn.TD_Id equals mas.TD_Id
+                               join scheme in CSISContext.TermDeposit_Schemes on mas.TDScheme_Id equals scheme.TDScheme_Id
+                               where trn.TD_Delete == false
+                                  && mas.TD_Delete == false
+                                  && trn.Trn_Date <= asOnDate.Date
+                                  && scheme.TDSchemeType == tdSchemeType
+                               group trn by new
+                               {
+                                   trn.TD_Id,
+                                   mas.TD_No,
+                                   mas.ValueDate,
+                                   mas.PeriodInMonths,
+                                   mas.PeriodInDays,
+                                   mas.TDScheme_Id,
+                                   mas.TDH_Name,
+                                   mas.DepositAmount,
+                                   mas.RateOfInterest,
+                                   mas.MaturityDate
+                               } into g
+                               where g.Sum(x => x.InterestCalculatedAmount - x.InterestPaidAmount) > 0
+                               select new
+                               {
+                                   TD_Id = g.Key.TD_Id,
+                                   TD_No = g.Key.TD_No,
+                                   ValueDate = g.Key.ValueDate,
+                                   PeriodInMonths = g.Key.PeriodInMonths,
+                                   PeriodInDays = g.Key.PeriodInDays,
+                                   TDScheme_Id = g.Key.TDScheme_Id,
+                                   TDH_Name = g.Key.TDH_Name,
+                                   DepositAmount = g.Key.DepositAmount,
+                                   RateOfInterest = g.Key.RateOfInterest,
+                                   MaturityDate = g.Key.MaturityDate,
+                                   Trn_Date = g.Max(x => x.Trn_Date),
+                                   DepositReceiptAmount = g.Sum(x => x.DepositReceiptAmount),
+                                   InterestAppliedDate = g.Max(x => x.InterestAppliedDate),
+                                   InterestCalculatedAmount = g.Sum(x => x.InterestCalculatedAmount),
+                                   InterestPaidAmount = g.Sum(x => x.InterestPaidAmount),
+                                   IntPayable = g.Sum(x => x.InterestCalculatedAmount - x.InterestPaidAmount)
+                               };
+
+                // Second part of the UNION - Maturity records
+                var db1Part2 = from mas in CSISContext.TermDeposit_Master
+                               join trn in CSISContext.TermDeposit_Trn on mas.TD_Id equals trn.TD_Id
+                               join scheme in CSISContext.TermDeposit_Schemes on mas.TDScheme_Id equals scheme.TDScheme_Id
+                               where mas.MaturityDate.Date <= asOnDate.Date
+                                  && trn.TD_Delete == false
+                                  && mas.TD_Delete == false
+                                  && scheme.TDSchemeType == tdSchemeType 
+                               group trn by new
+                               {
+                                   trn.TD_Id,
+                                   mas.TD_No,
+                                   mas.ValueDate,
+                                   mas.PeriodInMonths,
+                                   mas.PeriodInDays,
+                                   mas.TDScheme_Id,
+                                   mas.TDH_Name,
+                                   mas.DepositAmount,
+                                   mas.RateOfInterest,
+                                   mas.MaturityDate
+                               } into g
+                               where g.Sum(x => x.DepositReceiptAmount) - g.Sum(x => x.DepositPaidAmount) > 0
+                               select new
+                               {
+                                   TD_Id = g.Key.TD_Id,
+                                   TD_No = g.Key.TD_No,
+                                   ValueDate = g.Key.ValueDate,
+                                   PeriodInMonths = g.Key.PeriodInMonths,
+                                   PeriodInDays = g.Key.PeriodInDays,
+                                   TDScheme_Id = g.Key.TDScheme_Id,
+                                   TDH_Name = g.Key.TDH_Name,
+                                   DepositAmount = g.Key.DepositAmount,
+                                   RateOfInterest = g.Key.RateOfInterest,
+                                   MaturityDate = g.Key.MaturityDate,
+                                   Trn_Date = g.Max(x => x.Trn_Date),
+                                   DepositReceiptAmount = g.Sum(x => x.DepositReceiptAmount),
+                                   InterestAppliedDate = g.Max(x => x.InterestAppliedDate),
+                                   InterestCalculatedAmount = 0.0,
+                                   InterestPaidAmount = 0.0,
+                                   IntPayable = 0.0
+                               };
+
+                // Union the two parts (equivalent to the CTE)
+                var db1 = db1Part1.Union(db1Part2);
+
+                // Final query joining with schemes and grouping
+                var tdListTmp = await (from d in db1
+                                       join sch in CSISContext.TermDeposit_Schemes on d.TDScheme_Id equals sch.TDScheme_Id
+                                       group d by new
+                                       {
+                                           d.TD_Id,
+                                           d.TD_No,
+                                           d.ValueDate,
+                                           d.PeriodInMonths,
+                                           d.PeriodInDays,
+                                           d.RateOfInterest,
+                                           d.TDScheme_Id,
+                                           d.TDH_Name,
+                                           d.DepositAmount,
+                                           d.MaturityDate,
+                                           d.Trn_Date,
+                                           sch.TDScheme_Name
+                                       } into g
+                                       where g.Sum(x => x.IntPayable) > 0
+                                       orderby g.Key.TDScheme_Id, g.Key.TD_No
+                                       select new rptTermDepositPayable
+                                       {
+                                           TD_Id = g.Key.TD_Id,
+                                           TD_No = g.Key.TD_No,
+                                           ValueDate = g.Key.ValueDate,
+                                           PeriodInMonths = g.Key.PeriodInMonths,
+                                           PeriodInDays = g.Key.PeriodInDays,
+                                           RateOfInterest = g.Key.RateOfInterest,
+                                           TDScheme_Id = g.Key.TDScheme_Id,
+                                           TDH_Name = g.Key.TDH_Name,
+                                           DepositAmount = g.Key.DepositAmount,
+                                           MaturityDate = g.Key.MaturityDate,
+                                           Trn_Date = g.Key.Trn_Date!,
+                                           DepositReceiptAmount = g.Sum(x => x.DepositReceiptAmount),
+                                           InterestCalculatedAmount = g.Sum(x => x.InterestCalculatedAmount),
+                                           InterestPaidAmount = g.Sum(x => x.InterestPaidAmount),
+                                           IntPayable = g.Sum(x => x.IntPayable),
+                                           InterestAppliedDate = g.Max(x => x.InterestAppliedDate),
+                                           TDScheme_Name = g.Key.TDScheme_Name,
+                                           TotalPayable = g.Sum(x => x.IntPayable)
+                                       }).ToListAsync();
+
+                #endregion 
                 if (tdListTmp != null) { tdList = tdListTmp; }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine($"Error in fetching term deposit payable data " + ex.Message );
+                tdList = new();
             }
             return tdList;
         }
@@ -603,55 +739,111 @@ namespace Infin8.Coapp.Repository
             List<rptTermDepositPayable> tdList = new List<rptTermDepositPayable>();
             try
             {
-                if (tdSchemeType == "F")
-                {
-                    var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTermDepositPayable>(
-                        @" SELECT Trn.TD_Id,Mas.TD_No, Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id,Mas.TDH_Name,Sch.TDSchemeType,Sch.TDScheme_Name ,Mas.DepositAmount,Mas.RateOfInterest, Mas.MaturityDate, 
-                            Max(Trn.Trn_Date) AS Trn_Date, Sum(Trn.DepositReceiptAmount) AS DepositReceiptAmount,
-                            Max(Trn.InterestAppliedDate) AS InterestAppliedDate, Sum(Trn.InterestCalculatedAmount) AS InterestCalculatedAmount, 
-                            Sum(Trn.InterestPaidAmount) AS InterestPaidAmount, Sum(Trn.InterestCalculatedAmount) - Sum(Trn.InterestPaidAmount) AS IntPayable ,
-                            Sum(Trn.DepositReceiptAmount) + (Sum(Trn.InterestCalculatedAmount) - Sum(Trn.InterestPaidAmount) ) AS TotalPayable
-						    FROM TermDeposit_Master AS Mas
-                            INNER JOIN TermDeposit_Trn AS Trn ON Mas.TD_Id = Trn.TD_Id 
-							INNER JOIN TermDeposit_Schemes AS Sch ON Mas.TDScheme_Id = Sch.TDScheme_Id 
-                            WHERE Mas.brcode = @brCode AND Mas.voc_status = 'V' 
-                            AND Trn.brcode = @brCode AND Trn.voc_status ='V'
-                            AND Sch.brcode =@brCode
-                            AND Mas.MaturityDate :: DATE <=@asOnDate AND Trn.TD_Delete = FALSE AND Mas.TD_Delete = FALSE AND Sch.TDSchemeType = @tdSchemeType
-                            GROUP BY Trn.TD_Id,Mas.TD_No, Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays,Mas.TDScheme_Id,Sch.TDSchemeType,Sch.TDScheme_Name,Mas.TD_No, Mas.TDH_Name,Mas.DepositAmount,Mas.RateOfInterest, Mas.MaturityDate
-                            HAVING Sum(Trn.DepositReceiptAmount)- Sum(Trn.DepositPaidAmount) >0 
-							ORDER BY Mas.TDScheme_Id,Mas.TD_No "
-                        , new NpgsqlParameter("@asOnDate", asOnDate.Date)
-                        , new NpgsqlParameter("@tdSchemeType", tdSchemeType)
-                        , new NpgsqlParameter("@brCode", brCode)).ToListAsync();
-                    if (tdListTmp != null) { tdList = tdListTmp; }
-                }
-                if (tdSchemeType == "R")
-                {
-                    var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTermDepositPayable>(
-                        @" SELECT Trn.TD_Id,Mas.TD_No, Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id,Mas.TDH_Name,Sch.TDSchemeType,Sch.TDScheme_Name ,Mas.DepositAmount,Mas.RateOfInterest, Mas.MaturityDate, 
-                            Max(Trn.Trn_Date) AS Trn_Date, Sum(Trn.DepositReceiptAmount) AS DepositReceiptAmount,Sum(Trn.DepositPaidAmount) AS DepositPaidAmount,
-                            Max(Trn.InterestAppliedDate) AS InterestAppliedDate, Sum(Trn.InterestCalculatedAmount) AS InterestCalculatedAmount, 
-                            Sum(Trn.InterestPaidAmount) AS InterestPaidAmount, (Mas.MaturityAmount) - (Mas.DepositAmount  * Mas.PeriodInMonths)  AS IntPayable ,
-                            Mas.MaturityAmount AS TotalPayable
-						    FROM TermDeposit_Master AS Mas
-                            INNER JOIN TermDeposit_Trn AS Trn ON Mas.TD_Id = Trn.TD_Id 
-							INNER JOIN TermDeposit_Schemes AS Sch ON Mas.TDScheme_Id = Sch.TDScheme_Id 
-                            WHERE  Mas.brcode = @brCode AND Mas.voc_status = 'V' 
-                            AND Trn.brcode = @brCode AND Trn.voc_status ='V'
-                            AND Sch.brcode =@brCode
-                            and Mas.MaturityDate :: DATE <=@asOnDate AND Trn.TD_Delete = FALSE AND Mas.TD_Delete = FALSE AND Sch.TDSchemeType = @tdSchemeType
-                            GROUP BY Trn.TD_Id,Mas.TD_No, Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays,Mas.TDScheme_Id,Sch.TDSchemeType,Sch.TDScheme_Name,Mas.TD_No, Mas.TDH_Name,Mas.DepositAmount,Mas.RateOfInterest, Mas.MaturityDate,Mas.MaturityAmount
-                            HAVING  Sum(Trn.DepositPaidAmount) = 0
-							ORDER BY Mas.TDScheme_Id,Mas.TD_No  "
-                        , new NpgsqlParameter("@asOnDate", asOnDate.Date)
-                        , new NpgsqlParameter("@tdSchemeType", tdSchemeType)).ToListAsync();
-                    if (tdListTmp != null) { tdList = tdListTmp; }
-                }
+                #region query
+                //         if (tdSchemeType == "F")
+                //         {
+                //             var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTermDepositPayable>(
+                //                 @" SELECT Trn.TD_Id,Mas.TD_No, Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id,Mas.TDH_Name,Sch.TDSchemeType,Sch.TDScheme_Name ,Mas.DepositAmount,Mas.RateOfInterest, Mas.MaturityDate, 
+                //                     Max(Trn.Trn_Date) AS Trn_Date, Sum(Trn.DepositReceiptAmount) AS DepositReceiptAmount,
+                //                     Max(Trn.InterestAppliedDate) AS InterestAppliedDate, Sum(Trn.InterestCalculatedAmount) AS InterestCalculatedAmount, 
+                //                     Sum(Trn.InterestPaidAmount) AS InterestPaidAmount, Sum(Trn.InterestCalculatedAmount) - Sum(Trn.InterestPaidAmount) AS IntPayable ,
+                //                     Sum(Trn.DepositReceiptAmount) + (Sum(Trn.InterestCalculatedAmount) - Sum(Trn.InterestPaidAmount) ) AS TotalPayable
+                //   FROM TermDeposit_Master AS Mas
+                //                     INNER JOIN TermDeposit_Trn AS Trn ON Mas.TD_Id = Trn.TD_Id 
+                //INNER JOIN TermDeposit_Schemes AS Sch ON Mas.TDScheme_Id = Sch.TDScheme_Id 
+                //                     WHERE Mas.brcode = @brCode AND Mas.voc_status = 'V' 
+                //                     AND Trn.brcode = @brCode AND Trn.voc_status ='V'
+                //                     AND Sch.brcode =@brCode
+                //                     AND Mas.MaturityDate :: DATE <=@asOnDate AND Trn.TD_Delete = FALSE AND Mas.TD_Delete = FALSE AND Sch.TDSchemeType = @tdSchemeType
+                //                     GROUP BY Trn.TD_Id,Mas.TD_No, Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays,Mas.TDScheme_Id,Sch.TDSchemeType,Sch.TDScheme_Name,Mas.TD_No, Mas.TDH_Name,Mas.DepositAmount,Mas.RateOfInterest, Mas.MaturityDate
+                //                     HAVING Sum(Trn.DepositReceiptAmount)- Sum(Trn.DepositPaidAmount) >0 
+                //ORDER BY Mas.TDScheme_Id,Mas.TD_No "
+                //                 , new NpgsqlParameter("@asOnDate", asOnDate.Date)
+                //                 , new NpgsqlParameter("@tdSchemeType", tdSchemeType)
+                //                 , new NpgsqlParameter("@brCode", brCode)).ToListAsync();
+                //             if (tdListTmp != null) { tdList = tdListTmp; }
+                //         }
+                //         if (tdSchemeType == "R")
+                //         {
+                //             var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTermDepositPayable>(
+                //                 @" SELECT Trn.TD_Id,Mas.TD_No, Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays, Mas.TDScheme_Id,Mas.TDH_Name,Sch.TDSchemeType,Sch.TDScheme_Name ,Mas.DepositAmount,Mas.RateOfInterest, Mas.MaturityDate, 
+                //                     Max(Trn.Trn_Date) AS Trn_Date, Sum(Trn.DepositReceiptAmount) AS DepositReceiptAmount,Sum(Trn.DepositPaidAmount) AS DepositPaidAmount,
+                //                     Max(Trn.InterestAppliedDate) AS InterestAppliedDate, Sum(Trn.InterestCalculatedAmount) AS InterestCalculatedAmount, 
+                //                     Sum(Trn.InterestPaidAmount) AS InterestPaidAmount, (Mas.MaturityAmount) - (Mas.DepositAmount  * Mas.PeriodInMonths)  AS IntPayable ,
+                //                     Mas.MaturityAmount AS TotalPayable
+                //   FROM TermDeposit_Master AS Mas
+                //                     INNER JOIN TermDeposit_Trn AS Trn ON Mas.TD_Id = Trn.TD_Id 
+                //INNER JOIN TermDeposit_Schemes AS Sch ON Mas.TDScheme_Id = Sch.TDScheme_Id 
+                //                     WHERE  Mas.brcode = @brCode AND Mas.voc_status = 'V' 
+                //                     AND Trn.brcode = @brCode AND Trn.voc_status ='V'
+                //                     AND Sch.brcode =@brCode
+                //                     and Mas.MaturityDate :: DATE <=@asOnDate AND Trn.TD_Delete = FALSE AND Mas.TD_Delete = FALSE AND Sch.TDSchemeType = @tdSchemeType
+                //                     GROUP BY Trn.TD_Id,Mas.TD_No, Mas.ValueDate,Mas.PeriodInMonths,Mas.PeriodInDays,Mas.TDScheme_Id,Sch.TDSchemeType,Sch.TDScheme_Name,Mas.TD_No, Mas.TDH_Name,Mas.DepositAmount,Mas.RateOfInterest, Mas.MaturityDate,Mas.MaturityAmount
+                //                     HAVING  Sum(Trn.DepositPaidAmount) = 0
+                //ORDER BY Mas.TDScheme_Id,Mas.TD_No  "
+                //                 , new NpgsqlParameter("@asOnDate", asOnDate.Date)
+                //                 , new NpgsqlParameter("@tdSchemeType", tdSchemeType)).ToListAsync();
+                //             if (tdListTmp != null) { tdList = tdListTmp; }
+                //         }
+                #endregion
+
+                #region linq
+                var tdListTmp = await (from mas in CSISContext.TermDeposit_Master
+                                       join trn in CSISContext.TermDeposit_Trn on mas.TD_Id equals trn.TD_Id
+                                       join sch in CSISContext.TermDeposit_Schemes on mas.TDScheme_Id equals sch.TDScheme_Id
+                                       where mas.BrCode == brCode
+                                          && trn.BrCode == brCode
+                                          && sch.BrCode == brCode
+                                          && mas.MaturityDate.Date <= asOnDate.Date
+                                          && trn.TD_Delete == false
+                                          && mas.TD_Delete == false
+                                          && sch.TDSchemeType == tdSchemeType
+                                       group trn by new
+                                       {
+                                           trn.TD_Id,
+                                           mas.TD_No,
+                                           mas.ValueDate,
+                                           mas.PeriodInMonths,
+                                           mas.PeriodInDays,
+                                           mas.TDScheme_Id,
+                                           sch.TDSchemeType,
+                                           sch.TDScheme_Name,
+                                           mas.TDH_Name,
+                                           mas.DepositAmount,
+                                           mas.RateOfInterest,
+                                           mas.MaturityDate
+                                       } into g
+                                       where g.Sum(x => x.DepositReceiptAmount) - g.Sum(x => x.DepositPaidAmount) > 0
+                                       orderby g.Key.TDScheme_Id, g.Key.TD_No
+                                       select new rptTermDepositPayable
+                                       {
+                                           TD_Id = g.Key.TD_Id,
+                                           TD_No = g.Key.TD_No,
+                                           ValueDate = g.Key.ValueDate,
+                                           PeriodInMonths = g.Key.PeriodInMonths,
+                                           PeriodInDays = g.Key.PeriodInDays,
+                                           TDScheme_Id = g.Key.TDScheme_Id,
+                                           TDH_Name = g.Key.TDH_Name,
+                                           TDSchemeType = g.Key.TDSchemeType,
+                                           TDScheme_Name = g.Key.TDScheme_Name,
+                                           DepositAmount = g.Key.DepositAmount,
+                                           RateOfInterest = g.Key.RateOfInterest,
+                                           MaturityDate = g.Key.MaturityDate,
+                                           Trn_Date = g.Max(x => x.Trn_Date),
+                                           DepositReceiptAmount = g.Sum(x => x.DepositReceiptAmount),
+                                           InterestAppliedDate = g.Max(x => x.InterestAppliedDate),
+                                           InterestCalculatedAmount = g.Sum(x => x.InterestCalculatedAmount),
+                                           InterestPaidAmount = g.Sum(x => x.InterestPaidAmount),
+                                           IntPayable = g.Sum(x => x.InterestCalculatedAmount) - g.Sum(x => x.InterestPaidAmount),
+                                           TotalPayable = g.Sum(x => x.DepositReceiptAmount) + (g.Sum(x => x.InterestCalculatedAmount) - g.Sum(x => x.InterestPaidAmount))
+                                       }).ToListAsync();
+                if (tdListTmp != null && tdListTmp.Any()) tdList = tdListTmp.ToList();
+                #endregion 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.Write ("Error in fetching maturity payable data " + ex.Message);
+                tdList = new();
             }
             return tdList;
         }
@@ -814,56 +1006,117 @@ namespace Infin8.Coapp.Repository
 
         private async Task<List<rptTDNewBetweenDates>> GetTermDepositrReceivedDuringPeriodData(DateTime fromDate, DateTime toDate, string TDSchemeType, string brCode)
         {
-            List<rptTDNewBetweenDates> tdList = new List<rptTDNewBetweenDates>();
+            List<rptTDNewBetweenDates> tdList = new();
             //TransactionOptions options = new TransactionOptions();
             //options.IsolationLevel = System.Transactions.IsolationLevel.ReadCommitted;
             //options.Timeout = new TimeSpan(5, 00, 0);
             try
             {
-                var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTDNewBetweenDates>(
-                    @"SELECT
-                        TermDeposit_Master.TDScheme_Id,
-                        TermDeposit_Schemes.TDScheme_Name,
-                        TermDeposit_Schemes.TDSchemeType,
-                        TermDeposit_Master.TD_No,
-                        Mem_Master.memberNo, 
-                        Mem_Master.memberName,
-                        TermDeposit_Master.TDH_Name, 
-						TermDeposit_Master.AccountOpenDate,
-                        TermDeposit_Master.ValueDate, 
-                        TermDeposit_Master.DepositAmount,
-                        TermDeposit_Master.PeriodInMonths, 
-                        TermDeposit_Master.PeriodInDays, 
-                        TermDeposit_Master.RateOfInterest, 
-                        TermDeposit_Master.InterestPayableFrequency,
-                        TermDeposit_Master.MaturityDate,
-                        TermDeposit_Master.MaturityAmount
-                    From
-                        TermDeposit_Master  INNER JOIN TermDeposit_Trn TermDeposit_Trn ON TermDeposit_Master.Voc_Id = TermDeposit_Trn.Voc_Id
-                        INNER JOIN Mem_Master  ON TermDeposit_Master.Mem_Id = Mem_Master.mem_Id
-                        INNER JOIN TermDeposit_Schemes ON TermDeposit_Master.TDScheme_Id = TermDeposit_Schemes.TDScheme_Id
-                        WHERE TermDeposit_Master.TD_Delete = FALSE AND TermDeposit_Trn.TD_Delete= FALSE
-                        AND TermDeposit_Master.brcode = @brCode AND TermDeposit_Master.voc_status ='V'
-                        AND TermDeposit_Trn.brcode = @brCode AND TermDeposit_Trn.voc_status ='V'
-                        AND Mem_Master.brcode = @brCode 
-                        AND TermDeposit_Schemes.brcode = @brCode
-                        AND TermDeposit_Master.AccountOpenDate BETWEEN @fromDate AND @toDate 
-                        AND TermDeposit_Schemes.TDSchemeType = @schemeType
-                        GROUP BY TermDeposit_Master.TDScheme_Id,TermDeposit_Schemes.TDScheme_Name,TermDeposit_Schemes.TDSchemeType,TermDeposit_Master.TD_No,
-                        Mem_Master.memberNo, Mem_Master.memberName,TermDeposit_Master.TDH_Name, 
-                        TermDeposit_Master.AccountOpenDate,TermDeposit_Master.ValueDate, TermDeposit_Master.DepositAmount,TermDeposit_Master.PeriodInMonths, TermDeposit_Master.PeriodInDays, 
-                        TermDeposit_Master.RateOfInterest, TermDeposit_Master.InterestPayableFrequency,TermDeposit_Master.MaturityDate, TermDeposit_Master.MaturityAmount
-						HAVING Sum(TermDeposit_Trn.DepositPaidAmount) = 0
-                    Order By
-                    TermDeposit_Schemes.TDSchemeType ASC,
-                    TermDeposit_Master.TD_No ASC"
-                , new NpgsqlParameter("@fromDate", fromDate)
-                , new NpgsqlParameter("@toDate", toDate)
-                , new NpgsqlParameter("@schemeType", TDSchemeType)).ToListAsync();
-                if (tdListTmp != null) { tdList = tdListTmp; }
+                #region query
+                //          var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTDNewBetweenDates>(
+                //              @"SELECT
+                //                  TermDeposit_Master.TDScheme_Id,
+                //                  TermDeposit_Schemes.TDScheme_Name,
+                //                  TermDeposit_Schemes.TDSchemeType,
+                //                  TermDeposit_Master.TD_No,
+                //                  Mem_Master.memberNo, 
+                //                  Mem_Master.memberName,
+                //                  TermDeposit_Master.TDH_Name, 
+                //TermDeposit_Master.AccountOpenDate,
+                //                  TermDeposit_Master.ValueDate, 
+                //                  TermDeposit_Master.DepositAmount,
+                //                  TermDeposit_Master.PeriodInMonths, 
+                //                  TermDeposit_Master.PeriodInDays, 
+                //                  TermDeposit_Master.RateOfInterest, 
+                //                  TermDeposit_Master.InterestPayableFrequency,
+                //                  TermDeposit_Master.MaturityDate,
+                //                  TermDeposit_Master.MaturityAmount
+                //              From
+                //                  TermDeposit_Master  INNER JOIN TermDeposit_Trn TermDeposit_Trn ON TermDeposit_Master.Voc_Id = TermDeposit_Trn.Voc_Id
+                //                  INNER JOIN Mem_Master  ON TermDeposit_Master.Mem_Id = Mem_Master.mem_Id
+                //                  INNER JOIN TermDeposit_Schemes ON TermDeposit_Master.TDScheme_Id = TermDeposit_Schemes.TDScheme_Id
+                //                  WHERE TermDeposit_Master.TD_Delete = FALSE AND TermDeposit_Trn.TD_Delete= FALSE
+                //                  AND TermDeposit_Master.brcode = @brCode AND TermDeposit_Master.voc_status ='V'
+                //                  AND TermDeposit_Trn.brcode = @brCode AND TermDeposit_Trn.voc_status ='V'
+                //                  AND Mem_Master.brcode = @brCode 
+                //                  AND TermDeposit_Schemes.brcode = @brCode
+                //                  AND TermDeposit_Master.AccountOpenDate BETWEEN @fromDate AND @toDate 
+                //                  AND TermDeposit_Schemes.TDSchemeType = @schemeType
+                //                  GROUP BY TermDeposit_Master.TDScheme_Id,TermDeposit_Schemes.TDScheme_Name,TermDeposit_Schemes.TDSchemeType,TermDeposit_Master.TD_No,
+                //                  Mem_Master.memberNo, Mem_Master.memberName,TermDeposit_Master.TDH_Name, 
+                //                  TermDeposit_Master.AccountOpenDate,TermDeposit_Master.ValueDate, TermDeposit_Master.DepositAmount,TermDeposit_Master.PeriodInMonths, TermDeposit_Master.PeriodInDays, 
+                //                  TermDeposit_Master.RateOfInterest, TermDeposit_Master.InterestPayableFrequency,TermDeposit_Master.MaturityDate, TermDeposit_Master.MaturityAmount
+                //HAVING Sum(TermDeposit_Trn.DepositPaidAmount) = 0
+                //              Order By
+                //              TermDeposit_Schemes.TDSchemeType ASC,
+                //              TermDeposit_Master.TD_No ASC"
+                //          , new NpgsqlParameter("@fromDate", fromDate)
+                //          , new NpgsqlParameter("@toDate", toDate)
+                //          , new NpgsqlParameter("@schemeType", TDSchemeType)).ToListAsync();
+                #endregion
+
+                #region linq
+                var result = await (from tdMaster in CSISContext.TermDeposit_Master
+                                    join tdTrn in CSISContext.TermDeposit_Trn on tdMaster.Voc_Id equals tdTrn.Voc_Id
+                                    join mem in CSISContext.mem_master on tdMaster.Mem_Id equals mem.mem_id
+                                    join tdScheme in CSISContext.TermDeposit_Schemes on tdMaster.TDScheme_Id equals tdScheme.TDScheme_Id
+                                    where tdMaster.TD_Delete == false
+                                       && tdTrn.TD_Delete == false
+                                       && tdMaster.BrCode == brCode
+                                       && tdTrn.BrCode == brCode
+                                       && mem.brcode == brCode
+                                       && tdScheme.BrCode == brCode
+                                       && tdMaster.AccountOpenDate >= fromDate 
+                                       && tdMaster.AccountOpenDate <= toDate 
+                                       && tdScheme.TDSchemeType == TDSchemeType
+                                    group tdTrn by new
+                                    {
+                                        tdMaster.TDScheme_Id,
+                                        tdScheme.TDScheme_Name,
+                                        tdScheme.TDSchemeType,
+                                        tdMaster.TD_No,
+                                        mem.memberno,
+                                        mem.membername,
+                                        tdMaster.TDH_Name,
+                                        tdMaster.AccountOpenDate,
+                                        tdMaster.ValueDate,
+                                        tdMaster.DepositAmount,
+                                        tdMaster.PeriodInMonths,
+                                        tdMaster.PeriodInDays,
+                                        tdMaster.RateOfInterest,
+                                        tdMaster.InterestPayableFrequency,
+                                        tdMaster.MaturityDate,
+                                        tdMaster.MaturityAmount
+                                    } into g
+                                    where g.Sum(x => x.DepositPaidAmount) == 0
+                                    orderby g.Key.TDSchemeType ascending, g.Key.TD_No ascending
+                                    select new rptTDNewBetweenDates // Replace with your actual class name
+                                    {
+                                        TDScheme_Id = g.Key.TDScheme_Id,
+                                        TDScheme_Name = g.Key.TDScheme_Name,
+                                        TDSchemeType = g.Key.TDSchemeType,
+                                        TD_No = g.Key.TD_No,
+                                        MemberNo = g.Key.memberno,
+                                        MemberName = g.Key.membername,
+                                        TDH_Name = g.Key.TDH_Name,
+                                        AccountOpenDate = g.Key.AccountOpenDate,
+                                        ValueDate = g.Key.ValueDate,
+                                        DepositAmount = g.Key.DepositAmount,
+                                        PeriodInMonths = g.Key.PeriodInMonths,
+                                        PeriodInDays = g.Key.PeriodInDays,
+                                        RateOfInterest = g.Key.RateOfInterest,
+                                        InterestPayableFrequency = g.Key.InterestPayableFrequency,
+                                        MaturityDate = g.Key.MaturityDate,
+                                        MaturityAmount = g.Key.MaturityAmount
+                                    }).ToListAsync();
+                #endregion 
+
+                if (result != null && result.Any()) { tdList = result.ToList() ; }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.Write("Error in fetching term deposit received during the period " + ex.Message);
+                tdList = new();
             }
             return tdList;
         }
@@ -874,36 +1127,77 @@ namespace Infin8.Coapp.Repository
             try
             {
                 decimal TDLedId = CSISContext.Map_General.Where(x => x.BrCode == brCode).Select(x => x.FD_Led_Id).First();
-                var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTDRefundBetweenDates>(
-                            @"SELECT TermDeposit_Trn.Trn_Date, TermDeposit_Trn.Voc_Id, TermDeposit_Master.TD_Id, TermDeposit_Master.TD_No, TermDeposit_Master.TDScheme_Id, TermDeposit_Schemes.TDScheme_Name, TermDeposit_Master.Mem_Id, 
-                              Mem_Master.memberNo, Mem_Master.memberName, TermDeposit_Trn.DepositPaidAmount
-                            FROM TermDeposit_Master INNER JOIN
-                                TermDeposit_Trn ON TermDeposit_Master.TD_Id = TermDeposit_Trn.TD_Id INNER JOIN
-                                Fin_voucher_trn ON TermDeposit_Trn.Voc_Id = Fin_voucher_trn.voc_id INNER JOIN
-                                Mem_Master ON TermDeposit_Master.Mem_Id = Mem_Master.mem_Id INNER JOIN
-                                TermDeposit_Schemes ON TermDeposit_Master.TDScheme_Id = TermDeposit_Schemes.TDScheme_Id
-                            WHERE (Fin_voucher_trn.Status = 'FR') AND (TermDeposit_Trn.DepositPaidAmount > 0) AND (TermDeposit_Master.TD_Delete = FALSE) 
-		                        AND (TermDeposit_Trn.TD_Delete = FALSE) 
-		                        AND (TermDeposit_Trn.Trn_Date >= @fromDate AND TermDeposit_Trn.Trn_Date <=  @toDate)
-		                        AND (Fin_voucher_trn.voc_pmt >0)
-		                        AND (Fin_voucher_trn.led_id = @tdLedId)
-                                AND  TermDeposit_Schemes.TDSchemeType = @schemeType
-                                AND TermDeposit_Master.brcode = @brCode AND TermDeposit_Master.voc_status = 'V'
-                                AND TermDeposit_Trn.brcode = @brCode AND TermDeposit_Trn.voc_status = 'V'
-                                AND Fin_Voucher_Trn.brcode = @brcode AND Fin_voucher_trn.voc_status = 'V'
-                                AND Mem_Master.brcode = @brCode
-                                AND TermDeposit_Schemes.brcode = @brCode
-                            ORDER BY TermDeposit_Trn.Trn_Date, TermDeposit_Master.TD_No"
-                        , new NpgsqlParameter("@fromDate", fromDate)
-                        , new NpgsqlParameter("@toDate", toDate)
-                        , new NpgsqlParameter("@schemeType", TDSchemeType)
-                        , new NpgsqlParameter("@tdLedId", TDLedId)
-                        , new NpgsqlParameter("@brcode", brCode)).ToListAsync();
-                if (tdListTmp != null) { tdList = tdListTmp; }
+
+                #region query
+                //var tdListTmp = await CSISContext.Database.SqlQueryRaw<rptTDRefundBetweenDates>(
+                //            @"SELECT TermDeposit_Trn.Trn_Date, TermDeposit_Trn.Voc_Id, TermDeposit_Master.TD_Id, TermDeposit_Master.TD_No, TermDeposit_Master.TDScheme_Id, TermDeposit_Schemes.TDScheme_Name, TermDeposit_Master.Mem_Id, 
+                //              Mem_Master.memberNo, Mem_Master.memberName, TermDeposit_Trn.DepositPaidAmount
+                //            FROM TermDeposit_Master INNER JOIN
+                //                TermDeposit_Trn ON TermDeposit_Master.TD_Id = TermDeposit_Trn.TD_Id INNER JOIN
+                //                Fin_voucher_trn ON TermDeposit_Trn.Voc_Id = Fin_voucher_trn.voc_id INNER JOIN
+                //                Mem_Master ON TermDeposit_Master.Mem_Id = Mem_Master.mem_Id INNER JOIN
+                //                TermDeposit_Schemes ON TermDeposit_Master.TDScheme_Id = TermDeposit_Schemes.TDScheme_Id
+                //            WHERE (Fin_voucher_trn.Status = 'FR') AND (TermDeposit_Trn.DepositPaidAmount > 0) AND (TermDeposit_Master.TD_Delete = FALSE) 
+                //          AND (TermDeposit_Trn.TD_Delete = FALSE) 
+                //          AND (TermDeposit_Trn.Trn_Date >= @fromDate AND TermDeposit_Trn.Trn_Date <=  @toDate)
+                //          AND (Fin_voucher_trn.voc_pmt >0)
+                //          AND (Fin_voucher_trn.led_id = @tdLedId)
+                //                AND  TermDeposit_Schemes.TDSchemeType = @schemeType
+                //                AND TermDeposit_Master.brcode = @brCode AND TermDeposit_Master.voc_status = 'V'
+                //                AND TermDeposit_Trn.brcode = @brCode AND TermDeposit_Trn.voc_status = 'V'
+                //                AND Fin_Voucher_Trn.brcode = @brcode AND Fin_voucher_trn.voc_status = 'V'
+                //                AND Mem_Master.brcode = @brCode
+                //                AND TermDeposit_Schemes.brcode = @brCode
+                //            ORDER BY TermDeposit_Trn.Trn_Date, TermDeposit_Master.TD_No"
+                //        , new NpgsqlParameter("@fromDate", fromDate)
+                //        , new NpgsqlParameter("@toDate", toDate)
+                //        , new NpgsqlParameter("@schemeType", TDSchemeType)
+                //        , new NpgsqlParameter("@tdLedId", TDLedId)
+                //        , new NpgsqlParameter("@brcode", brCode)).ToListAsync();
+                #endregion
+
+                #region linq
+                var result = await (from tdMaster in CSISContext.TermDeposit_Master
+                join tdTrn in CSISContext.TermDeposit_Trn on tdMaster.TD_Id equals tdTrn.TD_Id
+                join finVoucherTrn in CSISContext.Fin_Voucher_Trn on tdTrn.Voc_Id equals finVoucherTrn.Voc_Id
+                join mem in CSISContext.mem_master on tdMaster.Mem_Id equals mem.mem_id
+                join tdScheme in CSISContext.TermDeposit_Schemes on tdMaster.TDScheme_Id equals tdScheme.TDScheme_Id
+                where finVoucherTrn.Status == "FR"
+                   && tdTrn.DepositPaidAmount > 0
+                   && tdMaster.TD_Delete == false
+                   && tdTrn.TD_Delete == false
+                   && tdTrn.Trn_Date >= fromDate 
+                   && tdTrn.Trn_Date <= toDate 
+                   && finVoucherTrn.Voc_Pmt > 0
+                   && finVoucherTrn.Led_Id == TDLedId
+                   && tdScheme.TDSchemeType == TDSchemeType
+                   && tdMaster.BrCode == brCode
+                   && tdTrn.BrCode == brCode
+                   && finVoucherTrn.BrCode == brCode
+                   && mem.brcode == brCode
+                   && tdScheme.BrCode == brCode
+                    orderby tdTrn.Trn_Date, tdMaster.TD_No
+                    select new rptTDRefundBetweenDates // Replace with your actual class name
+                    {
+                        Trn_Date = tdTrn.Trn_Date,
+                        Voc_Id = tdTrn.Voc_Id,
+                        TD_Id = tdMaster.TD_Id,
+                        TD_No = tdMaster.TD_No,
+                        TDScheme_Id = tdMaster.TDScheme_Id,
+                        TDScheme_Name = tdScheme.TDScheme_Name,
+                        Mem_Id = tdMaster.Mem_Id,
+                        MemberNo = mem.memberno,
+                        MemberName = mem.membername,
+                        DepositPaidAmount = tdTrn.DepositPaidAmount
+                    }).ToListAsync();
+
+                #endregion 
+                if (result != null && result.Any()) { tdList = result; }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine("Error in fetching term deposit refund data " + ex.Message);
+                tdList = new();
             }
             return tdList;
         }

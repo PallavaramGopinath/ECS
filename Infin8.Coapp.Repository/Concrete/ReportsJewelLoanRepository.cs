@@ -1832,6 +1832,7 @@ namespace Infin8.Coapp.Repository
             try
             {
                 var result =  (from orn in CSISContext.JL_Ornments
+                               where orn.Loan_Id == loanId
                                     select new rptJewelLoanLedgerOrnmentsSub
                                     {
                                         Loan_Id = orn.Loan_Id,
@@ -1854,28 +1855,52 @@ namespace Infin8.Coapp.Repository
             try
             {
                 // Part 1: Corresponds to the first SELECT statement in the UNION
-                var part1Query =   (from lm in CSISContext.Loan_Master
-                                 join lt in CSISContext.Loan_Trn on lm.Loan_Id equals lt.Loan_Id
-                                 where lm.Loan_Id == loanId && lm.Loan_Type == 2 && lt.Trn_Date < fromDate && lm.Loan_Delete == false && lt.TrnTr_Delete == false
-                                 group new { lm, lt } by new { lm.Loan_Id, lm.San_Date, lm.San_Amt } into g
-                                 let Prl_OS = g.Sum(x => x.lt.Disb_Amt) - g.Sum(x => x.lt.PrlColl_Amt)
-                                 where Prl_OS > 0
-                                 select new rptJewelLoanLedgerTrnSub
-                                 {
-                                     Loan_Id = g.Key.Loan_Id,
-                                     San_Date = g.Key.San_Date,
-                                     San_Amt = g.Key.San_Amt,
-                                     Trn_Date = g.Max(x => x.lt.Trn_Date),
-                                     Disb_Amt = 0,
-                                     PICalc_Amt = 0,
-                                     IntCalc_Amt = 0,
-                                     PIColl_Amt = 0,
-                                     IntColl_Amt = 0,
-                                     PrlColl_Amt = 0,
-                                     Prl_OS = Prl_OS,
-                                     PICalc_Date = g.Max(x => x.lt.PICalc_Date),
-                                     IntCalc_Date = g.Max(x => x.lt.IntCalc_Date)
-                                 }).ToList();
+                //var part1Query =   (from lm in CSISContext.Loan_Master
+                //                 join lt in CSISContext.Loan_Trn on lm.Loan_Id equals lt.Loan_Id
+                //                 where lm.Loan_Id == loanId && lm.Loan_Type == 2 && lt.Trn_Date < fromDate && lm.Loan_Delete == false && lt.TrnTr_Delete == false
+                //                 group new { lm, lt } by new { lm.Loan_Id, lm.San_Date, lm.San_Amt } into g
+                //                 let Prl_OS = g.Sum(x => x.lt.Disb_Amt) - g.Sum(x => x.lt.PrlColl_Amt)
+                //                 where Prl_OS > 0 
+                //                 select new rptJewelLoanLedgerTrnSub
+                //                 {
+                //                     Loan_Id = g.Key.Loan_Id,
+                //                     San_Date = g.Key.San_Date,
+                //                     San_Amt = g.Key.San_Amt,
+                //                     Trn_Date = g.Max(x => x.lt.Trn_Date),
+                //                     Disb_Amt = 0,
+                //                     PICalc_Amt = 0,
+                //                     IntCalc_Amt = 0,
+                //                     PIColl_Amt = 0,
+                //                     IntColl_Amt = 0,
+                //                     PrlColl_Amt = 0,
+                //                     Prl_OS = Prl_OS,
+                //                     PICalc_Date = g.Max(x => x.lt.PICalc_Date),
+                //                     IntCalc_Date = g.Max(x => x.lt.IntCalc_Date)
+                //                 }).ToList();
+
+                var part1Query = (from lm in CSISContext.Loan_Master
+                                  join lt in CSISContext.Loan_Trn on lm.Loan_Id equals lt.Loan_Id
+                                  where lm.Loan_Id == loanId && lm.Loan_Type == 2 && lt.Trn_Date < fromDate
+                                        && lm.Loan_Delete == false && lt.TrnTr_Delete == false
+                                  group new { lm, lt } by new { lm.Loan_Id, lm.San_Date, lm.San_Amt } into g
+                                  where g.Sum(x => x.lt.Disb_Amt) - g.Sum(x => x.lt.PrlColl_Amt) > 0
+                                  select new rptJewelLoanLedgerTrnSub
+                                  {
+                                      Loan_Id = g.Key.Loan_Id,
+                                      San_Date = g.Key.San_Date,
+                                      San_Amt = g.Key.San_Amt,
+                                      Trn_Date = g.Max(x => x.lt.Trn_Date),
+                                      Disb_Amt = 0,
+                                      PICalc_Amt = 0,
+                                      IntCalc_Amt = 0,
+                                      PIColl_Amt = 0,
+                                      IntColl_Amt = 0,
+                                      PrlColl_Amt = 0,
+                                      Prl_OS = g.Sum(x => x.lt.Disb_Amt) - g.Sum(x => x.lt.PrlColl_Amt),
+                                      PICalc_Date = g.Max(x => x.lt.PICalc_Date),
+                                      IntCalc_Date = g.Max(x => x.lt.IntCalc_Date)
+                                  })
+                  .ToList();
 
                 // Part 2: Corresponds to the second SELECT statement in the UNION
                 var part2Query =  (from lm in CSISContext.Loan_Master

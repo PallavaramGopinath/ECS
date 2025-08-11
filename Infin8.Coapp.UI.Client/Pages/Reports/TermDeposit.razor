@@ -435,7 +435,8 @@ else
                     await Print_TD_Outstanding();
                     break;
                 case 49:    /// Term Deposit Payable
-
+                    rptObject.TDSchemeType = "F";
+                    await Print_TD_Interest_Payable();
                     break;
                 case 51:    /// Recurring Deposit Outstanding Mem-wise
                 case 52:    /// Recurring Deposit outstanding RD-wise
@@ -448,10 +449,12 @@ else
 
                     break;
                 case 120:   /// New FD received during the period
-
+                    rptObject.TDSchemeType = "F";
+                    await Print_TD_Received_DuringPeriod();
                     break;
                 case 122: // FD Marurity Amount Payable
-
+                    rptObject.TDSchemeType = "F";
+                    await Print_TD_Matured_Payable();
                     break;
                 case 123:   /// FD outstanding individual
                     rptObject.TDSchemeType = "F";
@@ -462,7 +465,8 @@ else
 
                     break;
                 case 148:   /// FD Refund between dates
-
+                    rptObject.TDSchemeType = "F";
+                    await Print_FD_Refund_DuringPeriod();
                     break;
             }
         }
@@ -544,6 +548,138 @@ else
         try
         {
             var response = await _httpClient.PostAsJsonAsync<rptReportTDObject>($"https://localhost:7073/api/ReportsTD/print-termdeposit-outstanding-byMemId", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_TD_Interest_Payable()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportTDObject>($"https://localhost:7073/api/ReportsTD/print-termdeposit-InterestPayable", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_TD_Matured_Payable()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportTDObject>($"https://localhost:7073/api/ReportsTD/print-termdeposit-maturityamount-payable", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_TD_Received_DuringPeriod()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportTDObject>($"https://localhost:7073/api/ReportsTD/print-termdeposit-received-duringperiod", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task Print_FD_Refund_DuringPeriod()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportTDObject>($"https://localhost:7073/api/ReportsTD/print-termdeposit-refund-duringperiod", rptObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
