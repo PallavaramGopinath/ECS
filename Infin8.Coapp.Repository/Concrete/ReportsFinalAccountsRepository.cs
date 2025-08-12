@@ -1677,7 +1677,7 @@ namespace Infin8.Coapp.Repository
                 //        , new NpgsqlParameter("@yrId", yrId)).ToListAsync();
                 #endregion
 
-                #region linq
+                #region linq first commented
                 //// First, let's define the individual queries that make up the CTE
 
                 //// Opening balance query
@@ -1837,18 +1837,231 @@ namespace Infin8.Coapp.Repository
                 //    }).ToListAsync();
                 #endregion
 
-                #region linq
-                // First, let's define the individual queries that make up the CTE
+                #region linq second commented
+                //// First, let's define the individual queries that make up the CTE
 
-                // Opening balance query
+                //// Opening balance query
+                //var openingBalances = CSISContext.Set<Fin_Ledger_Trn>()
+                //    .Where(lt => lt.Yr_Id == yrId && lt.LedgerTrn_Delete == false && lt.BrCode == brCode )
+                //    .Select(lt => new
+                //    {
+                //        led_id = lt.Led_Id,
+                //        OB = lt.OB_Amt,
+                //        voc_rpt = 0,
+                //        voc_pmt = 0
+                //    });
+
+                //// First union part - for ledger groups 1 and 4
+                //var union1 = CSISContext.Set<Fin_Voucher_Trn>()
+                //    .Join(CSISContext.Set<Fin_Voucher>(),
+                //          vt => vt.Voc_Id,
+                //          v => v.Voc_Id,
+                //          (vt, v) => new { vt, v })
+                //    .Join(CSISContext.Set<Fin_Ledger>(),
+                //          j => j.vt.Led_Id,
+                //          l => l.Led_Id,
+                //          (j, l) => new { j.vt, j.v, l })
+                //    .Join(CSISContext.Set<Fin_Ledger_Grp>(),
+                //          j => j.l.Grp_Id,
+                //          g => g.Grp_Id,
+                //          (j, g) => new { j.vt, j.v, j.l, g })
+                //    .Where(j => j.v.Voc_Date >= fromDate  &&
+                //                j.v.Voc_Date <= toDate  &&
+                //                (j.g.Fnl_Id == 1 || j.g.Fnl_Id == 4) &&
+                //                j.vt.Led_Id != cashLedId &&
+                //                j.v.Voc_Delete == false &&
+                //                j.vt.FinVocTr_Delete == false &&
+                //                j.v.BrCode == brCode && 
+                //                j.vt.BrCode == brCode && 
+                //                j.l.BrCode == brCode )
+                //    .GroupBy(j => j.vt.Led_Id)
+                //    .Select(g => new
+                //    {
+                //        Led_Id = g.Key,
+                //        OB = g.Sum(x => x.vt.Voc_Pmt) - g.Sum(x => x.vt.Voc_Rpt),
+                //        voc_rpt = 0,
+                //        voc_pmt = 0
+                //    });
+
+                //// Second union part - for ledger groups 2 and 3
+                //var union2 = CSISContext.Set<Fin_Voucher_Trn>()
+                //    .Join(CSISContext.Set<Fin_Voucher>(),
+                //          vt => vt.Voc_Id,
+                //          v => v.Voc_Id,
+                //          (vt, v) => new { vt, v })
+                //    .Join(CSISContext.Set<Fin_Ledger>(),
+                //          j => j.vt.Led_Id,
+                //          l => l.Led_Id,
+                //          (j, l) => new { j.vt, j.v, l })
+                //    .Join(CSISContext.Set<Fin_Ledger_Grp>(),
+                //          j => j.l.Grp_Id,
+                //          g => g.Grp_Id,
+                //          (j, g) => new { j.vt, j.v, j.l, g })
+                //    .Where(j => j.v.Voc_Date >= fromDate  &&
+                //                j.v.Voc_Date <= toDate  &&
+                //                (j.g.Fnl_Id == 2 || j.g.Fnl_Id == 3) &&
+                //                j.vt.Led_Id != cashLedId &&
+                //                j.v.Voc_Delete == false &&
+                //                j.vt.FinVocTr_Delete == false &&
+                //                j.vt.BrCode == brCode && 
+                //                j.v.BrCode == brCode && 
+                //                j.l.BrCode == brCode)
+                //    .GroupBy(j => j.vt.Led_Id)
+                //    .Select(g => new
+                //    {
+                //        led_id = g.Key,
+                //        OB = g.Sum(x => x.vt.Voc_Rpt) - g.Sum(x => x.vt.Voc_Pmt),
+                //        voc_rpt = 0,
+                //        voc_pmt = 0
+                //    });
+
+                //// Third union part - for cash ledger
+                //var union3 = CSISContext.Set<Fin_Voucher_Trn>()
+                //    .Join(CSISContext.Set<Fin_Voucher>(),
+                //          vt => vt.Voc_Id,
+                //          v => v.Voc_Id,
+                //          (vt, v) => new { vt, v })
+                //    .Join(CSISContext.Set<Fin_Ledger>(),
+                //          j => j.vt.Led_Id,
+                //          l => l.Led_Id,
+                //          (j, l) => new { j.vt, j.v, l })
+                //    .Join(CSISContext.Set<Fin_Ledger_Grp>(),
+                //          j => j.l.Grp_Id,
+                //          g => g.Grp_Id,
+                //          (j, g) => new { j.vt, j.v, j.l, g })
+                //    .Where(j => j.v.Voc_Date >= fromDate &&
+                //                j.v.Voc_Date <= toDate  &&
+                //                j.vt.Led_Id == cashLedId &&
+                //                j.v.Voc_Delete == false &&
+                //                j.vt.FinVocTr_Delete == false &&
+                //                j.vt.BrCode == brCode && 
+                //                j.v.BrCode == brCode && 
+                //                j.l.BrCode == brCode)
+                //    .GroupBy(j => j.vt.Led_Id)
+                //    .Select(g => new
+                //    {
+                //        Led_Id = g.Key,
+                //        OB = g.Sum(x => x.vt.Voc_Rpt) - g.Sum(x => x.vt.Voc_Pmt),
+                //        voc_rpt = 0,
+                //        voc_pmt = 0
+                //    });
+
+                //// Fourth union part - transactions within date range
+                //var union4 = CSISContext.Set<Fin_Voucher_Trn>()
+                //    .Join(CSISContext.Set<Fin_Voucher>(),
+                //          vt => vt.Voc_Id,
+                //          v => v.Voc_Id,
+                //          (vt, v) => new { vt, v })
+                //    .Join(CSISContext.Set<Fin_Ledger>(),
+                //          j => j.vt.Led_Id,
+                //          l => l.Led_Id,
+                //          (j, l) => new { j.vt, j.v, l })
+                //    .Join(CSISContext.Set<Fin_Ledger_Grp>(),
+                //          j => j.l.Grp_Id,
+                //          g => g.Grp_Id,
+                //          (j, g) => new { j.vt, j.v, j.l, g })
+                //    .Where(j => j.v.Voc_Date >= fromDate &&
+                //                j.v.Voc_Date <= toDate &&
+                //                j.v.Voc_Delete == false &&
+                //                j.vt.FinVocTr_Delete == false &&
+                //                j.vt.BrCode == brCode && 
+                //                j.v.BrCode == brCode && 
+                //                j.l.BrCode == brCode)
+                //    .GroupBy(j => j.vt.Led_Id)
+                //    .Select(g => new
+                //    {
+                //        led_id = g.Key,
+                //        OB = 0,
+                //        voc_rpt = g.Sum(x => x.vt.Voc_Rpt),
+                //        voc_pmt = g.Sum(x => x.vt.Voc_Pmt)
+                //    });
+
+                //// Create a temporary type that matches our anonymous type structure
+
+
+                //// Combine all union parts to create the CTE equivalent
+                //// Use explicit typing to avoid null reference issues
+                //var db1Query = openingBalances.AsEnumerable()
+                //    .Select(x => new TempDb1
+                //    {
+                //        Led_Id = x.led_id,
+                //        OB = x.OB,
+                //        Voc_Rpt = x.voc_rpt,
+                //        Voc_Pmt = x.voc_pmt
+                //    })
+                //    .Concat(union1.AsEnumerable().Select(x => new TempDb1
+                //    {
+                //        Led_Id = x.Led_Id,
+                //        OB = x.OB,
+                //        Voc_Rpt = x.voc_rpt,
+                //        Voc_Pmt = x.voc_pmt
+                //    }))
+                //    .Concat(union2.AsEnumerable().Select(x => new TempDb1
+                //    {
+                //        Led_Id = x.led_id,
+                //        OB = x.OB,
+                //        Voc_Rpt = x.voc_rpt,
+                //        Voc_Pmt = x.voc_pmt
+                //    }))
+                //    .Concat(union3.AsEnumerable().Select(x => new TempDb1
+                //    {
+                //        Led_Id = x.Led_Id,
+                //        OB = x.OB,
+                //        Voc_Rpt = x.voc_rpt,
+                //        Voc_Pmt = x.voc_pmt
+                //    }))
+                //    .Concat(union4.AsEnumerable().Select(x => new TempDb1
+                //    {
+                //        Led_Id = x.led_id,
+                //        OB = x.OB,
+                //        Voc_Rpt = x.voc_rpt,
+                //        Voc_Pmt = x.voc_pmt
+                //    }));
+
+                //// Create a DbSet from our combined query to use in the final query
+                //var db1 = db1Query.AsQueryable();
+
+                //// Now build the final query that joins with the CTE result
+                //var ledList = await (
+                //    from d in db1
+                //    join l in CSISContext.Set<Fin_Ledger>() on d.Led_Id equals l.Led_Id
+                //    join g in CSISContext.Set<Fin_Ledger_Grp>() on l.Grp_Id equals g.Grp_Id
+                //    join f in CSISContext.Set<Fin_Ledger_Fnl>() on g.Fnl_Id equals f.Fnl_Id
+                //    group new { d, l, g, f } by new
+                //    {
+                //        d.Led_Id,
+                //        l.Led_SlNo,
+                //        l.Led_Name,
+                //        g.Grp_SlNo,
+                //        g.Grp_Name,
+                //        g.Fnl_Id,
+                //        f.Fnl_Name
+                //    } into grouped
+                //    select new rptFALedgerTrn
+                //    {
+                //        Led_Id = grouped.Key.Led_Id,
+                //        Led_SlNo = grouped.Key.Led_SlNo,
+                //        Led_Name = grouped.Key.Led_Name,
+                //        Grp_SlNo = grouped.Key.Grp_SlNo,
+                //        Grp_Name = grouped.Key.Grp_Name,
+                //        Fnl_Id = grouped.Key.Fnl_Id,
+                //        Fnl_Name = grouped.Key.Fnl_Name,
+                //        OB_Amt = grouped.Sum(x => x.d.OB),
+                //        Tot_Rpt_Amt = grouped.Sum(x => x.d.Voc_Rpt),
+                //        Tot_Pmt_Amt = grouped.Sum(x => x.d.Voc_Pmt)
+                //    }).ToListAsync();
+                #endregion
+
+                #region linq third
+                // Opening balances query
                 var openingBalances = CSISContext.Set<Fin_Ledger_Trn>()
-                    .Where(lt => lt.Yr_Id == yrId && lt.LedgerTrn_Delete == false && lt.BrCode == brCode )
+                    .Where(lt => lt.Yr_Id == yrId && lt.LedgerTrn_Delete == false && lt.BrCode == brCode)
                     .Select(lt => new
                     {
-                        led_id = lt.Led_Id,
+                        Led_Id = lt.Led_Id,
                         OB = lt.OB_Amt,
-                        voc_rpt = 0,
-                        voc_pmt = 0
+                        Voc_Rpt = 0.0,
+                        Voc_Pmt = 0.0
                     });
 
                 // First union part - for ledger groups 1 and 4
@@ -1865,22 +2078,22 @@ namespace Infin8.Coapp.Repository
                           j => j.l.Grp_Id,
                           g => g.Grp_Id,
                           (j, g) => new { j.vt, j.v, j.l, g })
-                    .Where(j => j.v.Voc_Date >= fromDate  &&
-                                j.v.Voc_Date <= toDate  &&
+                    .Where(j => j.v.Voc_Date >= fromDate &&
+                                j.v.Voc_Date <= toDate &&
                                 (j.g.Fnl_Id == 1 || j.g.Fnl_Id == 4) &&
                                 j.vt.Led_Id != cashLedId &&
                                 j.v.Voc_Delete == false &&
                                 j.vt.FinVocTr_Delete == false &&
-                                j.v.BrCode == brCode && 
-                                j.vt.BrCode == brCode && 
-                                j.l.BrCode == brCode )
+                                j.v.BrCode == brCode &&
+                                j.vt.BrCode == brCode &&
+                                j.l.BrCode == brCode)
                     .GroupBy(j => j.vt.Led_Id)
                     .Select(g => new
                     {
                         Led_Id = g.Key,
                         OB = g.Sum(x => x.vt.Voc_Pmt) - g.Sum(x => x.vt.Voc_Rpt),
-                        voc_rpt = 0,
-                        voc_pmt = 0
+                        Voc_Rpt = 0.0,
+                        Voc_Pmt = 0.0
                     });
 
                 // Second union part - for ledger groups 2 and 3
@@ -1897,22 +2110,22 @@ namespace Infin8.Coapp.Repository
                           j => j.l.Grp_Id,
                           g => g.Grp_Id,
                           (j, g) => new { j.vt, j.v, j.l, g })
-                    .Where(j => j.v.Voc_Date >= fromDate  &&
-                                j.v.Voc_Date <= toDate  &&
+                    .Where(j => j.v.Voc_Date >= fromDate &&
+                                j.v.Voc_Date <= toDate &&
                                 (j.g.Fnl_Id == 2 || j.g.Fnl_Id == 3) &&
                                 j.vt.Led_Id != cashLedId &&
                                 j.v.Voc_Delete == false &&
                                 j.vt.FinVocTr_Delete == false &&
-                                j.vt.BrCode == brCode && 
-                                j.v.BrCode == brCode && 
+                                j.vt.BrCode == brCode &&
+                                j.v.BrCode == brCode &&
                                 j.l.BrCode == brCode)
                     .GroupBy(j => j.vt.Led_Id)
                     .Select(g => new
                     {
-                        led_id = g.Key,
+                        Led_Id = g.Key,
                         OB = g.Sum(x => x.vt.Voc_Rpt) - g.Sum(x => x.vt.Voc_Pmt),
-                        voc_rpt = 0,
-                        voc_pmt = 0
+                        Voc_Rpt = 0.0,
+                        Voc_Pmt = 0.0
                     });
 
                 // Third union part - for cash ledger
@@ -1930,20 +2143,20 @@ namespace Infin8.Coapp.Repository
                           g => g.Grp_Id,
                           (j, g) => new { j.vt, j.v, j.l, g })
                     .Where(j => j.v.Voc_Date >= fromDate &&
-                                j.v.Voc_Date <= toDate  &&
+                                j.v.Voc_Date <= toDate &&
                                 j.vt.Led_Id == cashLedId &&
                                 j.v.Voc_Delete == false &&
                                 j.vt.FinVocTr_Delete == false &&
-                                j.vt.BrCode == brCode && 
-                                j.v.BrCode == brCode && 
+                                j.vt.BrCode == brCode &&
+                                j.v.BrCode == brCode &&
                                 j.l.BrCode == brCode)
                     .GroupBy(j => j.vt.Led_Id)
                     .Select(g => new
                     {
                         Led_Id = g.Key,
                         OB = g.Sum(x => x.vt.Voc_Rpt) - g.Sum(x => x.vt.Voc_Pmt),
-                        voc_rpt = 0,
-                        voc_pmt = 0
+                        Voc_Rpt = 0.0,
+                        Voc_Pmt = 0.0
                     });
 
                 // Fourth union part - transactions within date range
@@ -1964,66 +2177,28 @@ namespace Infin8.Coapp.Repository
                                 j.v.Voc_Date <= toDate &&
                                 j.v.Voc_Delete == false &&
                                 j.vt.FinVocTr_Delete == false &&
-                                j.vt.BrCode == brCode && 
-                                j.v.BrCode == brCode && 
+                                j.vt.BrCode == brCode &&
+                                j.v.BrCode == brCode &&
                                 j.l.BrCode == brCode)
                     .GroupBy(j => j.vt.Led_Id)
                     .Select(g => new
                     {
-                        led_id = g.Key,
-                        OB = 0,
-                        voc_rpt = g.Sum(x => x.vt.Voc_Rpt),
-                        voc_pmt = g.Sum(x => x.vt.Voc_Pmt)
+                        Led_Id = g.Key,
+                        OB = 0.0,
+                        Voc_Rpt = g.Sum(x => x.vt.Voc_Rpt),
+                        Voc_Pmt = g.Sum(x => x.vt.Voc_Pmt)
                     });
 
-                // Create a temporary type that matches our anonymous type structure
+                // Combine all parts using Union (keeps everything as IQueryable)
+                var combinedQuery = openingBalances
+                    .Union(union1)
+                    .Union(union2)
+                    .Union(union3)
+                    .Union(union4);
 
-
-                // Combine all union parts to create the CTE equivalent
-                // Use explicit typing to avoid null reference issues
-                var db1Query = openingBalances.AsEnumerable()
-                    .Select(x => new TempDb1
-                    {
-                        Led_Id = x.led_id,
-                        OB = x.OB,
-                        Voc_Rpt = x.voc_rpt,
-                        Voc_Pmt = x.voc_pmt
-                    })
-                    .Concat(union1.AsEnumerable().Select(x => new TempDb1
-                    {
-                        Led_Id = x.Led_Id,
-                        OB = x.OB,
-                        Voc_Rpt = x.voc_rpt,
-                        Voc_Pmt = x.voc_pmt
-                    }))
-                    .Concat(union2.AsEnumerable().Select(x => new TempDb1
-                    {
-                        Led_Id = x.led_id,
-                        OB = x.OB,
-                        Voc_Rpt = x.voc_rpt,
-                        Voc_Pmt = x.voc_pmt
-                    }))
-                    .Concat(union3.AsEnumerable().Select(x => new TempDb1
-                    {
-                        Led_Id = x.Led_Id,
-                        OB = x.OB,
-                        Voc_Rpt = x.voc_rpt,
-                        Voc_Pmt = x.voc_pmt
-                    }))
-                    .Concat(union4.AsEnumerable().Select(x => new TempDb1
-                    {
-                        Led_Id = x.led_id,
-                        OB = x.OB,
-                        Voc_Rpt = x.voc_rpt,
-                        Voc_Pmt = x.voc_pmt
-                    }));
-
-                // Create a DbSet from our combined query to use in the final query
-                var db1 = db1Query.AsQueryable();
-
-                // Now build the final query that joins with the CTE result
+                // Now build the final query that joins with the combined result
                 var ledList = await (
-                    from d in db1
+                    from d in combinedQuery
                     join l in CSISContext.Set<Fin_Ledger>() on d.Led_Id equals l.Led_Id
                     join g in CSISContext.Set<Fin_Ledger_Grp>() on l.Grp_Id equals g.Grp_Id
                     join f in CSISContext.Set<Fin_Ledger_Fnl>() on g.Fnl_Id equals f.Fnl_Id
@@ -2051,7 +2226,6 @@ namespace Infin8.Coapp.Repository
                         Tot_Pmt_Amt = grouped.Sum(x => x.d.Voc_Pmt)
                     }).ToListAsync();
                 #endregion 
-
 
                 foreach (var led in ledList)
                 {

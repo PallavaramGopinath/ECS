@@ -11,7 +11,7 @@ namespace Infin8.Coapp.Dto
         public int ReportId { get; set; }
         public int TrnType { get; set; }
         public int LoanType { get; set; }
-        public string TDType { get; set; }
+        public string? TDType { get; set; }
         public DateTime AsOnDate { get; set; }
         public DateTime FromDate { get; set; }
         public DateTime  ToDate { get; set; }
@@ -20,6 +20,6 @@ namespace Infin8.Coapp.Dto
         public int OrderById { get; set; }
         public int FnlId { get; set; }
         public decimal YrId { get; set; }
-        public string BrCode { get; set; }
+        public string? BrCode { get; set; }
     }
 }
