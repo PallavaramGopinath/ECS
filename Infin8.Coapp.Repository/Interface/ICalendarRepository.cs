@@ -13,6 +13,9 @@ namespace Infin8.Coapp.Repository
         Task<bool> VerifyDayBegin(string brCode);
         Task<DateTime> GetCurrentDate(string brCode);
         Task<int> UpdateCalendarStatus(DateTime currentDate,string brCode,string newStatus);
-        Task<bool> DayEndProcess(DateTime date);
+        Task<bool> DayEndProcess(string brCode);
+        Task<bool> CanBeginDay(string brCode);
+        Task<bool> DayBeginProcess(string brCode);
+        Task<List<decimal>> GetFixedDepositIdForInterestCalculation(string tdSchemeType, DateTime toDate, string brCode);
     }
 }

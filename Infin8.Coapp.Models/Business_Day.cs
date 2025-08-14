@@ -13,4 +13,12 @@ namespace Infin8.Coapp.Models
         public decimal Yr_Id { get; set; }
         public string? BrCode { get; set; }
     }
+
+    public enum Status
+    {
+        NotProcessed = 'N',
+        Holiday = 'H',
+        DayBegin = 'B',
+        DayEnd = 'E'
+    };
 }

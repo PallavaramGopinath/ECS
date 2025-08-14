@@ -141,6 +141,7 @@ builder.Services.AddScoped<ISBCASchemesHandler, SBCASchemesHandler>();
 
 #region reports
 builder.Services.AddScoped<IReportsHandler, ReportsHandler>();
+builder.Services.AddScoped<IReportsAudit, ReportsAudit>();
 #endregion 
 
 

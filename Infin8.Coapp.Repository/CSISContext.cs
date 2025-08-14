@@ -159,6 +159,8 @@ namespace Infin8.Coapp.Repository
         #region Staging
         public virtual DbSet<Staging_Master> Staging_Master { get; set; }
         public virtual DbSet<Staging_Details> Staging_Details { get; set; }
+        public virtual DbSet<Staging_History> Staging_History { get; set; }
+        public virtual DbSet<Staging_Balance> Staging_Balance { get; set; }
         #endregion 
     }
 

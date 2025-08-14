@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
+using Microsoft.Reporting.NETCore;
 namespace Infin8.Coapp.ReportServices.Concrete
 {
     public class Instant_Reports : IInstant_Reports
@@ -21,6 +22,7 @@ namespace Infin8.Coapp.ReportServices.Concrete
         public async Task Print_Member_Receipt(rptReceiptObject rptObject)
         {
             byte[] fileBytes;
+            //LocalReport localReport = new LocalReport();
             var response = await  _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rptObject);
             if (response.IsSuccessStatusCode)
             {
