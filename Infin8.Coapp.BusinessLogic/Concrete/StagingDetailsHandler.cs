@@ -1,6 +1,8 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
+using Infin8.Coapp.Utility;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,6 +48,34 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return await _unitOfWork.StagingDetails.AddStagingDetails(stagingDetails, stagingId);   
         }
+
+        public async Task<bool> AddStagingForAccountTransaction(List<Staging_Details> stagingDetails)
+        {
+           
+            //string accountType = "";
+            decimal stagingId = 0;
+            string status = stagingDetails[0].Staging_Status!.Trim();
+            
+            Staging_Master master = new()
+                {
+                    Staging_Id = 0,
+                    Session_Id = "",
+                    Member_Id = 0,
+                    Created_By = stagingDetails[0].Created_By,
+                    Created_Date = stagingDetails[0].Created_Date,
+                    Checked_By = 0,
+                    Checked_Date = null,
+                    Staging_Status = status,
+                    BrCode = stagingDetails[0].BrCode,
+                    Type = stagingDetails[0].Module_Name,
+                    Voc_Id = 0
+                };
+            stagingId = await _unitOfWork.StagingMaster.AddStagingMaster(master);
+            
+            return await _unitOfWork.StagingDetails.AddStagingDetailsForAccountTransaciton(stagingDetails, stagingId);
+        }
+           
+        
         public async Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId, int relateAccountId)
         {
             bool result = false;
@@ -96,6 +126,15 @@ namespace Infin8.Coapp.BusinessLogic
         public async Task<Staging_Details> GetStagingDetailsById(decimal stagingId, int relatedAccountId)
         {
             return await _unitOfWork.StagingDetails.GetStagingDetailsById(stagingId,relatedAccountId);
+        }
+
+        public async Task<List<DtoAccountTransactionRelatedData>> GetStagingDetailsListById(decimal stagingId)
+        {
+            List<DtoAccountTransactionRelatedData> accRelatedDataList = new();
+            DtoAccountTransactionRelatedData accRelatedData = new();
+            var result =  await _unitOfWork.StagingDetails.GetStagingDetailsListById(stagingId);
+            if (result != null && result.Any()) accRelatedDataList = result.ToList();
+            return accRelatedDataList;
         }
         public Task<List<Staging_Details>> GetAllStagingDetails(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate)
         {

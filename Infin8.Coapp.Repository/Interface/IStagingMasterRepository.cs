@@ -10,6 +10,7 @@ namespace Infin8.Coapp.Repository
     public interface IStagingMasterRepository
     {
         Task<decimal> AddStagingMaster(Staging_Master stagingMaster);
+        Task<Staging_Master> GetStagingMasterById(decimal stagingId);
         bool IsStagingMasterCreated(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate);
         Task<bool> DeleteStagingMaster(decimal stagingId);
         Task<Decimal> GetStagingMasterId(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate);

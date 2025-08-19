@@ -147,5 +147,22 @@ namespace Infin8.Coapp.Repository
             return result;
 
         }
+
+        public async Task<Staging_Master> GetStagingMasterById(decimal stagingId)
+        {
+            Staging_Master master = new();
+            try
+            {
+                var query = await  CSISContext.Staging_Master
+                    .Where(x => x.Staging_Id == stagingId)
+                    .FirstOrDefaultAsync(); 
+                if(query != null) master = query;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine (ex.Message );
+            }
+            return master;
+        }
     }
 }

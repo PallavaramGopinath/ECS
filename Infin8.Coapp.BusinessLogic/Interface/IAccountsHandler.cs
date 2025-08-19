@@ -13,7 +13,11 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> AddAccountsTransaction(Account_Transactions accountTransaction);
         Task<bool> EditAccountsTransaction(Account_Transactions accountTransaction);
         Task<string> GetTransactedAccountNameFromAccount_Transactions(int accId);
+        #region general
         Task<decimal> GetCashLedgerId(string brCode);
+        Task<bool> IsBankLedger(decimal ledgerId, string brCode);
+        #endregion 
+
         Task<(double OBAmount, double CBAmount)> GetLedgerOBAndCBAmount(decimal ledId, decimal yrId, DateTime toDate, string brCode);
         Task<double> GetPreviousReceipt(decimal ledId, decimal yrId, DateTime dateUpto);
         Task<double> GetPreviousPayment(decimal ledId, decimal yrId, DateTime dateUpto);

@@ -16,6 +16,24 @@ namespace API.Controllers
             _accountsHandler = accountsHandler;
         }
         [HttpGet]
+        [Route("IsBankLedger/{ledgerId:decimal}/{brCode}")]
+        public async Task<ActionResult<bool>> IsBankLedger(decimal ledgerId,string brCode)
+        {
+            bool result = false;
+            try
+            {
+                result = await _accountsHandler.IsBankLedger(ledgerId, brCode);
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                Console.Write(ex.Message);
+                return NotFound();
+            }
+            return Ok(result);
+        }
+
+        [HttpGet]
         [Route("GetLedgerBalance")]
         public async Task<ActionResult<double>> GetLedgerBalance([FromQuery] decimal ledId, [FromQuery] decimal yrId, [FromQuery] DateTime uptoDate, [FromQuery] string brCode)
         {
@@ -31,6 +49,7 @@ namespace API.Controllers
             
             return Ok(ledBalance);
         }
+
         [HttpGet]
         [Route("GetLedgerBalanceWithFnlId")]
         public async Task<ActionResult<DtoLedgerBalance>> GetLedgerBalanceWithFnlId([FromQuery] decimal ledId, [FromQuery] decimal yrId, [FromQuery] DateTime uptoDate, [FromQuery] string brCode)

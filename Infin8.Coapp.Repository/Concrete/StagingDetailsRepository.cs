@@ -62,6 +62,48 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<bool> AddStagingDetailsForAccountTransaciton(List<Staging_Details> stagingDetails, decimal stagingId)
+        {
+            bool result = false;
+            string brCode = stagingDetails.FirstOrDefault()?.BrCode ?? string.Empty;
+            await using var transaction = await CSISContext.Database.BeginTransactionAsync();
+            try
+            {
+                decimal maxId = await CSISContext.Staging_Details
+                .Where(x => x.BrCode == brCode)
+                .MaxAsync(x => (decimal?)x.Id) ?? 0;
+                if (maxId == 0)
+                {
+                    maxId = Convert.ToDecimal(brCode) * 10000000 + 1;
+                }
+                else
+                {
+                    maxId++;
+                }
+                foreach (var stagingDetail in stagingDetails)
+                {
+                    // Assign the same maxId to all staging details
+                    stagingDetail.Id = maxId;
+                    stagingDetail.Staging_Id = stagingId;
+                    maxId++; // Increment maxId for the next detail
+                }
+                
+
+                await CSISContext.Staging_Details.AddRangeAsync(stagingDetails);
+                await CSISContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                result = false;
+                Console.WriteLine($"Error: {ex.ToString()}");
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while adding new Staging Details for account transaction");
+            }
+            return result;
+        }
+
         public async Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId,int relateAccountId)
         {
             bool result = false;
@@ -202,21 +244,57 @@ namespace Infin8.Coapp.Repository
             List<AccountTransactionVM> accList = new List<AccountTransactionVM>();
             try
             {
+                #region olqd linq
+                //var result = await (from master in CSISContext.Staging_Master
+                //                    join details in CSISContext.Staging_Details
+                //                        on master.Staging_Id equals details.Staging_Id
+                //                    join account in CSISContext.Account_Transactions
+                //                        on details.Related_Account_Id equals account.Acc_Id
+                //                    join mem in CSISContext.mem_master
+                //                        on master.Member_Id equals mem.mem_id
+                //                    where master.Staging_Id ==stagingId 
+                //                    select new AccountTransactionVM
+                //                    {
+                //                        Staging_Id = master.Staging_Id,
+                //                        Member_Id = master.Member_Id,
+                //                        Member_No = mem.memberno,
+                //                        PerNo = mem.perno,
+                //                        Member_Name = mem.membername,
+                //                        Created_Date = master.Created_Date,
+                //                        Created_By = master.Created_By,
+                //                        LedId = details.Ledger_Id,
+                //                        AccountId = details.Related_Account_Id,
+                //                        ReceiptAmount = details.Receipt_Amount,
+                //                        PaymentAmount = details.Payment_Amount,
+                //                        CashAdjId = details.Cash_Or_Adjustment,
+                //                        AccountName = account.Acc_Name,
+                //                        ChequeNo = details.Cheque_No,
+                //                        ChequeDate = details.Cheque_Date,
+                //                        IssueBankName = details.Issue_Bank_Name,
+                //                        Status = account.Acc_Status,
+                //                        CashReceipt = details.Cash_Or_Adjustment == 1 ? details.Receipt_Amount : 0,
+                //                        CashPayment = details.Cash_Or_Adjustment == 1 ? details.Payment_Amount : 0
+                //                    }).ToListAsync();
+                //if (result != null && result.Count > 0) accList = result.ToList();
+                #endregion
+
+                #region new linq with left join member master for account transaction
                 var result = await (from master in CSISContext.Staging_Master
                                     join details in CSISContext.Staging_Details
                                         on master.Staging_Id equals details.Staging_Id
                                     join account in CSISContext.Account_Transactions
                                         on details.Related_Account_Id equals account.Acc_Id
                                     join mem in CSISContext.mem_master
-                                        on master.Member_Id equals mem.mem_id
-                                    where master.Staging_Id ==stagingId 
+                                        on master.Member_Id equals mem.mem_id into memGroup
+                                    from mem in memGroup.DefaultIfEmpty() // This creates the left join
+                                    where master.Staging_Id == stagingId
                                     select new AccountTransactionVM
                                     {
                                         Staging_Id = master.Staging_Id,
                                         Member_Id = master.Member_Id,
-                                        Member_No = mem.memberno,
-                                        PerNo = mem.perno,
-                                        Member_Name = mem.membername,
+                                        Member_No = mem != null ? mem.memberno : null,
+                                        PerNo = mem != null ? mem.perno : null,
+                                        Member_Name = mem != null ? mem.membername : null,
                                         Created_Date = master.Created_Date,
                                         Created_By = master.Created_By,
                                         LedId = details.Ledger_Id,
@@ -232,7 +310,10 @@ namespace Infin8.Coapp.Repository
                                         CashReceipt = details.Cash_Or_Adjustment == 1 ? details.Receipt_Amount : 0,
                                         CashPayment = details.Cash_Or_Adjustment == 1 ? details.Payment_Amount : 0
                                     }).ToListAsync();
-                if (result != null && result.Count > 0) accList = result.ToList();
+
+                if (result != null && result.Any())
+                    accList = result.ToList();
+                #endregion 
             }
             catch (Exception)
             {
@@ -246,40 +327,83 @@ namespace Infin8.Coapp.Repository
             List<DtoCheckerDashboard> checkersDashboardList = new List<DtoCheckerDashboard>();
             try
             {
-                var result = await  (from sm in CSISContext.Staging_Master
-                              join sd in CSISContext.Staging_Details on sm.Staging_Id equals sd.Staging_Id
-                              join mm in CSISContext.mem_master on sm.Member_Id equals mm.mem_id
-                              join u in CSISContext.Users on sm.Created_By equals u.id
-                              where sm.Created_Date == createdDate
-                                  && sm.Staging_Status == stagingStatus 
-                                  && sm.BrCode == brCode
-                              group new { sm, sd, mm, u } by new
-                              {
-                                  sm.Staging_Id,
-                                  sm.Member_Id,
-                                  mm.memberno,
-                                  mm.perno,
-                                  mm.membername,
-                                  sm.Type,
-                                  sm.Created_By,
-                                  sm.Created_Date,
-                                  u.username
-                              } into g
-                              select new DtoCheckerDashboard
-                              {
-                                 Staging_Id =  g.Key.Staging_Id,
-                                 Member_Id =  g.Key.Member_Id,
-                                 Member_No =  g.Key.memberno,
-                                 PerNo =  g.Key.perno,
-                                 Member_Name =  g.Key.membername,
-                                 Type =  g.Key.Type,
-                                 Created_By =  g.Key.Created_By,
-                                 Created_Date = g.Key.Created_Date,
-                                 Created_By_Name =  g.Key.username,
-                                 Receipt_Amount =   g.Sum(x => x.sd.Receipt_Amount),
-                                 Payment_Amount =   g.Sum(x => x.sd.Payment_Amount)
-                              }).ToListAsync();
-                if (result != null && result.Count > 0) checkersDashboardList = result.ToList();
+                #region old linq
+                //var result = await  (from sm in CSISContext.Staging_Master
+                //              join sd in CSISContext.Staging_Details on sm.Staging_Id equals sd.Staging_Id
+                //              join mm in CSISContext.mem_master on sm.Member_Id equals mm.mem_id
+                //              join u in CSISContext.Users on sm.Created_By equals u.id
+                //              where sm.Created_Date == createdDate
+                //                  && sm.Staging_Status == stagingStatus 
+                //                  && sm.BrCode == brCode
+                //              group new { sm, sd, mm, u } by new
+                //              {
+                //                  sm.Staging_Id,
+                //                  sm.Member_Id,
+                //                  mm.memberno,
+                //                  mm.perno,
+                //                  mm.membername,
+                //                  sm.Type,
+                //                  sm.Created_By,
+                //                  sm.Created_Date,
+                //                  u.username
+                //              } into g
+                //              select new DtoCheckerDashboard
+                //              {
+                //                 Staging_Id =  g.Key.Staging_Id,
+                //                 Member_Id =  g.Key.Member_Id,
+                //                 Member_No =  g.Key.memberno,
+                //                 PerNo =  g.Key.perno,
+                //                 Member_Name =  g.Key.membername,
+                //                 Type =  g.Key.Type,
+                //                 Created_By =  g.Key.Created_By,
+                //                 Created_Date = g.Key.Created_Date,
+                //                 Created_By_Name =  g.Key.username,
+                //                 Receipt_Amount =   g.Sum(x => x.sd.Receipt_Amount),
+                //                 Payment_Amount =   g.Sum(x => x.sd.Payment_Amount)
+                //              }).ToListAsync();
+                //if (result != null && result.Count > 0) checkersDashboardList = result.ToList();
+                #endregion
+
+                #region new linq with left join member master for account transaction
+                // Using left join to include member details even if they are not present in mem_master
+                var result = await (from sm in CSISContext.Staging_Master
+                                    join sd in CSISContext.Staging_Details on sm.Staging_Id equals sd.Staging_Id
+                                    join mm in CSISContext.mem_master on sm.Member_Id equals mm.mem_id into mmGroup
+                                    from mm in mmGroup.DefaultIfEmpty() // This creates the left join
+                                    join u in CSISContext.Users on sm.Created_By equals u.id
+                                    where sm.Created_Date == createdDate
+                                        && sm.Staging_Status == stagingStatus
+                                        && sm.BrCode == brCode
+                                    group new { sm, sd, mm, u } by new
+                                    {
+                                        sm.Staging_Id,
+                                        sm.Member_Id,
+                                        memberno = mm != null ? mm.memberno : null,
+                                        perno = mm != null ? mm.perno : null,
+                                        membername = mm != null ? mm.membername : null,
+                                        sm.Type,
+                                        sm.Created_By,
+                                        sm.Created_Date,
+                                        u.username
+                                    } into g
+                                    select new DtoCheckerDashboard
+                                    {
+                                        Staging_Id = g.Key.Staging_Id,
+                                        Member_Id = g.Key.Member_Id,
+                                        Member_No = g.Key.memberno,
+                                        PerNo = g.Key.perno,
+                                        Member_Name = g.Key.membername,
+                                        Type = g.Key.Type,
+                                        Created_By = g.Key.Created_By,
+                                        Created_Date = g.Key.Created_Date,
+                                        Created_By_Name = g.Key.username,
+                                        Receipt_Amount = g.Sum(x => x.sd.Receipt_Amount),
+                                        Payment_Amount = g.Sum(x => x.sd.Payment_Amount)
+                                    }).ToListAsync();
+
+                if (result != null && result.Any())
+                    checkersDashboardList = result.ToList();
+                #endregion 
             }
             catch (Exception)
             {
@@ -302,7 +426,78 @@ namespace Infin8.Coapp.Repository
             }
             return details; 
         }
+        public async Task<List<DtoAccountTransactionRelatedData>> GetStagingDetailsListById(decimal stagingId)
+        {
+            //List<Staging_Details> details = new();
+            List<DtoAccountTransactionRelatedData> accRelatedDataList = new();
+            DtoAccountTransactionRelatedData accRelatedData = new();
+            decimal cashLedId = 0;
+            try
+            {
+                
+                //var query = await CSISContext.Staging_Details.Where(x => x.Staging_Id == stagingId).ToListAsync();
+                //if(query != null && query.Any())    details = query.ToList();
 
+                var query2 = await (from sd in CSISContext.Staging_Details
+                                    join fl in CSISContext.Fin_Ledger
+                                        on sd.Ledger_Id equals fl.Led_Id
+                                    join flg in CSISContext.Fin_Ledger_Grp
+                                        on fl.Grp_Id equals flg.Grp_Id
+                                    where sd.Staging_Id == stagingId
+                                    select new
+                                    {
+                                        Fnl_Id = flg.Fnl_Id,
+                                        Ledger_Id = sd.Ledger_Id,
+                                        Receipt_Amount = sd.Receipt_Amount,
+                                        Payment_Amount = sd.Payment_Amount,
+                                        Cash_Or_Adjustment = sd.Cash_Or_Adjustment,
+                                        Related_Account_Data = sd.Related_Account_Data,
+                                        BrCode = sd.BrCode
+                                    }).ToListAsync();
+                if (query2 != null && query2.Any())
+                {
+                    cashLedId = await CSISContext.Map_General.Where(x => x.BrCode == query2[0].BrCode).Select(x => x.Cash_Led_Id).FirstOrDefaultAsync();
+                    foreach (var item in query2)
+                    {
+                        accRelatedData = Utility.JsonbObject.ConvertFromJsonForAccountTransactionRelatedData(item.Related_Account_Data);
+                        switch (item.Fnl_Id)
+                        {
+                            case 1:
+                            case 4:
+                                if (item.Ledger_Id == cashLedId)
+                                {
+                                    accRelatedData.CB = accRelatedData.OB + item.Receipt_Amount + item.Payment_Amount;
+                                }
+                                else
+                                {
+                                    accRelatedData.CB = accRelatedData.OB + item.Payment_Amount - item.Receipt_Amount;
+                                }
+                                break;
+                            case 2:
+                            case 3:
+                                accRelatedData.CB = accRelatedData.OB + item.Receipt_Amount - item.Payment_Amount;
+                                break;
+                        }
+                        DtoAccountTransactionRelatedData dto = new()
+                        {
+                            Fnl_Id = item.Fnl_Id,
+                            Ledger_Name = accRelatedData.Ledger_Name ,
+                            OB = accRelatedData.OB, // Assuming OB is not available in the query
+                            Receipt_Amount = item.Receipt_Amount,
+                            Payment_Amount = item.Payment_Amount,
+                            CB = accRelatedData.CB  // Assuming CB is not available in the query
+                        };
+                        accRelatedDataList.Add(dto);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                accRelatedDataList = new();
+                Console.Write(ex.ToString());
+            }
+            return accRelatedDataList;
+        }
         public async Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId)
         {
             int resultCount = 0;

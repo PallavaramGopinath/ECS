@@ -12,14 +12,16 @@ namespace Infin8.Coapp.UI.Controllers
     [ApiController]
     public class StagingController : ControllerBase
     {
-        //readonly IStagingMasterHandler _stagingMasterHandler;
+        readonly IStagingMasterHandler _stagingMasterHandler;
         readonly IStagingDetailsHandler _stagingDetailsHandler;
         readonly ITransactionsHandler _transactionsHandler;
-        public StagingController(IStagingMasterHandler stagingMasterHandler, IStagingDetailsHandler stagingDetailsHandler, ITransactionsHandler transactionsHandler)
+        public StagingController(IStagingMasterHandler stagingMasterHandler, IStagingDetailsHandler stagingDetailsHandler,
+            ITransactionsHandler transactionsHandler)
         {
             //_stagingMasterHandler = stagingMasterHandler;
             _stagingDetailsHandler = stagingDetailsHandler;
             _transactionsHandler = transactionsHandler;
+            _stagingMasterHandler = stagingMasterHandler;
         }
 
         [HttpPost]
@@ -27,6 +29,14 @@ namespace Infin8.Coapp.UI.Controllers
         public async Task<ActionResult> AddStagingDetail([FromBody] Staging_Details stagingDetails)
         {
             var result = await _stagingDetailsHandler.AddStagingDetails(stagingDetails);
+            if (result) return Ok();
+            else return BadRequest();
+        }
+        [HttpPost]
+        [Route("AddStagingForAccounting")]
+        public async Task<ActionResult> AddStagingDetailForAccounting([FromBody] List<Staging_Details> stagingDetails)
+        {
+            var result = await _stagingDetailsHandler.AddStagingForAccountTransaction(stagingDetails);
             if (result) return Ok();
             else return BadRequest();
         }
@@ -102,6 +112,20 @@ namespace Infin8.Coapp.UI.Controllers
             else return NotFound();
         }
 
+        [HttpGet]
+        [Route("GetStagingDetailsListById/{stagingId:decimal}")]
+        public async Task<ActionResult<List<DtoAccountTransactionRelatedData>>> GetStagingDetailsListById(decimal stagingId)
+        {
+            List<DtoAccountTransactionRelatedData> details = new();
+            var result = await _stagingDetailsHandler.GetStagingDetailsListById(stagingId);
+            if (result != null)
+            {
+                details = result.ToList();
+                return Ok(details);
+            }
+            else return NotFound();
+        }
+
         [HttpDelete]
         [Route("DeleteStaging/{stagingId:decimal}/{relatedAccountId:int}")]
         public async Task<ActionResult<bool>> DeleteStaging(decimal stagingId, int relatedAccountId)
@@ -125,8 +149,8 @@ namespace Infin8.Coapp.UI.Controllers
             return Ok(result);
         }
 
-        [HttpPost]
-        [Route("UpdateStagingStatus")]
+        //[HttpPost]
+        //[Route("UpdateStagingStatus")]
 
         [HttpPost]
         [Route("MakeStaging")]
@@ -135,12 +159,29 @@ namespace Infin8.Coapp.UI.Controllers
             var result = await _stagingDetailsHandler.MakeStagingDetails(stagingId);
             return Ok(result);
         }
+
         [HttpPost]
         [Route("ApproveStaging")]
         public async Task<ActionResult<bool>> ApproveStaging([FromBody] decimal stagingId)
         {
-            //bool isApproved = true; // Replace with actual approval logic
-            var result = await _transactionsHandler.SaveTransaction(stagingId, "MTRN", 110010000002, 110010000023); // Assuming "member" is the vocMode and 0 is yrId for now
+            bool result = false;
+            Staging_Master master = new();
+            /// Step 1: Check Transaction Type (Member Transaction, Accounting Transaction or Staff Transaction)
+            var stagingMaster = await _stagingMasterHandler.GetStagingMasterById(stagingId);
+            switch (stagingMaster.Type!.Trim())
+            {
+                case "Member Transaction":
+                    var response = await _transactionsHandler.SaveTransaction(stagingId, "MTRN", 110010000002, 110010000023);
+                    if (response) result = true; else result = false;
+                        break;
+                case "Account Transaction":
+                    var accResponse = await _transactionsHandler.SaveAccountTransaction(stagingId, "ACTR", 110010000002, 110010000023);
+                    if (accResponse) result = true; else result = false;
+                    break;
+                case "Staff Transaction":
+                    break;
+            }
+
             if (result)
             {
                 return Ok(true);
@@ -151,5 +192,30 @@ namespace Infin8.Coapp.UI.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("RejectStaging")]
+        public async Task<ActionResult<bool>> RejectStaging([FromBody] decimal stagingId)
+        {
+            var result = await _transactionsHandler.RejectTransaction(stagingId, 110010000002);
+            if (result) return Ok(result);
+            else return BadRequest("Failed to reject staging");
+        }
+
+
+        [HttpGet]
+        [Route("GetStagingMasterById/{stagingId:decimal}")]
+        public async Task<ActionResult<Staging_Master>> GetStagingMasterById(decimal stagingId)
+        {
+            var result = await _stagingMasterHandler.GetStagingMasterById(stagingId);
+            if (result != null)
+            {
+                return Ok(result);
+            }
+            else
+            {
+                return NotFound();
+            }
+
+        }
     }
 }

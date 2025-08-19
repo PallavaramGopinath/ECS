@@ -47,6 +47,11 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
+        public async Task<Staging_Master> GetStagingMasterById(decimal stagingId)
+        {
+            return await _unitOfWork.StagingMaster.GetStagingMasterById(stagingId);
+        }
+
         public async Task<decimal> GetStagingMasterId(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate)
         {
             return await _unitOfWork.StagingMaster.GetStagingMasterId(createdBy, memId, stagingStatus, createdDate);

@@ -5,6 +5,7 @@ using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -55,7 +56,6 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
-
         public async Task<bool> EditAccountsTransaction(Account_Transactions accountTransaction)
         {
             bool result = false;
@@ -82,6 +82,25 @@ namespace Infin8.Coapp.Repository
         {
             return await CSISContext.Map_General.Where(x => x.BrCode == brCode).Select(x => x.Cash_Led_Id).FirstOrDefaultAsync();
         }
+
+        public async Task<bool> IsBankLedger(decimal ledgerId, string brCode)
+        {
+            bool result = false;
+            try
+            {
+                var count = await CSISContext.Map_Banks
+                            .Where(x => x.Led_Id == ledgerId && x.BrCode == brCode)
+                            .CountAsync();
+                if(count >0) result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                Console.Write(ex.Message);
+            }
+            return result;
+        }
+
         #endregion 
         public async Task<(double OBAmount, double CBAmount)> GetLedgerOBAndCBAmount(decimal ledId, decimal yrId, DateTime toDate, string brCode)
         {

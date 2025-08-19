@@ -488,6 +488,9 @@ namespace Infin8.Coapp.BusinessLogic
                         case 20:    /// PF Subscription
                             break;
                         case 21:    /// Ledger Entry
+                            vocTrn = new();
+                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount ,trns.Payment_Amount , trns.Cash_Or_Adjustment , Transacted_MemNo.Trim() + Transacted_MemName.Trim(), false, Checked_By, yrId, Status, "", Transacted_Member_Id, brCode, 0, 0, 0);
+                            finVoucherTrns.Add(vocTrn);
                             break;
                         case 22:    /// Staff Suspense Creditor
                             break;
@@ -748,9 +751,15 @@ namespace Infin8.Coapp.BusinessLogic
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(jlVocListForDisb);
                             #endregion 
                             break;
+                        case 1000:  /// Account Trasanctions
+                            vocTrn = new();
+                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Transacted_MemNo.Trim() + Transacted_MemName.Trim(), false, Checked_By, yrId, "G", "",trns.Account_Holder_Member_Id, brCode, 0, 0, 0);
+                            finVoucherTrns.Add(vocTrn);
+                            break;
                     }
                 }
-
+                /// Insert all the voucher transactions
+                result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
                 /// update staging_master with checked by and checked date
                 result = await _unitOfWork.StagingMaster.CheckerStateStaging(stagingId,vocId, Checked_By, "V");
                 result = await _unitOfWork.StagingDetails.CheckerStateStaging(stagingId,vocId, Checked_By, "V");
@@ -761,6 +770,138 @@ namespace Infin8.Coapp.BusinessLogic
             catch (Exception ex)
             {
                 string er = ex.Message;
+                result = false;
+                _unitOfWork.RollBack();
+            }
+            return result;
+        }
+
+        public async Task<bool> SaveAccountTransaction(decimal stagingId, string vocMode, decimal Checked_By, decimal yrId)
+        {
+            bool result = false;
+            int cashOrAdj = 0;
+            string brCode = "";
+            string Status = "G";
+            
+            decimal vocId = 0;
+            DateTime Transacted_Date;
+            bool IsChequeOnly = false;
+            double vocAmt = 0, receiptAmount = 0, paymentAmount = 0, cashReceipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
+            List<DtoTransaction> transactions = new();
+            DtoTransactionRptPmtNos rptPmtNo = new();
+            List<Fin_Voucher_Trn> finVoucherTrns = new();
+            Fin_Voucher_Trn vocTrn = new();
+            DtoAccountTransactionRelatedData relatedData = new();
+            try
+            {
+                _unitOfWork.BeginTransaction();
+                transactions = await _unitOfWork.TransactionsRepository.GetStagingDataByStagingId(stagingId);
+                if (transactions == null || transactions.Count == 0)
+                {
+                    return false;
+                }
+                cashOrAdj = transactions.Select(x => x.Cash_Or_Adjustment).First();
+                brCode = transactions.Select(x => x.BrCode!).First();
+
+                Transacted_Date = transactions.Select(x => x.Transacted_Date).First();
+                receiptAmount = transactions.Sum(x=> x.Receipt_Amount); 
+                paymentAmount = transactions.Sum(x => x.Payment_Amount);
+
+                if (cashOrAdj == 1)
+                {
+                    cashReceipt = receiptAmount;
+                    cashPayment = paymentAmount;
+                }
+                else
+                {
+                    adjReceipt = receiptAmount;
+                    adjPayment = paymentAmount;
+                }
+                if (receiptAmount > 0) vocAmt = receiptAmount;
+                if (paymentAmount > 0) vocAmt = paymentAmount;
+                IsChequeOnly = await _unitOfWork.TransactionsRepository.IsChequeOnly(stagingId);
+                rptPmtNo = _unitOfWork.TransactionsRepository.GetReceiptAndPaymentNo(cashReceipt, cashPayment, adjReceipt, adjPayment, IsChequeOnly, yrId);
+                if (rptPmtNo == null)
+                {
+                    //throw new Exception("Failed to generate receipt and payment numbers.");
+                    return false;
+                }
+
+
+                Fin_Voucher voc = Utility.GetModalObject.GetFinVoucherObject(vocId, "", 0, Transacted_Date, 5, vocMode, vocAmt, true,
+                                rptPmtNo.Voc_Rpt_SlNo, rptPmtNo.Voc_Rpt_No, rptPmtNo.Voc_Rpt_Mode, rptPmtNo.Voc_Pmt_SlNo, rptPmtNo.Voc_Pmt_No, rptPmtNo.Voc_Pmt_Mode,
+                                 Checked_By, yrId, brCode, 0);
+                (result, vocId) = await _unitOfWork.FinVoucher.AddFinVoucherAsync(voc);
+                Map_General mapGeneral = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
+
+                /// cash transactions
+                if (cashPayment > 0 || cashReceipt > 0)
+                {
+                    vocTrn = new();
+                    relatedData = Utility.JsonbObject.ConvertFromJsonForAccountTransactionRelatedData(transactions.First().Related_Account_Data!);
+                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.Cash_Led_Id, cashReceipt, cashPayment, 1, relatedData.Narration!, false, Checked_By, yrId, "C", "", 0, brCode, 0, 0, 0);
+                    finVoucherTrns.Add(vocTrn);
+                }
+
+                foreach (var trns in transactions)
+                {
+                    relatedData = Utility.JsonbObject.ConvertFromJsonForAccountTransactionRelatedData(trns.Related_Account_Data!);
+                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment,relatedData.Narration!, false, Checked_By, yrId, Status, "", 0, brCode, 0, 0, 0);
+                    finVoucherTrns.Add(vocTrn);
+                   /// vefify ledger_id is bank account
+                   if( await _unitOfWork.Accounts.IsBankLedger(trns.Ledger_Id,brCode))
+                    {
+                        /// if bank account, then insert the bank transaction
+                        Fin_Voucher_Bank bankTrn = new();
+                        double amount = 0;
+                        if (trns.Receipt_Amount > 0)
+                        {
+                            amount = trns.Receipt_Amount;
+
+                        }
+                        if (trns.Payment_Amount > 0)
+                        {
+                            amount = trns.Payment_Amount;
+                        }
+                        bankTrn = Utility.GetModalObject.GetFinVocBankObject(Transacted_Date,0,trns.Receipt_Amount > 0 ? "C" : "O", trns.Issue_Bank_Name!, vocId, trns.Ledger_Id, trns.Receipt_Amount > 0 ? trns.Receipt_Amount : trns.Payment_Amount  , trns.Cheque_No!, trns.Cheque_Date, null,0,false,null,"",null,0,Checked_By,yrId,false,brCode );
+                        result = await _unitOfWork.FinVoucherBank.AddFinVoucherBankAsync(bankTrn);
+                    }
+                }
+                /// Insert all the voucher transactions
+                result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
+                /// update staging_master with checked by and checked date
+                result = await _unitOfWork.StagingMaster.CheckerStateStaging(stagingId, vocId, Checked_By, "V");
+                result = await _unitOfWork.StagingDetails.CheckerStateStaging(stagingId, vocId, Checked_By, "V");
+                result = true;
+                _unitOfWork.Complete();
+                _unitOfWork.CommitTransaction();
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                Console.Write(ex.Message + " " + ex.StackTrace);
+                _unitOfWork.RollBack();
+            }
+            return result;
+        }
+
+        public async Task<bool> RejectTransaction(decimal stagingId, decimal Checked_By)
+        {
+            bool result = false;
+            try
+            {
+                _unitOfWork.BeginTransaction();
+                /// update staging_master with checked by and checked date
+                result = await _unitOfWork.StagingMaster.CheckerStateStaging(stagingId, 0, Checked_By, "R");
+                result = await _unitOfWork.StagingDetails.CheckerStateStaging(stagingId, 0, Checked_By, "R");
+                _unitOfWork.Complete();
+                _unitOfWork.CommitTransaction();
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                Console.Write(ex.Message + " " + ex.StackTrace);
                 result = false;
                 _unitOfWork.RollBack();
             }

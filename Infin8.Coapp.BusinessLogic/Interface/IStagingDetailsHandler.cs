@@ -11,6 +11,7 @@ namespace Infin8.Coapp.BusinessLogic
     public interface IStagingDetailsHandler
     {
         Task<bool> AddStagingDetails(Staging_Details stagingDetails);
+        Task<bool> AddStagingForAccountTransaction(List<Staging_Details> stagingDetails);
         Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId, int relateAccountId);
         Task<int> VerifyStagingIdExistinsInStagingDetails(decimal stagingId);
         Task<List<Staging_Details>> GetAllStagingDetails(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate);
@@ -20,6 +21,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<AccountTransactionVM>> GetChekerDashboardById(decimal stagingId);
         Task<List<DtoCheckerDashboard>> GetCheckerDashboard(DateTime createdDate,  string stagingStatus, string brCode);
         Task<Staging_Details> GetStagingDetailsById(decimal stagingId, int relatedAccountId);
+        Task<List<DtoAccountTransactionRelatedData>> GetStagingDetailsListById(decimal stagingId);
         Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId);
         Task<bool> MakeStagingDetails(decimal stagingId);
         Task<bool> CheckerStateStaging(decimal stagingId, decimal vocId, decimal checkerBy, string stagingStatus);

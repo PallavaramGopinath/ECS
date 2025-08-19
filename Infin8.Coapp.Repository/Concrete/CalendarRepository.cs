@@ -250,6 +250,8 @@ namespace Infin8.Coapp.Repository
                 //}
                 #endregion
 
+                /// get fin_voucher_trn with staging_details.voc_id 
+                
                 var staginTransactions = await (
                     from sd in CSISContext.Staging_Details
                     join vt in CSISContext.Fin_Voucher_Trn
@@ -342,16 +344,12 @@ namespace Infin8.Coapp.Repository
                 CSISContext.Staging_Balance.AddRange(ledgerBalances);
                 await CSISContext.SaveChangesAsync();
 
-                #region Step 11:  Calculate Loan interest
-                #endregion
+                ///Step 11:  Calculate Loan interest will be carried at CalendarHandler
 
-                #region Step 12: Calculate Fixed deposit interest
-                #endregion
+                /// Step 12: Calculate Fixed deposit interest will be carried at CalendarHandler
 
-                #region stip 13: Calculate Recurring deposit interest
-                #endregion
+                /// stip 13: Calculate Recurring deposit interest will be carried at CalendarHandler
 
-                
                 result = true;
 
             }
@@ -383,6 +381,21 @@ namespace Infin8.Coapp.Repository
                                        select bd2.Calendar_Id
                                    ).Min()
                                    select bd.Calendar_Date).FirstOrDefaultAsync();
+                var calendar = await (from bd in CSISContext.Business_Day
+                                   where bd.Calendar_Status == ((char)Status.NotProcessed).ToString()
+                                   && bd.BrCode == brCode
+                                   && bd.Calendar_Id == (
+                                       from bd2 in CSISContext.Business_Day
+                                       where bd2.Calendar_Status == ((char)Status.NotProcessed).ToString() && bd2.BrCode == brCode
+                                       select bd2.Calendar_Id
+                                   ).Min()
+                                   select bd).FirstOrDefaultAsync();
+                if(calendar!=null )
+                {
+                    calendar.Calendar_Status = ((char)Status.DayBegin).ToString();
+                    await CSISContext.SaveChangesAsync();
+                }
+
             }
             catch (Exception ex)
             {
@@ -420,6 +433,72 @@ namespace Infin8.Coapp.Repository
             return tdIdList;
         }
 
-       
+        public async Task<bool> CreateNewFinancialYear(DateTime lastDate, decimal yrId, decimal createdBy, string brCode)
+        {
+            bool result = false;
+            DateTime currentDate = lastDate.AddDays(1);
+            DateTime endDate = currentDate.AddYears(1);
+            string status = "";
+            List<Business_Day > days = new List<Business_Day>();
+
+            try
+            {
+                var maxId = await CSISContext.Business_Day.AnyAsync()
+                    ? await CSISContext.Business_Day.MaxAsync(sh => sh.Calendar_Id)
+                    : 0;
+                while (currentDate <= endDate)
+                {
+                    status = "E";
+                    if(currentDate.DayOfWeek == DayOfWeek.Sunday) { status = "H";  }
+                    if (IsSecondOrFourthSaturdays(currentDate)) { status = "H"; }
+                    maxId++;
+                    Business_Day businessDay = new()
+                    {
+                        Calendar_Id = maxId,
+                        Calendar_Date = currentDate,
+                        Calendar_Status = status,
+                        Calendar_Delete = false,
+                        Usr_Id = createdBy,
+                        Yr_Id = yrId,
+                        BrCode = brCode
+                    };
+                }
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                Console.WriteLine (ex.ToString());
+            }
+            return result;
+        }
+
+        private bool IsSecondOrFourthSaturdays(DateTime currentDate)
+        {
+            bool result = false;
+            List<DateTime> saturdayList = new List<DateTime>();
+            int month = currentDate.Month ;
+
+            // Start from the first day of the month
+            DateTime date = new DateTime(currentDate.Year, currentDate.Month, 1);
+
+            // Loop through the month
+            while (date.Month == month)
+            {
+                if (date.DayOfWeek == DayOfWeek.Saturday)
+                {
+                    saturdayList.Add(date);
+                }
+                date = date.AddDays(1);
+            }
+            if (saturdayList[1].DayOfWeek == DayOfWeek.Saturday || saturdayList[2].DayOfWeek == DayOfWeek.Saturday )
+            {
+                return true;
+            }
+            // Return 2nd and 4th Saturday
+            //return (saturdayList[1], saturdayList[3]); // Index 1 = 2nd Saturday, Index 3 = 4th Saturday
+            return result;
+        }
+
     }
 }

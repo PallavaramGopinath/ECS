@@ -1,0 +1,587 @@
+﻿@page "/accounting-transaction"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using System.Net
+@using Infin8.Coapp.UI.Client.Components.Autocomplete
+@inject HttpClient _httpClient
+@using System.Text.Json 
+@using System.Text.Json.Serialization
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @inject TransactionStateService TransactionState *@
+@* @inject AppState appState; *@
+<h3>Accounting Transaction</h3>
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else 
+{
+    <!-- Header Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Transaction Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="TrnDate">Date:</label>
+                        <InputDate id="TrnDate" class="form-control" @bind-Value="transaction.Transaction_Date" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="CashAdj">Cash / Adjustment:</label>
+                        <InputSelect id ="CashAdj"class="form-select shadow-none" disabled="@isDdlCashAdjustmentDisable"
+                                     @bind-Value="transaction.Cash_Adjustment"
+                                     @bind-Value:after="DdlCashReceiptChange">
+                            <option value="0">Select Cash/Adjustment</option>
+                            <option value="1">Cash</option>
+                            <option value="2">Adjustment</option>
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="TrnType">Transaction Type</label>
+                        <InputSelect id="TrnType" class="form-select shadow-none" @bind-Value="transaction.Receipt_Payment"
+                                     @bind-Value:after="handlerSelectAccount">
+                            <option value="0">Select Transaction Type</option>
+                            <option value="1">Receipt</option>
+                            <option value="2">Payment</option>
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ledger balance -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Ledger Entry</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Select Ledger -->
+                <div class="col-md-4">
+                     @*  TextSelector="@(led => $"{led.Value ?? string.Empty}  - {led.Text  ?? string.Empty }")" *@
+                      @* DefaultItem="@(new DropdownItem { Value = "0", Text = "-- Select Ledger --" })"  *@
+                    <div class="form-group">
+                        <label for="ledger">Select Account</label>
+                        <Autocomplete  TItem="DropdownItem"
+                                   SearchMethod="SearchLedgerNames"
+                                   TextSelector="@(led => led.Text ?? string.Empty)"
+                                   OnItemSelected="HandleFromAccountSelected"
+                                   Placeholder="Enter Ledger name...">
+                        <SuggestionTemplate>
+                            @* Add a null check for safety *@
+                            @if (context != null)
+                            {
+                                <strong>@context.Text</strong> <span class="text-muted">(ID: @context.Value)</span>
+                            }
+                        </SuggestionTemplate>
+                        </Autocomplete>
+                    </div>
+                </div>
+
+                <!-- If bank ledger display bank details -->
+
+                @if (isBankAccount)
+                {
+                    <div class="card mt-4 mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Bank Account Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="checkNo">Cheque No:</label>
+                                        <InputText id="checkNo" class="form-control" @bind-Value="transaction.Cheque_No" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="chequeDate">Cheque Date:</label>
+                                        <InputDate id="chequeDate" class="form-control" @bind-Value="transaction.Cheque_Date" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="issueBank">Issue Bank:</label>
+                                        <InputText id="issueBank" class="form-control" @bind-Value="transaction.Issue_Bank" />
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                }
+
+
+                <!-- Ledger balance and entry -->
+
+                <div class="col-md-1">
+                    <div class="form-group">
+                        <label for="ledgerBalance">Ledger Balance</label>
+                        <InputNumber id="ledgerBalance" class="form-control" disabled ="true" @bind-Value="transaction.Ledger_Balance"/>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <div class="form-group">
+                        <label for="ledgerEntry">Enter Amount</label>
+                        <InputNumber id="lederEntry" class="form-control" @bind-Value="transaction.Ledger_Entry"/>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="narration">Narration</label>
+                        <InputText id="lederEntry" class="form-control" @bind-Value="transaction.Narration"/>
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="AddAccount">
+                        <i class="oi oi-plus"></i> Add Account
+                    </button>
+                </div>
+               
+            </div>
+        </div>
+
+    </div>
+
+    <!-- List of transactions -->
+    @if(transactionAccountsList != null && transactionAccountsList.Any())
+    {
+     <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Transaction Details</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 350px; overflow-y: auto;">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Ledger Name</th>
+                                        <th>Receipt Amount</th>
+                                        <th>Payment Amount</th>
+                                        <th>Narration</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var account in transactionAccountsList)
+                                    {
+                                        <tr>
+                                            <td>@account.AccountName</td>
+                                            <td>@account.ReceiptAmount</td>
+                                            <td>@account.PaymentAmount</td>
+                                            <td>@account.Narration</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveAccountRow(account)">
+                                                    <i class="oi oi-trash"></i>
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-info">
+                                        <th>Total</th>
+                                        <th>@transactionAccountsList.Sum(a => a.ReceiptAmount)</th>
+                                        <th>@transactionAccountsList.Sum(a => a.PaymentAmount)</th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Buttons -->
+    <div class="row">
+            <div class="col-12 text-end">
+                <button type="button" class="btn btn-secondary me-2" @onclick="ResetForm">Reset</button>
+                <button type="button" class="btn btn-success" @onclick="MakeTransactions">Make Transaction</button>
+                @* @onclick="SaveTransaction" *@
+            </div>
+        </div>
+    <!-- Show error message -->
+    @if (_isError)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error!</strong> 
+            @((MarkupString)errorMessage.Replace("\n", "<br/>"))
+            @* <strong>Error!</strong> @errorMessage *@
+            <button type="button" class="close" @onclick="() => _isError = false">
+                <span>&times;</span>
+            </button>
+        </div>
+    }
+}
+
+
+@code {
+    private bool _isLoading = true;
+    private bool isBankAccount = false;
+    private bool isDdlCashAdjustmentDisable = false;
+    private bool _isDataLoaded = false;
+    private bool _isError = false;
+    private decimal userId = 110010000001;
+    private string brCode = "11001";
+    private string errorMessage = "";
+
+    private List<DropdownItem> ledgerNameItems = new();
+
+    private List<AccountTransactionVM> transactionAccountsList = new();
+
+    private Transaction_Accounting transaction = new()
+    {
+        Transaction_Date = DateTime.Today, ///new DateTime(2025, 04, 04), ///
+        Receipt_Payment = 0,
+        Cash_Adjustment = 0,
+        Ledger_Id = 0,
+        Is_Bank_Ledger =false,
+        Yr_Id = 110010000023,
+        Narration =""
+    };
+
+    private DtoAccountTransactionRelatedData relatedData = new()
+    {
+        Receipt_Amount  = 0,
+        Payment_Amount   = 0,
+        Fnl_Id  = 0,
+        Narration =""
+    };
+
+    // private Staging_Details stagingDetails = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender )
+        {
+            try
+            {
+                // appState.BrCode = "11001";
+                // appState.Yr_Id = 110010000023;
+                // appState.Yr_FromDate = new DateTime(2025, 04, 1);
+                // appState.Yr_ToDate = new DateTime(2026, 3, 31);
+                var ledgerTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/11001");
+                // Initialize the list with default option first
+                ledgerNameItems = new List<DropdownItem>
+                {
+                    new DropdownItem { Value = "0", Text = "-- Select Ledger --" }
+                };
+
+                // Add fetched items if available
+                if (ledgerTmp != null)
+                {
+                    ledgerNameItems.AddRange(ledgerTmp);
+                }
+                transaction.Ledger_Id = 0;
+
+                // if (ledgerTmp != null) 
+                // {
+                //     ledgerNameItems = ledgerTmp.ToList();
+                //     ledgerNameItems.Add (new DropdownItem { Value = "0", Text = "-- Select Ledger --" });
+                // }
+                _isDataLoaded = true;
+                StateHasChanged();
+                // _isDataLoaded = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading data: {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void DdlCashReceiptChange()
+    {
+        isDdlCashAdjustmentDisable = true;
+    }
+
+    private async Task handlerSelectAccount()
+    {
+        if (transaction.Receipt_Payment == 1)
+        {
+            var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/R/M");
+            // if (receiptAccoutNames != null) accountItems = receiptAccoutNames;
+        }
+        if (transaction.Receipt_Payment == 2)
+        {
+            var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/P/M");
+            // if (paymentAccountNames != null) accountItems = paymentAccountNames;
+        }
+        StateHasChanged();
+    }
+
+    private async Task GetLedgerBalance()
+    {
+        string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
+        try
+        {
+            var ledgerBalance = await _httpClient.GetFromJsonAsync<DtoLedgerBalance>($"https://localhost:7073/api/Accounts/GetLedgerBalanceWithFnlId?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={brCode}");
+            if (ledgerBalance != null)
+            {
+                transaction.Ledger_Balance = ledgerBalance!.Ledger_Balance;
+                transaction.Fnl_Id = ledgerBalance.Fin_Id;
+                transaction.Cash_Led_Id = ledgerBalance.Cash_Led_Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            _isError  = true;
+            errorMessage = "Error in fetcing Ledger balance " + ex.Message;
+        }
+
+    }
+
+    private Task<IEnumerable<DropdownItem>> SearchLedgerNames(string searchText)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return Task.FromResult(Enumerable.Empty<DropdownItem>());
+        }
+
+        var filteredList = ledgerNameItems
+            .Where(item => item.Text != null && 
+                           item.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        return Task.FromResult<IEnumerable<DropdownItem>>(filteredList);
+    }
+
+    private async Task HandleFromAccountSelected(DropdownItem ledger)
+    {
+        if (decimal.TryParse(ledger.Value, out decimal ledgerId))
+        {
+            Initiate_Transacion();
+            if(ledgerId == 0)
+            {
+                isBankAccount = false;
+
+            }
+            transaction.Ledger_Id = ledgerId;
+            await GetLedgerBalance();
+            var result = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Accounts/IsBankLedger/{ledgerId}/{brCode}");
+            if (result) 
+            {
+                isBankAccount = true;
+                transaction.Is_Bank_Ledger = true;
+            }
+            else 
+                isBankAccount = false;
+            StateHasChanged(); // Tell Blazor to update the UI
+        }
+    }
+
+    private bool ValidateAddAccount()
+    {
+        bool result = false;
+        errorMessage = "";
+        _isError = false;
+        if (transaction.Cash_Adjustment == 0) errorMessage = "Cash or Adjustment not selected";
+        if (transaction.Receipt_Payment == 0)
+        {
+            errorMessage +=  "\n Receipt or Paynebt not selected";
+        }
+        else
+        { 
+            if(transaction.Ledger_Entry ==0)errorMessage +=  "\n Transaction amount is missing";
+        }
+        if(transaction.Ledger_Id ==  0)   errorMessage += "\n Ledger not selected";
+
+        if (transaction.Is_Bank_Ledger) 
+        {
+            if (string.IsNullOrWhiteSpace(transaction.Cheque_No))
+                errorMessage += "\n Cheque No. is required";
+            if (transaction.Cheque_Date == null) errorMessage +=  "\n Cheque Date is required";
+            if (string.IsNullOrWhiteSpace(transaction.Issue_Bank)) errorMessage += Environment.NewLine + "\n Issue Bank Name is required";
+        }
+        if (transaction.Ledger_Entry == 0) errorMessage += "<br/> Ledger Transaction Amount is required";
+        if(transaction.Narration!.Length == 0) errorMessage += "\n Narration is required";
+        if (errorMessage.Length > 0)
+        {
+            result = false;
+            _isError  = true;
+        }
+        else result = true;
+        return result;
+    }
+
+    private void AddAccount()
+    {
+        try
+        {
+            if (!ValidateAddAccount()) return;
+            double receipt = 0, payment = 0, cashReceipt = 0, cashPayment = 0;
+            if (transaction.Receipt_Payment == 1) receipt = transaction.Ledger_Entry; else payment = transaction.Ledger_Entry;
+
+            if(transaction.Cash_Adjustment == 1) 
+            {
+                cashReceipt = receipt;
+                cashPayment = payment;
+            }
+            AccountTransactionVM account = new()
+            {
+                Created_By = userId,
+                Created_Date = transaction.Transaction_Date ,
+                LedId = transaction.Ledger_Id ,
+                AccountId = 0,
+                AccountName =  ledgerNameItems.Where(x=> Convert.ToDecimal( x.Value) == transaction.Ledger_Id ).Select(x=> x.Text).FirstOrDefault(),
+                ReceiptAmount =receipt ,
+                PaymentAmount = payment,
+                ChequeNo = transaction.Cheque_No ,
+                ChequeDate = transaction.Cheque_Date ,
+                IssueBankName = transaction.Issue_Bank ,
+                Status ="G",
+                Member_Id = 0,
+                Member_No = null,
+                PerNo = null,
+                CashReceipt =  cashReceipt ,
+                CashPayment = cashPayment ,
+                Narration = transaction.Narration 
+            };
+            transactionAccountsList.Add(account);
+
+            Initiate_Transacion();
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void RemoveAccountRow(AccountTransactionVM account)
+    {
+        transactionAccountsList.Remove(account);
+        Initiate_Transacion();
+    }
+
+    private void Initiate_Transacion()
+    {
+
+        transaction.Ledger_Id = 0;
+        transaction.Ledger_Balance = 0;
+        transaction.Ledger_Entry = 0;
+        transaction.Cheque_No = "";
+        transaction.Cheque_Date = null;
+    }
+
+    private void ResetForm()
+    {
+        transaction.Transaction_Date = DateTime.Today; 
+        transaction.Receipt_Payment = 0;
+        transaction.Cash_Adjustment = 0;
+        transaction.Ledger_Id = 0;
+        transaction.Is_Bank_Ledger = false;
+        transaction.Cheque_Date = null;
+        transaction.Cheque_No = "";
+        transaction.Issue_Bank = "";
+        transaction.Narration = "";
+        isBankAccount = false;
+        // transaction.Yr_Id = 110010000023;
+        transactionAccountsList = new();
+    }
+
+    private async Task MakeTransactions()
+    {
+        try
+        {
+            if (transactionAccountsList.Count == 0)
+            {
+                _isError = true;
+                errorMessage = "No accounts added for transaction.";
+                return;
+            }
+
+
+            List<Staging_Details> stagingDetails = new();   
+
+            foreach (var account in transactionAccountsList)
+            {
+                relatedData.OB = transaction.Ledger_Balance;
+                relatedData.Receipt_Amount = account.ReceiptAmount;
+                relatedData.Payment_Amount = account.PaymentAmount;
+                relatedData.Fnl_Id = 0;
+                relatedData.Ledger_Name = ledgerNameItems.Where(x=> x.Value == account.LedId.ToString()).Select(x => x.Text).FirstOrDefault() ?? "Unknown Ledger";
+                relatedData.Narration = account.Narration ?? string.Empty;
+                string accRelatedData = ConvertToJson(relatedData);
+                Staging_Details stagingDetail = new()
+                {
+                    Id = 0,
+                    Staging_Id = 0,
+                    Member_Id = 0,
+                    Ledger_Id = account.LedId,
+                    Related_Account_Id = 1000,
+                    Receipt_Amount = account.ReceiptAmount,
+                    Payment_Amount = account.PaymentAmount,
+                    Module_Name = "Account Transaction",
+                    Cash_Or_Adjustment = transaction.Cash_Adjustment,
+                    Related_Account_Data = accRelatedData,
+                    Created_By = userId,
+                    Created_Date = transaction.Transaction_Date,
+                    Checked_By =0,
+                    Checked_Date = null,
+                    Staging_Status = "M",
+                    BrCode = brCode,
+                    Cheque_Date = account.ChequeDate,
+                    Cheque_No = account.ChequeNo,
+                    Issue_Bank_Name = account.IssueBankName,
+                    Voc_Id = 0,
+                };
+                stagingDetails.Add(stagingDetail);
+            }
+            var response = await _httpClient.PostAsJsonAsync("https://localhost:7073/api/Staging/AddStagingForAccounting", stagingDetails);
+            if (response.IsSuccessStatusCode)
+            {
+                // Handle success, e.g., show a success message or redirect
+                Console.WriteLine("Transaction successful.");
+                ResetForm();
+            }
+            else
+            {
+                _isError = true;
+                errorMessage = "Failed to make transaction: " + response.ReasonPhrase;
+            }
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            errorMessage = "Error making transaction: " + ex.Message;
+        }
+    }
+
+     private string ConvertToJson(DtoAccountTransactionRelatedData relatedData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(relatedData, options);
+    }
+}

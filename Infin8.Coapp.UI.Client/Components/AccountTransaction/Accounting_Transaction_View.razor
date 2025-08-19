@@ -1,0 +1,78 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+@attribute [StreamRendering]
+
+
+<div class="col-md-12">
+    <div class="card p-3">
+        <div class="card-header">
+            <h5 class="mb-0">Accounting Transaction</h5>
+        </div>
+        <div class="card-body">
+             <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Ledger Number</th>
+                        <th>Opening Balance</th>
+                        <th>Receipt Amount</th>
+                        <th>Payment Amount</th>
+                        <th>Closing Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in details)
+                    {
+                        <tr>
+                            <td>@item.Ledger_Name</td>
+                            <td>@item.OB.ToString("C")</td>
+                            <td>@item.Receipt_Amount.ToString("C")</td>
+                            <td>@item.Payment_Amount.ToString("C")</td>
+                            <td>@item.CB.ToString("C")</td>
+                        </tr>
+                    }
+                    <tr class="table-info">
+                        <td colspan="1" class="text-end fw-bold">Total:</td>
+                        <td>@details.Sum(l => l.OB).ToString("C")</td>
+                        <td>@details.Sum(l => l.Receipt_Amount).ToString("C")</td>
+                        <td>@details.Sum(l => l.Payment_Amount).ToString("C")</td>
+                        <td>@details.Sum(l => l.CB).ToString("C")</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+    private List<DtoAccountTransactionRelatedData> details = new();
+    
+    double CB = 0;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<List<DtoAccountTransactionRelatedData>>($"https://localhost:7073/api/Staging/GetStagingDetailsListById/{stagingId}");
+                if (query != null && query.Any())
+                {
+                    details = query.ToList();
+                    
+                }
+                else
+                {
+                    Console.WriteLine("No data found for the provided staging ID.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching staging details: {ex.Message}");
+        }
+    }
+}

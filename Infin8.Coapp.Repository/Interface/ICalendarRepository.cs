@@ -10,6 +10,7 @@ namespace Infin8.Coapp.Repository
 {
     public interface ICalendarRepository
     {
+        Task<bool> CreateNewFinancialYear(DateTime lastDate, decimal yrId, decimal createdBy, string brCode);
         Task<bool> VerifyDayBegin(string brCode);
         Task<DateTime> GetCurrentDate(string brCode);
         Task<int> UpdateCalendarStatus(DateTime currentDate,string brCode,string newStatus);

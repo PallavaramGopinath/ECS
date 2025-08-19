@@ -19,6 +19,8 @@ namespace Infin8.Coapp.BusinessLogic
         Task<string> GetComponentName(int accountId);
         Task<string> GetViewComponentName(int accountId);
         Task<bool> SaveTransaction(decimal stagingId,string vocMode,decimal Checked_By, decimal yrId); /// vocMode member transaction, staff transaction 
+        Task<bool> SaveAccountTransaction(decimal stagingId, string vocMode, decimal Checked_By, decimal yrId);
+        Task<bool> RejectTransaction(decimal stagingId, decimal Checked_By);
         Task<List<DtoTransaction>> GetStagingDataByStagingId(decimal stagingId);
         DtoTransactionRptPmtNos GetReceiptAndPaymentNo(double cashReceipt, double cashPayment, double adjReceipt, double adjPayment, bool IsChequeOnly, decimal yrId);
         Task<bool> IsChequeOnly(decimal stagingId);

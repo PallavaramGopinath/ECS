@@ -45,15 +45,26 @@ namespace Infin8.Coapp.BusinessLogic
                 _unitOfWork.BeginTransaction();
                 result = await _unitOfWork.Calendars.DayBeginProcess(brCode);
 
+                #region Calculate interest on fixed deposits
                 fdIdList = await _unitOfWork.Calendars.GetFixedDepositIdForInterestCalculation("F", toDate, brCode);
                 fdList = await _unitOfWork.TermDepositTrn.GetFDPayableByTDIdsAsync(fdIdList.ToArray());
                 foreach (var fd in fdList)
                 {
                     TermDeposit_Trn tdTrn = new();
-                    tdTrn = Utility.GetModalObject.GetTermDepositTrn(0, toDate, fd.FDId, 0, 0, 0, fd.FDIntCalculatedNow, fd.FDIntCalculatedDateNow, 0, 0, 0, null, 0, 0, 0, null, null, false, false, 0, createdBy, yrId, 0, 0, brCode);
+                    tdTrn = Utility.GetModalObject.GetTermDepositTrn(0, toDate.AddDays(1), fd.FDId, 0, 0, 0, fd.FDIntCalculatedNow, fd.FDIntCalculatedDateNow, 0, 0, 0, null, 0, 0, 0, null, null, false, false, 0, createdBy, yrId, 0, 0, brCode);
                     fdInterestCalculatedList.Add(tdTrn);
                 }
                 result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(fdInterestCalculatedList);
+                #endregion
+
+                #region Calculate payable on Recurring Deposit
+                #endregion
+
+                #region Calculate demand on loans on due date
+                #endregion
+
+                #region if year end calculate interest on provident fund
+                #endregion 
                 _unitOfWork.CommitTransaction();
                 result = true;
             }
@@ -80,7 +91,5 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.Calendars.GetFixedDepositIdForInterestCalculation(tdSchemeType, toDate, brCode);
         }
-
-       
     }
 }

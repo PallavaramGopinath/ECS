@@ -53,10 +53,15 @@ builder.Services.AddDbContext<CSISContext>(options =>
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 builder.Services.AddHttpContextAccessor();
 
+#region State Services
+builder.Services.AddSingleton<TransactionStateService>();
+builder.Services.AddSingleton<AppState>();
+#endregion 
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDashboardMemberHandler, DashboardMemberHandler>();
 builder.Services.AddScoped<IGeneralHandler, GeneralHandler>();
-builder.Services.AddSingleton<TransactionStateService>();
+
 
 #region accounts
 builder.Services.AddScoped<IAccountsHandler, AccountsHandler>();

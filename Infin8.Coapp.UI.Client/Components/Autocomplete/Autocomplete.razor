@@ -1,0 +1,103 @@
+﻿
+<!--Studio ai -->
+@using System.Timers
+@typeparam TItem
+
+<div class="autocomplete-container">
+    <input type="text"
+           class="form-control"
+           @bind-value="SearchText"
+           @bind-value:event="oninput"
+           @onkeyup="HandleKeyup"
+           placeholder="@Placeholder" />
+
+    @if (_suggestions.Any())
+    {
+        <ul class="list-group autocomplete-suggestions">
+            @foreach (var item in _suggestions)
+            {
+                <li class="list-group-item list-group-item-action" @onclick="() => SelectItem(item)">
+                    @* This is where the magic happens. It renders the fragment you define on the parent page. *@
+                    @SuggestionTemplate(item)
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private Timer? _debounceTimer;
+    private string _searchText = string.Empty;
+    private List<TItem> _suggestions = new();
+
+    // [Parameter]
+    // public TItem? DefaultItem { get; set; }
+    // This parameter MUST be of type RenderFragment<TItem> for 'context' to work.
+    [Parameter]
+    public RenderFragment<TItem>? SuggestionTemplate { get; set; }
+
+    // This parameter MUST be of type Func<string, Task<IEnumerable<TItem>>> for the search to work.
+    [Parameter]
+    public Func<string, Task<IEnumerable<TItem>>>? SearchMethod { get; set; }
+
+    // This parameter MUST be of type Func<TItem, string> for the lambda to work.
+    [Parameter]
+    public Func<TItem, string>? TextSelector { get; set; }
+
+    [Parameter]
+    public EventCallback<TItem> OnItemSelected { get; set; }
+
+    [Parameter]
+    public string Placeholder { get; set; } = "Search...";
+
+    private string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            _searchText = value;
+            _debounceTimer?.Dispose();
+            _debounceTimer = new Timer(300);
+            _debounceTimer.Elapsed += async (sender, e) => await Search();
+            _debounceTimer.AutoReset = false;
+            _debounceTimer.Start();
+        }
+    }
+
+    private async Task Search()
+    {
+        if (SearchMethod is null || string.IsNullOrWhiteSpace(_searchText))
+        {
+            // var defaultItem = _suggestions.FirstOrDefault(x => x.Value == "0");
+            
+            _suggestions.Clear();
+        }
+        else
+        {
+            var searchResult = await SearchMethod(_searchText);
+            _suggestions = searchResult?.ToList() ?? new List<TItem>();
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SelectItem(TItem item)
+    {
+        // Use the TextSelector to get the display text. Handle the null case.
+        _searchText = TextSelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
+        _suggestions.Clear();
+        await OnItemSelected.InvokeAsync(item);
+    }
+
+    private void HandleKeyup(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            _suggestions.Clear();
+        }
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Dispose();
+    }
+}

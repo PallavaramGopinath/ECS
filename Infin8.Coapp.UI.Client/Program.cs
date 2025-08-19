@@ -7,4 +7,5 @@ builder.Services.AddScoped(http => new HttpClient
     BaseAddress = new Uri("https://localhost:7073/"),
 });
 builder.Services.AddSingleton<TransactionStateService>();
+builder.Services.AddSingleton<AppState>();
 await builder.Build().RunAsync();

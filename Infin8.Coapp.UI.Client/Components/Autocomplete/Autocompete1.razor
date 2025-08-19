@@ -1,0 +1,212 @@
+﻿@typeparam TItem
+<!-- deep seek -->
+<div class="autocomplete">
+    <input @bind="searchText"
+           @bind:event="oninput"
+           @onkeydown="HandleKeyDown"
+           class="form-control" />
+
+    @if (filteredItems.Any() && showSuggestions)
+    {
+        <ul class="autocomplete-items">
+            @foreach (var item in filteredItems)
+            {
+                <li @onclick="() => SelectItem(item)"
+                    class="@GetItemClass(item)">
+                    @ItemTemplate(item)
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<TItem> Items { get; set; } = new List<TItem>();
+    [Parameter] public Func<TItem, string> TextSelector { get; set; } = item => item?.ToString() ?? "";
+    [Parameter] public RenderFragment<TItem> ItemTemplate { get; set; }
+    [Parameter] public EventCallback<TItem> OnItemSelected { get; set; }
+
+    private string searchText = "";
+    private bool showSuggestions = false;
+    private TItem? highlightedItem;
+
+    private IEnumerable<TItem> filteredItems =>
+        Items.Where(item => TextSelector(item).Contains(searchText, StringComparison.OrdinalIgnoreCase))
+             .Take(10);
+
+    private string GetItemClass(TItem item) =>
+        EqualityComparer<TItem>.Default.Equals(item, highlightedItem) ? "highlighted" : "";
+
+    private async Task SelectItem(TItem item)
+    {
+        searchText = TextSelector(item);
+        showSuggestions = false;
+        await OnItemSelected.InvokeAsync(item);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (!filteredItems.Any()) return;
+
+        switch (args.Key)
+        {
+            case "ArrowDown":
+                HighlightNextItem();
+                break;
+            case "ArrowUp":
+                HighlightPrevItem();
+                break;
+            case "Enter":
+                await SelectHighlightedItem();
+                break;
+            case "Escape":
+                showSuggestions = false;
+                break;
+        }
+    }
+
+    private void HighlightNextItem()
+    {
+        var items = filteredItems.ToList();
+        highlightedItem = highlightedItem == null
+            ? items.First()
+            : items[(items.IndexOf(highlightedItem) + 1 % items.Count)];
+    }
+
+    private void HighlightPrevItem()
+    {
+        var items = filteredItems.ToList();
+        highlightedItem = highlightedItem == null
+            ? items.Last()
+            : items[(items.IndexOf(highlightedItem) - 1 + items.Count) % items.Count];
+    }
+
+    private async Task SelectHighlightedItem()
+    {
+        if (highlightedItem != null)
+        {
+            await SelectItem(highlightedItem);
+        }
+    }
+}
+
+
+
+@* @using System.Linq
+@typeparam TItem
+
+<div class="autocomplete">
+    <input @bind="SearchText"
+           @bind:event="oninput"
+           @onkeydown="HandleKeyDown"
+           class="form-control" />
+
+    @if (FilteredItems.Any() && ShowSuggestions)
+    {
+        <ul class="autocomplete-items">
+            @foreach (var item in FilteredItems)
+            {
+                <li @onclick="() => SelectItem(item)"
+                    @onmouseover="() => HighlightItem(item)"
+                    class="@(item.Equals(HighlightedItem) ? "highlighted" : "")">
+                    @ItemTemplate(item)
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<TItem> Items { get; set; } = Enumerable.Empty<TItem>();
+    [Parameter] public Func<TItem, string> TextSelector { get; set; } = item => item?.ToString() ?? "";
+    [Parameter] public RenderFragment<TItem> ItemTemplate { get; set; }
+    [Parameter] public EventCallback<TItem> OnItemSelected { get; set; }
+
+    private string SearchText { get; set; } = "";
+    private bool ShowSuggestions { get; set; } = false;
+    private TItem? HighlightedItem { get; set; }
+
+    private IEnumerable<TItem> FilteredItems =>
+        Items.Where(item => TextSelector(item).Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+             .Take(10);
+
+    private async Task SelectItem(TItem item)
+    {
+        SearchText = TextSelector(item);
+        ShowSuggestions = false;
+        await OnItemSelected.InvokeAsync(item);
+    }
+
+    private void HighlightItem(TItem item)
+    {
+        HighlightedItem = item;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (!FilteredItems.Any()) return;
+
+        switch (args.Key)
+        {
+            case "ArrowDown":
+                var nextIndex = HighlightedItem == null ? 0 :
+                    (FilteredItems.ToList().IndexOf(HighlightedItem) + 1) % FilteredItems.Count();
+                HighlightedItem = FilteredItems.ElementAt(nextIndex);
+                break;
+
+            case "ArrowUp":
+                var prevIndex = HighlightedItem == null ? FilteredItems.Count() - 1 :
+                    (FilteredItems.ToList().IndexOf(HighlightedItem) - 1 + FilteredItems.Count()) % FilteredItems.Count();
+                HighlightedItem = FilteredItems.ElementAt(prevIndex);
+                break;
+
+            case "Enter":
+                if (HighlightedItem != null)
+                {
+                    await SelectItem(HighlightedItem);
+                }
+                break;
+
+            case "Escape":
+                ShowSuggestions = false;
+                break;
+        }
+    }
+}
+<style>
+    .autocomplete {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .autocomplete-items {
+        position: absolute;
+        border: 1px solid #d4d4d4;
+        border-bottom: none;
+        border-top: none;
+        z-index: 99;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+        .autocomplete-items li {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid #d4d4d4;
+        }
+
+            .autocomplete-items li:hover {
+                background-color: #e9e9e9;
+            }
+
+    .highlighted {
+        background-color: #007bff !important;
+        color: white;
+    }
+    }
+</style> *@

@@ -244,6 +244,18 @@ namespace Infin8.Coapp.Utility
 
             return JsonSerializer.Deserialize<DtoOtherRelatedData>(jsonData, options)!;
         }
+        #endregion
+
+        #region Account Transaction
+        public static DtoAccountTransactionRelatedData ConvertFromJsonForAccountTransactionRelatedData(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+
+            return JsonSerializer.Deserialize<DtoAccountTransactionRelatedData>(jsonData, options)!;
+        }
         #endregion 
     }
 }

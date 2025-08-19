@@ -36,6 +36,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.Accounts.GetCashLedgerId(brCode);
         }
+        public async Task<bool> IsBankLedger(decimal ledgerId, string brCode)
+        {
+            return await _unitOfWork.Accounts.IsBankLedger(ledgerId, brCode);
+        }
 
         public async Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate, string brCode)
         {
