@@ -1,0 +1,354 @@
+﻿@page "/payslip-payment"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
+@using System.Net
+
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@inject TransactionStateService TransactionState
+
+<div class="container-fluid">
+    <h3>Pay Slip Payment</h3>
+    @if (_isLoading)
+    {
+        <!-- Show a centered spinner while data is loading -->
+        <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Pay Id List -->
+        @if (payIdList != null && payIdList.Any())
+        {
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Select Pay Month for Payment</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <InputSelect class="form-select shadow-none" @bind-Value="salaryPayment.Pay_Id">
+                            <option value="0">--Select Month--</option>
+                            @foreach (var pi in payIdList)
+                            {
+                                <option value="@pi.Value">@pi.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Employee Id with Pay Id List -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <button type="button" class="btn btn-outline-primary" @onclick="GetEmployeeForPayment">
+                    <i class="bi bi-pencil"></i>
+                    Get Employee Name (list)
+                </button>
+            </div>
+
+            <div class="card-body">
+                @if (empIdList != null && empIdList.Any())
+                {
+                    @foreach (var emp in empIdList)
+                    {
+                        <div class="form-check mt-2 pt-2 pb-2">
+                            <input class="form-check-input m-0 mt-1" type="checkbox" id="@($"emp_{emp.Value}")"
+                                   @onchange="e => TogglePaySelection(emp, (bool)e.Value)" />
+                            <label class="form-check-label ps-2" for="@($"emp_{emp.Text}")">
+                                @emp.Text
+                            </label>
+                        </div>
+                    }
+                    <button type="button" class="btn btn-outline-primary m-3" @onclick="GetSalaryDetails">
+                        <i class="bi bi-pencil"></i>
+                        Get Salary Details
+                    </button>
+                }
+            </div>
+            @if (salaryPayment.NetPay > 0)
+            {
+                <div class="card-footer">
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <div class="text-center p-2 bg-success text-white rounded">
+                                <div class="fw-bold">@salaryPayment.GrossPay</div>
+                                <small>Gross Pay</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center p-2 bg-info text-white rounded">
+                                <div class="fw-bold">@salaryPayment.TotalDeductions</div>
+                                <small>Total Deductions</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center p-2 bg-warning text-white rounded">
+                                <div class="fw-bold">@salaryPayment.NetPay</div>
+                                <small>Net Pay</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center p-2 bg-danger text-white rounded">
+                                <div class="fw-bold">@salaryPayment.PF</div>
+                                <small>Employer's Provident Fund</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center p-2 bg-primary text-white rounded">
+                                <div class="fw-bold"> @salaryPayment.TotalCommitments</div>
+                                <small>Total Commitments</small>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-primary m-3" @onclick="SalaryPaymentInitiate">
+                            <i class="oi oi-check"></i>
+                            Initiate Salary Payment
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Step 4: Button group -->
+    <div class="d-flex justify-content-between mt-4 mb-4">
+        <div>
+            <!-- Left-aligned buttons -->
+            <button type="button" class="btn btn-secondary me-2" @onclick="ClosePage">
+                <i class="oi oi-x"></i>
+                Close
+            </button>
+            <button type="reset" class="btn btn-outline-secondary">
+                <i class="oi oi-action-undo"></i>
+                Reset
+            </button>
+        </div>
+
+        
+    </div>
+
+</div>
+
+@if (isError)
+{
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => isError = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public decimal Employee_Id { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnPaySlipPaymentComponentClose { get; set; }
+    // [Parameter] public EventCallback<DtoJewelLoanRecovery> OnJLRecoveryInitiate { get; set; }
+    #endregion
+
+    #region objects
+    private DtoPaySlipPayment salaryPayment = new();
+
+    private List<DropdownItem> payIdList = new();
+    private List<DropdownItem> empIdList = new();
+    private List<DropdownItem> selectedEmpIds = new();
+    private Staging_Details stagingDetails = new();
+    #endregion
+
+    #region variables
+    private string brCode = "11001";
+    private bool _isLoading = true;
+    private bool isError = false;
+    private string errorMessage = string.Empty;
+    #endregion
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                salaryPayment.Employee_Id = Employee_Id;
+                var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPayment/P/{brCode}");
+                if (response != null && response.Any()) payIdList = response.ToList();
+                var response2 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPayment/A/{brCode}");
+                if (response2 != null && response2.Any()) payIdList.AddRange(response2);
+                _isLoading = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+
+    #region Events
+    protected async Task ClosePage()
+    {
+        await OnPaySlipPaymentComponentClose.InvokeAsync(true);
+    }
+
+    private async Task GetEmployeeForPayment()
+    {
+        if (salaryPayment.Pay_Id == 0)
+        {
+            isError = true;
+            errorMessage = "Pay month not selected";
+            return;
+        }
+        else
+        {
+            try
+            {
+                isError = false;
+                errorMessage = "";
+                // var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetEmployeeNamesForSalaryPayment/{salaryPayment.Pay_Id}/{brCode}");
+                // if (response != null && response.Any()) empIdList = response.ToList();
+
+                var response = await _httpClient.GetFromJsonAsync<DropdownItem>($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
+                if (response != null) 
+                    empIdList.Add(response);
+                else
+                {
+                    isError = true;
+                    errorMessage = "No employee found for the selected pay month.";
+                }
+            }
+            catch (Exception ex)
+            {
+                isError = true;
+                errorMessage = ex.Message;
+            }
+        }
+    }
+
+    private void TogglePaySelection(DropdownItem emp, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedEmpIds.Any(l => l.Value == emp.Value))
+            {
+                selectedEmpIds.Add(emp);
+            }
+        }
+        else
+        {
+            selectedEmpIds.RemoveAll(l => l.Value == emp.Value);
+        }
+        salaryPayment.Employee_Id_List = new();
+        List<decimal> list = new();
+        foreach(var emp1 in selectedEmpIds )
+        {
+            decimal.TryParse (emp1.Value, out decimal empId);
+            list.Add(empId);
+        }
+        salaryPayment.Employee_Id_List.AddRange(list);
+    }
+
+    private async Task GetSalaryDetails()
+    {
+        List<decimal> empIds = new();
+        foreach (var emp in selectedEmpIds)
+        {
+            decimal.TryParse(emp.Value, out decimal empId);
+            empIds.Add(empId);
+        }
+        // Build query string properly for multiple values
+        var queryString = string.Join("&", empIds.Select(id => $"empIdList={id}"));
+        var url = $"https://localhost:7073/api/Pay/GetPaySlipForPayment?{queryString}&payId={salaryPayment.Pay_Id}&brCode={brCode}";
+        var response = await _httpClient.GetFromJsonAsync<List<Pay_Slip>>(url);
+        // var response = await _httpClient.GetFromJsonAsync<List<Pay_Slip>>($"https://localhost:7073/api/Pay/GetPaySlipForPayment/{Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
+        if (response != null && response.Any())
+        {
+            salaryPayment.GrossPay = response.Sum(x => x.Pay_Tot_Allowance);
+            salaryPayment.TotalDeductions = response.Sum(x => x.Pay_Tot_Deductions);
+            salaryPayment.NetPay = response.Sum(x => x.Pay_Net);
+            salaryPayment.PF = response.Sum(x => x.Pay_PF);
+            salaryPayment.TotalCommitments = salaryPayment.GrossPay + salaryPayment.PF;
+        }
+    }
+
+    private async Task SalaryPaymentInitiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseForAccountName = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseForAccountName.IsSuccessStatusCode)
+            {
+                accountName = await responseForAccountName.Content.ReadAsStringAsync();
+            }
+            else if (responseForAccountName.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseForAccountName.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        double receiptAmount = 0;
+        double paymentAmount = 0;
+
+        paymentAmount = salaryPayment.NetPay + salaryPayment.PF;
+        receiptAmount = salaryPayment.TotalDeductions + salaryPayment.PF;
+        salaryPayment.Employee_Id = Employee_Id;
+        string salaryPaymentjsonData = ConvertToJson(salaryPayment);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = Employee_Id ,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = receiptAmount,
+            Payment_Amount = paymentAmount, /// paymentModel.Net_Payable,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = salaryPaymentjsonData,
+            Created_By = 110010000001,
+            Created_Date = TransactionDate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = "11001"
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        await TransactionState.NotifyIntiate(true);
+    }
+
+    private string ConvertToJson(DtoPaySlipPayment salaryPayment)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(salaryPayment, options);
+    }
+    #endregion
+}

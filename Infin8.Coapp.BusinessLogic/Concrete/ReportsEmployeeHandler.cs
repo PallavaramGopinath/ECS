@@ -28,7 +28,16 @@ namespace Infin8.Coapp.BusinessLogic
         {
             List<rptEmpPayBill> payList= new List<rptEmpPayBill>(); 
             var payListTmp =  await _unitOfWork.ReportsEmployee.GetEmpPayBill(empId, payId);
-            
+            var schemeNames = payListTmp.Select(x => x.Scheme_Name).Distinct().ToList();
+            if(payListTmp != null && payListTmp.Any()) payList = payListTmp;
+            foreach (var schemes in payList.Where(x=> x.Pay_Component_Type == 3))
+            {
+                schemes.All_Name  = schemes.Scheme_Name;
+            }
+            foreach (var ledger in payList.Where(x => x.Pay_Component_Type == 5))
+            {
+                ledger.All_Name = ledger.Led_Name;
+            }
             string rsInWords = "";
             if (payListTmp != null)
             {

@@ -24,6 +24,7 @@ namespace Infin8.Coapp.Repository
                 maxId++;
                 payAtt.Att_Id = maxId;
                 await AddAsync(payAtt);
+                await CSISContext.SaveChangesAsync(); // Save changes to reflect in the database
                 result = true;
             }
             catch (Exception ex)
@@ -49,6 +50,23 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Attance of employee details not modified");
             }
             return result;
+        }
+
+        public async Task<Pay_Att> GetPayAttanceByEmpId(decimal empId, decimal payId, string brCode)
+        {
+            Pay_Att att = new();
+            var result =  await CSISContext.Pay_Att.FirstOrDefaultAsync(x => x.Mem_Id == empId && x.Pay_Id == payId && x.BrCode == brCode && x.Att_Delete == false);
+            if(result != null)
+            {
+                att = result;
+            }
+            else
+            {
+                att = new Pay_Att();
+                att.Mem_Id = 0;
+                throw new InvalidOperationException("No Data Found");
+            }
+            return att;
         }
     }
 }

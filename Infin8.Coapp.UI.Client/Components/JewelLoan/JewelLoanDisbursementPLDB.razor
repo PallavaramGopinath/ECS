@@ -1,0 +1,1283 @@
+﻿@page "/jewel-loan-disbursement-mi"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@using System.Text.Json.Serialization;
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using System.Net
+@rendermode InteractiveAuto
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject TransactionStateService TransactionState
+
+@if (_isLoading)
+{
+    <div class="text-center my-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="mt-4">
+        <h3 class="mb-2">Jewel Loan Disbursement</h3>
+        <hr class="mt-0" />
+
+        <EditForm Model="@loanDetails" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <!-- Step 2: Loan Scheme Section and security -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Loan Scheme Selection</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="schemeId">Loan Scheme:</label>
+                                <InputSelect id="schemeId" class="form-control" @bind-Value="loanDetails.Scheme_Id"
+                                             @bind-Value:after="FetchSchemeDetails">
+                                    <option value="0">-- Select Scheme --</option>
+                                    @foreach (var scheme in loanSchemes)
+                                    {
+                                        <option value="@scheme.Value">@scheme.Text</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="securityType">Security Type:</label>
+                                <InputSelect id="securityType" class="form-control" @bind-Value="loanDetails.Security_Type"
+                                             @bind-Value:after="FetchSecurityType">
+                                    <option value="0">-- Select Security Type --</option>
+                                    <option value="1">Jewels</option>
+                                    <option value="2">Mortgage</option>
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="transactionDate">Transaction Date:</label>
+                                <InputDate id="transactionDate" class="form-control" @bind-Value="loanDetails.Tranaction_Date" @onchange="CalculateDueDate" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if(isLTDisbursement )
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Long Term Loan Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="sanctionedAmount">Sanctioned Amount</label>
+                                    <InputNumber id="santionedAmount" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="InstalmentDay">Instalment Day</label>
+                                    <InputNumber id="InstalmentDay" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="gracePeriod">Grace Period</label>
+                                    <InputNumber id="gracePeriod" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="period">Repayment Period</label>
+                                    <InputNumber id="period" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="FirstInterestInstalmentDate">First Interest Instalment Date:</label>
+                                    <InputDate id="FirstInterestInstalmentDate" class="form-control" @bind-Value="loanDetails.Tranaction_Date" @onchange="CalculateDueDate" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="FirstPrincipalInstalmentDate">First Principal Instalment Date:</label>
+                                    <InputDate id="FirstPrincipalInstalmentDate" class="form-control" @bind-Value="loanDetails.Tranaction_Date" @onchange="CalculateDueDate" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="DisbursementAmount">Disbursement Amount</label>
+                                    <InputNumber id="DisbursementAmount" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Rate of Interest and Instalment Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="RateOfInterest">Rate Of Interest</label>
+                                    <InputNumber id="RateOfInterest" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="PenalRate">Penal Rate Of Interest</label>
+                                    <InputNumber id="PenalRate" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary" @onclick="JLDisbursementInitiate">
+                                    <i class="oi oi-check"></i>
+                                    Calculate Instalment Amount
+                                </button>
+                                <div class="form-group">
+                                    <label for="InstalmentAmount">Instalment Amount</label>
+                                    <InputNumber id="InstalmentAmount" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (isJewelSecurity)
+            {
+                <!-- Step 3: Jewel Loan Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Loan Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="marketRate">Market Rate (per gram):</label>
+                                    <InputNumber id="marketRate" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="govtRate">Government Rate (per gram):</label>
+                                    <InputNumber id="govtRate" class="form-control" @bind-Value="loanDetails.Govt_Rate" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="maxLoanLimit">Maximum Loan Limit:</label>
+                                    <InputNumber id="maxLoanLimit" class="form-control" @bind-Value="loanDetails.Maximum_Loan_Limit" readonly />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="existingLoan">Existing Loan Outstanding:</label>
+                                    <InputNumber id="existingLoan" class="form-control" @bind-Value="loanDetails.Existing_Loan_Outstanding" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="eligibilityPct">Percentage of Eligibility on Market Rate:</label>
+                                    <InputNumber id="eligibilityPct" class="form-control" @bind-Value="loanDetails.Percentage_Of_Eligibility_On_Market_Rate" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="loanPeriod">Period of Loan (months):</label>
+                                    <InputNumber id="loanPeriod" class="form-control" @bind-Value="loanDetails.Period_Of_Loan" @onchange="CalculateDueDate" readonly />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="dueDate">Due Date:</label>
+                                    <InputDate id="dueDate" class="form-control" @bind-Value="loanDetails.Due_Date" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="interestRate">Rate of Interest (%):</label>
+                                    <InputNumber id="interestRate" class="form-control" @bind-Value="loanDetails.Rate_Of_Interest" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="penalRate">Penal Rate (%):</label>
+                                    <InputNumber id="penalRate" class="form-control" @bind-Value="loanDetails.Penal_Rate" readonly />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Jewel Ornments Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Jewel Ornaments Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label for="ornamentName">Ornament Name:</label>
+                                    <InputText id="ornamentName" class="form-control" @bind-Value="newOrnament.Ornment_Name" />
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label for="ornamentNos">Number of Ornaments:</label>
+                                    <InputNumber id="ornamentNos" class="form-control" @bind-Value="newOrnament.Ornment_Nos" />
+                                </div>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-secondary rounded-pill w-100" @onclick="AddOrnament">
+                                    <i class="oi oi-plus"></i> Add
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h6>Ornaments List:</h6>
+                            <table class="table table-bordered table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Ornament Name</th>
+                                        <th>Quantity</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (loanDetails.Ornment_List != null && loanDetails.Ornment_List.Any())
+                                    {
+                                        @foreach (var item in loanDetails.Ornment_List)
+                                        {
+                                            <tr>
+                                                <td>@item.Ornment_Name</td>
+                                                <td>@item.Ornment_Nos</td>
+                                                <td>
+                                                    <button type="button" class="btn btn-danger rounded-pill btn-sm" @onclick="() => RemoveOrnament(item)">
+                                                        <i class="oi oi-trash"></i>
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="3" class="text-center">No ornaments added yet</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Weight and Value Calcualtion -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Weight,Value Calculation and Loan Amount</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="grossWeight">Gross Weight (grams):</label>
+                                    <InputNumber id="grossWeight" class="form-control" @bind-Value="loanDetails.Gross_Weight" @bind-Value:after="CalculateEligibleAmount" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="wastage">Wastage (grams):</label>
+                                    <InputNumber id="wastage" class="form-control" @bind-Value="loanDetails.Wasgate" @bind-Value:after="CalculateEligibleAmount" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="netWeight">Net Weight (grams):</label>
+                                    <InputNumber id="netWeight" class="form-control" disabled="true" @bind-Value="loanDetails.Net_Weight" readonly />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="jewelValue">Jewels Value (Eligible Amount):</label>
+                                    <InputNumber id="jewelValue" class="form-control" disabled="true" @bind-Value="loanDetails.Jewels_Value" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="loanAmount">Loan Amount:</label>
+                                    <InputNumber id="loanAmount" class="form-control" @bind-Value="loanDetails.Loan_Amount" @bind-Value:after="ValidateLoanAmount" />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="appraisalFee">Appraisal Fee:</label>
+                                    <InputNumber id="appraisalFee" class="form-control" disabled="true" @bind-Value="loanDetails.AppraisalFee" />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="bankCharges">Bank Charges:</label>
+                                    <InputNumber id="bankCharges" class="form-control" disabled="true" @bind-Value="loanDetails.BankCharges" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 6: Take Jewel Photo -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Take Jewel Photo</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-secondary rounded-pill -3" @onclick="InitCamera">
+                                    <i class="oi oi-camera-slr"></i> Start Camera
+                                </button>
+                                <button type="button" class="btn btn-info rounded-pill mb-3 ml-2" @onclick="CapturePhoto" style="margin-left: 10px;">
+                                    <i class="oi oi-aperture"></i> Capture
+                                </button>
+
+                                <div class="mt-2">
+                                    <video id="cameraFeed" style="width: 100%; display: none;" autoplay></video>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Captured Image:</h6>
+                                <div class="mt-2 border p-2" style="min-height: 200px;">
+                                    @if (!string.IsNullOrEmpty(capturedImageData))
+                                    {
+                                        <img src="@capturedImageData" style="max-width: 100%;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center text-muted">
+                                            <i class="oi oi-image" style="font-size: 3rem;"></i>
+                                            <p>No image captured yet</p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (isMortgageSecurity)
+            {
+                <div class="card mb-4">
+                    <div>
+                        <div class="card-header">
+                            <h5 class="mb-0">Mortgage Bond Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label>Mortgage Bond Date</label>
+                                    <InputDate class="form-control shadow-none"
+                                               @bind-Value="loanDetails.MortgageBondDate" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label>Mortgage Bond No</label>
+                                    <InputText class="form-control shadow-none"
+                                               @bind-Value="loanDetails.MortgageBondNo" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label>Mortgage Bond Registration Date</label>
+                                    <InputDate class="form-control shadow-none"
+                                               @bind-Value="loanDetails.MortgageBondRegistrationNo" />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label>SARD Bank Loan No</label>
+                                    <InputText class="form-control shadow-none"
+                                               @bind-Value="loanDetails.SARDBLoanNo" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label>DV No</label>
+                                    <InputText class="form-control shadow-none"
+                                               @bind-Value="loanDetails.DVNo" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label>Sub Registrar Office Name</label>
+                                    <InputText class="form-control shadow-none"
+                                               @bind-Value="loanDetails.SubRegistrarOfficeName" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Step 7: Close, Reset and Submissiont -->
+            <div class="d-flex justify-content-between mt-4 mb-4">
+                <div>
+                    <!-- Left-aligned buttons -->
+                    <button type="button" class="btn btn-secondary me-2" @onclick="CloseJLDisbursement">
+                        <i class="oi oi-x"></i>
+                        Close
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary" @onclick="ResetForm">
+                        <i class="oi oi-action-undo"></i>
+                        Reset
+                    </button>
+                </div>
+
+                <!-- Right-aligned submit button -->
+                <button type="submit" class="btn btn-primary" disabled="@isValidSubmit" @onclick="JLDisbursementInitiate">
+                    <i class="oi oi-check"></i>
+                    Create Jewel Loan Account
+                </button>
+            </div>
+
+        </EditForm>
+
+        @if (showSuccessMessage)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <strong>Success!</strong> Jewel loan application submitted successfully. Loan No: @loanDetails.Loan_No
+                <button type="button" class="close" @onclick="() => showSuccessMessage = false">
+                    <span>&times;</span>
+                </button>
+            </div>
+        }
+
+
+        @if (showErrorMessage)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>Error!</strong> @errorMessage
+                <button type="button" class="close" @onclick="() => showErrorMessage = false">
+                    <span>&times;</span>
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    // [Parameter] public bool isJlOnMI { get; set; }
+    [Parameter] public EventCallback<bool> OnJLDisbursementComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoJewelLoanDisbursementPLDB> OnJLDisbursementInitiate { get; set; }
+    #endregion
+
+    #region declarations
+    private bool _isLoading = true;
+    private bool isValidSubmit = false;
+    // private bool isJlOnMI =false;
+    private DtoJewelLoanDisbursementPLDB loanDetails = new DtoJewelLoanDisbursementPLDB();
+    private DtoJewelLoanOrnments newOrnament = new DtoJewelLoanOrnments();
+    private string memberNo = "";
+    private List<DropdownItem> loanSchemes = new List<DropdownItem>();
+    private string capturedImageData = "";
+    private bool isLTDisbursement = false;
+    private bool isJewelSecurity = false;
+    private bool isMortgageSecurity = false;
+    private bool showSuccessMessage = false;
+    private bool showErrorMessage = false;
+    private string errorMessage = "";
+    private Staging_Details stagingDetails = new();
+    private bool isCameraInitialized = false;
+    #endregion
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                loanDetails = new();
+                loanDetails.AccountId = AccountId;
+                loanDetails.CashOrAdjustment = CashOrAdjustment;
+                loanDetails.Mem_Id = MemberId;
+                loanDetails.Member_No = MemberNumber;
+                loanDetails.Member_Name = MemberName;
+                loanDetails.Tranaction_Date = TransactionDate;
+
+                loanDetails.Ornment_List = new List<DtoJewelLoanOrnments>();
+
+                // Fetch loan schemes from API
+                await LoadLoanSchemes();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading data: {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+
+    }
+
+    private async Task LoadLoanSchemes()
+    {
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/6");
+            if (result != null && result.Count > 0)
+            {
+                loanSchemes = result.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading loan schemes: {ex.Message}");
+            errorMessage = "Failed to load loan schemes. Please try again.";
+            showErrorMessage = true;
+        }
+    }
+
+    private void FetchMemberDetails()
+    {
+        if (string.IsNullOrWhiteSpace(memberNo))
+        {
+            errorMessage = "Please enter a valid Member Number";
+            showErrorMessage = true;
+            return;
+        }
+
+        try
+        {
+            // loanDetails.Mem_Id = 110010008801;
+            // memberNo = "1100120006887";
+            // loanDetails.Member_No = "1100120006887";
+            // loanDetails.Member_Name = "Suresh R";
+
+            loanDetails.Mem_Id = MemberId;
+            loanDetails.Member_No = memberNo;
+            loanDetails.Member_Name = MemberName;
+            loanDetails.Tranaction_Date = TransactionDate;
+            loanDetails.CashOrAdjustment = CashOrAdjustment;
+            loanDetails.Ornment_List = null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching member details: {ex.Message}");
+            errorMessage = "Member not found or error fetching details.";
+            showErrorMessage = true;
+        }
+    }
+
+    private async Task FetchSchemeDetails()
+    {
+
+        if (loanDetails.Scheme_Id <= 0)
+        {
+            return;
+        }
+
+        try
+        {
+
+            double eligiblePercentage = 0;
+            double maximumLimit = 0;
+            double jlExistingLoanBalance = 0;
+            int period = 0;
+            // Loan_Schemes? jlScheme = new Loan_Schemes();
+            LoanROIAndPIVM? roi = new LoanROIAndPIVM();
+            var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate");
+            if (marketRate != null)
+            {
+                loanDetails.Market_Rate = marketRate.Market_Rate;
+                loanDetails.Govt_Rate = marketRate.Market_Rate;
+            }
+            eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage");
+            loanDetails.Percentage_Of_Eligibility_On_Market_Rate = eligiblePercentage;
+
+            string formattedDate = loanDetails.Tranaction_Date.ToString("yyyy-MM-dd");
+            maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}");
+            loanDetails.Maximum_Loan_Limit = maximumLimit;
+
+            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}");
+
+            loanDetails.Period_Of_Loan = period;
+
+            string wefFormatted = ((DateTime)loanDetails.Tranaction_Date).ToString("yyyy-MM-dd");
+            string agency = "S";
+            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}");
+
+            loanDetails.Rate_Of_Interest = roi!.Roi;
+            loanDetails.Penal_Rate = roi!.Pi;
+
+            jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}");
+
+            loanDetails.Existing_Loan_Outstanding = jlExistingLoanBalance;
+
+
+            // Example: Call API to get scheme details
+            // var schemeDetails = await Http.GetFromJsonAsync<SchemeDetails>($"api/loanschemes/{loanDetails.Scheme_Id}");
+
+            // For demo, use sample data based on scheme ID
+            // switch (loanDetails.Scheme_Id)
+            // {
+            //     case 1: // Normal Jewel Loan
+            //         loanDetails.Market_Rate = 5500.00;
+            //         loanDetails.Govt_Rate = 5000.00;
+            //         loanDetails.Maximum_Loan_Limit = 500000.00;
+            //         loanDetails.Percentage_Of_Eligibility_On_Market_Rate = 80.0;
+            //         loanDetails.Period_Of_Loan = 12;
+            //         loanDetails.Rate_Of_Interest = 12.5;
+            //         loanDetails.Penal_Rate = 2.0;
+            //         break;
+            //     case 2: // Agriculture Jewel Loan
+            //         loanDetails.Market_Rate = 5500.00;
+            //         loanDetails.Govt_Rate = 5000.00;
+            //         loanDetails.Maximum_Loan_Limit = 300000.00;
+            //         loanDetails.Percentage_Of_Eligibility_On_Market_Rate = 75.0;
+            //         loanDetails.Period_Of_Loan = 24;
+            //         loanDetails.Rate_Of_Interest = 10.0;
+            //         loanDetails.Penal_Rate = 1.5;
+            //         break;
+            //     case 3: // Special Jewel Loan
+            //         loanDetails.Market_Rate = 5500.00;
+            //         loanDetails.Govt_Rate = 5000.00;
+            //         loanDetails.Maximum_Loan_Limit = 750000.00;
+            //         loanDetails.Percentage_Of_Eligibility_On_Market_Rate = 85.0;
+            //         loanDetails.Period_Of_Loan = 36;
+            //         loanDetails.Rate_Of_Interest = 14.0;
+            //         loanDetails.Penal_Rate = 3.0;
+            //         break;
+            // }
+
+            // Calculate due date
+            CalculateDueDate();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching scheme details: {ex.Message}");
+            errorMessage = "Failed to load scheme details. Please try again.";
+            showErrorMessage = true;
+        }
+    }
+
+    private void FetchSecurityType()
+    {
+
+        if (loanDetails.Security_Type <= 0)
+        {
+            return;
+        }
+
+        try
+        {
+            // For demo, use sample data based on scheme ID
+            switch (loanDetails.Security_Type)
+            {
+                case 1: // Normal Jewel Loan
+                    // loanDetails.Market_Rate = 5500.00;
+                    // loanDetails.Govt_Rate = 5000.00;
+                    // loanDetails.Maximum_Loan_Limit = 500000.00;
+                    // loanDetails.Percentage_Of_Eligibility_On_Market_Rate = 80.0;
+                    // loanDetails.Period_Of_Loan = 12;
+                    // loanDetails.Rate_Of_Interest = 12.5;
+                    // loanDetails.Penal_Rate = 2.0;
+                    // isJlOnMI = false;
+                    isJewelSecurity = true;
+                    isMortgageSecurity = true;
+                    break;
+                case 2: // Agriculture Jewel Loan - MI
+                    // loanDetails.Market_Rate = 5500.00;
+                    // loanDetails.Govt_Rate = 5000.00;
+                    // loanDetails.Maximum_Loan_Limit = 300000.00;
+                    // loanDetails.Percentage_Of_Eligibility_On_Market_Rate = 75.0;
+                    // loanDetails.Period_Of_Loan = 24;
+                    // loanDetails.Rate_Of_Interest = 10.0;
+                    // loanDetails.Penal_Rate = 1.5;
+                    // isJlOnMI = true;
+                    isJewelSecurity = false;
+                    isLTDisbursement = true;
+                    isMortgageSecurity = true;
+
+                    break;
+                case 3: // Special Jewel Loan
+                    // loanDetails.Market_Rate = 5500.00;
+                    // loanDetails.Govt_Rate = 5000.00;
+                    // loanDetails.Maximum_Loan_Limit = 750000.00;
+                    // loanDetails.Percentage_Of_Eligibility_On_Market_Rate = 85.0;
+                    // loanDetails.Period_Of_Loan = 36;
+                    // loanDetails.Rate_Of_Interest = 14.0;
+                    // loanDetails.Penal_Rate = 3.0;
+                    break;
+            }
+
+            // Calculate due date
+            // CalculateDueDate();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching scheme details: {ex.Message}");
+            errorMessage = "Failed to load scheme details. Please try again.";
+            showErrorMessage = true;
+        }
+    }
+
+    private void CalculateDueDate()
+    {
+        if (loanDetails.Period_Of_Loan > 0)
+        {
+            loanDetails.Due_Date = loanDetails.Tranaction_Date.AddMonths(loanDetails.Period_Of_Loan);
+        }
+    }
+
+    private void AddOrnament()
+    {
+        if (string.IsNullOrWhiteSpace(newOrnament.Ornment_Name) || newOrnament.Ornment_Nos <= 0)
+        {
+            errorMessage = "Please enter valid ornament details";
+            showErrorMessage = true;
+            return;
+        }
+
+        if (loanDetails.Ornment_List == null)
+        {
+            loanDetails.Ornment_List = new List<DtoJewelLoanOrnments>();
+        }
+
+        loanDetails.Ornment_List.Add(new DtoJewelLoanOrnments
+        {
+            Ornment_Name = newOrnament.Ornment_Name,
+            Ornment_Nos = newOrnament.Ornment_Nos
+        });
+
+        // Reset form
+        newOrnament = new DtoJewelLoanOrnments();
+    }
+
+    private void RemoveOrnament(DtoJewelLoanOrnments ornament)
+    {
+        if (loanDetails.Ornment_List != null)
+        {
+            loanDetails.Ornment_List.Remove(ornament);
+        }
+    }
+
+    private void CalculateAppraisalFee()
+    {
+        if (loanDetails.Loan_Amount <= 0) return;
+        DtoAppraisalFee fee = new DtoAppraisalFee();
+        fee = AppraisalFee.GetAppraisalFee(loanDetails.Loan_Amount);
+        loanDetails.AppraisalFee = fee.AppraisalFee;
+        loanDetails.BankCharges = fee.BankCharges;
+    }
+
+    private void CalculateEligibleAmount()
+    {
+        if (loanDetails.Ornment_List == null || loanDetails.Ornment_List.Count == 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Ornment details are empty");
+            loanDetails.Jewels_Value = 0;
+            return;
+        }
+
+        // Calculate net weight
+        loanDetails.Net_Weight = loanDetails.Gross_Weight - loanDetails.Wasgate;
+
+        if (loanDetails.Net_Weight < 0)
+        {
+            loanDetails.Net_Weight = 0;
+        }
+
+        // Calculate jewel value and loan eligibility
+        double valueOnGrossWeight = loanDetails.Gross_Weight * loanDetails.Market_Rate * (loanDetails.Percentage_Of_Eligibility_On_Market_Rate / 100);
+        double valueOnNetWeight = loanDetails.Net_Weight * loanDetails.Govt_Rate;
+
+        // Determine eligible amount (lesser of the two)
+        if (valueOnGrossWeight >= valueOnNetWeight)
+        {
+            loanDetails.Jewels_Value = valueOnNetWeight;
+        }
+        else
+        {
+            loanDetails.Jewels_Value = valueOnGrossWeight;
+        }
+
+        // Apply maximum loan limit
+        if (loanDetails.Jewels_Value > loanDetails.Maximum_Loan_Limit)
+        {
+            loanDetails.Jewels_Value = loanDetails.Maximum_Loan_Limit;
+        }
+        if (loanDetails.Existing_Loan_Outstanding + loanDetails.Loan_Amount > loanDetails.Maximum_Loan_Limit)
+        {
+            loanDetails.Loan_Amount = loanDetails.Maximum_Loan_Limit - loanDetails.Existing_Loan_Outstanding;
+        }
+        // Set a suggested loan amount
+        loanDetails.Loan_Amount = loanDetails.Jewels_Value;
+        CalculateAppraisalFee();
+    }
+
+    private void ValidateLoanAmount()
+    {
+        if (loanDetails.Loan_Amount > loanDetails.Jewels_Value)
+        {
+            errorMessage = $"Loan amount cannot exceed eligible amount of {loanDetails.Jewels_Value:C2}";
+            showErrorMessage = true;
+            loanDetails.Loan_Amount = loanDetails.Jewels_Value;
+        }
+        CalculateAppraisalFee();
+    }
+
+    private async Task InitCamera_old()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("initializeCamera");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing camera: {ex.Message}");
+            errorMessage = "Failed to initialize camera. Please check permissions.";
+            showErrorMessage = true;
+        }
+    }
+
+    private async Task InitCamera()
+    {
+        try
+        {
+            // Use InvokeAsync<bool> since we're now returning a proper boolean
+            var success = await JSRuntime.InvokeAsync<bool>("initializeCamera");
+
+            if (!success)
+            {
+                errorMessage = "Could not access camera";
+                showErrorMessage = true;
+            }
+            // isCameraInitialized = await JSRuntime.InvokeAsync<bool>("initializeCamera");
+            // if (!isCameraInitialized)
+            // {
+            //     errorMessage = "Could not access camera";
+            //     showErrorMessage = true;
+            // }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing camera: {ex.Message}");
+            errorMessage = $"Camera error: {ex.Message}";
+            // errorMessage = "Failed to initialize camera. Please check permissions.";
+            showErrorMessage = true;
+        }
+    }
+
+    private async Task CapturePhoto_old()
+    {
+        try
+        {
+            capturedImageData = await JSRuntime.InvokeAsync<string>("captureImage");
+            loanDetails.Jewels_Photo_Path = capturedImageData;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error capturing photo: {ex.Message}");
+            errorMessage = "Failed to capture photo.";
+            showErrorMessage = true;
+        }
+    }
+
+    private async Task CapturePhoto_old2()
+    {
+        try
+        {
+            // First verify camera is ready
+            var isCameraReady = await JSRuntime.InvokeAsync<bool>(
+                "eval",
+                "!!document.getElementById('cameraFeed')?.srcObject");
+
+            if (!isCameraReady)
+            {
+                errorMessage = "Please initialize camera first";
+                showErrorMessage = true;
+                return;
+            }
+
+            // Now capture the image
+            capturedImageData = await JSRuntime.InvokeAsync<string>("captureImage");
+
+            if (string.IsNullOrEmpty(capturedImageData))
+            {
+                throw new Exception("Empty image data");
+            }
+
+            loanDetails.Jewels_Photo_Path = capturedImageData;
+            StateHasChanged(); // Refresh UI
+            // // Check if camera is initialized first
+            // var videoElement = await JSRuntime.InvokeAsync<object>("eval",
+            //     "document.getElementById('cameraFeed').srcObject !== null");
+
+            // if (videoElement == null || !(bool)videoElement)
+            // {
+            //     errorMessage = "Please initialize the camera first";
+            //     showErrorMessage = true;
+            //     return;
+            // }
+
+            // // Add timeout for safety
+            // using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            // capturedImageData = await JSRuntime.InvokeAsync<string>(
+            //     "captureImage",
+            //     cancellationToken: cts.Token);
+
+            // if (string.IsNullOrEmpty(capturedImageData))
+            // {
+            //     throw new Exception("Captured image data is empty");
+            // }
+
+            // // Store in your model
+            // loanDetails.Jewels_Photo_Path = capturedImageData;
+
+            // // Optional: Log the first 50 chars of the base64 string for debugging
+            // Console.WriteLine($"Image captured: {capturedImageData[..50]}...");
+        }
+        catch (OperationCanceledException)
+        {
+            errorMessage = "Image capture timed out";
+            showErrorMessage = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error capturing photo: {ex.ToString()}");
+            errorMessage = $"Failed to capture photo: {ex.Message}";
+            showErrorMessage = true;
+        }
+    }
+
+    private async Task CapturePhoto()
+    {
+        try
+        {
+            // Get base64 image
+            capturedImageData = await JSRuntime.InvokeAsync<string>("captureImage");
+
+            // Upload to server
+            var response = await _httpClient.PostAsJsonAsync("https://localhost:7073/api/Transaction/upload",
+                new { ImageData = capturedImageData });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ImageUploadResult>();
+                loanDetails.Jewels_Photo_Path = result!.Path;
+
+                // Now store in staging_details with just the path
+                // stagingDetails = new()
+                // {
+                //     // ... other properties
+                //     Related_Account_Data = JsonSerializer.Serialize(loanDetails)
+                // };
+
+                // await _httpClient.PostAsJsonAsync("api/Staging", stagingDetails);
+            }
+            else
+            {
+                errorMessage = "Failed to upload image";
+                showErrorMessage = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+            showErrorMessage = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        // Stop camera when component disposes
+        _ = JSRuntime.InvokeVoidAsync("eval",
+            "document.getElementById('cameraFeed')?.srcObject?.getTracks()?.forEach(t => t.stop())");
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (string.IsNullOrEmpty(loanDetails.Member_No) || loanDetails.Mem_Id <= 0)
+        {
+            errorMessage = "Please enter a valid member number and fetch member details";
+            showErrorMessage = true;
+            return;
+        }
+
+        if (loanDetails.Scheme_Id <= 0)
+        {
+            errorMessage = "Please select a loan scheme";
+            showErrorMessage = true;
+            return;
+        }
+
+        if (loanDetails.Ornment_List == null || !loanDetails.Ornment_List.Any())
+        {
+            errorMessage = "Please add at least one ornament";
+            showErrorMessage = true;
+            return;
+        }
+
+        if (loanDetails.Gross_Weight <= 0)
+        {
+            errorMessage = "Please enter valid gross weight";
+            showErrorMessage = true;
+            return;
+        }
+
+        if (loanDetails.Loan_Amount <= 0 || loanDetails.Loan_Amount > loanDetails.Jewels_Value)
+        {
+            errorMessage = "Please enter valid loan amount within the eligible limit";
+            showErrorMessage = true;
+            return;
+        }
+
+        if (string.IsNullOrEmpty(loanDetails.Jewels_Photo_Path))
+        {
+            errorMessage = "Please capture a photo of the jewels";
+            showErrorMessage = true;
+            return;
+        }
+
+        try
+        {
+            // Example: Submit to API
+            // var response = await Http.PostAsJsonAsync("api/jewelLoans", loanDetails);
+            // if (response.IsSuccessStatusCode)
+            // {
+            //     var result = await response.Content.ReadFromJsonAsync<JewelLoanResponse>();
+            //     loanDetails.Loan_No = result.Loan_No;
+            //     showSuccessMessage = true;
+            // }
+
+            // For demo, simulate API call
+            await Task.Delay(1000); // Simulate API delay
+            loanDetails.Loan_No = $"JL{DateTime.Now:yyyyMMdd}{new Random().Next(1000, 9999)}";
+            showSuccessMessage = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error submitting loan: {ex.Message}");
+            errorMessage = "Failed to submit loan. Please try again.";
+            showErrorMessage = true;
+        }
+    }
+
+    private bool IsValidForSubmission()
+    {
+        bool result = false;
+        if (string.IsNullOrEmpty(loanDetails.Member_No) || loanDetails.Mem_Id <= 0)
+            errorMessage = "Please enter a valid member number and fetch member details";
+
+        if (loanDetails.Scheme_Id <= 0)
+            errorMessage += "\n Please select a loan scheme";
+
+        if (loanDetails.Ornment_List == null || !loanDetails.Ornment_List.Any())
+            errorMessage += "\n Please add at least one ornament";
+
+        if (loanDetails.Gross_Weight <= 0)
+            errorMessage += "\n Please enter valid gross weight";
+
+        if (loanDetails.Loan_Amount <= 0 || loanDetails.Loan_Amount > loanDetails.Jewels_Value)
+            errorMessage += "\n Please enter valid loan amount within the eligible limit";
+
+        if (string.IsNullOrEmpty(loanDetails.Jewels_Photo_Path))
+            errorMessage += "\n Please capture a photo of the jewels";
+        if (errorMessage.Length > 0)
+        {
+            showErrorMessage = true;
+            result = true;
+            isValidSubmit = true;
+        }
+        else
+            isValidSubmit = false;
+        return result;
+    }
+
+    private void ResetForm()
+    {
+        loanDetails = new()
+        {
+            Tranaction_Date = DateTime.Now,
+            Ornment_List = new List<DtoJewelLoanOrnments>()
+        };
+        memberNo = "";
+        newOrnament = new DtoJewelLoanOrnments();
+        capturedImageData = "";
+        showSuccessMessage = false;
+        showErrorMessage = false;
+    }
+
+
+    protected async Task CloseJLDisbursement()
+    {
+        await OnJLDisbursementComponentClose.InvokeAsync(true);
+    }
+
+    protected async Task JLDisbursementInitiate()
+    {
+        if (string.IsNullOrEmpty(loanDetails.Jewels_Photo_Path))
+        {
+            errorMessage = "Please capture a photo of the jewels before submitting.";
+            showErrorMessage = true;
+            return;
+        }
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        string jewelLoanJsonData = ConvertToJson(loanDetails);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = MemberId,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = loanDetails.AppraisalFee + loanDetails.BankCharges,
+            Payment_Amount = loanDetails.Loan_Amount,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = jewelLoanJsonData,
+            Created_By = 110010000001,
+            Created_Date = TransactionDate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = "11001"
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        // await OnJLDisbursementInitiate.InvokeAsync(loanDetails);
+        await TransactionState.NotifyIntiate(true);
+    }
+
+    private string ConvertToJson(DtoJewelLoanDisbursementPLDB disbursement)
+    {
+        string jsonData = string.Empty;
+        try
+        {
+            jsonData = JsonSerializer.Serialize(loanDetails, new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            });
+            // var options = new JsonSerializerOptions
+            // {
+            //     WriteIndented = false, // Compact JSON
+            //     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            // };
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to prepare loan data: {ex.Message}";
+            showErrorMessage = true;
+            jsonData = string.Empty;
+        }
+        return jsonData;
+        // return JsonSerializer.Serialize(disbursement, options);
+    }
+
+    // using System.Text.Json;
+    public DtoJewelLoanDisbursement ConvertFromJson(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+        };
+
+        return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData, options)!;
+    }
+
+    // Handling Potential Errors
+    // You might want to add error handling:
+    public DtoJewelLoanDisbursement? ConvertFromJson2(string jsonData)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData);
+        }
+        catch (JsonException ex)
+        {
+            // Log the error
+            Console.WriteLine($"Error deserializing JSON: {ex.Message}");
+            return null;
+        }
+    }
+
+    // Customizing the Deserialization
+    // If you need special handling for certain properties(like date formats), you can configure the serializer:
+    public DtoJewelLoanDisbursement ConvertFromJson3(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // If your JSON uses camelCase
+            Converters = { new JsonStringEnumConverter() } // If you have enums
+        };
+        return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData, options)!;
+    }
+
+    // Customizing the Deserialization
+    // If you need special handling for certain properties(like date formats), you can configure the serializer:
+    public DtoJewelLoanDisbursement ConvertFromJson4(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // If your JSON uses camelCase
+            Converters = { new JsonStringEnumConverter() } // If you have enums
+        };
+
+        return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData, options)!;
+    }
+
+
+
+
+}

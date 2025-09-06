@@ -595,5 +595,56 @@ namespace Infin8.Coapp.Utility
             return date.Month == 12 && date.Day == 31;
         }
 
+        public static DtoPaySlip  Calculate_LOP_HP(DtoPaySlip paySlip)
+        {
+            double bp = 0;
+            double allowanceAmt = 0;
+            int noOfDays = 0;
+            int lopDays = 0;
+            int mlDays = 0;
+            double hp = 0;
+
+            double grossPay = 0, totalDeductions = 0, netPay = 0, loanDeductions = 0, suspensAccountDeductions = 0;
+            try
+            {
+                bp = paySlip.ComponentAssignments!.Where(x => x.Component_Code == "BP").Select(x => x.Current_Value).FirstOrDefault();
+                //da = paySlip.ComponentAssignments!.Where(x => x.Component_Code == "DA").Select(x => x.Current_Value).FirstOrDefault();
+                noOfDays = paySlip.TotalDays;
+                lopDays = paySlip.LossOfPay;
+
+                if (lopDays > 0)
+                {
+                    foreach (var list in paySlip.ComponentAssignments!.Where(x=> x.Component_Type == 1))
+                    {
+                        allowanceAmt = list.Current_Value;
+                        allowanceAmt = allowanceAmt / noOfDays * lopDays;
+                        allowanceAmt = (int)(allowanceAmt + 0.5);
+                        list.Current_Value = allowanceAmt;
+                    }
+                }
+                mlDays = paySlip.MedicalLeave;
+                if(mlDays >0)
+                {
+                    var mlComponent = paySlip.ComponentAssignments!.FirstOrDefault(x => x.Component_Code == "DA");
+                    hp = bp * noOfDays / mlDays;
+                    hp = Math.Round(hp, 0);
+                    mlComponent!.Current_Value = hp;
+                }
+                grossPay = paySlip.ComponentAssignments!.Where(x => x.Component_Type == 1).Sum(x => x.Current_Value);
+                totalDeductions = paySlip.ComponentAssignments!.Where(x => x.Component_Type == 2).Sum(x => x.Current_Value);
+                loanDeductions = paySlip.LoanList!.Sum(x=> x.PrlDemand + x.PrlOD + x.IntDemand);
+                suspensAccountDeductions = paySlip.SuspeneDueToList!.Sum(x => x.Pmt - x.Rpt);
+                totalDeductions += loanDeductions + suspensAccountDeductions;
+                paySlip.GrossPay = grossPay;
+                paySlip.TotalDeductions = totalDeductions;
+                paySlip.NetPay = grossPay - totalDeductions;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine (ex.Message, "error in calculating Lop/half pay");
+            }
+            return paySlip;
+        }
+
     }
 }

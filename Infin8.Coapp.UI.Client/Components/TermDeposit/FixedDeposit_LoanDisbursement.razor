@@ -269,7 +269,7 @@
         </div>
 
         <!-- Right-aligned submit button -->
-        <button type="submit" class="btn btn-primary" disabled="@(loanModel.Loan_Amount == null || loanModel.Loan_Amount <= 0 || loanModel.Loan_Amount > loanModel.Eligible_Loan_Amount)" @onclick="FDLoanInitiate">
+        <button type="submit" class="btn btn-primary" disabled="@( loanModel.Loan_Amount <= 0 || loanModel.Loan_Amount > loanModel.Eligible_Loan_Amount)" @onclick="FDLoanInitiate">
             <i class="oi oi-check"></i>
             Initiate Fixed Deposit Loan
         </button>
@@ -378,7 +378,7 @@
         // When selection changes, reset the loaded FD data and calculations
         ResetFdDataStep();
         // Update the Selected_FD_Ids list (optional, could also filter directly in LoadFdDataAsync)
-        loanModel.Selected_FD_Ids = loanModel.FD_Nos.Where(fd => fd.IsSelected).Select(fd => fd.FD_Id).ToList();
+        loanModel.Selected_FD_Ids = loanModel.FD_Nos!.Where(fd => fd.IsSelected).Select(fd => fd.FD_Id).ToList();
         StateHasChanged(); // Update UI to enable/disable Load FD Data button
     }
 

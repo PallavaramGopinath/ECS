@@ -53,5 +53,9 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.PayPFRoiTemplate.GetPayPFROITemplateListAsync();
         }
+        public async Task<Pay_PF_ROITemplate> GetPayPFRoiTemplateByDate(DateTime salaryDate, string brCode)
+        {
+            return await _unitOfWork.PayPFRoiTemplate.GetPayPFRoiTemplateByDate(salaryDate, brCode);
+        }
     }
 }

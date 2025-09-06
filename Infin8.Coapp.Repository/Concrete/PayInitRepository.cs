@@ -15,23 +15,24 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddPayInitAsync(Pay_Init payInit)
+        public async Task<Pay_Init> AddPayInitAsync(Pay_Init payInit)
         {
-            bool result = false;
+            //bool result = false;
             try
             {
                 decimal maxId = await CSISContext.Pay_Init.MaxAsync(x => x.Pay_Id);
                 maxId++;
                 payInit.Pay_Id = maxId;
                 await AddAsync(payInit);
-                result = true;
+                //result = true;
             }
             catch (Exception ex)
             {
-                result = false;
+                //result = false;
                 throw new InvalidOperationException(ex.Message + " Initialisation of payroll not saved");
             }
-            return result;
+            //return result;
+            return payInit;
         }
 
         public async Task<bool> EditPayInitAsync(Pay_Init payInit)

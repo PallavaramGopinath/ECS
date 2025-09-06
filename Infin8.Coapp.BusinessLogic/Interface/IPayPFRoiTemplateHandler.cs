@@ -12,5 +12,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> AddPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate);
         Task<bool> EditPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate);
         Task<List<Pay_PF_ROITemplate>> GetPayPFROITemplateListAsync();
+        Task<Pay_PF_ROITemplate> GetPayPFRoiTemplateByDate(DateTime salaryDate,string brCode);
     }
 }

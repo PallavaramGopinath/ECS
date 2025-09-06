@@ -92,6 +92,9 @@ builder.Services.AddScoped<ICRMHandler, CRMHandler>();
 builder.Services.AddScoped<IMemTrnHandler, MemTrnHandler>();
 #endregion 
 
+#region Employee
+builder.Services.AddScoped<IEmpMasterHandler, EmpMasterHandler>();
+#endregion 
 #region Reference
 builder.Services.AddScoped<IReferenceHandler, ReferenceHandler>();
 builder.Services.AddScoped<IAreaMasterHandler, AreaMasterHandler>();
@@ -119,6 +122,10 @@ builder.Services.AddScoped<ITermDepositLoanEligibleTemplateHandler, TermDepositL
 builder.Services.AddScoped<ITermDepositROITemplateHandler, TermDepositROITemplateHandler>();
 builder.Services.AddScoped<ITermDepositIntCalcCalendarHandler, TermDepositIntCalcCalendarHandler>();
 builder.Services.AddScoped<ITermDepositFCTemplateHandler, TermDepositFCTemplateHandler>();
+#endregion 
+
+#region Pay
+builder.Services.AddScoped<IPaySlipHandler, PaySlipHandler>();
 #endregion 
 
 builder.Services.AddScoped<INewAccountNoHandler, NewAccountNoHandler>();

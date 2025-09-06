@@ -9,7 +9,7 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface IPayInitHandler
     {
-        Task<bool> AddPayInitAsync(Pay_Init payInit);
+        Task<Pay_Init> AddPayInitAsync(Pay_Init payInit);
         Task<bool> EditPayInitAsync(Pay_Init payInit);
     }
 }

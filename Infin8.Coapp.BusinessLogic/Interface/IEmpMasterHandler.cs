@@ -13,6 +13,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> AddEmployeeMasterAsync(Emp_Master empMaster);
         Task<bool> EditEmployeeMasterAsync(Emp_Master empMaster);
         Task<List<DropdownItem>> GetPayGenInfoListAsync(int infoType);
-        Task<List<EmployeeMasterDto>> GetEmployeeMasterListAsync();
+        Task<List<EmployeeMasterDto>> GetEmployeeMasterListAsync(string brCode);
     }
 }

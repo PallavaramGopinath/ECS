@@ -87,7 +87,7 @@ namespace Infin8.Coapp.BusinessLogic
                 //Checked_By = transactions.Select(x => x.Checked_By).First();
                 Transacted_Member_Id = transactions.Select(x => x.Transacted_Member_Id).First();
                 var mem = await _unitOfWork.Members.GetMemberDetailsByMemIdAsync(Transacted_Member_Id);
-                if(mem !=null)
+                if (mem != null)
                 {
                     Transacted_MemNo = mem.MemberNo!;
                     Transacted_MemName = mem.MemberName!;
@@ -110,7 +110,7 @@ namespace Infin8.Coapp.BusinessLogic
                 if (paymentAmount > 0) vocAmt = paymentAmount;
                 IsChequeOnly = await _unitOfWork.TransactionsRepository.IsChequeOnly(stagingId);
                 rptPmtNo = _unitOfWork.TransactionsRepository.GetReceiptAndPaymentNo(cashReceipt, cashPayment, adjReceipt, adjPayment, IsChequeOnly, yrId);
-                if(rptPmtNo == null)
+                if (rptPmtNo == null)
                 {
                     //throw new Exception("Failed to generate receipt and payment numbers.");
                     return false;
@@ -124,7 +124,7 @@ namespace Infin8.Coapp.BusinessLogic
                 Map_General mapGeneral = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
 
                 /// cash transactions
-                if(cashPayment >0 || cashReceipt >0)
+                if (cashPayment > 0 || cashReceipt > 0)
                 {
                     vocTrn = new();
                     vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.Cash_Led_Id, cashReceipt, cashPayment, 1, Transacted_MemNo.Trim() + Transacted_MemName.Trim(), false, Checked_By, yrId, "C", "", Transacted_Member_Id, brCode, 0, 0, 0);
@@ -151,7 +151,7 @@ namespace Infin8.Coapp.BusinessLogic
                             otherRelatedData = Utility.JsonbObject.ConvertFromJsonForOtherRelatedData(trns.Related_Account_Data!);
                             Narration = otherRelatedData.Member_No!.Trim() + " " + otherRelatedData.Member_Name!.Trim();
                             scTrn = Utility.GetModalObject.GetMemTrnObject(3, trns.Account_Holder_Member_Id, trns.Ledger_Id, Transacted_Date, trns.Receipt_Amount, trns.Payment_Amount, false, false, vocId, Checked_By, yrId, 0, 0, null, 0, "", 0, 0, 0, brCode);
-                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment , Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
+                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
                             result = await _unitOfWork.MemTrn.AddMemTrnAsync(scTrn);
                             result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
@@ -206,7 +206,7 @@ namespace Infin8.Coapp.BusinessLogic
                                     vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.FD_Led_Id, 0, fdRefund.Net_Payable, 1, Narration + " FD No : " + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), false, Checked_By, yrId, Status, "TD No: " + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), fdRefund.Mem_Id, brCode, 0, 0, 0);
                                     finVoucherTrns.Add(vocTrn);
                                     vocTrn = new();
-                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.FD_Led_Id, 0, fdRefund.Total_Deposit_Payable - fdRefund.Net_Payable, 2, Narration + " FD No : " + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), false, Checked_By, yrId, Status, "FD No :" + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), fdRefund.Mem_Id,brCode, 0, 0, 0);
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.FD_Led_Id, 0, fdRefund.Total_Deposit_Payable - fdRefund.Net_Payable, 2, Narration + " FD No : " + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), false, Checked_By, yrId, Status, "FD No :" + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), fdRefund.Mem_Id, brCode, 0, 0, 0);
                                     finVoucherTrns.Add(vocTrn);
                                     vocTrn = new();
                                     vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.FD_Excess_IntPaid_Id, Math.Abs(totalIntPayment), 0, 2, Narration + " FD No : " + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), false, Checked_By, yrId, Status, fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), fdRefund.Mem_Id, brCode, 0, 0, 0);
@@ -216,11 +216,11 @@ namespace Infin8.Coapp.BusinessLogic
                             else
                             {
                                 vocTrn = new();
-                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.FD_Led_Id, 0, fdRefund.Total_Deposit_Payable, fdRefund.CashOrAdjustment, Narration + " FD No :" + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), false, Checked_By, yrId, Status, "TD No: " + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), fdRefund.Mem_Id,brCode, 0, 0, 0);
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.FD_Led_Id, 0, fdRefund.Total_Deposit_Payable, fdRefund.CashOrAdjustment, Narration + " FD No :" + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), false, Checked_By, yrId, Status, "TD No: " + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), fdRefund.Mem_Id, brCode, 0, 0, 0);
                                 finVoucherTrns.Add(vocTrn);
 
                                 vocTrn = new();
-                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.FD_Int_Led_Id, 0, fdRefund.Total_Interest_Payable, fdRefund.CashOrAdjustment, Narration + " FD No :" + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), false, Checked_By, yrId, Status, "TD No: " + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), fdRefund.Mem_Id,brCode, 0, 0, 0);
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.FD_Int_Led_Id, 0, fdRefund.Total_Interest_Payable, fdRefund.CashOrAdjustment, Narration + " FD No :" + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), false, Checked_By, yrId, Status, "TD No: " + fdRefund.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), fdRefund.Mem_Id, brCode, 0, 0, 0);
                                 finVoucherTrns.Add(vocTrn);
                             }
                             #endregion
@@ -291,7 +291,7 @@ namespace Infin8.Coapp.BusinessLogic
                                 fdRenewal.FixedDepositCreate.IsNomineeProvided, fdRenewal.FixedDepositCreate.Interest_Payable_Frequency, 0, fdRenewal.FixedDepositCreate.Is_DiscountRate, fdRenewal.FixedDepositCreate.IsCompoundInterest,
                                 fdRenewal.FixedDepositCreate.compoundfrequency, fdRenewal.FixedDepositCreate.Common.Nominee1Name!, fdRenewal.FixedDepositCreate.Common.Nominee1Age,
                                 fdRenewal.FixedDepositCreate.Common.Nominee1Relationship!, fdRenewal.FixedDepositCreate.Common.Nominee2Name!, fdRenewal.FixedDepositCreate.Common.Nominee2Age,
-                                fdRenewal.FixedDepositCreate.Common.Nominee2Relationship!, false, false, false, vocId, Checked_By, yrId, "N", renewalTDId, renewalTDNo!,brCode);
+                                fdRenewal.FixedDepositCreate.Common.Nominee2Relationship!, false, false, false, vocId, Checked_By, yrId, "N", renewalTDId, renewalTDNo!, brCode);
 
                             (result, newFDIdForRenewal, newFDNoForRenewal) = await _unitOfWork.TermDepositMaster.AddTermDepositMasterAsync(newFDForRenewal);
                             if (!result)
@@ -300,18 +300,18 @@ namespace Infin8.Coapp.BusinessLogic
                             }
                             fdRenewalTrn = Utility.GetModalObject.GetTermDepositTrn(0, fdRenewal.Transaction_Date, newFDIdForRenewal, 0,
                                 fdRenewal.FixedDepositCreate.Deposit_Amount, fdRenewal.FixedDepositCreate.Maturity_Amount, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, false, false,
-                                vocId, Checked_By, yrId, 1, 0,brCode);
+                                vocId, Checked_By, yrId, 1, 0, brCode);
                             fdRenewalTrnList.Add(fdRenewalTrn);
                             int memSlNo = 1;
                             foreach (var memRem in fdRenewal.FixedDepositCreate.Members)
                             {
-                                fdRenewalMem = Utility.GetModalObject.GetTermDepositMembers(0, newFDIdForRenewal, memRem.Mem_Id, memSlNo, false, vocId, Checked_By, yrId,brCode);
+                                fdRenewalMem = Utility.GetModalObject.GetTermDepositMembers(0, newFDIdForRenewal, memRem.Mem_Id, memSlNo, false, vocId, Checked_By, yrId, brCode);
                                 fdRenewalMembers.Add(fdRenewalMem);
                                 memSlNo++;
                             }
                             vocTrn = new();
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, tdScheme.Led_Id, fdRenewal.FixedDepositCreate.Deposit_Amount, 0, fdRenewal.FixedDepositCreate.CashorAdjustment,
-                                Narration, false, Checked_By, yrId, Status, "FD No: " + newFDNoForRenewal, 0,brCode, 0, 0, 0);
+                                Narration, false, Checked_By, yrId, Status, "FD No: " + newFDNoForRenewal, 0, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
                             #endregion
 
@@ -321,18 +321,18 @@ namespace Infin8.Coapp.BusinessLogic
                             {
                                 fdRenewalTrn = Utility.GetModalObject.GetTermDepositTrn(0, fdRenewal.Transaction_Date, fd.FD_Id, 0, 0, 0, fd.Current_Interest_Calculated, fd.Current_Interest_Applied_Date,
                                     fd.Total_Interest_Payable, fd.Deposit_Refund, 0, null, 0, 0, 0, null, null, false, false,
-                                    vocId, Checked_By, yrId, 0, 0,brCode);
+                                    vocId, Checked_By, yrId, 0, 0, brCode);
                                 fdRenewalTrnList.Add(fdRenewalTrn);
                                 vocTrn = new();
                                 vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, tdScheme.Led_Id, 0, fd.Deposit_Refund, fdRenewal.CashOrAdjustment,
-                                    Narration + " FD No : " +fd.FD_No , false, Checked_By, yrId, Status, "FD No: " + fd.FD_No, fdRenewal.Mem_Id, brCode, newFDIdForRenewal, 0, 0);
+                                    Narration + " FD No : " + fd.FD_No, false, Checked_By, yrId, Status, "FD No: " + fd.FD_No, fdRenewal.Mem_Id, brCode, newFDIdForRenewal, 0, 0);
                             }
                             #endregion
 
                             #region FD Loan Receipt if any
                             foreach (var loan in fdRenewal.FixedDepositPayment.Loan_On_FixedDeposits!)
                             {
-                                fdRenewalLoanTrn = Utility.GetModalObject.GetLoanTrnObject(loan.Loan_Id, 0, "R", fdRenewal.Transaction_Date, null, null, 0, 0, 0, 0, null, 0, null, loan.Current_Interest, loan.Current_IntCalc_Date, 0, 0, loan.Interest_Balance, loan.Principal_Balance, 0, 0, 0, null, 0, null, 0, null, 0, 0, 0, 0, false, false, vocId, Checked_By, yrId, 0, false, 0, 0, 0, 0, 0,brCode);
+                                fdRenewalLoanTrn = Utility.GetModalObject.GetLoanTrnObject(loan.Loan_Id, 0, "R", fdRenewal.Transaction_Date, null, null, 0, 0, 0, 0, null, 0, null, loan.Current_Interest, loan.Current_IntCalc_Date, 0, 0, loan.Interest_Balance, loan.Principal_Balance, 0, 0, 0, null, 0, null, 0, null, 0, 0, 0, 0, false, false, vocId, Checked_By, yrId, 0, false, 0, 0, 0, 0, 0, brCode);
                                 fdRenewalLoanTrnList.Add(fdRenewalLoanTrn);
                             }
                             #endregion 
@@ -357,7 +357,7 @@ namespace Infin8.Coapp.BusinessLogic
                             chequeData = Utility.JsonbObject.ConvertFromJsonForOtherRelatedData(trns.Related_Account_Data!);
                             Narration = chequeData.Member_No!.Trim() + " " + chequeData.Member_Name!.Trim();
                             finVocBank = Utility.GetModalObject.GetFinVocBankObject(trns.Transacted_Date, chequeData.Member_Id, trns.Receipt_Amount > 0 ? "C" : "O", chequeData.Issue_Bank_Name!, vocId, trns.Ledger_Id, trns.Receipt_Amount > 0 ? trns.Receipt_Amount : trns.Payment_Amount, chequeData.Cheque_No!, chequeData.Cheque_Date!, null, 0, false, null, "", null, 0, Checked_By, yrId, false, brCode);
-                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount,trns.Cash_Or_Adjustment , Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
+                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
                             result = await _unitOfWork.FinVoucherBank.AddFinVoucherBankAsync(finVocBank);
                             result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
@@ -384,31 +384,31 @@ namespace Infin8.Coapp.BusinessLogic
                             faceValue = fdLoan.FD_Datas!.Select(x => x.FD_Amount).Sum();
                             drawingPower = fdLoan.FD_Datas!.Select(x => x.Drawing_Power).Sum();
                             //firstFDNo = fdLoan.FD_Datas!.Select(x => x.FD_No).FirstOrDefault() ?? "";
-                            fdLoanMaster = Utility.GetModalObject.GetLoanMasterObject(fdLoanScheme.Scheme_Id, "", fdLoan.Mem_Id, 0, "", null, "", null, fdLoan.Loan_Amount, fdLoan.Transaction_Date, 3, 0, 0, 0, 0, 0, 0, fdLoan.Transaction_Date, fdLoan.Transaction_Date, 0, "", "", "", null, null, 0, fdLoan.Loan_Rate_Of_Interest, 0, fdLoan.Transaction_Date, 0, false, false, false, vocId, Checked_By, yrId,faceValue,drawingPower ,brCode, 0, 0, 1);
+                            fdLoanMaster = Utility.GetModalObject.GetLoanMasterObject(fdLoanScheme.Scheme_Id, "", fdLoan.Mem_Id, 0, "", null, "", null, fdLoan.Loan_Amount, fdLoan.Transaction_Date, 3, 0, 0, 0, 0, 0, 0, fdLoan.Transaction_Date, fdLoan.Transaction_Date, 0, "", "", "", null, null, 0, fdLoan.Loan_Rate_Of_Interest, 0, fdLoan.Transaction_Date, 0, false, false, false, vocId, Checked_By, yrId, faceValue, drawingPower, brCode, 0, 0, 1);
                             (result, fdLoanId, fdLoanNo) = await _unitOfWork.LoanMaster.AddLoanMasterAsync(fdLoanMaster);
 
-                            fdLoanTrn = Utility.GetModalObject.GetLoanTrnObject(fdLoanId, 0, "I", fdLoan.Transaction_Date, null, null, 
-                                fdLoan.Loan_Amount, 0, 0, 0, null, 0, null, 0,null, 0, 0, 0, 0, 0, 0,0, null, 0, null, 0, null, 
-                                fdLoan.Loan_Rate_Of_Interest,0, 0, 0, false, false,vocId, Checked_By, yrId, 1, false, fdLoan.Loan_Amount , 0,0 , 0,0,brCode);
-                            fdLoanDisb = Utility.GetModalObject.GetLoanDisbursementObject(fdLoanId, fdLoan.Transaction_Date, 1,fdLoan.Loan_Amount, fdLoan.Transaction_Date,null,"",null,0,null,"",null,false,1,true,false,vocId,Checked_By,yrId,brCode);
-                            fdLoanRoi = Utility.GetModalObject.GetLoanROIObject(fdLoanId,"S",fdLoan.Transaction_Date, fdLoan.Loan_Rate_Of_Interest,0, 0, 0, false, false, vocId, Checked_By, yrId,brCode);
-                            lien = Utility.GetModalObject.GetLienObject(fdLoanId, faceValue, fdLoan.Loan_Amount ,0,  fdLoan.FD_Datas!.Select(x => x.FD_No).FirstOrDefault() ?? "", fdLoan.FD_Datas!.Select(x => x.FD_Id).FirstOrDefault(),false, false,vocId, Checked_By, yrId,brCode);
-                            foreach(var fd in fdLoan.FD_Datas!)
+                            fdLoanTrn = Utility.GetModalObject.GetLoanTrnObject(fdLoanId, 0, "I", fdLoan.Transaction_Date, null, null,
+                                fdLoan.Loan_Amount, 0, 0, 0, null, 0, null, 0, null, 0, 0, 0, 0, 0, 0, 0, null, 0, null, 0, null,
+                                fdLoan.Loan_Rate_Of_Interest, 0, 0, 0, false, false, vocId, Checked_By, yrId, 1, false, fdLoan.Loan_Amount, 0, 0, 0, 0, brCode);
+                            fdLoanDisb = Utility.GetModalObject.GetLoanDisbursementObject(fdLoanId, fdLoan.Transaction_Date, 1, fdLoan.Loan_Amount, fdLoan.Transaction_Date, null, "", null, 0, null, "", null, false, 1, true, false, vocId, Checked_By, yrId, brCode);
+                            fdLoanRoi = Utility.GetModalObject.GetLoanROIObject(fdLoanId, "S", fdLoan.Transaction_Date, fdLoan.Loan_Rate_Of_Interest, 0, 0, 0, false, false, vocId, Checked_By, yrId, brCode);
+                            lien = Utility.GetModalObject.GetLienObject(fdLoanId, faceValue, fdLoan.Loan_Amount, 0, fdLoan.FD_Datas!.Select(x => x.FD_No).FirstOrDefault() ?? "", fdLoan.FD_Datas!.Select(x => x.FD_Id).FirstOrDefault(), false, false, vocId, Checked_By, yrId, brCode);
+                            foreach (var fd in fdLoan.FD_Datas!)
                             {
                                 lienTrn = new();
-                                lienTrn = Utility.GetModalObject.GetLienTrObject(0, fdLoanId, fd.FD_Id, fd.FD_Amount, fd.Drawing_Power,fd.Loan_Amount,0, false, false, vocId, Checked_By, yrId, brCode);
+                                lienTrn = Utility.GetModalObject.GetLienTrObject(0, fdLoanId, fd.FD_Id, fd.FD_Amount, fd.Drawing_Power, fd.Loan_Amount, 0, false, false, vocId, Checked_By, yrId, brCode);
                                 lienTrns.Add(lienTrn);
                             }
                             vocTrn = new();
-                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, fdLoanScheme.PrlLed_Id,0, fdLoan.Loan_Amount, fdLoan.CashOrAdjustment,
-                                Narration, false, Checked_By, yrId, Status, "Loan No: " + fdLoanNo, fdLoan.Mem_Id,brCode, fdLoanId, fdLoan.Loan_Amount , 0);
+                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, fdLoanScheme.PrlLed_Id, 0, fdLoan.Loan_Amount, fdLoan.CashOrAdjustment,
+                                Narration, false, Checked_By, yrId, Status, "Loan No: " + fdLoanNo, fdLoan.Mem_Id, brCode, fdLoanId, fdLoan.Loan_Amount, 0);
                             finVoucherTrns.Add(vocTrn);
-                            result = await _unitOfWork.LoanTrn.AddLoanTrn (fdLoanTrn);
+                            result = await _unitOfWork.LoanTrn.AddLoanTrn(fdLoanTrn);
                             result = await _unitOfWork.LoanDisbursement.AddLoanDisbursementAsync(fdLoanDisb);
                             result = await _unitOfWork.LoanROI.AddLoanROIAsync(fdLoanRoi);
                             result = await _unitOfWork.Lien.AddLienAsync(lien);
                             result = await _unitOfWork.LienTrn.AddLienTrnListAsync(lienTrns);
-                            result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns); 
+                            result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
                             #endregion
                             break;
                         case 14: /// RD Loan Disbursement
@@ -430,7 +430,7 @@ namespace Infin8.Coapp.BusinessLogic
                                 newFD.Maturity_Date, newFD.Maturity_Amount, true, newFD.Interest_Payable_Frequency, 0, newFD.Is_DiscountRate, (newFD.compoundfrequency > 0 ? true : false),
                                 newFD.compoundfrequency, newFD.Common.Nominee1Name!, newFD.Common.Nominee1Age, newFD.Common.Nominee1Relationship!,
                                 newFD.Common.Nominee2Name!, newFD.Common.Nominee2Age, newFD.Common.Nominee2Relationship!, false, false, false, vocId, Checked_By,
-                                yrId, "N", 0, "",brCode);
+                                yrId, "N", 0, "", brCode);
                             (result, newTDId, newTDNo) = await _unitOfWork.TermDepositMaster.AddTermDepositMasterAsync(tdMasterNew);
                             if (!result)
                             {
@@ -438,24 +438,24 @@ namespace Infin8.Coapp.BusinessLogic
                             }
                             tdTrnNew = Utility.GetModalObject.GetTermDepositTrn(0, newFD.Common.Account_Opendate, newTDId, 0,
                                 newFD.Deposit_Amount, newFD.Maturity_Amount, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, false, false,
-                                vocId, Checked_By, yrId, 1, 0,brCode);
+                                vocId, Checked_By, yrId, 1, 0, brCode);
 
                             foreach (var memNew in newFD.Members)
                             {
                                 TermDeposit_Members tdMem = new();
-                                tdMem = Utility.GetModalObject.GetTermDepositMembers(0, newTDId, memNew.Mem_Id, 1, false, vocId, Checked_By, yrId,brCode);
+                                tdMem = Utility.GetModalObject.GetTermDepositMembers(0, newTDId, memNew.Mem_Id, 1, false, vocId, Checked_By, yrId, brCode);
                                 tdMembers.Add(tdMem);
                             }
                             TermDeposit_Schemes tdNewScheme = await _unitOfWork.TermDepositScheme.GetTermDepositSchemeByIdAsync(newFD.Common.Tdscheme_Id);
                             vocTrn = new();
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, tdNewScheme.Led_Id, newFD.Deposit_Amount, 0, newFD.CashorAdjustment,
-                                Narration + "FD No : " + newTDNo, false, Checked_By, yrId, Status, "TD No: " + newTDNo, newFD.Mem_Id,brCode, newTDId, newFD.Deposit_Amount, 0);
+                                Narration + "FD No : " + newTDNo, false, Checked_By, yrId, Status, "TD No: " + newTDNo, newFD.Mem_Id, brCode, newTDId, newFD.Deposit_Amount, 0);
                             finVoucherTrns.Add(vocTrn);
 
                             /// Save new fixed deposit
                             result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnAsync(tdTrnNew);
                             result = await _unitOfWork.TermDepositMember.AddTermDepositMemberListAsync(tdMembers);
-                            result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns); 
+                            result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
 
                             #endregion
                             break;
@@ -472,12 +472,12 @@ namespace Infin8.Coapp.BusinessLogic
                             sbAcc = Utility.JsonbObject.ConvertFromJsonForNewSBAccount(trns.Related_Account_Data!);
                             Narration = sbAcc.Member_No + " " + sbAcc.Member_Name;
                             sbCAScheme = await _unitOfWork.SBCASchemes.GetSBCAScheme(brCode);
-                            sbCAMaster = Utility.GetModalObject.GetSBCAMasterObject(0,sbCAScheme.Scheme_Id, sbAcc.Mem_Id,"",1,false,false, vocId, Checked_By, yrId, brCode);
-                            
-                            (result, accId, accNo) = await _unitOfWork.SBCAMaster.AddSBCAMasterAsync(sbCAMaster);  
-                            sbMemTrn = Utility.GetModalObject.GetMemTrnObject(7, sbAcc.Mem_Id,sbCAScheme.SBCA_Led_Id,sbAcc.Transaction_Date, sbAcc.Receipt_Amount,0, false, false, vocId, Checked_By, yrId, 1, 0, null, 0,"", 0, accId, 0, brCode);
+                            sbCAMaster = Utility.GetModalObject.GetSBCAMasterObject(0, sbCAScheme.Scheme_Id, sbAcc.Mem_Id, "", 1, false, false, vocId, Checked_By, yrId, brCode);
+
+                            (result, accId, accNo) = await _unitOfWork.SBCAMaster.AddSBCAMasterAsync(sbCAMaster);
+                            sbMemTrn = Utility.GetModalObject.GetMemTrnObject(7, sbAcc.Mem_Id, sbCAScheme.SBCA_Led_Id, sbAcc.Transaction_Date, sbAcc.Receipt_Amount, 0, false, false, vocId, Checked_By, yrId, 1, 0, null, 0, "", 0, accId, 0, brCode);
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sbCAScheme.SBCA_Led_Id, sbAcc.Receipt_Amount, 0, sbAcc.CashOrAdjustment,
-                                Narration + " SB AC No : " + accNo , false, Checked_By, yrId, Status, "SB AC No: " + accNo, sbAcc.Mem_Id,brCode, accId, 0, 0);
+                                Narration + " SB AC No : " + accNo, false, Checked_By, yrId, Status, "SB AC No: " + accNo, sbAcc.Mem_Id, brCode, accId, 0, 0);
                             finVoucherTrns.Add(vocTrn);
                             result = await _unitOfWork.MemTrn.AddMemTrnAsync(sbMemTrn);
                             result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
@@ -489,7 +489,7 @@ namespace Infin8.Coapp.BusinessLogic
                             break;
                         case 21:    /// Ledger Entry
                             vocTrn = new();
-                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount ,trns.Payment_Amount , trns.Cash_Or_Adjustment , Transacted_MemNo.Trim() + Transacted_MemName.Trim(), false, Checked_By, yrId, Status, "", Transacted_Member_Id, brCode, 0, 0, 0);
+                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Transacted_MemNo.Trim() + Transacted_MemName.Trim(), false, Checked_By, yrId, Status, "", Transacted_Member_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
                             break;
                         case 22:    /// Staff Suspense Creditor
@@ -503,25 +503,25 @@ namespace Infin8.Coapp.BusinessLogic
                             DtoTermDepositLoanRecovery fdLoanRec = new();
                             fdLoanRec = Utility.JsonbObject.ConvertFromJsonForFixedDepositLoanRecovery(trns.Related_Account_Data!);
                             Narration = fdLoanRec.Member_No + " " + fdLoanRec.Member_Name;
-                            foreach(var loan in fdLoanRec.Loan_Balance_List!)
+                            foreach (var loan in fdLoanRec.Loan_Balance_List!)
                             {
                                 fdLoanRecTrn = Utility.GetModalObject.GetLoanTrnObject(loan.Loan_Id, 0, "R", fdLoanRec.Transaction_Date, null, null, 0, 0, 0, 0, null, 0, null, loan.Current_Interest,
                                     loan.Interest_Applied_Date, 0, 0, loan.Interest_Collection, loan.Principal_Collection, 0, 0, 0, null, 0, null, 0, null,
-                                    loan.Rate_Of_Interest , 0, 0,0, false, false, vocId, Checked_By, yrId, 0, false, loan.Principal_Balance-loan.Principal_Collection , 0, 0, 0, 0, brCode);
+                                    loan.Rate_Of_Interest, 0, 0, 0, false, false, vocId, Checked_By, yrId, 0, false, loan.Principal_Balance - loan.Principal_Collection, 0, 0, 0, 0, brCode);
                                 fdLoanRecTrnList.Add(fdLoanRecTrn);
 
-                                if(loan.Interest_Collection >0)
+                                if (loan.Interest_Collection > 0)
                                 {
                                     vocTrn = new();
                                     vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, loan.IntLed_Id, loan.Interest_Collection, 0, fdLoanRec.CashOrAdjustment,
-                                        Narration + " Loan No : " + loan.Loan_No ,  false, Checked_By, yrId, Status, "Loan No: " + loan.Loan_No, fdLoanRec.Mem_Id, brCode, loan.Loan_Id, 0, 0);
+                                        Narration + " Loan No : " + loan.Loan_No, false, Checked_By, yrId, Status, "Loan No: " + loan.Loan_No, fdLoanRec.Mem_Id, brCode, loan.Loan_Id, 0, 0);
                                     finVoucherTrns.Add(vocTrn);
                                 }
-                                if(loan.Principal_Collection > 0)
+                                if (loan.Principal_Collection > 0)
                                 {
                                     vocTrn = new();
                                     vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, loan.PrlLed_Id, loan.Principal_Collection, 0, fdLoanRec.CashOrAdjustment,
-                                        Narration + " Loan No : " + loan.Loan_No  , false, Checked_By, yrId, Status, "Loan No: " + loan.Loan_No, fdLoanRec.Mem_Id, brCode, loan.Loan_Id, loan.Principal_Balance-loan.Principal_Collection, 0);
+                                        Narration + " Loan No : " + loan.Loan_No, false, Checked_By, yrId, Status, "Loan No: " + loan.Loan_No, fdLoanRec.Mem_Id, brCode, loan.Loan_Id, loan.Principal_Balance - loan.Principal_Collection, 0);
                                     finVoucherTrns.Add(vocTrn);
                                 }
                             }
@@ -544,13 +544,13 @@ namespace Infin8.Coapp.BusinessLogic
                             List<Loan_Trn> jlTrnList = new();
                             DtoJewelLoanRecovery jewelLoanRecovery = new();
                             jewelLoanRecovery = Utility.JsonbObject.ConvertFromJson(trns.Related_Account_Data!);
-                            jlTrnList = Utility.JsonbObject.GetJewelLoanRecovery(jewelLoanRecovery.JewelLoanBalance_List!, Transacted_Date, Checked_By, vocId, yrId,brCode);
+                            jlTrnList = Utility.JsonbObject.GetJewelLoanRecovery(jewelLoanRecovery.JewelLoanBalance_List!, Transacted_Date, Checked_By, vocId, yrId, brCode);
                             List<Fin_Voucher_Trn> jlVocList = new();
-                            jlVocList = Utility.JsonbObject.GetVoucherTrnForJewelLoanRecovery(jewelLoanRecovery.JewelLoanBalance_List!, vocId, jewelLoanRecovery.CashOrAdjustment, jewelLoanRecovery.Mem_Id, jewelLoanRecovery.Member_No!, jewelLoanRecovery.Member_Name!, Checked_By, yrId, Status,brCode);
+                            jlVocList = Utility.JsonbObject.GetVoucherTrnForJewelLoanRecovery(jewelLoanRecovery.JewelLoanBalance_List!, vocId, jewelLoanRecovery.CashOrAdjustment, jewelLoanRecovery.Mem_Id, jewelLoanRecovery.Member_No!, jewelLoanRecovery.Member_Name!, Checked_By, yrId, Status, brCode);
                             finVoucherTrns.AddRange(jlVocList);
                             result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(jlTrnList);
                             result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
-                            
+
                             #endregion
                             break;
                         case 32:    /// Dividend/TD Interest payment (bulk)
@@ -567,11 +567,11 @@ namespace Infin8.Coapp.BusinessLogic
                             DtoSBAccountTransaction sbTrn = new();
                             sbTrn = Utility.JsonbObject.ConvertFromJsonForNewSBAccountTransaction(trns.Related_Account_Data!);
                             Narration = sbTrn.Member_No + " " + sbTrn.Member_Name;
-                            sbMemberTrn = Utility.GetModalObject.GetMemTrnObject(7, sbTrn.Mem_Id, sbTrn.SBLed_Id , sbTrn.Transaction_Date, sbTrn.Receipt_Amount,
-                                sbTrn.Payment_Amount, false, false, vocId, Checked_By, yrId, 0, 0,null, 0,"", 0,sbTrn.SBAccount_Id,0,brCode);
+                            sbMemberTrn = Utility.GetModalObject.GetMemTrnObject(7, sbTrn.Mem_Id, sbTrn.SBLed_Id, sbTrn.Transaction_Date, sbTrn.Receipt_Amount,
+                                sbTrn.Payment_Amount, false, false, vocId, Checked_By, yrId, 0, 0, null, 0, "", 0, sbTrn.SBAccount_Id, 0, brCode);
                             vocTrn = new();
-                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sbTrn.SBLed_Id, sbTrn.Receipt_Amount, sbTrn.Payment_Amount, 
-                                sbTrn.CashOrAdjustment, Narration + " SB AC No :" + sbTrn.SBAccount_No, false, Checked_By, yrId, Status, "SB AC No :" + sbTrn.SBAccount_No, sbTrn.Mem_Id,brCode, 0, 0, 0);
+                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sbTrn.SBLed_Id, sbTrn.Receipt_Amount, sbTrn.Payment_Amount,
+                                sbTrn.CashOrAdjustment, Narration + " SB AC No :" + sbTrn.SBAccount_No, false, Checked_By, yrId, Status, "SB AC No :" + sbTrn.SBAccount_No, sbTrn.Mem_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
                             result = await _unitOfWork.MemTrn.AddMemTrnAsync(sbMemberTrn);
                             result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
@@ -633,24 +633,24 @@ namespace Infin8.Coapp.BusinessLogic
                                 ornmentList.Add(jlOrn);
                             }
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, jlSchemes.PrlLed_Id, 0, dtoJLDisb.Loan_Amount,
-                                dtoJLDisb.CashOrAdjustment, Narration + " Loan No : " + jlLoanNo , false, Checked_By, yrId, Status, "Loan No :" + jlLoanNo,
+                                dtoJLDisb.CashOrAdjustment, Narration + " Loan No : " + jlLoanNo, false, Checked_By, yrId, Status, "Loan No :" + jlLoanNo,
                                 dtoJLDisb.Mem_Id, brCode, jlLoanId, dtoJLDisb.Loan_Amount, 0);
                             finVoucherTrns.Add(vocTrn);
 
-                            Map_General map = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode );
-                            if(dtoJLDisb.AppraisalFee > 0)
+                            Map_General map = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
+                            if (dtoJLDisb.AppraisalFee > 0)
                             {
                                 vocTrn = new();
-                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, map.Appraisal_Fee_Led_Id, dtoJLDisb.AppraisalFee, 0, dtoJLDisb.CashOrAdjustment, 
-                                    Narration + " Loan No :" + jlLoanNo , false, Checked_By, yrId, Status, "Loan No: " + jlLoanNo, dtoJLDisb.Mem_Id, brCode, 
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, map.Appraisal_Fee_Led_Id, dtoJLDisb.AppraisalFee, 0, dtoJLDisb.CashOrAdjustment,
+                                    Narration + " Loan No :" + jlLoanNo, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNo, dtoJLDisb.Mem_Id, brCode,
                                     jlLoanId, dtoJLDisb.Loan_Amount, 0);
                                 finVoucherTrns.Add(vocTrn);
                             }
-                            if(dtoJLDisb.BankCharges >0)
+                            if (dtoJLDisb.BankCharges > 0)
                             {
                                 vocTrn = new();
-                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, map.Bank_Charges_Led_Id, dtoJLDisb.BankCharges, 
-                                    0, dtoJLDisb.CashOrAdjustment, Narration + " Loan No :" + jlLoanNo, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNo, 
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, map.Bank_Charges_Led_Id, dtoJLDisb.BankCharges,
+                                    0, dtoJLDisb.CashOrAdjustment, Narration + " Loan No :" + jlLoanNo, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNo,
                                     dtoJLDisb.Mem_Id, brCode, jlLoanId, dtoJLDisb.Loan_Amount, 0);
                                 finVoucherTrns.Add(vocTrn);
                             }
@@ -666,6 +666,34 @@ namespace Infin8.Coapp.BusinessLogic
                         case 38:    /// Group Insurance Payment
                             break;
                         case 39:    /// Salary Payment
+                            #region salary payment
+                            DtoPaySlipPayment salaryPaymentData = new();
+                            salaryPaymentData = Utility.JsonbObject.ConvertFromJsonForSalaryPayment(trns.Related_Account_Data!);
+                            decimal payId = salaryPaymentData.Pay_Id;
+                            List<decimal> empIdList = new();
+                            empIdList = salaryPaymentData.Employee_Id_List!.ToList();
+                            List<Pay_Slip_Loan_Trn> payLoanList = new();
+                            List<Loan_Trn> loanList = new();
+                            List<Emp_Pf> pfList = new();
+                            foreach (var emp in empIdList)
+                            {
+                                Pay_Slip slip = await _unitOfWork.PaySlip.GetPaySlipByMemId(payId, emp, trns.BrCode!);
+                                Emp_Pf pf = new();
+                                pf = Utility.GetModalObject.GetEmpPFObject(0, emp, trns.Transacted_Date, slip.Pay_PF, slip.Pay_VPF, slip.Pay_PF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, null, false, false, null, vocId, trns.Checked_By, yrId, 0, "AR", trns.BrCode!);
+                                pfList.Add(pf);
+
+                                var loanListResponse = await _unitOfWork.PaySlipLoanTrn.GetPaySlipLoanTrnList(payId, emp, trns.BrCode!);
+
+                                if (loanListResponse != null && loanListResponse.Any()) payLoanList = loanListResponse.ToList();
+                            }
+                            foreach (var loan in payLoanList)
+                            {
+                                Loan_Trn trn = Utility.GetModalObject.GetLoanTrnObject(loan.Loan_Id,0,"R",trns.Transacted_Date,null,null,0,loan.Prl_Schedule,loan.Prl_Schedule,0,null,0,null,loan.Int_Coll, loan.Int_Calc_Upto,0,0,loan.Int_Coll,loan.Prl_Coll ,0,0,0,null,0,null,0,null,0,0,0,0,false,false,vocId, Checked_By,yrId,0,false,0,0,0,0,0,trns.BrCode!);
+                                loanList.Add(trn);
+                            }
+
+
+                            #endregion
                             break;
                         case 40:    /// dA Arrear Payment
                             break;
@@ -749,11 +777,11 @@ namespace Infin8.Coapp.BusinessLogic
                             //result = await _unitOfWork.JLDetails.AddJLDetailsAsync(jlDetails);
                             //result = await _unitOfWork.JLOrnment.AddJLOrnmentListAsync(ornmentList);
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(jlVocListForDisb);
-                            #endregion 
+                            #endregion
                             break;
                         case 1000:  /// Account Trasanctions
                             vocTrn = new();
-                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Transacted_MemNo.Trim() + Transacted_MemName.Trim(), false, Checked_By, yrId, "G", "",trns.Account_Holder_Member_Id, brCode, 0, 0, 0);
+                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Transacted_MemNo.Trim() + Transacted_MemName.Trim(), false, Checked_By, yrId, "G", "", trns.Account_Holder_Member_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
                             break;
                     }
@@ -761,8 +789,8 @@ namespace Infin8.Coapp.BusinessLogic
                 /// Insert all the voucher transactions
                 result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
                 /// update staging_master with checked by and checked date
-                result = await _unitOfWork.StagingMaster.CheckerStateStaging(stagingId,vocId, Checked_By, "V");
-                result = await _unitOfWork.StagingDetails.CheckerStateStaging(stagingId,vocId, Checked_By, "V");
+                result = await _unitOfWork.StagingMaster.CheckerStateStaging(stagingId, vocId, Checked_By, "V");
+                result = await _unitOfWork.StagingDetails.CheckerStateStaging(stagingId, vocId, Checked_By, "V");
                 result = true;
                 _unitOfWork.Complete();
                 _unitOfWork.CommitTransaction();
@@ -782,7 +810,7 @@ namespace Infin8.Coapp.BusinessLogic
             int cashOrAdj = 0;
             string brCode = "";
             string Status = "G";
-            
+
             decimal vocId = 0;
             DateTime Transacted_Date;
             bool IsChequeOnly = false;
@@ -804,7 +832,7 @@ namespace Infin8.Coapp.BusinessLogic
                 brCode = transactions.Select(x => x.BrCode!).First();
 
                 Transacted_Date = transactions.Select(x => x.Transacted_Date).First();
-                receiptAmount = transactions.Sum(x=> x.Receipt_Amount); 
+                receiptAmount = transactions.Sum(x => x.Receipt_Amount);
                 paymentAmount = transactions.Sum(x => x.Payment_Amount);
 
                 if (cashOrAdj == 1)
@@ -846,10 +874,10 @@ namespace Infin8.Coapp.BusinessLogic
                 foreach (var trns in transactions)
                 {
                     relatedData = Utility.JsonbObject.ConvertFromJsonForAccountTransactionRelatedData(trns.Related_Account_Data!);
-                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment,relatedData.Narration!, false, Checked_By, yrId, Status, "", 0, brCode, 0, 0, 0);
+                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, relatedData.Narration!, false, Checked_By, yrId, Status, "", 0, brCode, 0, 0, 0);
                     finVoucherTrns.Add(vocTrn);
-                   /// vefify ledger_id is bank account
-                   if( await _unitOfWork.Accounts.IsBankLedger(trns.Ledger_Id,brCode))
+                    /// vefify ledger_id is bank account
+                    if (await _unitOfWork.Accounts.IsBankLedger(trns.Ledger_Id, brCode))
                     {
                         /// if bank account, then insert the bank transaction
                         Fin_Voucher_Bank bankTrn = new();
@@ -863,7 +891,7 @@ namespace Infin8.Coapp.BusinessLogic
                         {
                             amount = trns.Payment_Amount;
                         }
-                        bankTrn = Utility.GetModalObject.GetFinVocBankObject(Transacted_Date,0,trns.Receipt_Amount > 0 ? "C" : "O", trns.Issue_Bank_Name!, vocId, trns.Ledger_Id, trns.Receipt_Amount > 0 ? trns.Receipt_Amount : trns.Payment_Amount  , trns.Cheque_No!, trns.Cheque_Date, null,0,false,null,"",null,0,Checked_By,yrId,false,brCode );
+                        bankTrn = Utility.GetModalObject.GetFinVocBankObject(Transacted_Date, 0, trns.Receipt_Amount > 0 ? "C" : "O", trns.Issue_Bank_Name!, vocId, trns.Ledger_Id, trns.Receipt_Amount > 0 ? trns.Receipt_Amount : trns.Payment_Amount, trns.Cheque_No!, trns.Cheque_Date, null, 0, false, null, "", null, 0, Checked_By, yrId, false, brCode);
                         result = await _unitOfWork.FinVoucherBank.AddFinVoucherBankAsync(bankTrn);
                     }
                 }
@@ -928,6 +956,6 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TransactionsRepository.GetTransactionStatusByAccId((int)accId);
         }
 
-        
+
     }
 }

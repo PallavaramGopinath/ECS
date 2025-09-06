@@ -1991,6 +1991,179 @@ namespace Infin8.Coapp.Repository
             return (appraisalFee, bankCharges, serviceCharges);
         }
 
+        public async Task<List<PayLoanBalanceVM>> GetPayLoanBalance(decimal empId, int loanType, DateTime toDate, string brCode)
+        {
+            double intCalc = 0;
+            double intBalIncludingCurrentIntCalc = 0;
+            DateTime intCalcUpto;
+            int prdElapsed = 0;
+            double intInstalment = 0;
+            double intDemand = 0;
+            double prlDemand = 0;
+            int presentIntPrd = 0;
+            List<PayLoanBalanceVM> loanList = new ();
+            try
+            {
+                #region get record set
+                var result = await (from lm in CSISContext.Loan_Master
+                              join mm in CSISContext.mem_master on lm.Mem_Id equals mm.mem_id
+                              join ls in CSISContext.Loan_Schemes on lm.Scheme_Id equals ls.Scheme_Id
+                              join lt in CSISContext.Loan_Trn on lm.Loan_Id equals lt.Loan_Id
+                              where lm.Mem_Id == empId
+                                    && !lt.TrnTr_Delete
+                                    && !lm.Loan_Delete
+                              group new { lm, ls, lt } by new
+                              {
+                                  lm.Loan_Id,
+                                  lm.Loan_No,
+                                  lm.San_Amt,
+                                  lm.FirstPrl_DueDate,
+                                  lm.FirstInt_DueDate,
+                                  lm.San_Date,
+                                  lm.Prl_Prd,
+                                  lm.Int_Prd,
+                                  lm.Inst_Amt,
+                                  lm.Roi,
+                                  ls.Scheme_Name,
+                                  ls.Scheme_Id,
+                                  ls.Loan_Type,
+                                  ls.PrlLed_Id,
+                                  ls.IntLed_Id,
+                                  ls.StaffLoan_Int_Type
+                              } into g
+                              where (g.Sum(x => x.lt.Disb_Amt) - g.Sum(x => x.lt.PrlColl_Amt) > 0) ||
+                                    (g.Sum(x => x.lt.IntCalc_Amt) - g.Sum(x => x.lt.IntColl_Amt) > 0)
+                              where g.Key.Loan_Type == 5
+                              select new PayLoanBalanceVM
+                              {
+                                  Loan_Id = g.Key.Loan_Id,
+                                  Loan_No = g.Key.Loan_No,
+                                  San_Amt = g.Key.San_Amt,
+                                  FirstPrl_DueDate = (DateTime)g.Key.FirstPrl_DueDate!,
+                                  FirstInt_DueDate = (DateTime)g.Key.FirstInt_DueDate!,
+                                  San_Date = g.Key.San_Date,
+                                  Prl_Prd = g.Key.Prl_Prd,
+                                  Int_Prd = g.Key.Int_Prd,
+                                  Inst_Amt = g.Key.Inst_Amt,
+                                  Roi = g.Key.Roi,
+                                  Scheme_Name = g.Key.Scheme_Name,
+                                  Scheme_Id = g.Key.Scheme_Id,
+                                  Loan_Type = g.Key.Loan_Type,
+                                  PrlLed_Id = g.Key.PrlLed_Id,
+                                  IntLed_Id = g.Key.IntLed_Id,
+                                  StaffLoan_Int_Type = g.Key.StaffLoan_Int_Type,
+                                  MaxTrn_Date = g.Max(x => x.lt.Trn_Date),
+                                  SumDisb_Amt = g.Sum(x => x.lt.Disb_Amt),
+                                  SumPrl_Sched = g.Sum(x => x.lt.Prl_Sched),
+                                  SumPrl_Dem = g.Sum(x => x.lt.Prl_Dem),
+                                  SumPrlColl_Amt = g.Sum(x => x.lt.PrlColl_Amt),
+                                  SumIntCalc_Amt = g.Sum(x => x.lt.IntCalc_Amt),
+                                  MaxIntCalc_Date = g.Max(x => x.lt.IntCalc_Date),
+                                  SumIntColl_Amt = g.Sum(x => x.lt.IntColl_Amt)
+                              }).ToListAsync();
+                #endregion 
+
+                if (result != null && result.Any())
+                {
+                    loanList = result.ToList();
+
+                    foreach (var loan in loanList)
+                    {
+                        loan.PrlOS = loan.SumDisb_Amt - loan.SumPrlColl_Amt;
+                        loan.PrlOD = loan.SumPrl_Dem - loan.SumPrlColl_Amt;
+                        if (loan.PrlOD < 0)
+                            loan.PrlOD = 0;
+                        loan.IntBal = loan.SumIntCalc_Amt - loan.SumIntColl_Amt;
+                        if (loan.IntBal < 0)
+                            loan.IntBal = 0;
+                        if (loan.MaxIntCalc_Date != null)
+                            intCalcUpto = ((DateTime)loan.MaxIntCalc_Date).Date;
+                        else
+                            intCalcUpto = loan.San_Date.Date;
+                        intCalc = Utilities.Calculate_Interest(loan.PrlOS, loan.Roi, Utilities.GetNoOfDays(toDate, intCalcUpto));
+                        loan.IntCalc = intCalc;
+                        if (intCalc > 0)
+                        {
+                            loan.IntCalcDate = toDate.Date;
+                        }
+                        intBalIncludingCurrentIntCalc = loan.IntBal + intCalc;
+                        //prdElapsed = GeneralService.GetNoOfMonths(toDate, loan.FirstPrl_DueDate);
+                        prdElapsed = Utilities.GetMonthsBetweenDates (loan.FirstPrl_DueDate, toDate);
+                        switch (loan.StaffLoan_Int_Type)
+                        {
+                            case 1: /// int after prl
+                                if (prdElapsed > loan.Prl_Prd)
+                                {
+                                    //intInstalment = Math.Round(intBalIncludingCurrentIntCalc / loan.Int_Prd, 0);
+                                    intInstalment = Math.Round(loan.SumIntCalc_Amt / loan.Int_Prd, 0);
+                                    presentIntPrd = loan.Int_Prd - (prdElapsed - loan.Prl_Prd);
+                                }
+                                else
+                                    presentIntPrd = 0;
+                                if (loan.PrlOS == 0)
+                                {
+                                    //intInstalment = Math.Round(intBalIncludingCurrentIntCalc / loan.Int_Prd, 0);
+                                    intInstalment = Math.Round(loan.SumIntCalc_Amt / loan.Int_Prd, 0);
+                                    presentIntPrd = loan.Int_Prd - (prdElapsed - loan.Prl_Prd);
+                                }
+                                if (presentIntPrd > 0)
+                                {
+                                    if (intBalIncludingCurrentIntCalc >= intInstalment)
+                                        intDemand = intInstalment;
+                                    else
+                                        intDemand = intBalIncludingCurrentIntCalc;
+                                }
+                                else
+                                    intDemand = 0;
+                                break;
+                            case 2: /// int along with prl
+                                intDemand = Math.Round(intBalIncludingCurrentIntCalc, 0);
+                                break;
+                            case 3: /// no interest
+                                intDemand = 0;
+                                break;
+                            case 4: /// fixed principal
+                                intDemand = Math.Round(intBalIncludingCurrentIntCalc, 0);
+                                break;
+                        }
+                        loan.IntDemand = intDemand;
+                        switch (loan.StaffLoan_Int_Type)
+                        {
+                            case 1: /// int paid after fixed prl
+                            case 3: /// no int fixed prl
+                            case 4: /// int paid with fixed prl
+                                if (loan.PrlOS > loan.Inst_Amt)
+                                    prlDemand = loan.Inst_Amt;
+                                else
+                                    prlDemand = loan.PrlOS;
+
+                                if (loan.FirstPrl_DueDate > toDate.AddDays(-1))
+                                    prlDemand = 0;
+                                break;
+                            case 2: /// int paid with prl (emi)
+                                prlDemand = loan.Inst_Amt - intCalc;
+                                if (prlDemand > loan.PrlOS) prlDemand = loan.PrlOS;
+                                if (loan.FirstPrl_DueDate > toDate.AddDays(-1)) prlDemand = 0;
+                                break;
+                        }
+                        if (loan.SumPrl_Dem >= loan.SumDisb_Amt)
+                            prlDemand = 0;
+                        //else if (loan.FirstPrl_DueDate > toDate)
+                        //    prlDemand = loan.PrlOS;
+                        loan.PrlDemand = prlDemand;
+                        loan.PrlRecovery = loan.PrlOD + prlDemand;
+                        loan.IntRecovery = intDemand;
+                    }
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return loanList;
+        }
+
         #region term deposit loans
         public async Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds)
         {
@@ -2294,7 +2467,6 @@ namespace Infin8.Coapp.Repository
             return loanList;
         }
 
-
         #endregion
 
         public int Get_MaxLoanSlNo(decimal LoanId)
@@ -2314,5 +2486,7 @@ namespace Infin8.Coapp.Repository
             }
             return MaxSlNo;
         }
+
+       
     }
 }

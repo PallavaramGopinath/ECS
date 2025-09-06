@@ -171,14 +171,13 @@ namespace Infin8.Coapp.UI.Controllers
             switch (stagingMaster.Type!.Trim())
             {
                 case "Member Transaction":
+                case "Staff Transaction":
                     var response = await _transactionsHandler.SaveTransaction(stagingId, "MTRN", 110010000002, 110010000023);
                     if (response) result = true; else result = false;
                         break;
                 case "Account Transaction":
                     var accResponse = await _transactionsHandler.SaveAccountTransaction(stagingId, "ACTR", 110010000002, 110010000023);
                     if (accResponse) result = true; else result = false;
-                    break;
-                case "Staff Transaction":
                     break;
             }
 

@@ -256,6 +256,18 @@ namespace Infin8.Coapp.Utility
 
             return JsonSerializer.Deserialize<DtoAccountTransactionRelatedData>(jsonData, options)!;
         }
+        #endregion
+
+        #region pay
+        public static DtoPaySlipPayment ConvertFromJsonForSalaryPayment(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+
+            return JsonSerializer.Deserialize<DtoPaySlipPayment>(jsonData, options)!;
+        }
         #endregion 
     }
 }

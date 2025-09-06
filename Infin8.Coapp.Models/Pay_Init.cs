@@ -13,9 +13,9 @@ namespace Infin8.Coapp.Models
         public bool Pay_Delete { get; set; }
         public decimal Usr_Id { get; set; }
         public decimal Yr_Id { get; set; }
-        public string? pay_des { get; set; }
-        public Nullable<System.DateTime> from_date { get; set; }
-        public Nullable<System.DateTime> to_date { get; set; }
+        public string? Pay_Des { get; set; }
+        public Nullable<System.DateTime> From_Date { get; set; }
+        public Nullable<System.DateTime> To_Date { get; set; }
         public decimal DA_Id { get; set; }
         public string? BrCode { get; set; }
     }

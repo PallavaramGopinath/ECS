@@ -51,9 +51,9 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<List<EmployeeMasterDto>> GetEmployeeMasterListAsync()
+        public async Task<List<EmployeeMasterDto>> GetEmployeeMasterListAsync(string brCode)
         {
-            return await _unitOfWork.EmployeeMaster.GetEmployeeMasterListAsync();
+            return await _unitOfWork.EmployeeMaster.GetEmployeeMasterListAsync(brCode);
         }
 
         public async Task<List<DropdownItem>> GetPayGenInfoListAsync(int infoType)

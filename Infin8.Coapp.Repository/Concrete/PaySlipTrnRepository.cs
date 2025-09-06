@@ -24,6 +24,7 @@ namespace Infin8.Coapp.Repository
                 maxId++;
                 paySlipTrn.Pay_tr_Id = maxId;
                 await AddAsync(paySlipTrn);
+                await CSISContext.SaveChangesAsync(); // Save changes to reflect in the database
                 result = true;
             }
             catch (Exception ex)
@@ -49,6 +50,17 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Pay slip transactions not modified");
             }
             return result;
+        }
+
+        public async Task<List<Pay_Slip_Trn>> GetPaySlipTrnByMemId(decimal payId, decimal memId, string brCode)
+        {
+            List<Pay_Slip_Trn> list = new();
+            var result = await CSISContext.Pay_Slip_Trn.Where(x => x.Pay_Id == payId && x.Mem_Id == memId && x.BrCode == brCode && x.PayTr_Delete == false).ToListAsync();
+            if (result != null)
+            {
+                list = result;
+            }
+            return list;
         }
     }
 }

@@ -201,6 +201,108 @@ namespace Infin8.Coapp.Repository
             return suspenseAmt;
         }
 
-       
+        public async Task<List<MemberTransactionVM>> GetMemberTrnBalanceList(decimal MemId, int TrnType, string brCode)
+        {
+            List<MemberTransactionVM> memTrnList = new();
+            /// 1= mem due to, 2= mem due by, 3= share capital, 5=staff due to,6=staff due by, 7=sb account (correct)
+            /// wrong trn_Type 4= factory due to, 5= factory due by, 6= staff due to, 7= staff due by (wrong)
+            try
+            {
+                if (TrnType == 1 || TrnType == 4 || TrnType == 5)
+                {
+                    var result = await  (from mem in CSISContext.Mem_Trn
+                                  join led in CSISContext.Fin_Ledger on mem.Led_Id equals led.Led_Id
+                                  where !mem.MemTrn_Delete
+                                  group new { mem, led } by new
+                                  {
+                                      mem.Trn_Type,
+                                      mem.Mem_Id,
+                                      mem.Led_Id,
+                                      led.Led_Name,
+                                      mem.BrCode 
+                                  } into g
+                                  where g.Key.Mem_Id == MemId
+                                        && g.Key.Trn_Type == TrnType
+                                        && g.Key.BrCode == brCode 
+                                        && (g.Sum(x => (double)x.mem.Pmt_Amt) - g.Sum(x => (double)x.mem.Rpt_Amt) > 0)
+                                  select new MemberTransactionVM
+                                  {
+                                      TrnType = (byte)g.Key.Trn_Type,
+                                      MemId = g.Key.Mem_Id,
+                                      LedId = (decimal)g.Key.Led_Id,
+                                      LedName = g.Key.Led_Name,
+                                      Rpt = g.Sum(x => (double)x.mem.Rpt_Amt),
+                                      Pmt = g.Sum(x => (double)x.mem.Pmt_Amt),
+                                      IntCalculatedAmt = g.Sum(x => (int)x.mem.IntCalc_Amt),
+                                      IntPaid = g.Sum(x => (int)x.mem.IntPaid_Amt)
+                                  }).ToListAsync();
+                    if(result != null && result.Any())
+                    {
+                        memTrnList = result.ToList();
+                    }
+                }
+
+                if (TrnType == 2 || TrnType == 3 || TrnType == 6 || TrnType == 7)
+                {
+                    var result = await (from mem in CSISContext.Mem_Trn
+                                        join led in CSISContext.Fin_Ledger on mem.Led_Id equals led.Led_Id
+                                        where !mem.MemTrn_Delete
+                                        group new { mem, led } by new
+                                        {
+                                            mem.Trn_Type,
+                                            mem.Mem_Id,
+                                            mem.Led_Id,
+                                            led.Led_Name,
+                                            mem.BrCode,
+                                        } into g
+                                        where g.Key.Mem_Id == MemId
+                                              && g.Key.Trn_Type == TrnType
+                                              && g.Key.BrCode == brCode 
+                                              && (g.Sum(x => (double)x.mem.Rpt_Amt) - g.Sum(x => (double)x.mem.Pmt_Amt) > 0)
+                                        select new MemberTransactionVM
+                                        {
+                                            TrnType = (byte)g.Key.Trn_Type,
+                                            MemId = g.Key.Mem_Id,
+                                            LedId = (decimal)g.Key.Led_Id,
+                                            LedName = g.Key.Led_Name,
+                                            Rpt = g.Sum(x => (double)x.mem.Rpt_Amt),
+                                            Pmt = g.Sum(x => (double)x.mem.Pmt_Amt),
+                                            IntCalculatedAmt = g.Sum(x => (int)x.mem.IntCalc_Amt),
+                                            IntPaid = g.Sum(x => (int)x.mem.IntPaid_Amt)
+                                        }).ToListAsync();
+                    if (result != null && result.Any())
+                    {
+                        memTrnList = result.ToList();
+                    }
+                }
+
+                if (memTrnList != null && memTrnList.Any())
+                {
+                    foreach (var item in memTrnList)
+                    {
+                        if (item.TrnType == 2 || item.TrnType == 3 || item.TrnType == 6 || item.TrnType == 7)   /// Mem Sus Cr or Share capital or Factory Sus Cr or Staff Sus Cr
+                        {
+                            if (item.Rpt - item.Pmt > 0)
+                                item.Balance = item.Rpt - item.Pmt;
+                            else
+                                item.Balance = 0;
+                        }
+                        if (item.TrnType == 1 || item.TrnType == 5)   /// 1=Mem Sus Dr or  5=Staff Sus Dr /// wrong  Factory Sus DR 5
+                        {
+                            if (item.Pmt - item.Rpt > 0)
+                                item.Balance = item.Pmt - item.Rpt;
+                            else
+                                item.Balance = 0;
+                        }
+                        item.IntBalance = item.IntCalculatedAmt - item.IntPaid;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return memTrnList!;
+        }
     }
 }

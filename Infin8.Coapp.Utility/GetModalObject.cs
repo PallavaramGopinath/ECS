@@ -1021,6 +1021,64 @@ namespace Infin8.Coapp.Utility
             }
             return scheme;
         }
+        #endregion
+
+        #region Employee
+        public static Emp_Pf GetEmpPFObject(decimal pf_id, decimal Emp_Id, DateTime pf_date, double pf_subscription, double vpf_contribution, double bpf_contribution, double epf_Interest,
+            double bpf_Interest, double pf_balance, double vpf_balance, double bpf_balance, double pf_withdrawn, double vpf_withdrawn, double bpf_withdrawn, double epf_Int_withdrawn,
+            double bpf_Int_withdrawn, DateTime? int_Calc_Upto, bool pf_Delete, bool pf_oe, DateTime? Last_Int_ApplicationDate, decimal Voc_Id, decimal Usr_id, decimal yr_id, int SlNo,
+            string status,string brCode)
+        {
+            Emp_Pf pf = new Emp_Pf();
+            try
+            {
+                pf.Pf_Id = 0;
+                pf.Mem_Id = Emp_Id;
+                pf.Pf_Date = pf_date;
+                pf.Pf_Subscription = pf_subscription;
+                pf.Pf_Withdrawn = pf_withdrawn;
+                pf.Pf_Balance = pf_balance;
+                pf.No_Of_Days = 0;
+                pf.Pf_Product = 0;
+                pf.Vpf_Contribution = vpf_contribution;
+                pf.Vpf_Withdrawn = vpf_withdrawn;
+                pf.Vpf_Balance = vpf_balance;
+                pf.Vpf_No_Of_Days = 0;
+                pf.Vpf_Product = 0;
+                pf.Bpf_Contribution = bpf_contribution;
+                pf.Bpf_Withdrawn = bpf_withdrawn;
+                pf.Bpf_Balance = bpf_balance;
+                pf.Bpf_No_Of_Days = 0;
+                pf.Bpf_Product = 0;
+                pf.Pf_Int_Accrued = 0;
+                pf.Pf_Int_Withdrawn = 0;
+                pf.Pf_Int_Balance = 0;
+                pf.Int_Calc_Upto = int_Calc_Upto;
+                pf.Voc_Id = Voc_Id;
+                pf.Usr_Id = Usr_id;
+                pf.Yr_Id = yr_id;
+                pf.SlNo = 0;
+                pf.Pf_Interest = 0;
+                pf.Vpf_Interest = 0;
+                pf.Epf_Interest = epf_Interest;
+                pf.Bpf_Interest = bpf_Interest;
+                pf.Epf_Int_Withdrawn = epf_Int_withdrawn;
+                pf.Epf_Int_Balance = 0;
+                pf.Bpf_Int_Withdrawn = bpf_Int_withdrawn;
+                pf.Bpf_Int_Balance = 0;
+                pf.Status = status;
+                pf.Pf_Delete = pf_Delete;
+                pf.Pf_Oe = pf_oe;
+                pf.Last_Int_ApplicationDate = Last_Int_ApplicationDate;
+                pf.Pf_Type = 0;
+                pf.BrCode = brCode;
+            }
+            catch (Exception ex)
+            {
+                pf = new();
+            }
+            return pf;
+        }
         #endregion 
     }
 }

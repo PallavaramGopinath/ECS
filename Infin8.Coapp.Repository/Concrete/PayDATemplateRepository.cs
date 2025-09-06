@@ -65,5 +65,31 @@ namespace Infin8.Coapp.Repository
             }
             return list;
         }
+
+        public Task<Pay_DA_Template> GetPayDATemplate(DateTime wef, string status, string brCode)
+        {
+            Pay_DA_Template daTemplate = new();
+            try
+            {
+                var maxDate = CSISContext.Pay_DA_Template
+                .Where(t => t.DA_Delete == false
+                            && t.Wef <= wef
+                            && t.Status == status)
+                .Max(t => t.Wef);
+
+                var result = CSISContext.Pay_DA_Template
+                    .Where(t => t.DA_Delete == false
+                                && t.Status == status
+                                && t.Wef == maxDate);
+                if(result !=null) daTemplate =  result.First();
+                //if (result != null) return Task.FromResult<Pay_DA_Template>(result.First());
+            }
+            catch (Exception ex)
+            { 
+                Console.WriteLine(ex.Message);
+            }
+            return Task.FromResult<Pay_DA_Template>(daTemplate);
+            //return Task.FromResult<Pay_DA_Template>(null!);
+        }
     }
 }

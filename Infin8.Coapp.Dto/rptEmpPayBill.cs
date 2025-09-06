@@ -17,6 +17,7 @@
         public double Pay_PF { get; set; }
         public double Pay_VPF { get; set; }
         public string? All_Name { get; set; }
+        public string? Decution_Name { get; set; }
         public double Allowance_Amt { get; set; }
         public string? Led_Name { get; set; }
         public string? Scheme_Name { get; set; }
@@ -28,5 +29,6 @@
         public decimal Loan_Id { get; set; }
         public decimal Led_Id { get; set; }
         public string? RsInWords { get; set; }
+        public int Pay_Component_Type { get; set; }
     }
 }

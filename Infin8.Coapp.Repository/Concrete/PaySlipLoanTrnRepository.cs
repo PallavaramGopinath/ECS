@@ -24,6 +24,7 @@ namespace Infin8.Coapp.Repository
                 maxId++;
                 paySlipLoanTrn.Tr_Id = maxId;
                 await AddAsync(paySlipLoanTrn);
+                await CSISContext.SaveChangesAsync(); // Save changes to reflect in the database
                 result = true;
             }
             catch (Exception ex)
@@ -49,6 +50,31 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Staff loan recovery in payroll not modified");
             }
             return result;
+        }
+
+        public async Task<List<Pay_Slip_Loan_Trn>> GetPaySlipLoanTrnList(decimal payId, decimal empId, string brCode)
+        {
+            List<Pay_Slip_Loan_Trn> loanList = new();
+            try
+            {
+                var result = await  (from loan in CSISContext.Pay_Slip_Loan_Trn
+                              join slip in CSISContext.Pay_Slip_Trn
+                                  on new { loan.Loan_Id, loan.Pay_Id, loan.BrCode }
+                                  equals new { slip.Loan_Id, slip.Pay_Id, slip.BrCode }
+                              where loan.Pay_Id == payId &&
+                                    slip.Pay_Id == payId &&
+                                    slip.Mem_Id == empId &&
+                                    loan.BrCode == brCode &&
+                                    slip.BrCode == brCode
+                              select loan)
+             .ToListAsync();
+                if(result != null && result.Any()) loanList = result.ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return loanList;
         }
     }
 }

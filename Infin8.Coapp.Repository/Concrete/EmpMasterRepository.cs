@@ -71,21 +71,23 @@ namespace Infin8.Coapp.Repository
             return infolist;
         }
 
-        public async Task<List<EmployeeMasterDto>> GetEmployeeMasterListAsync()
+        public async Task<List<EmployeeMasterDto>> GetEmployeeMasterListAsync(string brCode)
         {
             List<EmployeeMasterDto> list = new List<EmployeeMasterDto>();
             try
             {
                 var empList = await (from master in CSISContext.mem_master
                                join emp in CSISContext.Emp_Master on master.mem_id equals emp.Mem_Id
+                               join info in CSISContext.Pay_Gen_Info on emp.Emp_Desgn_Id equals info.Pay_Info_Id
                                where master.membertype == 4 && master.isaccountclosed == false && master.memberdelete == false
+                               && master.brcode == brCode
                                select new EmployeeMasterDto
                                {
                                    Mem_Id = master.mem_id,
                                    MemberNo = master.memberno,
                                    MemberName = master.membername,
                                    FatherName = master.fathername,
-                                   Emp_Desgn = emp.Emp_Desgn,
+                                   Emp_Desgn = info.Pay_Info_Name,
                                    Emp_Desgn_Id = emp.Emp_Desgn_Id,
                                    Emp_Category_Id = emp.Emp_Category_Id,
                                    Emp_Grade_Id = emp.Emp_Grade_Id,

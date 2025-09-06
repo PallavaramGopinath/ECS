@@ -179,6 +179,7 @@ else
     #endregion
     private bool _isDataLoaded = false;
 
+    #region commented section
     // protected override async Task OnInitializedAsync()
     // protected override async Task OnAfterRenderAsync(bool firstRender)
     // {
@@ -211,6 +212,8 @@ else
     //         }
     //     }
     // }
+    #endregion 
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -426,7 +429,6 @@ else
 
     private async Task ApproveTransactions(decimal stagingId)
     {
-
         var response = await _httpClient.PostAsJsonAsync<decimal>("https://localhost:7073/api/Staging/ApproveStaging", stagingId);
         if (response.IsSuccessStatusCode)
         {

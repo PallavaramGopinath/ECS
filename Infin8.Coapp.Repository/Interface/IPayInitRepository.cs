@@ -9,7 +9,7 @@ namespace Infin8.Coapp.Repository
 {
     public interface IPayInitRepository
     {
-        Task<bool> AddPayInitAsync(Pay_Init payInit);
+        Task<Pay_Init> AddPayInitAsync(Pay_Init payInit);
         Task<bool> EditPayInitAsync(Pay_Init payInit);
     }
 }

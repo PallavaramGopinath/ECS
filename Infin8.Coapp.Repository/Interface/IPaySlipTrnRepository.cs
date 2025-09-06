@@ -11,5 +11,6 @@ namespace Infin8.Coapp.Repository
     {
         Task<bool> AddPaySlipTrnAsync(Pay_Slip_Trn paySlipTrn);
         Task<bool> EditPaySlipTrnAsync(Pay_Slip_Trn paySlipTrn);
+        Task<List<Pay_Slip_Trn>> GetPaySlipTrnByMemId(decimal payId, decimal memId, string brCode);
     }
 }

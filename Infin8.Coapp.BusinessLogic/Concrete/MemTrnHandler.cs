@@ -50,6 +50,9 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.MemTrn.GetmemTrnTotalSuspenseAmount(memId, trnType, brCode);
         }
 
-        
+        public async Task<List<MemberTransactionVM>> GetMemberTrnBalanceList(decimal MemId, int TrnType, string brCode)
+        {
+            return await _unitOfWork.MemTrn.GetMemberTrnBalanceList(MemId, TrnType, brCode);
+        }
     }
 }

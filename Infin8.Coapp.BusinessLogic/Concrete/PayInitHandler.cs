@@ -15,21 +15,23 @@ namespace Infin8.Coapp.BusinessLogic
         {
             _unitOfWork = unitOfWork;
         }
-        public async Task<bool> AddPayInitAsync(Pay_Init payInit)
+        public async Task<Pay_Init> AddPayInitAsync(Pay_Init payInit)
         {
-            bool result = false;
+            //bool result = false;
+            Pay_Init init = new();
             try
             {
-                result = await _unitOfWork.PayInit.AddPayInitAsync(payInit);
+                var result = await _unitOfWork.PayInit.AddPayInitAsync(payInit);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if(result != null) init = result ;
             }
             catch (Exception ex)
             {
-                result = false;
+                //result = false;
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Salary initialization not saved");
             }
-            return result;
+            //return result;
+            return init;
         }
 
         public async Task<bool> EditPayInitAsync(Pay_Init payInit)

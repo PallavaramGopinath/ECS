@@ -49,5 +49,10 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+
+        public async Task<Pay_Att> GetPayAttanceByEmpId(decimal empId, decimal payId, string brCode)
+        {
+            return await _unitOfWork.PayAttance.GetPayAttanceByEmpId(empId, payId, brCode);
+        }
     }
 }

@@ -14,7 +14,7 @@
             <div class="col-md-6">
                 <div class="form-group">
                     <label for="rptNo">Receipt No</label>
-                    <InputText class="form-control shadow-non" @bind-Value="rptNo" @onblur="() => handleRptNo(rptNo)">
+                    <InputText class="form-control shadow-non" @bind-Value="rptNo" @onblur="() => handleRptNo(rptNo!)">
 
                     </InputText>
                 </div>
@@ -22,7 +22,7 @@
             <div class="col-md-6">
                 <div class="form-group">
                     <label for="rptNo">Payment No</label>
-                    <InputText class="form-control shadow-non" @bind-Value="pmtNo" @onblur="() => handlePmtNo(pmtNo)">
+                    <InputText class="form-control shadow-non" @bind-Value="pmtNo" @onblur="() => handlePmtNo(pmtNo!)">
 
                     </InputText>
                 </div>

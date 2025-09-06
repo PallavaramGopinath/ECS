@@ -65,5 +65,25 @@ namespace Infin8.Coapp.Repository
             }
             return list;
         }
+
+        public async Task<Pay_PF_ROITemplate> GetPayPFRoiTemplateByDate(DateTime salaryDate, string brCode)
+        {
+            Pay_PF_ROITemplate pfTemplate = new();
+            try
+            {
+                var maxDate = await CSISContext.Pay_PF_ROITemplate
+                .Where(t => t.Roi_Delete == false && t.Roi_Wef <= salaryDate && t.BrCode == brCode  )
+                .MaxAsync(t => t.Roi_Wef);
+
+                var pfroi = await CSISContext.Pay_PF_ROITemplate
+                    .FirstOrDefaultAsync(t => t.Roi_Wef == maxDate && t.Roi_Delete == false && t.BrCode == brCode );  
+                if (pfroi != null) pfTemplate = pfroi;
+            }
+            catch (Exception ex)
+            {
+                Console.Write(ex.Message);
+            }
+            return pfTemplate;
+        }
     }
 }

@@ -339,7 +339,7 @@
     bool isTrnDateDisable = false;
     bool isMemberNoDisable = false;
     bool isDdlCashAdjustmentDisable = false;
-                 
+
     private List<AccountTransactionVM> transactionAccountsList = new();
     private List<DropdownItem> accountItems = new();
     private List<DropdownItem> ledgerNameItems = new();
@@ -706,6 +706,7 @@
                 isLedgerSection = false;
                 isTransactionSection = false;
                 break;
+
         }
         #endregion
 
@@ -815,6 +816,9 @@
                     isLedgerSection = false;
                     break;
                 case 52: /// Jewel loan disbursement with appraisal fee
+                    isLedgerSection = false;
+                    break;
+                case 53:    /// Jewel loan disbursment both ornments and mi
                     isLedgerSection = false;
                     break;
             }
@@ -1317,10 +1321,51 @@
             case 46: /// Loan disbursement subsequent instalments HSIS
                 break;
             case 48:    /// Loan disbursement for PLDB
+                #region Loan disbursement PLDB
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.PLDBLoan"}.{componentName}";
+                Type? pldbLoantype = Type.GetType(fullyQualifiedName);
+                if (pldbLoantype != null) currentComponent = pldbLoantype;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnPLDBDisbursementComponentClose", EventCallback.Factory.Create<bool>(this, ClosePLDBDisbursementComponent) }
+                    // { "OnJLDisbursementInitiate",EventCallback.Factory.Create<DtoJewelLoanDisbursement>(this,JLDisbursementInitiate) }
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
                 break;
             case 52:    /// jewel loan disbursement with appraisal fee
 
                 break;
+            case 53:    /// Jewel Loan disbursement both jl and mi
+                #region Jewel Loan disbursement both jl and mi
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+                Type? type3 = Type.GetType(fullyQualifiedName);
+                if (type3 != null) currentComponent = type3;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnJLDisbursementComponentClose", EventCallback.Factory.Create<bool>(this, CloseJLDisbursementComponent) }
+                    
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
+                break;
+               
                 #endregion
         }
     }
@@ -1586,7 +1631,7 @@
                     { "CashOrAdjustment",transaction.Cash_Adjustment },
                     { "MemberId", transaction.Member_Id },
                     { "MemberNumber", transaction.Member_No! },
-                    {"MemberName", transaction.Member_Name! },
+                    { "MemberName", transaction.Member_Name! },
                     { "TransactionDate", transaction.Transaction_Date },
                     { "OnFDLoanComponentClose", EventCallback.Factory.Create<bool>(this, CloseFDLoanComponent) },
                     { "OnFDLoanInitiate",EventCallback.Factory.Create<DtoTermDepositFixedDepositLoan>(this,FDLoanInitiate)}
@@ -2290,6 +2335,17 @@
         transaction.Account_Id = 0;
     }
     #endregion
+
+    #region Loan Disbursement 
+    private void ClosePLDBDisbursementComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+    #endregion 
 
     #region Jewel loan Recovery component items
     private void CloseJLRecoveryComponent(bool closeSignalFromChild)

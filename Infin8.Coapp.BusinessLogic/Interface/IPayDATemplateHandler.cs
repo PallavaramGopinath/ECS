@@ -12,5 +12,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> AddPayDATemplateAsync(Pay_DA_Template payDaTemplate);
         Task<bool> EditPayDATemplateAsync(Pay_DA_Template payDaTemplate);
         Task<List<Pay_DA_Template>> GetPayDATemplateListAsync(string status);
+        Task<Pay_DA_Template> GetPayDATemplate(DateTime wef, string status, string brCode);
     }
 }

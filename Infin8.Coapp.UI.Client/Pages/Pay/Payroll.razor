@@ -1,0 +1,1602 @@
+﻿@page "/payroll"
+@using System.ComponentModel.DataAnnotations
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Payroll Management System</PageTitle>
+
+<div class="container-fluid p-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-centere mb-4">
+                <h2 class="text-primary mb-0">
+                    <i class="bi bi-currency-rupee"></i>
+                    Payroll System
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container-fluid p-4">
+        
+
+        <!-- Display employees list to generate, view, print -->
+        @if (employeeLastPayInfos != null && employeeLastPayInfos.Any())
+        {
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Showing last pay information for @employeeLastPayInfos.Count employees. Use the filters below to search specific payslips.
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Employee No</th>
+                            <th>Emplyee Name</th>
+                            <th>Designation</th>
+                            <th>Status</th>
+                            <th>Month</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var emp in employeeLastPayInfos)
+                        {
+                            <tr>
+                                <td class="fw-medium"> @emp.Employee_No </td>
+                                <td>@emp.Employee_Name</td>
+                                <td>@emp.Employee_Designation</td>
+                                <td>@emp.Payment_Status</td>
+                                <td>
+                                    <span class="badge @(emp.Pmt ? "bg-danger" : "bg-info")">
+                                        @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(@emp.Pay_Month) @emp.Pay_Year
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" @onclick="() => ViewPayslip(emp!)">
+                                            <i class="oi oi-eye"></i>
+                                        </button>
+                                        @*  <button class="btn btn-outline-success" @onclick="() => CalculatePaySlip(emp)">
+                                            <i class="oi oi-eye"></i>
+                                        </button> *@
+                                        <button class="btn btn-outline-info" @onclick="() => GetEmployeeComponentAssignments(emp!)">
+                                            <i class="oi oi-pencil"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <i class="oi oi-warning"></i>
+                No employee pay information available. Please generate payslips to view details.
+            </div>
+        }
+
+
+        <!-- Calculate pay slip for a employee -->
+        @if (isPayDisplay)
+        {
+            <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">
+                                <i class="oi oi-file"></i>
+                                Payslip Details for the month of
+                                @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(payslip.Pay_Month) @payslip.Pay_Year
+                                - @payslip.Employee_No - @payslip.Employee_Name - @payslip.Designation
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" @onclick="ClosePayDisplay"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="HQ">Working at HQ:</label>
+                                        <InputNumber id="HQ" class="form-control" @bind-Value="payslip.HeadQuarters" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="Camp">Working at Camp:</label>
+                                        <InputNumber id="Camp" class="form-control" @bind-Value="payslip.Camp" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="HoliDays">Holidays:</label>
+                                        <InputNumber id="HoliDays" class="form-control" @bind-Value="payslip.Holiday" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="CL">Casual Leave:</label>
+                                        <InputNumber id="CL" class="form-control" @bind-Value="payslip.CasualLeave" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="ML">Medical Leave:</label>
+                                        <InputNumber id="ML" class="form-control" @bind-Value="payslip.MedicalLeave" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="EL">Earned Leave:</label>
+                                        <InputNumber id="EL" class="form-control" @bind-Value="payslip.EarnedLeave" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="Total">Total Days In Month:</label>
+                                        <input type="number" class="form-control text-danger h5 fw-bold" value="@payslip.TotalDaysInMonth" readonly />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="Total">Total Days:</label>
+                                        <input type="number" class="form-control text-primary h5 fw-bold" value="@payslip.TotalDays" readonly />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Allowance Name</th>
+                                                    <th>Allowance Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var allowance in payslip.ComponentAssignments!.Where(c => c.Component_Type == 1).OrderBy(c => c.Display_Order))
+                                                {
+                                                    <tr>
+                                                        <td> @allowance.Component_Name</td>
+                                                        <td>
+                                                            <div class="form-group">
+                                                                <InputNumber class="form-control" @bind-Value="allowance.Current_Value" />
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Deduction Name</th>
+                                                    <th>Deduction Amount</th>
+                                                    <th>Principal (loan)</th>
+                                                    <th>Interest (loan)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+
+                                                @foreach (var allowance in payslip.ComponentAssignments!.Where(c => c.Component_Type == 2).OrderBy(c => c.Display_Order))
+                                                {
+                                                    <tr>
+                                                        <td> @allowance.Component_Name</td>
+                                                        <td>
+                                                            <div class="form-group">
+                                                                <InputNumber class="form-control" @bind-Value="allowance.Current_Value" />
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                                @if (payslip.LoanList != null && payslip.LoanList.Any())
+                                                {
+                                                    @foreach (var loan in payslip.LoanList!)
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                <div>
+                                                                    <strong>@loan.Scheme_Name</strong>
+                                                                    <i class="fas fa-edit text-warning ms-1" title="Overridden"></i>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group">
+                                                                    <input type="number" class="form-control" Value="@loan.TotalRecovery" readonly />
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group">
+                                                                    <InputNumber class="form-control" @bind-Value="loan.PrlRecovery" @onblur="() => handleLoanPrlChanged(loan)" />
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group">
+                                                                    <InputNumber class="form-control" @bind-Value="loan.IntRecovery" @onblur="() => handleLoanIntChanged(loan)" />
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                }
+
+                                                @if (payslip.SuspeneDueToList != null && payslip.SuspeneDueToList.Any())
+                                                {
+                                                    @foreach (var sus in payslip.SuspeneDueToList!)
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                <div>
+                                                                    <strong>@sus.LedName</strong>
+                                                                    <i class="fas fa-edit text-warning ms-1" title="Overridden"></i>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group">
+                                                                    <InputNumber class="form-control" @bind-Value="sus.Balance" />
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="GrossPay">Gross Pay:</label>
+                                        <InputNumber id="GrossPay" class="form-control" @bind-Value="payslip.GrossPay" readonly />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="TotalDeductions">Total Deductions:</label>
+                                        <InputNumber id="TotalDeductions" class="form-control" @bind-Value="payslip.TotalDeductions" readonly />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="NetPay">Net Pay:</label>
+                                        <InputNumber id="NetPay" class="form-control" @bind-Value="payslip.NetPay" readonly />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-info" @onclick="CalculatePaySlip">
+                                    @if (_isCalculating)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <span class="ps-2">Calculating...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="oi oi-calculator me-2"></i>
+                                        <span class="ps-2">Calculate Net Pay</span>
+                                    }
+                                </button>
+                                <button class="btn btn-primary" @onclick="GeneratePay">
+                                    @if (_isGenerating)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <span class="ps-2">Generating...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="oi oi-pencil me-2"></i>
+                                        <span class="ps-2">Generate Pay</span>
+                                    }
+                                </button>
+                            </div>
+
+                            @if (_isPaySlipModalError)
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <strong>Error!</strong> @errorMessage
+                                    <button type="button" class="close" @onclick="() => _isPaySlipModalError = false">
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+
+        <!-- Filters Section -->
+        @* <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Employee ID</label>
+                        <input type="number" class="form-control" @bind="filterEmployeeId" placeholder="Enter Employee ID" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Month</label>
+                        <select class="form-select" @bind="filterMonth">
+                            <option value="0">All Months</option>
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                                <option value="@i">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Year</label>
+                        <select class="form-select" @bind="filterYear">
+                            <option value="0">All Years</option>
+                            @for (int year = DateTime.Now.Year - 2; year <= DateTime.Now.Year + 1; year++)
+                            {
+                                <option value="@year">@year</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-primary w-100" @onclick="ApplyFilters">
+                            <i class="fas fa-search me-1"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div> *@
+
+        <!-- Payslips List -->
+       @*  <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Payslips (@filteredPayslips.Count)
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                @if (filteredPayslips.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Employee ID</th>
+                                    <th>Designation</th>
+                                    <th>Period</th>
+                                    <th>Working Days</th>
+                                    <th class="text-end">Gross Pay</th>
+                                    <th class="text-end">Deductions</th>
+                                    <th class="text-end">Net Pay</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var payslip in filteredPayslips)
+                                {
+                                    <tr class="@(selectedPayslip?.Pay_Id == payslip.Pay_Id ? "table-info" : "")">
+                                        <td class="fw-medium">@payslip.Employee_Id</td>
+                                        <td>@payslip.Designation</td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(payslip.Pay_Month) @payslip.Pay_Year
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-success fw-medium">@payslip.TotalDays</span>
+                                            <small class="text-muted">/@payslip.TotalDaysInMonth</small>
+                                        </td>
+                                        <td class="text-end fw-medium text-success">₹@payslip.GrossPay.ToString("N2")</td>
+                                        <td class="text-end fw-medium text-danger">₹@payslip.TotalDeductions.ToString("N2")</td>
+                                        <td class="text-end fw-bold text-primary fs-6">₹@payslip.NetPay.ToString("N2")</td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" @onclick="() => ViewPayslip(payslip)">
+                                                    <i class="oi oi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success" @onclick="() => EditPayslip(payslip)">
+                                                    <i class="oi oi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info" @onclick="() => PrintPayslip(payslip)">
+                                                    <i class="oi oi-print"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No payslips found</h5>
+                        <p class="text-muted">Try adjusting your search criteria or generate a new payslip.</p>
+                    </div>
+                }
+            </div>
+        </div> *@
+
+    </div>
+
+    <!-- Display Payslip Detail Modal -->
+    @if (selectedPayslip != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="oi oi-file"></i>
+                            Payslip Details - @selectedPayslip.Employee_Name, @selectedPayslip.Designation (ID: @selectedPayslip.Employee_Id)
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Payslip Header Info -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-primary">Employee Information</h6>
+                                        <div class="row g-2">
+                                            <div class="col-6"><strong>Employee No:</strong></div>
+                                            <div class="col-6">@selectedPayslip.Employee_No</div>
+                                            <div class="col-6">Employee Name</div>
+                                            <div class="col-6">@selectedPayslip.Employee_Name</div>
+                                            <div class="col-6"><strong>Designation:</strong></div>
+                                            <div class="col-6">@selectedPayslip.Designation</div>
+                                            <div class="col-6"><strong>Period:</strong></div>
+                                            <div class="col-6">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(selectedPayslip.Pay_Month) @selectedPayslip.Pay_Year</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-success">Attendance Summary</h6>
+                                        <div class="row g-2">
+                                            <div class="col-6"><strong>Total Days:</strong></div>
+                                            <div class="col-6">@selectedPayslip.TotalDaysInMonth</div>
+                                            <div class="col-6"><strong>Working Days:</strong></div>
+                                            <div class="col-6">@selectedPayslip.TotalDays</div>
+                                            <div class="col-6"><strong>Headquarters:</strong></div>
+                                            <div class="col-6">@selectedPayslip.HeadQuarters days</div>
+                                            <div class="col-6"><strong>Camp:</strong></div>
+                                            <div class="col-6">@selectedPayslip.Camp days</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Leave Details -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0 text-info">
+                                    <i class="oi oi-calendar"></i>
+                                    Leave Details
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-success text-white rounded">
+                                            <div class="fw-bold">@selectedPayslip.CasualLeave</div>
+                                            <small>Casual Leave</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-info text-white rounded">
+                                            <div class="fw-bold">@selectedPayslip.EarnedLeave</div>
+                                            <small>Earned Leave</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-warning text-white rounded">
+                                            <div class="fw-bold">@selectedPayslip.MedicalLeave</div>
+                                            <small>Medical Leave</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-danger text-white rounded">
+                                            <div class="fw-bold">@selectedPayslip.LossOfPay</div>
+                                            <small>Loss of Pay</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-primary text-white rounded">
+                                            <div class="fw-bold">@selectedPayslip.FestivalHoliday</div>
+                                            <small>Festival Holiday</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-secondary text-white rounded">
+                                            <div class="fw-bold">@selectedPayslip.Holiday</div>
+                                            <small>Holiday</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pay Components -->
+                        @if (selectedPayslip.ComponentAssignments != null && selectedPayslip.ComponentAssignments.Any())
+                        {
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card h-100">
+                                        <div class="card-header bg-success text-white">
+                                            <h6 class="mb-0">
+                                                <i class="oi-circle-check"></i>
+                                                Earnings
+                                            </h6>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm mb-0">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Component</th>
+                                                            <th class="text-center">DA Applicable</th>
+                                                            <th class="text-end">Amount</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var component in selectedPayslip.ComponentAssignments.Where(c => c.Component_Type == 1).OrderBy(c => c.Display_Order))
+                                                        {
+                                                            <tr class="@(component.Is_Overridden ? "table-warning" : "")">
+                                                                <td>
+                                                                    <div>
+                                                                        <strong>@component.Component_Name</strong>
+                                                                        @if (component.Is_Overridden)
+                                                                        {
+                                                                            <i class="fas fa-edit text-warning ms-1" title="Overridden"></i>
+                                                                        }
+                                                                    </div>
+                                                                    <small class="text-muted">@component.Component_Code</small>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    @if (component.Is_DA_Applicable)
+                                                                    {
+                                                                        <i class="fas fa-check text-success"></i>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <i class="fas fa-times text-muted"></i>
+                                                                    }
+                                                                </td>
+                                                                <td class="text-end fw-medium">₹@component.Current_Value.ToString("N2")</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100">
+                                        <div class="card-header bg-danger text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-minus-circle me-2"></i>
+                                                Deductions
+                                            </h6>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm mb-0">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Component</th>
+                                                            <th class="text-center">Method</th>
+                                                            <th class="text-end">Amount</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var component in selectedPayslip.ComponentAssignments.Where(c => c.Component_Type == 2).OrderBy(c => c.Display_Order))
+                                                        {
+                                                            <tr class="@(component.Is_Overridden ? "table-warning" : "")">
+                                                                <td>
+                                                                    <div>
+                                                                        <strong>@component.Component_Name</strong>
+                                                                        @if (component.Is_Overridden)
+                                                                        {
+                                                                            <i class="fas fa-edit text-warning ms-1" title="Overridden"></i>
+                                                                        }
+                                                                    </div>
+                                                                    <small class="text-muted">@component.Component_Code</small>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <span class="badge bg-secondary">@component.Calculation_Method</span>
+                                                                </td>
+                                                                <td class="text-end fw-medium">₹@component.Current_Value.ToString("N2")</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Loan Section -->
+                        @if (selectedPayslip.LoanList != null && selectedPayslip.LoanList.Any())
+                        {
+                            <div class="card mt-4">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-hand-holding-usd me-2"></i>
+                                        Loan Recoveries
+                                    </h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Loan Scheme</th>
+                                                    <th class="text-end">Principal Recovery</th>
+                                                    <th class="text-end">Interest Recovery</th>
+                                                    <th class="text-end">Total Recovery</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var loan in selectedPayslip.LoanList)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            <div>
+                                                                <strong>@loan.Scheme_Name</strong>
+                                                                @* @if (loan.Is_Overridden)
+                                                                {
+                                                                    <i class="fas fa-edit text-warning ms-1" title="Overridden"></i>
+                                                                } *@
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-end">₹@loan.PrlRecovery.ToString("N2")</td>
+                                                        <td class="text-end">₹@loan.IntRecovery.ToString("N2")</td>
+                                                        <td class="text-end fw-medium">₹@loan.TotalRecovery.ToString("N2")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        
+                        <!-- Suspense Account Section-->
+                        @if (selectedPayslip.SuspeneDueToList != null && selectedPayslip.SuspeneDueToList.Any())
+                        {
+                            <div class="card mt-4">
+                                <div class="card-header bg-secondary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-university me-2"></i>
+                                        Suspense Deductions
+                                    </h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Ledger Name</th>
+                                                    <th class="text-end">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var sus in selectedPayslip.SuspeneDueToList)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            <div>
+                                                                <strong>@sus.LedName</strong>
+                                                                @* @if (sus.Is_Overridden)
+                                                                {
+                                                                    <i class="fas fa-edit text-warning ms-1" title="Overridden"></i>
+                                                                } *@
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-end fw-medium">₹@sus.Balance.ToString("N2")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <!-- Summary Section -->
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <div class="card border-primary">
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-md-4">
+                                                <div class="p-3 bg-success bg-opacity-10 rounded">
+                                                    <h4 class="text-success mb-1">₹@selectedPayslip.GrossPay.ToString("N2")</h4>
+                                                    <small class="text-muted">Gross Pay</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="p-3 bg-danger bg-opacity-10 rounded">
+                                                    <h4 class="text-danger mb-1">₹@selectedPayslip.TotalDeductions.ToString("N2")</h4>
+                                                    <small class="text-muted">Total Deductions</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="p-3 bg-primary bg-opacity-10 rounded">
+                                                    <h4 class="text-primary mb-1">₹@selectedPayslip.NetPay.ToString("N2")</h4>
+                                                    <small class="text-muted">Net Pay</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">
+                            <i class="bi bi-eye-slash"></i>Close
+                        </button>
+                        <button type="button" class="btn btn-primary" @onclick="() => DeletePayslip(selectedPayslip)">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                        @* <button type="button" class="btn btn-primary" @onclick="() => EditPayslip(selectedPayslip)">
+                            <i class="oi oi-pencil"></i> Edit
+                        </button> *@
+                        <button type="button" class="btn btn-success" @onclick="() => PrintPayslip(selectedPayslip)">
+                            <i class="oi oi-print"></i> Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+
+    <!-- Edit Payslip Modal not used-->
+    @* @if (editingPayslip != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title">
+                            <i class="fas fa-edit me-2"></i>
+                            Edit Payslip - @editingPayslip.Designation (ID: @editingPayslip.Employee_Id)
+                        </h5>
+                        <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="editingPayslip" OnValidSubmit="SavePayslip">
+                            <DataAnnotationsValidator />
+
+                            <!-- Basic Information -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Employee ID</label>
+                                        <InputNumber class="form-control" @bind-Value="editingPayslip.Employee_Id" readonly />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Designation</label>
+                                        <InputText class="form-control" @bind-Value="editingPayslip.Designation" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">DA Percentage</label>
+                                        <InputNumber class="form-control" @bind-Value="editingPayslip.DA_Percentage" step="0.01" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">PF Percentage</label>
+                                        <InputNumber class="form-control" @bind-Value="editingPayslip.PF_Percentage" step="0.01" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Attendance -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Attendance Details</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label">Headquarters</label>
+                                            <InputNumber class="form-control" @bind-Value="editingPayslip.HeadQuarters" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Camp</label>
+                                            <InputNumber class="form-control" @bind-Value="editingPayslip.Camp" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Casual Leave</label>
+                                            <InputNumber class="form-control" @bind-Value="editingPayslip.CasualLeave" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Earned Leave</label>
+                                            <InputNumber class="form-control" @bind-Value="editingPayslip.EarnedLeave" />
+                                        </div>
+                                    </div>
+                                    <div class="row g-3 mt-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">Medical Leave</label>
+                                            <InputNumber class="form-control" @bind-Value="editingPayslip.MedicalLeave" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Loss of Pay</label>
+                                            <InputNumber class="form-control" @bind-Value="editingPayslip.LossOfPay" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Festival Holiday</label>
+                                            <InputNumber class="form-control" @bind-Value="editingPayslip.FestivalHoliday" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Holiday</label>
+                                            <InputNumber class="form-control" @bind-Value="editingPayslip.Holiday" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Component Assignments -->
+                            @if (editingPayslip.ComponentAssignments != null)
+                            {
+                                <div class="card mb-4">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">Pay Components</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddComponent">
+                                            <i class="fas fa-plus me-1"></i> Add Component
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Component</th>
+                                                        <th>Type</th>
+                                                        <th>Method</th>
+                                                        <th>DA Applicable</th>
+                                                        <th class="text-end">Amount</th>
+                                                        <th>Override</th>
+                                                        <th class="text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var component in editingPayslip.ComponentAssignments.OrderBy(c => c.Display_Order))
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                <div>
+                                                                    <strong>@component.Component_Name</strong>
+                                                                    <br><small class="text-muted">@component.Component_Code</small>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge @(component.Component_Type == 1 ? "bg-success" : "bg-danger")">
+                                                                    @(component.Component_Type == 1 ? "Earning" : "Deduction")
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <select class="form-select form-select-sm" @bind="component.Calculation_Method">
+                                                                    <option value="PayCalculationType.Fixed">Fixed</option>
+                                                                    <option value="PayCalculationType.Percentage">Percentage</option>
+                                                                    <option value="PayCalculationType.Formula">Formula</option>
+                                                                </select>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <input type="checkbox" class="form-check-input" @bind="component.Is_DA_Applicable" />
+                                                            </td>
+                                                            <td>
+                                                                <input type="number" class="form-control form-control-sm text-end"
+                                                                       @bind="component.Assigned_Value" step="0.01"
+                                                                       style="max-width: 120px;" />
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <input type="checkbox" class="form-check-input" @bind="component.Is_Overridden" />
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                                                        @onclick="() => RemoveComponent(component)">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <ValidationSummary class="text-danger" />
+
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-secondary me-2" @onclick="CloseEditModal">Cancel</button>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-save me-1"></i> Save Changes
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    } *@
+}
+
+@if (IsError)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => IsError = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+
+@code {
+    private bool _isLoading = true;
+    private bool _isCalculating = false;
+    private bool _isGenerating = false;
+    private bool _isPaySlipModalError = false;
+    private string BrCode = "11001"; // Example branch code
+    private decimal Usr_Id = 110010000001;
+    private decimal Yr_Id = 110010000023;
+    private List<DtoEmployeeLastPayInfo> employeeLastPayInfos = new();
+    private List<DtoPaySlip> payslips = new();
+    private DtoPaySlip payslip = new();
+    private List<DtoPaySlip> filteredPayslips = new();
+    private DtoPaySlip selectedPayslip = null;
+    private DtoPaySlip? editingPayslip = null;
+    rptReportEmployeeObject rptObject = new();
+
+    private bool isPayDisplay = false;
+    private string? errorMessage = string.Empty;
+    private bool IsError = false;
+    // Filter properties
+    private decimal filterEmployeeId = 0;
+    private int filterMonth = 0;
+    private int filterYear = 0;
+    private byte[] fileBytes;
+    // protected override void OnInitialized()
+    // {
+    //     LoadSampleData();
+    //     ApplyFilters();
+    // }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await GetEmployeesLastPayInfo();
+                _isLoading = false;
+                StateHasChanged();
+                // await LoadSampleData();
+                // ApplyFilters();
+                // StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during initialization: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task LoadSampleData()
+    {
+        // Sample data for demonstration
+        // payslips = new List<DtoPaySlip>
+        // {
+        //     new DtoPaySlip
+        //     {
+        //         Pay_Id = 1,
+        //         Employee_Id = 1001,
+        //         Designation = "Software Engineer",
+        //         Pay_Month = 7,
+        //         Pay_Year = 2024,
+        //         TotalDaysInMonth = 31,
+        //         TotalDays = 22,
+        //         DA_Percentage = 12.5,
+        //         PF_Percentage = 12.0,
+        //         HeadQuarters = 20,
+        //         Camp = 2,
+        //         CasualLeave = 1,
+        //         EarnedLeave = 0,
+        //         MedicalLeave = 0,
+        //         LossOfPay = 0,
+        //         FestivalHoliday = 2,
+        //         Holiday = 6,
+        //         GrossPay = 75000,
+        //         TotalDeductions = 12000,
+        //         NetPay = 63000,
+        //         ComponentAssignments = new List<DtoPayComponentAssignments>
+        //         {
+        //             new() { Component_Id = 1, Component_Name = "Basic Salary", Component_Code = "BASIC", Component_Type = 1, Is_DA_Applicable = true, Assigned_Value = 50000, CalculationMethod = PayCalculationType.Fixed },
+        //             new() { Component_Id = 2, Component_Name = "HRA", Component_Code = "HRA", Component_Type = 1, Is_DA_Applicable = false, Assigned_Value = 15000, CalculationMethod = PayCalculationType.Percentage },
+        //             new() { Component_Id = 3, Component_Name = "DA", Component_Code = "DA", Component_Type = 1, Is_DA_Applicable = false, Assigned_Value = 6250, CalculationMethod = PayCalculationType.Percentage },
+        //             new() { Component_Id = 4, Component_Name = "Special Allowance", Component_Code = "SPECIAL", Component_Type = 1, Is_DA_Applicable = true, Assigned_Value = 3750, CalculationMethod = PayCalculationType.Fixed },
+        //             new() { Component_Id = 5, Component_Name = "PF Deduction", Component_Code = "PF", Component_Type = 2, Is_DA_Applicable = false, Assigned_Value = 6000, CalculationMethod = PayCalculationType.Percentage },
+        //             new() { Component_Id = 6, Component_Name = "Professional Tax", Component_Code = "PT", Component_Type = 2, Is_DA_Applicable = false, Assigned_Value = 200, CalculationMethod = PayCalculationType.Fixed },
+        //             new() { Component_Id = 7, Component_Name = "Income Tax", Component_Code = "IT", Component_Type = 2, Is_DA_Applicable = false, Assigned_Value = 5800, CalculationMethod = PayCalculationType.Fixed }
+        //         }
+        //     },
+        //     new DtoPaySlip
+        //     {
+        //         Pay_Id = 2,
+        //         Employee_Id = 1002,
+        //         Designation = "Senior Developer",
+        //         Pay_Month = 7,
+        //         Pay_Year = 2024,
+        //         TotalDaysInMonth = 31,
+        //         TotalDays = 21,
+        //         DA_Percentage = 12.5,
+        //         PF_Percentage = 12.0,
+        //         HeadQuarters = 18,
+        //         Camp = 3,
+        //         CasualLeave = 2,
+        //         EarnedLeave = 1,
+        //         MedicalLeave = 0,
+        //         LossOfPay = 1,
+        //         FestivalHoliday = 2,
+        //         Holiday = 6,
+        //         GrossPay = 95000,
+        //         TotalDeductions = 16500,
+        //         NetPay = 78500,
+        //         ComponentAssignments = new List<DtoPayComponentAssignments>
+        //         {
+        //             new() { Component_Id = 1, Component_Name = "Basic Salary", Component_Code = "BASIC", Component_Type = 1, Is_DA_Applicable = true, Assigned_Value = 65000, CalculationMethod = PayCalculationType.Fixed },
+        //             new() { Component_Id = 2, Component_Name = "HRA", Component_Code = "HRA", Component_Type = 1, Is_DA_Applicable = false, Assigned_Value = 19500, CalculationMethod = PayCalculationType.Percentage },
+        //             new() { Component_Id = 3, Component_Name = "DA", Component_Code = "DA", Component_Type = 1, Is_DA_Applicable = false, Assigned_Value = 8125, CalculationMethod = PayCalculationType.Percentage },
+        //             new() { Component_Id = 4, Component_Name = "Special Allowance", Component_Code = "SPECIAL", Component_Type = 1, Is_DA_Applicable = true, Assigned_Value = 2375, CalculationMethod = PayCalculationType.Fixed },
+        //             new() { Component_Id = 5, Component_Name = "PF Deduction", Component_Code = "PF", Component_Type = 2, Is_DA_Applicable = false, Assigned_Value = 7800, CalculationMethod = PayCalculationType.Percentage },
+        //             new() { Component_Id = 6, Component_Name = "Professional Tax", Component_Code = "PT", Component_Type = 2, Is_DA_Applicable = false, Assigned_Value = 200, CalculationMethod = PayCalculationType.Fixed },
+        //             new() { Component_Id = 7, Component_Name = "Income Tax", Component_Code = "IT", Component_Type = 2, Is_DA_Applicable = false, Assigned_Value = 8500, CalculationMethod = PayCalculationType.Fixed }
+        //         }
+        //     }
+        // };
+        await Task.CompletedTask;
+    }
+
+    private async Task GetEmployeesLastPayInfo()
+    {
+        var mem = await _httpClient.GetFromJsonAsync<List<DtoEmployeeLastPayInfo>>($"https://localhost:7073/api/Pay/GetLastPayInfo");
+        if (mem != null && mem.Any())
+        {
+            employeeLastPayInfos = mem;
+        }
+        StateHasChanged();
+    }
+
+    private void ApplyFilters()
+    {
+        filteredPayslips = payslips.Where(p =>
+            (filterEmployeeId == 0 || p.Employee_Id == filterEmployeeId) &&
+            (filterMonth == 0 || p.Pay_Month == filterMonth) &&
+            (filterYear == 0 || p.Pay_Year == filterYear)
+        ).ToList();
+    }
+
+    private async Task ViewPayslip(DtoEmployeeLastPayInfo employee)
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<DtoPaySlip>($"https://localhost:7073/api/Pay/GetPaySlipById/{employee.Pay_Id}/{employee.Employee_Id}/{BrCode}");
+            if (response != null)
+            {
+                selectedPayslip = response;
+                selectedPayslip.TotalDaysInMonth = DateTime.DaysInMonth(employee.Pay_Year, employee.Pay_Month);
+                selectedPayslip.BrCode = BrCode;
+
+                StateHasChanged();
+            }
+            else
+            {
+                selectedPayslip = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            selectedPayslip = null;
+            errorMessage = "Error display payslip";
+            IsError = true;
+            Console.WriteLine($"Error display payslip: {ex.Message}");
+        }
+    }
+
+    private void EditPayslip(DtoPaySlip payslip)
+    {
+        editingPayslip = CreatePayslipCopy(payslip);
+        selectedPayslip = null;
+    }
+
+    private async Task GetEmployeeComponentAssignments(DtoEmployeeLastPayInfo employee)
+    {
+        try
+        {
+            DateTime newPayDate = new(employee.Pay_Year, employee.Pay_Month, 1);
+            newPayDate = newPayDate.AddMonths(1);
+
+            List<DtoPayComponentAssignments> componentAssignments = new();
+
+            var pay = await _httpClient.GetFromJsonAsync<List<DtoPayComponentAssignments>>($"https://localhost:7073/api/Pay/GetPayComponentAssignmentsByEmployeeId/{employee.Employee_Id}/{BrCode}");
+            if (pay != null && pay.Any())
+            {
+                componentAssignments = pay;
+            }
+
+            var newPayslip = new DtoPaySlip
+            {
+                Pay_Id = 0,
+                Employee_Id = employee.Employee_Id,
+                Employee_No = employee.Employee_No,
+                Employee_Name = employee.Employee_Name,
+                Designation = employee.Employee_Designation,
+                Pay_Month = newPayDate.Month,
+                Pay_Year = newPayDate.Year,
+                TotalDaysInMonth = DateTime.DaysInMonth(newPayDate.Year, newPayDate.Month),
+                // TotalDays = 0,
+                DA_Percentage = 0,
+                PF_Percentage = 0,
+                HeadQuarters = 0,
+                Camp = 0,
+                CasualLeave = 0,
+                EarnedLeave = 0,
+                MedicalLeave = 0,
+                LossOfPay = 0,
+                FestivalHoliday = 0,
+                Holiday = 0,
+                GrossPay = 0,
+                TotalDeductions = 0,
+                NetPay = 0,
+                ComponentAssignments = componentAssignments,
+                BrCode = BrCode,
+                PayDescription = "P",
+                ErrorMessage = string.Empty,
+                IsError = false,
+                Usr_Id = Usr_Id,
+                Yr_Id = Yr_Id
+            };
+            if (newPayslip != null) payslip = newPayslip;
+            // payslips.Add(newPayslip);
+            isPayDisplay = true;
+            await JSRuntime.InvokeVoidAsync("setFocus", "HQ");
+            StateHasChanged();
+            // ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calculating payslip: {ex.Message}");
+        }
+
+    }
+
+    private DtoPaySlip CreatePayslipCopy(DtoPaySlip original)
+    {
+        return new DtoPaySlip
+        {
+            Pay_Id = original.Pay_Id,
+            Employee_Id = original.Employee_Id,
+            Designation = original.Designation,
+            Pay_Month = original.Pay_Month,
+            Pay_Year = original.Pay_Year,
+            TotalDaysInMonth = original.TotalDaysInMonth,
+            // TotalDays = original.TotalDays,
+            DA_Percentage = original.DA_Percentage,
+            PF_Percentage = original.PF_Percentage,
+            HeadQuarters = original.HeadQuarters,
+            Camp = original.Camp,
+            CasualLeave = original.CasualLeave,
+            EarnedLeave = original.EarnedLeave,
+            MedicalLeave = original.MedicalLeave,
+            LossOfPay = original.LossOfPay,
+            FestivalHoliday = original.FestivalHoliday,
+            Holiday = original.Holiday,
+            GrossPay = original.GrossPay,
+            TotalDeductions = original.TotalDeductions,
+            NetPay = original.NetPay,
+            ComponentAssignments = original.ComponentAssignments?.Select(c => new DtoPayComponentAssignments
+            {
+                Employee_Id = c.Employee_Id,
+                Component_Id = c.Component_Id,
+                Component_Name = c.Component_Name,
+                Component_Code = c.Component_Code,
+                Component_Type = c.Component_Type,
+                Is_DA_Applicable = c.Is_DA_Applicable,
+                Display_Order = c.Display_Order,
+                Calculation_Method = c.Calculation_Method,
+                Calculation_Basis = c.Calculation_Basis,
+                Maximum_Amount = c.Maximum_Amount,
+                Assigned_Value = c.Assigned_Value,
+                Is_Overridden = c.Is_Overridden
+            }).ToList()
+        };
+    }
+
+    private void SavePayslip()
+    {
+        if (editingPayslip != null)
+        {
+            var existingPayslip = payslips.FirstOrDefault(p => p.Pay_Id == editingPayslip.Pay_Id);
+            if (existingPayslip != null)
+            {
+                var index = payslips.IndexOf(existingPayslip);
+                payslips[index] = editingPayslip;
+                ApplyFilters();
+            }
+        }
+        CloseEditModal();
+    }
+
+    private void AddComponent()
+    {
+        if (editingPayslip?.ComponentAssignments != null)
+        {
+            var newComponent = new DtoPayComponentAssignments
+            {
+                Employee_Id = editingPayslip.Employee_Id,
+                Component_Id = editingPayslip.ComponentAssignments.Count + 1,
+                Component_Name = "New Component",
+                Component_Code = "NEW",
+                Component_Type = 1,
+                Display_Order = editingPayslip.ComponentAssignments.Count + 1,
+                Calculation_Method = "fixed",
+                Assigned_Value = 0
+            };
+            editingPayslip.ComponentAssignments.Add(newComponent);
+        }
+    }
+
+    private void RemoveComponent(DtoPayComponentAssignments component)
+    {
+        editingPayslip?.ComponentAssignments?.Remove(component);
+    }
+
+    private void CloseModal()
+    {
+        selectedPayslip = null;
+    }
+
+    private void CloseEditModal()
+    {
+        editingPayslip = null;
+    }
+
+    private void ClosePayDisplay()
+    {
+        isPayDisplay = false;
+        payslip = new DtoPaySlip();
+    }
+
+    private async Task GeneratePayslip()
+    {
+        await JSRuntime.InvokeVoidAsync("alert", "Generate Payslip functionality would be implemented here.");
+    }
+
+    private async Task ExportToExcel()
+    {
+        await JSRuntime.InvokeVoidAsync("alert", "Export to Excel functionality would be implemented here.");
+    }
+
+    private async Task PrintPayslip_old(DtoPaySlip payslip)
+    {
+        await JSRuntime.InvokeVoidAsync("alert", $"Print payslip for Employee {payslip.Employee_Id} would be implemented here.");
+    }
+
+    private async Task CalculatePaySlip()
+    {
+        _isCalculating = true;
+        if (payslip != null)
+        {
+            if (payslip.TotalDaysInMonth != payslip.TotalDays)
+            {
+                errorMessage = "Total days do not match the sum of attendance details.";
+                _isPaySlipModalError = true;
+                _isCalculating = false;
+                return;
+            }
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/CalculatePaySlip", payslip);
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<DtoPaySlip>();
+                    if (result != null && result.TotalDaysInMonth != 0)
+                    {
+                        payslip = result;
+                        _isPaySlipModalError = false; // Clear any previous errors
+                        isPayDisplay = true; // Show the calculated pay
+                        if (payslip.IsError == true)
+                        {
+                            errorMessage = payslip.ErrorMessage;
+                            _isPaySlipModalError = true;
+                            _isCalculating = false;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        errorMessage = "Error in calculating payslip. Please check the details.";
+                        _isPaySlipModalError = true;
+                        isPayDisplay = false;
+                    }
+                }
+                else
+                {
+                    // Handle HTTP error responses
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Server error: {response.StatusCode} - {errorContent}";
+                    _isPaySlipModalError = true;
+                    isPayDisplay = false;
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                errorMessage = $"Network error: {ex.Message}";
+                _isPaySlipModalError = true;
+                isPayDisplay = false;
+                Console.WriteLine($"HTTP Error calculating payslip: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Unexpected error: {ex.Message}";
+                _isPaySlipModalError = true;
+                isPayDisplay = false;
+                Console.WriteLine($"Error calculating payslip: {ex.Message}");
+            }
+
+
+            // editingPayslip.GrossPay = editingPayslip.ComponentAssignments
+            //     .Where(c => c.Component_Type == 1)
+            //     .Sum(c => c.Assigned_Value);
+            // editingPayslip.TotalDeductions = editingPayslip.ComponentAssignments
+            //     .Where(c => c.Component_Type == 2)
+            //     .Sum(c => c.Assigned_Value);
+            // editingPayslip.NetPay = editingPayslip.GrossPay - editingPayslip.TotalDeductions;
+        }
+        _isCalculating = false;
+    }
+
+    private async Task GeneratePay()
+    {
+        if (payslip.TotalDaysInMonth != payslip.TotalDays)
+        {
+            errorMessage = "Total days do not match the sum of attendance details.";
+            _isPaySlipModalError = true;
+            _isGenerating = false;
+            return;
+        }
+        try
+        {
+            _isGenerating = true;
+            var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/GeneratePaySlip", payslip);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DtoPaySlip>();
+                if (result != null && result.TotalDaysInMonth != 0)
+                {
+                    _isPaySlipModalError = false; // Clear any previous errors
+                    isPayDisplay = true; // Show the calculated pay
+                    _isGenerating = false;
+                    payslip = result;
+                    if (payslip.IsError == true)
+                    {
+                        errorMessage = payslip.ErrorMessage;
+                        IsError = true;
+                        return;
+                    }
+                    ClearPaySlipAfterGenerated();
+
+                }
+                else
+                {
+                    errorMessage = "Error in generating payslip. Please check the details.";
+                    _isPaySlipModalError = true;
+                    _isGenerating = false;
+                    // isPayDisplay = false;
+                }
+            }
+            else
+            {
+                // Handle HTTP error responses
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Server error: {response.StatusCode} - {errorContent}";
+                _isPaySlipModalError = true;
+                isPayDisplay = false;
+                _isGenerating = false;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"Network error: {ex.Message}";
+            _isPaySlipModalError = true;
+            isPayDisplay = false;
+            Console.WriteLine($"HTTP Error generating payslip: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unexpected error: {ex.Message}";
+            _isPaySlipModalError = true;
+            isPayDisplay = false;
+            Console.WriteLine($"Error generating payslip: {ex.Message}");
+        }
+        _isGenerating = false;
+    }
+
+    private void handleLoanPrlChanged(PayLoanBalanceVM loan)
+    {
+        if (loan.PrlRecovery > loan.PrlOS)
+        {
+            loan.PrlRecovery = loan.PrlOS;
+        }
+    }
+
+    private void handleLoanIntChanged(PayLoanBalanceVM loan)
+    {
+        if (loan.IntRecovery > loan.IntDemand)
+        {
+            loan.IntRecovery = loan.IntDemand;
+        }
+    }
+
+    private void ClearPaySlipAfterGenerated()
+    {
+        payslip.HeadQuarters = 0;
+        payslip.Camp = 0;
+        payslip.Holiday = 0;
+        payslip.CasualLeave = 0;
+        payslip.MedicalLeave = 0;
+        payslip.EarnedLeave = 0;
+        payslip.LossOfPay = 0;
+        List<DtoPayComponentAssignments> componentsNull = new();
+        List<PayLoanBalanceVM> loanListNull = new();
+        List<MemberTransactionVM> memTrnListNull = new();
+        payslip.ComponentAssignments = componentsNull;
+        payslip.LoanList = loanListNull;
+        payslip.SuspeneDueToList = memTrnListNull;
+    }
+
+    private async Task PrintPayslip(DtoPaySlip payslip)
+    {
+        try
+        {
+            rptObject.Emp_Id = payslip.Employee_Id;
+            rptObject.Pay_Id = payslip.Pay_Id;
+            rptObject.BrCode = BrCode;
+            rptObject.ReportId = 67;
+
+            var response = await _httpClient.PostAsJsonAsync<rptReportEmployeeObject>($"https://localhost:7073/api/ReportsEmployee/Print_PayBillOfficeNote", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task DeletePayslip(DtoPaySlip payslip)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the payslip for Employee ID {payslip.Employee_Id} for {payslip.Pay_Month}/{payslip.Pay_Year}?");
+        if (confirmed)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/DeletePaySlip", payslip);
+                if (response.IsSuccessStatusCode)
+                {
+                    payslips.Remove(payslip);
+                    ApplyFilters();
+                }
+                else
+                {
+                    errorMessage = $"Error deleting payslip: {response.ReasonPhrase}";
+                    IsError = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Exception deleting payslip: {ex.Message}";
+                IsError = true;
+            }
+        }
+    }
+}
+
+<style>
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .card {
+        border: none;
+        border-radius: 8px;
+    }
+
+    .shadow-sm {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+
+    .btn {
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .badge {
+        font-weight: 500;
+    }
+
+    .form-control, .form-select {
+        border-radius: 6px;
+    }
+
+    .modal-content {
+        border-radius: 12px;
+        border: none;
+    }
+
+    .table-responsive {
+        border-radius: 6px;
+    }
+
+    .bg-opacity-10 {
+        --bs-bg-opacity: 0.1;
+    }
+</style>
+

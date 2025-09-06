@@ -15,7 +15,7 @@ namespace Infin8.Coapp.Models
         public decimal Led_Id { get; set; }
         public int All_Type { get; set; }
         public int Ded_Type { get; set; }
-        public int All_Ded_Type { get; set; }
+        public int Pay_Component_Type { get; set; }
         public double All_Ded_Amt { get; set; }
         public double Allowance_Amt { get; set; }
         public double Deduction_Amt { get; set; }
@@ -24,5 +24,6 @@ namespace Infin8.Coapp.Models
         public decimal Yr_Id { get; set; }
         public string? BrCode { get; set; }
         public string? Voc_Status { get; set; }
+        public decimal Component_Id { get; set; }
     }
 }

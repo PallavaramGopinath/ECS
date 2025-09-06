@@ -1,0 +1,122 @@
+﻿@page "/payslip"
+
+@using System.Globalization
+@using Infin8.Coapp.Dto
+
+<div class="container my-4">
+
+    <!-- Header Section -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Employee ID</label>
+                    <input type="text" class="form-control" value="@PaySlip.Employee_Id" readonly />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Designation</label>
+                    <input type="text" class="form-control" value="@PaySlip.Designation" readonly />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Month / Year</label>
+                    <input type="text" class="form-control" value="@($"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(PaySlip.Pay_Month)} {PaySlip.Pay_Year}")" readonly />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary w-100">
+                        <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave & Attendance Section -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-bold">Leave & Attendance</div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col">Casual Leave: <strong>@PaySlip.CasualLeave</strong></div>
+                <div class="col">Earned Leave: <strong>@PaySlip.EarnedLeave</strong></div>
+                <div class="col">Medical Leave: <strong>@PaySlip.MedicalLeave</strong></div>
+                <div class="col">Loss of Pay: <strong>@PaySlip.LossOfPay</strong></div>
+                <div class="col">Festival Holidays: <strong>@PaySlip.FestivalHoliday</strong></div>
+                <div class="col">Holidays: <strong>@PaySlip.Holiday</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Earnings & Deductions -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-bold">Pay Components</div>
+        <div class="card-body">
+            <table class="table table-bordered table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>Component</th>
+                        <th>Type</th>
+                        <th>Assigned Value</th>
+                        <th>Calculation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in PaySlip.ComponentAssignments!.Where(x => x.Component_Type == 1)) // Earnings
+                    {
+                        <tr>
+                            <td>@c.Component_Name</td>
+                            <td><span class="badge bg-success">Earning</span></td>
+                            <td>@c.Assigned_Value.ToString("N2")</td>
+                            <td>@c.Calculation_Method</td>
+                        </tr>
+                    }
+                    @foreach (var c in PaySlip.ComponentAssignments!.Where(x => x.Component_Type == 2)) // Deductions
+                    {
+                        <tr>
+                            <td>@c.Component_Name</td>
+                            <td><span class="badge bg-danger">Deduction</span></td>
+                            <td>@c.Assigned_Value.ToString("N2")</td>
+                            <td>@c.Calculation_Method</td>
+                        </tr>
+                    }s
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body text-center">
+            <div class="row">
+                <div class="col fw-bold">Gross Pay: ₹@PaySlip.GrossPay.ToString("N2")</div>
+                <div class="col fw-bold">Total Deductions: ₹@PaySlip.TotalDeductions.ToString("N2")</div>
+                <div class="col fw-bold text-success">Net Pay: ₹@PaySlip.NetPay.ToString("N2")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private DtoPaySlip PaySlip = new DtoPaySlip
+    {
+        Employee_Id = 1001,
+        Designation = "Software Engineer",
+        Pay_Month = 8,
+        Pay_Year = 2025,
+        CasualLeave = 1,
+        EarnedLeave = 2,
+        MedicalLeave = 0,
+        LossOfPay = 0,
+        FestivalHoliday = 1,
+        Holiday = 4,
+        GrossPay = 50000,
+        TotalDeductions = 5000,
+        NetPay = 45000,
+        ComponentAssignments = new List<DtoPayComponentAssignments>
+        {
+            new DtoPayComponentAssignments { Component_Name="Basic Pay", Component_Type=1, Assigned_Value=30000 },
+            new DtoPayComponentAssignments { Component_Name="House Rent Allowance", Component_Type=1, Assigned_Value=10000 },
+            new DtoPayComponentAssignments { Component_Name="Medical Allowance", Component_Type=1, Assigned_Value=1000 },
+            new DtoPayComponentAssignments { Component_Name="Provident Fund", Component_Type=2, Assigned_Value=3000 },
+            new DtoPayComponentAssignments { Component_Name="Professional Tax", Component_Type=2, Assigned_Value=2000 }
+        }
+    };
+}

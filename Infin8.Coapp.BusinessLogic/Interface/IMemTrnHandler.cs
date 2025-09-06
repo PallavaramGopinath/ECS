@@ -17,5 +17,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<double> GetSBAccountInterestBalanceByAccId(decimal accId,string brCode);
         Task<double> GetMemTrnByMemIdAndLedIdAsync(decimal memId, decimal ledId,string brCode);
         Task<double> GetmemTrnTotalSuspenseAmount(decimal memId, int trnType,string brCode);
+        Task<List<MemberTransactionVM>> GetMemberTrnBalanceList(decimal MemId, int TrnType, string brCode);
     }
 }

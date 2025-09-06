@@ -107,6 +107,8 @@ namespace Infin8.Coapp.Repository
         #endregion
 
         #region Pay
+        public virtual DbSet<Pay_Components> Pay_Components { get; set; }
+        public virtual DbSet<Pay_Component_Assignments> Pay_Component_Assignments { get; set; }
         public virtual DbSet<Pay_All_Ded> Pay_All_Ded { get; set; }
         public virtual DbSet<Pay_All_Ded_Master> Pay_All_Ded_Master { get; set; }
         public virtual DbSet<Pay_Att> Pay_Att { get; set; }
