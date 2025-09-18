@@ -32,9 +32,15 @@ namespace Infin8.Coapp.Utility
 
             return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData, options)!;
         }
-
-       
-        #endregion 
+        public static DtoLoanDisbursementLT ConvertFromJsonForLTDisbursement(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+            return JsonSerializer.Deserialize<DtoLoanDisbursementLT>(jsonData, options)!;
+        }
+        #endregion
 
         #region Fixed Deposit
         public static DtoTermDepositFixedDepositCreation ConvertFromJsonForNewFixedDeposit(string jsonData)
@@ -267,6 +273,167 @@ namespace Infin8.Coapp.Utility
             };
 
             return JsonSerializer.Deserialize<DtoPaySlipPayment>(jsonData, options)!;
+        }
+
+        public static DtoPayPFData ConvertFromJsonForPF(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+
+            return JsonSerializer.Deserialize<DtoPayPFData>(jsonData, options)!;
+        }
+
+        public static DtoPaySLSPayment ConvertFromJsonForSLS(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+
+            return JsonSerializer.Deserialize<DtoPaySLSPayment>(jsonData, options)!;
+        }
+
+        public static DtoPayExgratiaBonus ConvertFromJsonForExgratia_Bonus(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+
+            return JsonSerializer.Deserialize<DtoPayExgratiaBonus>(jsonData, options)!;
+        }
+
+        public static DtoLoanDisbursementStaff ConvertFromJsonForStaffLoan(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+
+            return JsonSerializer.Deserialize<DtoLoanDisbursementStaff>(jsonData, options)!;
+        }
+
+        public static DtoLoanRecoveryStaff  ConvertFromJsonForStaffLoanRecovery(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+
+            return JsonSerializer.Deserialize<DtoLoanRecoveryStaff>(jsonData, options)!;
+        }
+        public static DtoSecurityDepositData ConvertFromJsonForSecurityDeposit(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+
+            return JsonSerializer.Deserialize<DtoSecurityDepositData>(jsonData, options)!;
+        }
+        public static List<Loan_Trn> GetStaffLoanRecovery(DtoLoanRecoveryStaff LoanBalance,
+          DateTime transactionDate, decimal checkedBy, decimal vocId, decimal yrId, string brCode)
+        {
+            decimal loanId = 0;
+            double piCalc = 0, piColl = 0, intCalc = 0, intColl = 0, prlColl = 0, roi = 0, piRate = 0;
+            List<Loan_Trn> lnList = new();
+            Loan_Trn ln = new();
+            foreach (var jl in LoanBalance.LoanBalance_List!)
+            {
+                if (loanId != jl.Loan_Id)
+                {
+                    if (loanId > 0)
+                    {
+                        ln = new();
+                        ln = Utility.GetModalObject.GetLoanTrnObject(loanId, 0, "R", transactionDate, null, null, 0, 0, 0, piCalc, piCalc > 0 ? transactionDate : null, 0, null, intCalc, intCalc > 0 ? transactionDate : null, piColl, 0, intColl, prlColl, 0, 0, 0, null, 0, null, 0, null, roi, piRate, 0, 0, false, false, vocId, checkedBy, yrId, 0, false, 0, 0, 0, 0, 0, brCode);
+                        lnList.Add(ln);
+                        piCalc = 0; piColl = 0; intCalc = 0; intColl = 0; prlColl = 0;
+                    }
+                    loanId = jl.Loan_Id;
+                    if (jl.Status == "Penal Interest")
+                    {
+                        piRate = jl.PI_Rate;
+                        piCalc = jl.Calculated_Amount;
+                        piColl = jl.Recovery_Amount;
+                    }
+                    if (jl.Status == "Interest")
+                    {
+                        roi = jl.ROI;
+                        intCalc = jl.Calculated_Amount;
+                        intColl = jl.Recovery_Amount;
+                    }
+                    if (jl.Status == "Principal")
+                    {
+                        prlColl = jl.Recovery_Amount;
+                    }
+
+                }
+                else
+                {
+                    if (loanId == jl.Loan_Id)
+                    {
+                        if (jl.Status == "Penal Interest")
+                        {
+                            piRate = jl.PI_Rate;
+                            piCalc = jl.Calculated_Amount;
+                            piColl = jl.Recovery_Amount;
+                        }
+                        if (jl.Status == "Interest")
+                        {
+                            roi = jl.ROI;
+                            intCalc = jl.Calculated_Amount;
+                            intColl = jl.Recovery_Amount;
+                        }
+                        if (jl.Status == "Principal")
+                        {
+                            prlColl = jl.Recovery_Amount;
+                        }
+                    }
+                }
+            }
+            if (loanId > 0)
+            {
+                ln = new();
+                ln = Utility.GetModalObject.GetLoanTrnObject(loanId, 0, "R", transactionDate, null, null, 0, 0, 0, piCalc,
+                    piCalc > 0 ? transactionDate : null, 0, null, intCalc, intCalc > 0 ? transactionDate : null, piColl, 0, intColl, prlColl, 0, 0, 0, null, 0, null, 0, null, roi, piRate, 0, 0, false, false, vocId, checkedBy, yrId, 0, false, 0, 0, 0, 0, 0, brCode);
+                lnList.Add(ln);
+            }
+            return lnList;
+        }
+        public static List<Fin_Voucher_Trn> GetVoucherTrnForStaffLoanRecovery(DtoLoanRecoveryStaff LoanBalance, decimal vocId, int trnType,
+            decimal memberId, string memberNo, string memberName, decimal usrId, decimal yrId, string status, string brCode)
+        {
+            double overdue = 0;
+            double balance = 0;
+            List<Fin_Voucher_Trn> finVocList = new();
+            string narration =  memberName.Trim();
+            foreach (var jl in LoanBalance.LoanBalance_List!)
+            {
+                if (jl.Status == "Penal Interest")
+                {
+                    overdue = jl.Outstanding - jl.Calculated_Amount;
+                    balance = jl.Outstanding - jl.Recovery_Amount;
+                    Fin_Voucher_Trn voc = Utility.GetModalObject.GetFinVoucherTrObject(vocId, jl.Led_Id, jl.Recovery_Amount, 0, trnType, narration + " Loan No: " + jl.Loan_No!.Trim(), false, usrId, yrId, status, "Loan No : " + jl.Loan_No, memberId, brCode, jl.Loan_Id, jl.Outstanding, balance);
+                    finVocList.Add(voc);
+                }
+                if (jl.Status == "Interest")
+                {
+                    overdue = jl.Outstanding - jl.Calculated_Amount;
+                    balance = jl.Outstanding - jl.Recovery_Amount;
+                    Fin_Voucher_Trn voc = Utility.GetModalObject.GetFinVoucherTrObject(vocId, jl.Led_Id, jl.Recovery_Amount, 0, trnType, narration + " Loan No: " + jl.Loan_No!.Trim(), false, usrId, yrId, status, "Loan No : " + jl.Loan_No, memberId, brCode, jl.Loan_Id, jl.Outstanding, balance);
+                    finVocList.Add(voc);
+                }
+                if (jl.Status == "Principal")
+                {
+                    overdue = jl.Outstanding - jl.Calculated_Amount;
+                    balance = jl.Outstanding - jl.Recovery_Amount;
+                    Fin_Voucher_Trn voc = Utility.GetModalObject.GetFinVoucherTrObject(vocId, jl.Led_Id, jl.Recovery_Amount, 0, trnType, narration + " Loan No: " + jl.Loan_No!.Trim(), false, usrId, yrId, status, "Loan No : " + jl.Loan_No, memberId, brCode, jl.Loan_Id, jl.Outstanding, balance);
+                    finVocList.Add(voc);
+                }
+            }
+            return finVocList;
         }
         #endregion 
     }

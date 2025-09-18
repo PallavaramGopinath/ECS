@@ -14,5 +14,6 @@ namespace Infin8.Coapp.Repository
         Task<bool> EditEmployeeMasterAsync(Emp_Master empMaster);
         Task<List<DropdownItem>> GetPayGenInfoListAsync(int infoType);
         Task<List<EmployeeMasterDto>> GetEmployeeMasterListAsync(string brCode);
+        Task<EmployeeMasterDto> GetEmployeeMasterById(decimal empId, string brCode);
     }
 }

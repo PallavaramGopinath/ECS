@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Microsoft.AspNetCore.Builder;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,8 +26,13 @@ namespace Infin8.Coapp.Repository
         Task<LoanInterestCalculatedItems> GetCalculatedInterestComponentsForLoanAsync(decimal loanId, DateTime firstIntDueDate, DateTime maxTrnDate, DateTime? maxDueDate, DateTime intFromDate, DateTime? piFromDate, DateTime toDate, DateTime piToDate, int Int_Application, int PI_Application, int IOD_Application, double DisbAmt, double PrlColl, double PrlSchedule, double PrlDemand, double IntCalcAmt, double IntCollAmt, string DisbAgency);
         
         Task<(double appraisalFee, double bankCharges, double serviceCharges)> GetJewelLoanAppraisalFees(double loanAmount);
+
+        #region staff loan
         Task<List<PayLoanBalanceVM>> GetPayLoanBalance(decimal empId, int loanType, DateTime toDate, string brCode);
 
+        Task<List<PayLoanBalanceVM>> GetPayLoanBalance(decimal[] loanIdList,  DateTime toDate, string brCode);
+        Task<DtoLoanDisbursementStaff> GetStaffLoanDisbursement(decimal vocId, string brCode);
+        #endregion
 
         #region td loan
         Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds);

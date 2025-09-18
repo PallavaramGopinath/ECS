@@ -64,5 +64,20 @@ namespace Infin8.Coapp.Repository
             }
             return payTemplate;
         }
+
+        public async Task<Pay_Template> GetPayTemplateAsync(string brCode)
+        {
+            Pay_Template payTemplate = new Pay_Template();
+            try
+            {
+                var template = await CSISContext.Pay_Template.Where(x=> x.BrCode == brCode).FirstAsync();
+                if (template != null) payTemplate = template;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Pay template data");
+            }
+            return payTemplate;
+        }
     }
 }

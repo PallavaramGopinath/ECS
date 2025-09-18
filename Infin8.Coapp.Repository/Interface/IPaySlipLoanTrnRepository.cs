@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +13,6 @@ namespace Infin8.Coapp.Repository
         Task<bool> AddPaySlipLoanTrnAsync(Pay_Slip_Loan_Trn paySlipLoanTrn);
         Task<bool> EditPaySlipLoanTrnAsync(Pay_Slip_Loan_Trn paySlipLoanTrn);
         Task<List<Pay_Slip_Loan_Trn>> GetPaySlipLoanTrnList(decimal payId, decimal empId, string brCode);
+        Task<List<LoanDetailsVM>> GetPaySlipLoanList(decimal payId, decimal empId, string brCode);
     }
 }

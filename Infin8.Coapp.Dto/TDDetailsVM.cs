@@ -1,4 +1,5 @@
-﻿namespace Infin8.Coapp.Dto
+﻿
+namespace Infin8.Coapp.Dto
 {
     public class TDDetailsVM
     {
@@ -9,5 +10,10 @@
         public string? PerNo { get; set; }
         public string? MemberName { get; set; }
         public int Trn_SlNo { get; set; }
+
+        public static implicit operator TDDetailsVM(FDDetailsVM v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

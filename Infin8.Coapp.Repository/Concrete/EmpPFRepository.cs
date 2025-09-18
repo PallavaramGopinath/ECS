@@ -24,6 +24,7 @@ namespace Infin8.Coapp.Repository
                 maxId++;
                 empPf.Pf_Id = maxId;
                 await AddAsync(empPf);
+                CSISContext.SaveChanges();
                 result = true;
             }
             catch (Exception ex)

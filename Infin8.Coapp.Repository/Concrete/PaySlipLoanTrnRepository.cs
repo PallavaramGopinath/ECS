@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -69,6 +70,45 @@ namespace Infin8.Coapp.Repository
                               select loan)
              .ToListAsync();
                 if(result != null && result.Any()) loanList = result.ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return loanList;
+        }
+
+        public async Task<List<LoanDetailsVM>> GetPaySlipLoanList(decimal payId, decimal empId, string brCode)
+        {
+            List<LoanDetailsVM> loanList = new();
+            try
+            {
+                var query =
+                await (from psl in CSISContext.Pay_Slip_Loan_Trn
+                join lm in CSISContext.Loan_Master on psl.Loan_Id equals lm.Loan_Id
+                join ls in CSISContext.Loan_Schemes on lm.Scheme_Id equals ls.Scheme_Id
+                where psl.Pay_Id == payId
+                    && lm.Mem_Id == empId
+                    && psl.LoanTr_Delete == false
+                    && psl.BrCode == brCode
+                    && lm.BrCode == brCode
+                    && ls.BrCode == brCode
+                select new LoanDetailsVM
+                {
+                    memid = lm.Mem_Id,
+                    loanid = psl.Loan_Id,
+                    loanno = lm.Loan_No,
+                    intcollamt = psl.Int_Coll,
+                    prlcoll = psl.Prl_Coll,
+                    intcalcdate = psl.Int_Calc_Upto,
+                    intcalcamt = psl.Int_Calc_Amt,
+                    prlledid = ls.PrlLed_Id,
+                    intledid = ls.IntLed_Id,
+                    piledid = ls.PILed_Id,
+                    prlschedule = psl.Prl_Schedule,
+                    
+                }).ToListAsync ();
+                if (query != null && query.Any()) loanList = query.ToList();
             }
             catch (Exception ex)
             {

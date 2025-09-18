@@ -299,7 +299,13 @@ namespace Infin8.Coapp.Repository
                                        Issue_Bank_Name = details.Issue_Bank_Name,
                                        Related_Account_Id = details.Related_Account_Id,
                                        Related_Account_Data = details.Related_Account_Data,
-                                       BrCode = master.BrCode
+                                       BrCode = master.BrCode,
+                                       CashReceipt_Amount = details.CashReceipt_Amount,
+                                       CashPayment_Amount = details.CashPayment_Amount,
+                                       AdjustmentReceipt_Amount = details.AdjustmentReceipt_Amount,
+                                       AdjustmentPayment_Amount = details.AdjustmentPayment_Amount,
+                                       Type = master.Type,
+                                       Security_Type = details.Security_Type,
                                    }).ToListAsync();
                 if (query != null && query.Count >0)
                 {
@@ -342,7 +348,6 @@ namespace Infin8.Coapp.Repository
             status = await CSISContext.Account_Transactions.Where(x => x.Acc_Id == accId).Select(x => x.Acc_Status).FirstAsync();
             return status;
         }
-
         
     }
 }

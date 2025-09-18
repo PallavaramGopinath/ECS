@@ -428,15 +428,12 @@
 
     private async Task FetchSchemeDetails()
     {
-
         if (loanDetails.Scheme_Id <= 0)
         {
             return;
         }
-
         try
         {
-
             double eligiblePercentage = 0;
             double maximumLimit = 0;
             double jlExistingLoanBalance = 0;
@@ -906,13 +903,12 @@
         showErrorMessage = false;
     }
 
-
     protected async Task CloseJLDisbursement()
     {
         await OnJLDisbursementComponentClose.InvokeAsync(true);
     }
 
-    protected async Task JLDisbursementInitiate()
+    protected async Task JLDisbursementInitiate() /// submit initialization
     {
         if (string.IsNullOrEmpty(loanDetails.Jewels_Photo_Path))
         {
@@ -945,6 +941,21 @@
             Console.WriteLine($"Error fetching account name: {ex.Message}");
         }
         string jewelLoanJsonData = ConvertToJson(loanDetails);
+
+        double cashReceiptAmount = 0, cashPaymentAmount = 0, adjustmentReceiptAmount = 0, adjustmentPaymentAmount = 0;
+        if(CashOrAdjustment == 1)
+        {
+            cashPaymentAmount = loanDetails.Loan_Amount - (loanDetails.AppraisalFee + loanDetails.BankCharges);
+            adjustmentPaymentAmount = (loanDetails.AppraisalFee + loanDetails.BankCharges);
+            adjustmentReceiptAmount = (loanDetails.AppraisalFee + loanDetails.BankCharges);
+            cashReceiptAmount = 0;
+        }
+        else
+        {
+            adjustmentPaymentAmount = loanDetails.Loan_Amount; /// 100000
+            adjustmentReceiptAmount = (loanDetails.AppraisalFee + loanDetails.BankCharges); /// 250 + cheque 999750
+        }
+
         stagingDetails = new()
         {
             Id = 0,
@@ -962,7 +973,11 @@
             Checked_By =0,
             Checked_Date = null,
             Staging_Status ="I",
-            BrCode = "11001"
+            BrCode = "11001",
+            CashReceipt_Amount = cashReceiptAmount ,
+            CashPayment_Amount = cashPaymentAmount ,
+            AdjustmentReceipt_Amount = adjustmentReceiptAmount ,
+            AdjustmentPayment_Amount = adjustmentPaymentAmount 
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
         // await OnJLDisbursementInitiate.InvokeAsync(loanDetails);
@@ -1046,8 +1061,5 @@
 
         return JsonSerializer.Deserialize<DtoJewelLoanDisbursement>(jsonData, options)!;
     }
-
-    
-        
 
 }

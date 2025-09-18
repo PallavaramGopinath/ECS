@@ -168,13 +168,83 @@ namespace Infin8.Coapp.Repository
                                         FDIntAlreadyCalculatedDate = grouped.Max(g => g.trn.InterestAppliedDate),
                                         FDIntAlreadyPaid = grouped.Sum(g => g.trn.InterestPaidAmount)
                                     }).ToListAsync();
-                if (fdList.Count > 0) fdDetails = fdList;
+                if (fdList!= null && fdList.Any()) fdDetails = fdList;
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Term deposit payable data");
             }
             return fdDetails;
+        }
+
+        public async Task<FDDetailsVM> GetFDDataByTDId(decimal tdId,string brCode)
+        {
+            FDDetailsVM fdData = new FDDetailsVM();
+            try
+            {
+                var query = await (from master in CSISContext.TermDeposit_Master
+                                    join trn in CSISContext.TermDeposit_Trn
+                                        on master.TD_Id equals trn.TD_Id
+                                    join scheme in CSISContext.TermDeposit_Schemes
+                                        on master.TDScheme_Id equals scheme.TDScheme_Id
+                                    where trn.TD_Delete == false
+                          && master.AccountClosed == false
+                                        && master.TD_Id == tdId
+                                        && master.BrCode == brCode 
+                                        && scheme.BrCode == brCode
+                                    group new
+                                    {
+                                        master,
+                                        scheme,
+                                        trn
+                                    } by new
+                                    {
+                                       master.TD_Id,
+                                       master.TD_No,
+                                       master.TDH_Name,
+                                       master.TDH_Age ,
+                                       scheme.TDScheme_Name,
+                                       master.TDScheme_Id,
+                                       master.ValueDate,
+                                       master.DepositAmount,
+                                       master.PeriodInMonths,
+                                       master.PeriodInDays,
+                                       master.InterestPayableFrequency,
+                                       master.CompoundFrequency,
+                                       master.RateOfInterest,
+                                       master.IsDiscountRate,
+                                       master.MaturityAmount,
+                                       master.MaturityDate
+                                    } into grouped
+                                    select new FDDetailsVM
+                                    {
+                                        FDId = grouped.Key.TD_Id,
+                                        TDScheme_Name = grouped.Key.TDScheme_Name,
+                                        TDH_Name = grouped.Key.TDH_Name,
+                                        TDH_Age = grouped.Key.TDH_Age ,
+                                        FDNo = grouped.Key.TD_No,
+                                        FDSchemeId = grouped.Key.TDScheme_Id,
+                                        FDValueDate = grouped.Key.ValueDate,
+                                        FDAmount = grouped.Key.DepositAmount,
+                                        FDPrdInMonths = grouped.Key.PeriodInMonths,
+                                        FDPrdInDays = grouped.Key.PeriodInDays,
+                                        FDIntPayableFrequency = grouped.Key.InterestPayableFrequency,
+                                        FDCompoundFrequency = grouped.Key.CompoundFrequency,
+                                        FDROI = grouped.Key.RateOfInterest,
+                                        FDIsDiscountRate = grouped.Key.IsDiscountRate,
+                                        FDMaturityAmount = grouped.Key.MaturityAmount,
+                                        FDMaturityDate = grouped.Key.MaturityDate,
+                                        FDIntAlreadyCalculated = grouped.Sum(g => g.trn.InterestCalculatedAmount),
+                                        FDIntAlreadyCalculatedDate = grouped.Max(g => g.trn.InterestAppliedDate),
+                                        FDIntAlreadyPaid = grouped.Sum(g => g.trn.InterestPaidAmount)
+                                    }).FirstAsync();
+                if (query != null && query.FDId >0) fdData = query;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Term deposit payable data");
+            }
+            return fdData;
         }
 
         public async Task<List<DropdownItem>> GetTDNosByMemIdForRenewal(decimal memId, string tdSchemeType, DateTime trnDate, string brCode)
@@ -289,5 +359,42 @@ namespace Infin8.Coapp.Repository
             int.TryParse(MaxSlNo.ToString(), out int result);
             return result;
         }
+
+        #region security deposit
+        public async Task<DtoSecurityDepositData> GetSecurityDepositData(decimal empId,string brCode)
+        {
+            DtoSecurityDepositData securityDeposit = new();
+            try
+            {
+                var result = await (from trn in CSISContext.TermDeposit_Trn
+                                    join master in CSISContext.TermDeposit_Master
+                                        on trn.TD_Id equals master.TD_Id
+                                    join emp in CSISContext.mem_master
+                                        on master.Mem_Id equals emp.mem_id
+                                    where master.Mem_Id == empId
+                                          && master.TD_Delete == false
+                                          && trn.TD_Delete == false
+                                          && master.BrCode == brCode
+                                          && trn.BrCode == brCode
+                                          && emp.brcode == brCode
+                                    group new { trn, master } by new { master.TD_Id, master.TD_No, emp.mem_id, emp.memberno, emp.membername } into g
+                                    select new DtoSecurityDepositData
+                                    {
+                                        Employee_Id = g.Key.mem_id,
+                                        Employee_No = g.Key.memberno,
+                                        Employee_Name = g.Key.membername,
+                                        Td_Id = g.Key.TD_Id,
+                                        Td_No = g.Key.TD_No,
+                                        Balance = g.Sum(x => x.trn.DepositReceiptAmount - x.trn.DepositPaidAmount)
+                                    }).FirstOrDefaultAsync();
+                if (result != null && result.Employee_Id > 0) securityDeposit = result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return securityDeposit;
+        }
+        #endregion 
     }
 }

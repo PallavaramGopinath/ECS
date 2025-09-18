@@ -1,6 +1,7 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -174,14 +175,17 @@ namespace Infin8.Coapp.BusinessLogic
                                     {
                                         for (int i = 1; i <= NoOfMonths / single.FDIntPayableFrequency; i++)
                                         {
-                                            IntCalc = 0;
-                                            IntCalc = utilityHandler.CalculateInterestForFixedDeposit(single.FDAmount, single.FDROI, single.FDIntPayableFrequency, single.FDIsDiscountRate);
-                                            //IntCalc = CalcIntForFD(single.FDAmount, single.FDROI, single.FDIntPayableFrequency, single.FDIsDiscountRate);
-                                            TotalIntCalc += IntCalc;
-                                            intCalcDate = utilityHandler.GetNextMonthForFD(IntNextDate, single.FDValueDate, single.FDIntPayableFrequency);
-
+                                            if ( toDate >= IntNextDate)
+                                            {
+                                                IntCalc = 0;
+                                                IntCalc = utilityHandler.CalculateInterestForFixedDeposit(single.FDAmount, single.FDROI, single.FDIntPayableFrequency, single.FDIsDiscountRate);
+                                                //IntCalc = CalcIntForFD(single.FDAmount, single.FDROI, single.FDIntPayableFrequency, single.FDIsDiscountRate);
+                                                TotalIntCalc += IntCalc;
+                                                IntNextDate = utilityHandler.GetNextMonthForFD(IntNextDate, single.FDValueDate, single.FDIntPayableFrequency);
+                                            }
                                             //IntNextDate = TsisService.GeneralService.Get_Next_Month_For_FD(IntNextDate, single.FDValueDate, single.FDIntPayableFrequency);
                                         }
+                                        //IntNextDate = IntToDate;
                                     }
                                 }
                             }
@@ -303,6 +307,14 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositTrn.GetNomineeForTermDeposit(memId, tdSchemeType, brCode);
         }
 
-        
+        public async Task<FDDetailsVM> GetFDDataByTDId(decimal tdId, string brCode)
+        {
+            return await _unitOfWork.TermDepositTrn.GetFDDataByTDId(tdId, brCode);
+        }
+
+        public async Task<DtoSecurityDepositData> GetSecurityDepositData(decimal empId, string brCode)
+        {
+            return await _unitOfWork.TermDepositTrn.GetSecurityDepositData(empId, brCode);
+        }
     }
 }

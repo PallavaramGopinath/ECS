@@ -50,5 +50,10 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+
+        public async Task<decimal> GetPaySlipForDAArrears(DateTime fromDate, DateTime toDate, string description, string brCode)
+        {
+            return await _unitOfWork.PayInit.GetPaySlipForDAArrears(fromDate, toDate, description,brCode);
+        }
     }
 }

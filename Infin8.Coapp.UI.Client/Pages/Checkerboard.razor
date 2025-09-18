@@ -152,8 +152,20 @@ else
 }
 
 
-@code {
+@* @if (isError)
+{
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => isError = false">
+            <span>&times;</span>
+        </button>
+    </div>
+} *@
 
+
+@code {
+    // private bool isError = false;
+    // private string errorMessage = string.Empty;
     private bool showModal = false;
     private Type? viewComponent;
     private bool _isLoading = true;
@@ -212,7 +224,7 @@ else
     //         }
     //     }
     // }
-    #endregion 
+    #endregion
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -241,12 +253,16 @@ else
 
             if (ex.StatusCode == HttpStatusCode.NotFound) // Using System.Net.HttpStatusCode
             {
+                // _isLoading = false;
+                // isError = true;
+                // errorMessage = $"Data not found for approval / rejection:";
                 checkerDashboardList = new();
             }
             else
             {
                 checkerDashboardList = new();
             }
+            _isLoading = false;
         }
         StateHasChanged();
     }
@@ -527,6 +543,34 @@ else
                     case 18: /// New SB Account creation
                     case 36:    /// SB Account Transaction
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.SBAccount"}.{componentName},{assemblyName}";
+                        break;
+                    case 20:    /// PF contribution
+                    case 35:    /// PF withdrawn
+                    case 39:    /// Salary payment
+                    case 40:    /// DA arrears payment
+                    case 41:    /// SLS Payment
+                    case 33:    /// Ex-gratia payment
+                    case 34:    /// Bonus payment
+                    case 15:    /// Staff loan disbursement
+                    case 19:    /// Staff loan recovery
+                    case 42:    /// Staff security deposit receipt
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
+                        break;
+                    case 48:    /// Loan disbursement PLDB
+                        var staging = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{account.Staging_Id}/{account.AccountId}");
+                        if (staging != null && staging.Staging_Id > 0)
+                        {
+                            if (staging.Security_Type == 1)
+                            {
+                                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName},{assemblyName}";
+                            }
+                            else
+                            {
+                                string compName = "LoanDisbursementPLDB_View";
+                                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.PLDBLoan"}.{compName},{assemblyName}";
+                            }
+                        }
+
                         break;
                     case 1000:  /// Account Transactions
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.AccountTransaction"}.{componentName},{assemblyName}";

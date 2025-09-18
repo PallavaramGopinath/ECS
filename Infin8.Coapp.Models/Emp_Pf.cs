@@ -47,5 +47,6 @@ namespace Infin8.Coapp.Models
         public Nullable<System.DateTime> Last_Int_ApplicationDate { get; set; }
         public int Pf_Type { get; set; }
         public string? BrCode { get; set; }
+        public string? Voc_Status { get; set; }
     }
 }

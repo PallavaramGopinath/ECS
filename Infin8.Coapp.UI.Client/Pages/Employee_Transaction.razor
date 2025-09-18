@@ -14,254 +14,269 @@
 @inject HttpClient _httpClient
 @inject TransactionStateService TransactionState
 
-<div class="container-fluid">
-    <h5 class="mb-4">Employee Transactions</h5>
-    <EditForm Model="@transaction" method="post" OnValidSubmit="@HandleValidSubmit" FormName="employee-transaction">
-        <DataAnnotationsValidator />
-        <div clss="row mb-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-secondary">
-                        <h5 class="md-0 text-white">Employee Details</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label>Transaction Date</label>
-                                    <InputDate class="form-control shadow-none" disabled="@isTrnDateDisable"
-                                               @bind-Value="transaction.Transaction_Date"
-                                               @bind-Value:after="this.DisableTrnDate" />
-                                    <ValidationMessage For="@(() => transaction.Transaction_Date)" />
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label>Select Employee</label>
-                                    <InputSelect class="form-select shadow-none" @bind-Value="transaction.Employee_Id"
-                                                 @bind-Value:after="handlerSelectEmployee">
-                                        <option value="0">--Select Employee Name--</option>
-                                        @foreach (var emp in employeeList)
-                                        {
-                                            <option value="@emp.Mem_Id">@emp.MemberName</option>
-                                        }
-                                    </InputSelect>
-                                    <ValidationMessage For="@(() => transaction.Employee_Id)" />
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label>Cash Adjustment</label>
-                                    <InputSelect class="form-select shadow-none" disabled="@isDdlCashAdjustmentDisable"
-                                                 @bind-Value="transaction.Cash_Adjustment"
-                                                 @bind-Value:after="DdlCashAdjustmentChange">
-                                        <option value="0">Select Cash/Adjustment</option>
-                                        <option value="1">Cash</option>
-                                        <option value="2">Adjustment</option>
-                                    </InputSelect>
-                                    <ValidationMessage For="@(() => transaction.Cash_Adjustment)" />
+<h5 class="mb-4">Employee Transactions</h5>
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container-fluid">
 
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label>Transaction Type</label>
-                                    <InputSelect class="form-select shadow-none" @bind-Value="transaction.Receipt_Payment"
-                                                 @bind-Value:after="DdlReceiptPaymentChange">
-                                        <option value="0">Select Transaction Type</option>
-                                        <option value="1">Receipt</option>
-                                        <option value="2">Payment</option>
-                                    </InputSelect>
-                                    <ValidationMessage For="@(() => transaction.Receipt_Payment)" />
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label>Select Account</label>
-                                    <InputSelect class="form-select shadow-none" @bind-Value="transaction.Account_Id"
-                                                 @bind-Value:after="handlerShowAccountModal">
-                                        <option value="0">--Select Account Name--</option>
-                                        @foreach (var account in accountItems)
-                                        {
-                                            <option value="@account.Value">@account.Text</option>
-                                        }
-                                    </InputSelect>
-                                    <ValidationMessage For="@(() => transaction.Account_Id)" />
-                                </div>
-                            </div>
-                            @if (isDdlLedger)
-                            {
+        <EditForm Model="@transaction" method="post" OnValidSubmit="@HandleValidSubmit" FormName="employee-transaction">
+            <DataAnnotationsValidator />
+            <div clss="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-secondary">
+                            <h5 class="md-0 text-white">Employee Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
                                 <div class="col-md-2">
                                     <div class="form-group">
-                                        <label>Select Ledger Name</label>
-                                        <InputSelect class="form-select shadow-none" @bind-Value="transaction.Ledger_Id"
-                                                     @bind-Value:after="GetLedgerBalance">
-                                            <option value="0">--Select Ledger Name--</option>
-                                            @foreach (var ledger in ledgerNameItems)
-                                            {
-                                                <option value="@ledger.Value">@ledger.Text</option>
-                                            }
-                                        </InputSelect>
-                                        <ValidationMessage For="@(() => transaction.Ledger_Id)" />
+                                        <label>Transaction Date</label>
+                                        <InputDate class="form-control shadow-none" disabled="@isTrnDateDisable"
+                                                   @bind-Value="transaction.Transaction_Date"
+                                                   @bind-Value:after="this.DisableTrnDate" />
+                                        <ValidationMessage For="@(() => transaction.Transaction_Date)" />
                                     </div>
                                 </div>
-                            }
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>Select Employee</label>
+                                        <InputSelect class="form-select shadow-none" @bind-Value="transaction.Employee_Id"
+                                                     disabled="@isEmployeeDisable"
+                                                     @bind-Value:after="handlerSelectEmployee">
+                                            <option value="0">--Select Employee Name--</option>
+                                            @foreach (var emp in employeeList)
+                                            {
+                                                <option value="@emp.Mem_Id">@emp.MemberName</option>
+                                            }
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => transaction.Employee_Id)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>Cash Adjustment</label>
+                                        <InputSelect class="form-select shadow-none" disabled="@isDdlCashAdjustmentDisable"
+                                                     @bind-Value="transaction.Cash_Adjustment"
+                                                     @bind-Value:after="DdlCashAdjustmentChange">
+                                            <option value="0">Select Cash/Adjustment</option>
+                                            <option value="1">Cash</option>
+                                            <option value="2">Adjustment</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => transaction.Cash_Adjustment)" />
+
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>Transaction Type</label>
+                                        <InputSelect class="form-select shadow-none" @bind-Value="transaction.Receipt_Payment"
+                                                     @bind-Value:after="DdlReceiptPaymentChange">
+                                            <option value="0">Select Transaction Type</option>
+                                            <option value="1">Receipt</option>
+                                            <option value="2">Payment</option>
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => transaction.Receipt_Payment)" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>Select Account</label>
+                                        <InputSelect class="form-select shadow-none" @bind-Value="transaction.Account_Id"
+                                                     @bind-Value:after="handlerShowAccountModal">
+                                            <option value="0">--Select Account Name--</option>
+                                            @foreach (var account in accountItems)
+                                            {
+                                                <option value="@account.Value">@account.Text</option>
+                                            }
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => transaction.Account_Id)" />
+                                    </div>
+                                </div>
+                                @if (isDdlLedger)
+                                {
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label>Select Ledger Name</label>
+                                            <InputSelect class="form-select shadow-none" @bind-Value="transaction.Ledger_Id"
+                                                         @bind-Value:after="GetLedgerBalance">
+                                                <option value="0">--Select Ledger Name--</option>
+                                                @foreach (var ledger in ledgerNameItems)
+                                                {
+                                                    <option value="@ledger.Value">@ledger.Text</option>
+                                                }
+                                            </InputSelect>
+                                            <ValidationMessage For="@(() => transaction.Ledger_Id)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Dynamic Component --->
-        @if (isComponentLoaded)
-        {
-            <DynamicComponent Type="currentComponent" Parameters="parameters" />
-        }
+            <!-- Dynamic Component --->
+            @if (isComponentLoaded)
+            {
+                <DynamicComponent Type="@currentComponent" Parameters="@parameters" />
+            }
 
-        <!-- Bank Account Information -->
-        @if (isBankAccount)
-        {
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Bank Account Details</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="checkNo">Cheque No:</label>
-                                <InputText id="checkNo" class="form-control" @bind-Value="transaction.Cheque_No" />
+            <!-- Bank Account Information -->
+            @if (isBankAccount)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Bank Account Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="checkNo">Cheque No:</label>
+                                    <InputText id="checkNo" class="form-control" @bind-Value="transaction.Cheque_No" />
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="chequeDate">Cheque Date:</label>
-                                <InputDate id="chequeDate" class="form-control" @bind-Value="transaction.Cheque_Date" />
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="chequeDate">Cheque Date:</label>
+                                    <InputDate id="chequeDate" class="form-control" @bind-Value="transaction.Cheque_Date" />
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="issueBank">Issue Bank:</label>
-                                <InputText id="issueBank" class="form-control" @bind-Value="transaction.Issue_Bank" />
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="issueBank">Issue Bank:</label>
+                                    <InputText id="issueBank" class="form-control" @bind-Value="transaction.Issue_Bank" />
+                                </div>
                             </div>
+
                         </div>
 
                     </div>
-
                 </div>
-            </div>
-        }
+            }
 
-        <!-- Ledger Balance and Entry -->
-        @if (isLedgerSection)
-        {
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Ledger Balance</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="ledgerBalance">Ledger Balance:</label>
-                                <InputNumber id="ledgerBalance" class="form-control" disabled="true" readonly @bind-Value="transaction.Ledger_Balance" />
+            <!-- Ledger Balance and Entry -->
+            @if (isLedgerSection)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Ledger Balance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="ledgerBalance">Ledger Balance:</label>
+                                    <InputNumber id="ledgerBalance" class="form-control" disabled="true" readonly @bind-Value="transaction.Ledger_Balance" />
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="LedgerEntry">Ledger Entry:</label>
-                                <InputNumber id="LedgerEntry" class="form-control" @bind-Value="transaction.Ledger_Entry"
-                                             @onblur="ValidateLedgerEntry" />
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="LedgerEntry">Ledger Entry:</label>
+                                    <InputNumber id="LedgerEntry" class="form-control" @bind-Value="transaction.Ledger_Entry"
+                                                 @onblur="ValidateLedgerEntry" />
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button type="button" class="btn btn-sm btn-secondary" @onclick="AddAccount">
-                                <i class="oi oi-plus"></i> Add Account
-                            </button>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="AddAccount">
+                                    <i class="oi oi-plus"></i> Add Account
+                                </button>
+                            </div>
+
                         </div>
 
                     </div>
-
                 </div>
-            </div>
-        }
+            }
 
-        <!-- Transaction data from staging -->
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Transaction Details</h5>
-                        @* <button class="btn btn-sm btn-light" @onclick="AddNewAccountRow">
+            <!-- Transaction data from staging -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Transaction Details</h5>
+                            @* <button class="btn btn-sm btn-light" @onclick="AddNewAccountRow">
                             <i class="oi oi-plus"></i> Add Account
                         </button> *@
-                    </div>
-                    <div class="card-body" style="max-height: 350px; overflow-y: auto;">
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Account Name</th>
-                                        <th>Receipt Amount</th>
-                                        <th>Payment Amount</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var account in transactionAccountsList)
-                                    {
+                        </div>
+                        <div class="card-body" style="max-height: 350px; overflow-y: auto;">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="table-light">
                                         <tr>
-                                            <td>@account.AccountName</td>
-                                            <td>@account.ReceiptAmount</td>
-                                            <td>@account.PaymentAmount</td>
-                                            <td>
-                                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => ViewAccount(account)">
-                                                    <i class="oi oi-eye"></i>
-                                                    View
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveAccountRow(account)">
-                                                    <i class="oi oi-trash"></i>
-                                                    Delete
-                                                </button>
-                                            </td>
+                                            <th>Account Name</th>
+                                            <th>Receipt Amount</th>
+                                            <th>Payment Amount</th>
+                                            <th>Actions</th>
                                         </tr>
-                                    }
-                                </tbody>
-                                <tfoot>
-                                    <tr class="table-info">
-                                        <th>Total</th>
-                                        <th>@transactionAccountsList.Sum(a => a.ReceiptAmount)</th>
-                                        <th>@transactionAccountsList.Sum(a => a.PaymentAmount)</th>
-                                        <th></th>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var account in transactionAccountsList)
+                                        {
+                                            <tr>
+                                                <td>@account.AccountName</td>
+                                                <td>@account.ReceiptAmount</td>
+                                                <td>@account.PaymentAmount</td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-primary" @onclick="() => ViewAccount(account)">
+                                                        <i class="oi oi-eye"></i>
+                                                        View
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveAccountRow(account)">
+                                                        <i class="oi oi-trash"></i>
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-info">
+                                            <th>Total</th>
+                                            <th>@transactionAccountsList.Sum(a => a.ReceiptAmount)</th>
+                                            <th>@transactionAccountsList.Sum(a => a.PaymentAmount)</th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- button group rest submit -->
-        <div class="row">
-            <div class="col-12 text-end">
-                <button type="button" class="btn btn-secondary me-2" @onclick="ResetForm">Reset</button>
-                <button type="submit" class="btn btn-success">Make Transaction</button>
+            <!-- button group rest submit -->
+            <div class="row">
+                <div class="col-12 text-end">
+                    <button type="button" class="btn btn-secondary me-2" @onclick="ResetForm">Reset</button>
+                    <button type="submit" class="btn btn-success">Make Transaction</button>
+                </div>
             </div>
-        </div>
-    </EditForm>
+        </EditForm>
 
-    <!-- Modal for concerned transaction view -->
-    <ModalDialog @bind-Show="showModal" Title="Employee Transactions">
-        <ChildContent>
-            @if (viewComponent != null)
-            {
-                <DynamicComponent Type="viewComponent" Parameters="parameters" />
-            }
-        </ChildContent>
-    </ModalDialog>
-</div>
+        <!-- Modal for concerned transaction view -->
+        <ModalDialog @bind-Show="showModal" Title="Employee Transactions">
+            <ChildContent>
+                @if (viewComponent != null)
+                {
+                    <DynamicComponent Type="viewComponent" Parameters="parameters" />
+                }
+            </ChildContent>
+        </ModalDialog>
+    </div>
+}
+
 
 @if (isError)
 {
@@ -273,13 +288,16 @@
     </div>
 }
 
+
 @code {
+    private bool _isLoading = true;
     private bool isTrnDateDisable = false;
     private bool isDdlLedger = false;
     private bool isBankAccount = false;
     private bool isComponentLoaded = false;
     private bool isLedgerSection = false;
     private bool isDdlCashAdjustmentDisable = false;
+    private bool isEmployeeDisable = false;
     private bool showModal = false;
     private bool isError = false;
     private bool isTransactionSection = false;
@@ -303,14 +321,15 @@
         Employee_Id = 0,
         Transaction_Date = DateTime.Today,
         Ledger_Id = 0,
-        Receipt_Payment =0,
-        Cash_Adjustment =0,
+        Receipt_Payment = 0,
+        Cash_Adjustment = 0,
         Yr_Id = 110010000023,
-        Created_By =110010000001,
-        BrCode ="11001"
+        Created_By = 110010000001,
+        BrCode = "11001"
     };
 
     DtoOtherRelatedData otherRelatedData = new();
+
     private Staging_Details stagingDetails = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -321,13 +340,15 @@
             {
                 var empResponse = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{transaction.BrCode}");
                 if (empResponse != null && empResponse.Any()) employeeList = empResponse.ToList();
+                _isLoading = false;
                 StateHasChanged();
 
             }
             catch (Exception ex)
             {
-                isError =true;
+                isError = true;
                 errorMessage = ex.Message;
+                _isLoading = false;
             }
             TransactionState.OnInitiate += GetIntiatedAccountsFromStaging;
         }
@@ -341,6 +362,7 @@
         transaction.Employee_Name = emp.MemberName;
         transaction.Employee_Designation = emp.Emp_Desgn;
         await UpdateTransactionsFromStaging("I", "11001");
+        isEmployeeDisable = true;
     }
 
     private void DdlCashAdjustmentChange()
@@ -451,6 +473,7 @@
                 case 39: /// Salary payment
                     break;
                 case 40: /// DA Arrears payment
+
                     break;
                 case 41:    /// Surrender leave salary payment
                     break;
@@ -478,16 +501,16 @@
             return;
         }
         int cashOrAdj = transactionAccountsList.Select(x => x.CashAdjId).First();
-        if(cashOrAdj == 2)
+        if (cashOrAdj == 2)
         {
-            if(transactionAccountsList.Sum(x=> x.ReceiptAmount) != transactionAccountsList.Sum(x=> x.PaymentAmount))
+            if (transactionAccountsList.Sum(x => x.ReceiptAmount) != transactionAccountsList.Sum(x => x.PaymentAmount))
             {
                 await JSRuntime.InvokeVoidAsync("alert", "The total receipt amount and payment amount should match in an adjustment transaction");
                 return;
             }
         }
         /// verify receipt and payment amount are same if transaction is adjustment
-        
+
         // Save transaction logic here
         decimal stagingId = transactionAccountsList.FirstOrDefault()?.Staging_Id ?? 0;
         if (stagingId > 0)
@@ -529,7 +552,7 @@
                 {
                     // var ledgerBalance21 = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Accounts/GetLedgerBalance?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={brCode}");
                     // transaction.Ledger_Balance = Convert.ToDouble(ledgerBalance21);
-                    var ledgerBalance21 = await _httpClient.GetFromJsonAsync<DtoLedgerBalance>($"https://localhost:7073/api/Accounts/GetLedgerBalanceWithFnlId?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={transaction.BrCode }");
+                    var ledgerBalance21 = await _httpClient.GetFromJsonAsync<DtoLedgerBalance>($"https://localhost:7073/api/Accounts/GetLedgerBalanceWithFnlId?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={transaction.BrCode}");
                     if (ledgerBalance21 != null)
                     {
                         transaction.Ledger_Balance = ledgerBalance21!.Ledger_Balance;
@@ -628,21 +651,149 @@
 
             #region receipt
             case 19: /// Staff Loan Recovery
+                #region Staff loan
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typestaffLoanRec = Type.GetType(fullyQualifiedName);
+                if (typestaffLoanRec != null) currentComponent = typestaffLoanRec;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name" , transaction.Employee_Name!},
+                    { "Transaction_Date", transaction.Transaction_Date },
+                    { "OnStaffLoanRecoveryComponentClose", EventCallback.Factory.Create<bool>(this, CloseSalaryPaymentComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
                 break;
             case 20:   /// PF Subscription
+                #region PF Subscription
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typePFSubscription = Type.GetType(fullyQualifiedName);
+                if (typePFSubscription != null) currentComponent = typePFSubscription;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name" , transaction.Employee_Name!},
+                    { "Designation" , transaction.Employee_Designation!},
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnPFContributionComponentClose", EventCallback.Factory.Create<bool>(this, CloseSalaryPaymentComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
                 break;
             case 42:    /// staff security deposit receipt
+                #region Security deposit receipt
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typeSecRpt = Type.GetType(fullyQualifiedName);
+                if (typeSecRpt != null) currentComponent = typeSecRpt;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name" , transaction.Employee_Name!},
+                    { "Designation" , transaction.Employee_Designation!},
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnSecurityDepositReceiptComponentClose", EventCallback.Factory.Create<bool>(this, CloseSalaryPaymentComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
+
                 break;
             #endregion
 
             #region payment
             case 15:    /// staff loan disbursement
+                #region Staff loan
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typestaffLoan = Type.GetType(fullyQualifiedName);
+                if (typestaffLoan != null) currentComponent = typestaffLoan;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name" , transaction.Employee_Name!},
+                    { "Designation" , transaction.Employee_Designation!},
+                    { "Transaction_Date", transaction.Transaction_Date },
+                    { "OnStaffLoanDisbursementComponentClose", EventCallback.Factory.Create<bool>(this, CloseSalaryPaymentComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
                 break;
             case 33:    /// Ex-gratia payment
+                #region Ex-gratia
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typeExg = Type.GetType(fullyQualifiedName);
+                if (typeExg != null) currentComponent = typeExg;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name" , transaction.Employee_Name!},
+                    { "Designation" , transaction.Employee_Designation!},
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "Component_Id" ,1},
+                    { "OnBonusComponentClose", EventCallback.Factory.Create<bool>(this, CloseSalaryPaymentComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
                 break;
             case 34:    /// Bonus payment
+                #region Bonus
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typeBonus = Type.GetType(fullyQualifiedName);
+                if (typeBonus != null) currentComponent = typeBonus;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name" , transaction.Employee_Name!},
+                    { "Designation" , transaction.Employee_Designation!},
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "Component_Id" ,2},
+                    { "OnBonusComponentClose", EventCallback.Factory.Create<bool>(this, CloseSalaryPaymentComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
                 break;
             case 35:    /// Staff PF withdrawal
+                #region PF Subscription
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typePFWithdrawal = Type.GetType(fullyQualifiedName);
+                if (typePFWithdrawal != null) currentComponent = typePFWithdrawal;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name" , transaction.Employee_Name!},
+                    { "Designation" , transaction.Employee_Designation!},
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnPFWithdrawalComponentClose", EventCallback.Factory.Create<bool>(this, CloseSalaryPaymentComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
                 break;
             case 39:    /// Salary payment
                 #region Salary payment
@@ -663,10 +814,46 @@
                 #endregion
                 break;
             case 40:    /// DA arrears payment
+                #region Salary payment
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typeDA = Type.GetType(fullyQualifiedName);
+                if (typeDA != null) currentComponent = typeDA;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name",transaction.Employee_Name!},
+                    { "Designation",transaction.Employee_Designation!},
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnDAArrearsPaymentComponentClose", EventCallback.Factory.Create<bool>(this, CloseChildComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
                 break;
             case 41:    /// Surrender leave salary payment
+                #region SLS payment
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typeSLS = Type.GetType(fullyQualifiedName);
+                if (typeSLS != null) currentComponent = typeSLS;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name" , transaction.Employee_Name!},
+                    { "Designation" , transaction.Employee_Designation!},
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnSLSComponentClose", EventCallback.Factory.Create<bool>(this, CloseSalaryPaymentComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
                 break;
-            #endregion
+                #endregion
         }
     }
 
@@ -737,6 +924,7 @@
         }
         else
         {
+
             otherRelatedData = new() /// chequeData = new()
             {
                 Member_Id = transaction.Employee_Id,
@@ -749,6 +937,31 @@
                 Fin_Id = transaction.Fnl_Id,
                 Cash_Led_Id = transaction.Cash_Led_Id
             };
+
+        }
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{transaction.Account_Id}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
         }
         otherRelatedJsonData = ConvertToJson(otherRelatedData);
         string accName = transaction.Account_Id.ToString();
@@ -764,7 +977,7 @@
             Related_Account_Id = transaction.Account_Id,
             Receipt_Amount = receipt,
             Payment_Amount = payment,
-            Module_Name = ledgerNameItems.Where(x => x.Value == transaction.Ledger_Id.ToString()).Select(x => x.Text).FirstOrDefault(),
+            Module_Name = accountName, /// ledgerNameItems.Where(x => x.Value == transaction.Ledger_Id.ToString()).Select(x => x.Text).FirstOrDefault(),
             Cash_Or_Adjustment = transaction.Cash_Adjustment,
             Related_Account_Data = otherRelatedJsonData, /// chequeJsonData,
             Created_By = 110010000001,
@@ -775,7 +988,11 @@
             BrCode = "11001",
             Cheque_No = otherRelatedData.Cheque_No,
             Cheque_Date = otherRelatedData.Cheque_Date,
-            Issue_Bank_Name = otherRelatedData.Issue_Bank_Name
+            Issue_Bank_Name = otherRelatedData.Issue_Bank_Name,
+            CashReceipt_Amount = transaction.Cash_Adjustment ==1 ? receipt :0,
+            AdjustmentReceipt_Amount = transaction.Cash_Adjustment == 2 ? receipt :0,
+            CashPayment_Amount = transaction.Cash_Adjustment == 1 ? payment :0,
+            AdjustmentPayment_Amount = transaction.Cash_Adjustment == 2 ? payment :0
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
 
@@ -786,7 +1003,7 @@
         transaction.Cheque_No = string.Empty;
         transaction.Cheque_Date = null;
         transaction.Issue_Bank = string.Empty;
-        // await UpdateJLRecoveryTransactionFromStaging("I");
+        await UpdateTransactionsFromStaging("I","11001");
     }
 
     private async Task RemoveAccountRow(AccountTransactionVM account)
@@ -1024,10 +1241,28 @@
                     case 24:    /// FD loan recovery
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName},{assemblyName}";
                         break;
+                    case 20:    /// PF contribution received
+                    case 35:    /// PF withdrawn
+                    case 39:    /// Salary payment
+                    case 40:    /// DA arrears payment
+                    case 41:    /// SLS payment
+                    case 33:    /// Exgratia payment
+                    case 34:    /// Bonus payment
+                    case 15:    /// Staff loan disbursement
+                    case 19:    /// Staff loan recovery
+                    case 42:    /// Staff security  deposit receipt
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
+                        break;
                     case 31:    /// Jewel Loan Recovery
                     case 37:    /// Jewel Loan disbursement
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName},{assemblyName}";
                         break;
+                    // case 39:    /// salary payment
+                    //     fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
+                    //     break;
+                    // case 40:    /// DA arrears
+                    //     fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
+                    //     break;
                 }
                 Type? type = Type.GetType(fullyQualifiedName);
                 if (type == null)
@@ -1150,7 +1385,7 @@
         transaction.Account_Id = 0;
         StateHasChanged();
     }
-    #endregion 
+    #endregion
 
     #region Methods
     private void DisableTrnDate()
@@ -1178,6 +1413,16 @@
             transaction.Account_Id = 0;
         }
     }
-    #endregion 
-    
+
+    private void CloseChildComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    #endregion
+
 }

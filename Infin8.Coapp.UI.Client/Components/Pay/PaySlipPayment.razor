@@ -222,15 +222,33 @@
                 // var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetEmployeeNamesForSalaryPayment/{salaryPayment.Pay_Id}/{brCode}");
                 // if (response != null && response.Any()) empIdList = response.ToList();
 
-                var response = await _httpClient.GetFromJsonAsync<DropdownItem>($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
-                if (response != null) 
-                    empIdList.Add(response);
-                else
+                // var response = await _httpClient.GetFromJsonAsync<DropdownItem>($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
+                var response = await _httpClient.GetAsync($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var data = await response.Content.ReadFromJsonAsync<DropdownItem>();
+                    if (data != null)
+                    {
+                        empIdList.Add(data);
+                    }
+                    else
+                    {
+                        isError = true;
+                        errorMessage = "No employee found for the selected pay month.";
+                    }
+                }
+                else if (response.StatusCode == HttpStatusCode.NotFound)
                 {
                     isError = true;
                     errorMessage = "No employee found for the selected pay month.";
                 }
+                else
+                {
+                    isError = true;
+                    errorMessage = $"Error: {response.StatusCode}";
+                }
             }
+
             catch (Exception ex)
             {
                 isError = true;
@@ -313,9 +331,25 @@
         }
         double receiptAmount = 0;
         double paymentAmount = 0;
+        double cashReceiptAmount = 0;
+        double cashPaymentAmount = 0;
+        double adjustmentReceiptAmount = 0;
+        double adjustmentPaymentAmount = 0;
 
-        paymentAmount = salaryPayment.NetPay + salaryPayment.PF;
         receiptAmount = salaryPayment.TotalDeductions + salaryPayment.PF;
+        paymentAmount = salaryPayment.GrossPay + salaryPayment.PF;
+        if (CashOrAdjustment == 1)
+        {
+            cashReceiptAmount = 0;
+            cashPaymentAmount = salaryPayment.NetPay; /// 49365
+            adjustmentPaymentAmount  = salaryPayment.TotalDeductions + salaryPayment.PF; /// 8281 + 4231
+            adjustmentReceiptAmount = salaryPayment.TotalDeductions + salaryPayment.PF;
+        }
+        else
+        {
+            adjustmentPaymentAmount = salaryPayment.GrossPay + salaryPayment.PF;
+            adjustmentReceiptAmount = salaryPayment.TotalDeductions + salaryPayment.NetPay + salaryPayment.PF;
+        }
         salaryPayment.Employee_Id = Employee_Id;
         string salaryPaymentjsonData = ConvertToJson(salaryPayment);
         stagingDetails = new()
@@ -335,7 +369,11 @@
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001"
+            BrCode = "11001",
+            CashPayment_Amount = cashPaymentAmount ,
+            CashReceipt_Amount = cashReceiptAmount  ,
+            AdjustmentReceipt_Amount = adjustmentReceiptAmount ,
+            AdjustmentPayment_Amount = adjustmentPaymentAmount 
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);

@@ -60,5 +60,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.LoanROITemplate.GetLoanROIAndPIFromTemplateAsync(schemeId, agency, wef);
         }
+
+        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef, string brCode)
+        {
+            return  await _unitOfWork.LoanROITemplate.GetLoanROIAndPIFromTemplateAsync(schemeId, agency,wef,brCode);
+        }
     }
 }

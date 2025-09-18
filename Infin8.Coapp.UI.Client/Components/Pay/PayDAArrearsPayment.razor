@@ -1,0 +1,460 @@
+﻿@page "/da-arrears-payment"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
+@using System.Net
+
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@inject TransactionStateService TransactionState
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container-fluid">
+        <h3>DA Arrears Payment</h3>
+        <div class="card">
+            <div class="card-header">
+                <h5>Employee Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="text-center p-2 bg-success text-white rounded">
+                            <div class="fw-bold">@Employee_Name</div>
+                            <small>Employee Name</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-2 bg-info text-white rounded">
+                            <div class="fw-bold">@Designation</div>
+                            <small>Designation</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-outline-primary" style="min-height: 63px;" @onclick="GetDAArrearMonth">
+                            <i class="bi bi-pencil"></i>
+                            Get DA arreas Month
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @if (_isLoading)
+        {
+            <!-- Show a centered spinner while data is loading -->
+            <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Pay Id List -->
+            @if (payIdList != null && payIdList.Any())
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Select Pay Month for Payment</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <InputSelect class="form-select shadow-none" @bind-Value="Payslip.Pay_Id">
+                                <option value="0">--Select Month--</option>
+                                @foreach (var pi in payIdList)
+                                {
+                                    <option value="@pi.Value">@pi.Text</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Employee Id with Pay Id List -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <button type="button" class="btn btn-outline-primary" @onclick="GetEmployeeForPayment">
+                        <i class="bi bi-pencil"></i>
+                        Get Employee Name
+                    </button>
+                </div>
+
+                <div class="card-body">
+                    @if (empIdList != null && empIdList.Any())
+                    {
+                        @foreach (var emp in empIdList)
+                        {
+                            <div class="form-check mt-2 pt-2 pb-2">
+                                <input class="form-check-input m-0 mt-1" type="checkbox" id="@($"emp_{emp.Value}")"
+                                       @onchange="e => TogglePaySelection(emp, (bool)e.Value)" />
+                                <label class="form-check-label ps-2" for="@($"emp_{emp.Text}")">
+                                    @emp.Text
+                                </label>
+                            </div>
+                        }
+                        <button type="button" class="btn btn-outline-primary m-3" @onclick="GetDAArrearsDetails">
+                            <i class="bi bi-pencil"></i>
+                            Get DA Details
+                        </button>
+                    }
+                </div>
+
+                @if (Payslip != null && Payslip.TotalCommitments > 0)
+                {
+                    <div class="card-footer">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="text-center p-2 bg-success text-white rounded">
+                                    <div class="fw-bold">@Payslip.TotalCommitments</div>
+                                    <small>Gross Pay</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-2 bg-info text-white rounded">
+                                    <div class="fw-bold">@Payslip.PF</div>
+                                    <small>Provident Fund Deduction</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-2 bg-warning text-white rounded">
+                                    <div class="fw-bold">@Payslip.NetPay</div>
+                                    <small>Net Pay</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="button" class="btn btn-primary" style="min-height:62px;" @onclick="DAArrearPaymentInitiate">
+                                    <i class="oi oi-check"></i>
+                                    Initiate Salary Payment
+                                </button>
+                            </div>
+                        </div>
+                       
+                    </div>
+                }
+
+            </div>
+        }
+
+        <!-- Step 4: Button group -->
+        <div class="d-flex justify-content-between mt-4 mb-4">
+            <div>
+                <!-- Left-aligned buttons -->
+                <button type="button" class="btn btn-secondary me-2" @onclick="ClosePage">
+                    <i class="oi oi-x"></i>
+                    Close
+                </button>
+                <button type="reset" class="btn btn-outline-secondary">
+                    <i class="oi oi-action-undo"></i>
+                    Reset
+                </button>
+            </div>
+
+
+        </div>
+
+    </div>
+}
+
+
+@if (_isError)
+{
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => _isError = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public decimal Employee_Id { get; set; }
+    [Parameter] public string? Employee_Name { get; set; }
+    [Parameter] public string? Designation { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnDAArrearsPaymentComponentClose { get; set; }
+    #endregion
+
+    #region objects
+    // private DtoPayDAArrears daArrearsPayment = new();
+    private DtoPaySlipPayment Payslip = new();
+    private List<DropdownItem> payIdList = new();
+    private List<DropdownItem> empIdList = new();
+    private List<DropdownItem> selectedEmpIds = new();
+    private Staging_Details stagingDetails = new();
+    #endregion
+
+    #region variables
+    private string brCode = "11001";
+    private decimal Yr_Id = 110010000023;
+    private decimal Created_By = 110010000001;
+    private bool _isLoading = true;
+    private bool _isError = false;
+    private string errorMessage = string.Empty;
+    #endregion
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                Payslip.BrCode = brCode;
+                Payslip.YrId = Yr_Id;
+                Payslip.Created_By  = Created_By;
+                Payslip.Employee_Id = Employee_Id;
+                Payslip.Employee_Id_List = new List<Decimal>();
+                await GetDAArrearMonth();
+                // var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPaymentByEmpId/{Employee_Id}/D/{Payslip.BrCode}");
+                // if (response != null && response.Any())
+                // {
+                //     payIdList = response.ToList();
+                //     var payIdTest = payIdList.Select(x => x.Value).FirstOrDefault();
+                //     Payslip.Pay_Id = Convert.ToDecimal(payIdTest);
+                //     DropdownItem emp = new()
+                //     {
+                //         Value = Employee_Id.ToString(),
+                //         Text = Employee_Name
+                //     };
+                //     selectedEmpIds.Add(emp);
+                // }
+                _isLoading = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+
+    protected async Task ClosePage()
+    {
+        await OnDAArrearsPaymentComponentClose.InvokeAsync(true);
+    }
+
+    private async Task GetDAArrearMonth()
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPaymentByEmpId/{Employee_Id}/D/{Payslip.BrCode}");
+            if (response != null && response.Any())
+            {
+                payIdList = response.ToList();
+                var payIdTest = payIdList.Select(x => x.Value).FirstOrDefault();
+                Payslip.Pay_Id = Convert.ToDecimal(payIdTest);
+                DropdownItem emp = new()
+                {
+                    Value = Employee_Id.ToString(),
+                    Text = Employee_Name
+                };
+                selectedEmpIds.Add(emp);
+                Payslip.Employee_Id_List!.Clear();
+                foreach (var item in selectedEmpIds )
+                {
+                    decimal.TryParse(item.Value, out decimal empId);
+                    Payslip.Employee_Id_List.AddRange(empId);
+                }
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            errorMessage = "Error in fetching DA Arrears Month " +  ex.Message;
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task GetEmployeeForPayment()
+    {
+        if (Payslip.Pay_Id == 0)
+        {
+            _isError = true;
+            errorMessage = "Pay month not selected";
+            return;
+        }
+        else
+        {
+            try
+            {
+                _isError = false;
+                errorMessage = "";
+                var response = await _httpClient.GetFromJsonAsync<DropdownItem>($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{Employee_Id}/{Payslip.Pay_Id}/{Payslip.BrCode}");
+                if (response != null)
+                {
+                    empIdList.Clear();
+                    empIdList.Add(response);
+                }
+                else
+                {
+                    _isError = true;
+                    errorMessage = "No employee found for the selected pay month.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _isError = true;
+                errorMessage = ex.Message;
+            }
+        }
+    }
+
+    private void TogglePaySelection(DropdownItem emp, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedEmpIds.Any(l => l.Value == emp.Value))
+            {
+                selectedEmpIds.Add(emp);
+            }
+        }
+        else
+        {
+            selectedEmpIds.RemoveAll(l => l.Value == emp.Value);
+        }
+        // salaryPayment.Employee_Id_List = new();
+        List<decimal> list = new();
+        foreach (var emp1 in selectedEmpIds)
+        {
+            decimal.TryParse(emp1.Value, out decimal empId);
+            list.Add(empId);
+        }
+        // salaryPayment.Employee_Id_List.AddRange(list);
+    }
+
+    private async Task GetDAArrearsDetails()
+    {
+        List<decimal> empIds = new();
+        foreach (var emp in selectedEmpIds)
+        {
+            decimal.TryParse(emp.Value, out decimal empId);
+            empIds.Add(empId);
+        }
+
+        // Build query string properly for multiple values
+        var queryString = string.Join("&", empIds.Select(id => $"empIdList={id}"));
+        var url = $"https://localhost:7073/api/Pay/GetPaySlipForPayment?{queryString}&payId={Payslip.Pay_Id}&brCode={Payslip.BrCode}";
+        var response = await _httpClient.GetFromJsonAsync<List<Pay_Slip>>(url);
+
+        if (response != null && response.Any())
+        {
+            Payslip.TotalCommitments = response.Sum(x => x.Pay_Tot_Allowance);
+            Payslip.TotalDeductions = response.Sum(x => x.Pay_Tot_Deductions);
+            Payslip.PF = response.Sum(x => x.Pay_PF);
+            Payslip.NetPay = response.Sum(x => x.Pay_Net);
+            // salaryPayment.GrossPay = response.Sum(x => x.Pay_Tot_Allowance);
+            // salaryPayment.TotalDeductions = response.Sum(x => x.Pay_Tot_Deductions);
+            // salaryPayment.NetPay = response.Sum(x => x.Pay_Net);
+            // salaryPayment.PF = response.Sum(x => x.Pay_PF);
+            // salaryPayment.TotalCommitments = salaryPayment.GrossPay + salaryPayment.PF;
+        }
+    }
+
+    private async Task DAArrearPaymentInitiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseForAccountName = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseForAccountName.IsSuccessStatusCode)
+            {
+                accountName = await responseForAccountName.Content.ReadAsStringAsync();
+            }
+            else if (responseForAccountName.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseForAccountName.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        double receiptAmount = 0;
+        double paymentAmount = 0;
+        double cashReceiptAmount = 0;
+        double cashPaymentAmount = 0;
+        double adjustmentReceiptAmount = 0;
+        double adjustmentPaymentAmount = 0;
+
+        receiptAmount = Payslip.PF ;
+        paymentAmount = Payslip.TotalCommitments;
+        if (CashOrAdjustment == 1)
+        {
+            cashReceiptAmount = 0;
+            cashPaymentAmount = Payslip.NetPay; /// 49365
+            adjustmentPaymentAmount = Payslip.PF; /// 8281 + 4231
+            adjustmentReceiptAmount = Payslip.PF;
+        }
+        else
+        {
+            cashReceiptAmount = 0;
+            cashPaymentAmount = 0;
+
+            adjustmentPaymentAmount = Payslip.TotalCommitments ;
+            adjustmentReceiptAmount = Payslip.PF;
+        }
+        // salaryPayment.Employee_Id = Employee_Id;
+        string salaryPaymentjsonData = ConvertToJson(Payslip);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = Employee_Id,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = receiptAmount,
+            Payment_Amount = paymentAmount, /// paymentModel.Net_Payable,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = salaryPaymentjsonData,
+            Created_By = Payslip.Created_By,
+            Created_Date = TransactionDate,
+            Checked_By = Payslip.Created_By,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = Payslip.BrCode ,
+            CashPayment_Amount = cashPaymentAmount,
+            CashReceipt_Amount = cashReceiptAmount,
+            AdjustmentReceipt_Amount = adjustmentReceiptAmount,
+            AdjustmentPayment_Amount = adjustmentPaymentAmount
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        await TransactionState.NotifyIntiate(true);
+    }
+
+    private string ConvertToJson(DtoPaySlipPayment  daPayment)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(daPayment, options);
+    }
+}

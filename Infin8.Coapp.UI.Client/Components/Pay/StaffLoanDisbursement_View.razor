@@ -1,0 +1,117 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Net
+@inject HttpClient _httpClient
+
+@if (model != null && model.Scheme_Id > 0)
+{
+    <div card="card">
+        <div class="card-header bg-primary text-white">
+            <i class="oi oi-file"></i>
+            Payslip Details - @model.Employee_Name, @model.Designation (ID: @model.Employee_Id)
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover">
+                    <tbody>
+                        <tr>
+                            <td>Scheme Name</td>
+                            <td>
+                                <div class="fw-bold">@model.Scheme_Name</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Loan Amount</td>
+                            <td>@model.DisbursementAmount</td>
+                        </tr>
+                        <tr>
+                            <td>Loan Date</td>
+                            <td>@model.Transaction_Date </td>
+                        </tr>
+                        <tr>
+                            <td>Period of Loan</td>
+                            <td>@model.Principal_Period </td>
+                        </tr>
+                        <tr>
+                            <td>Interest Period</td>
+                            <td>@model.Interest_Period</td>
+                        </tr>
+                        <tr>
+                            <td>Rate of Interest</td>
+                            <td>@model.Rate_Of_Interest</td>
+                        </tr>
+                        <tr>
+                            <td>Instalment Amount</td>
+                            <td>@model.InstalmentAmount</td>
+                        </tr>
+                        <tr>
+                            <td>Instalment Start Date</td>
+                            <td>@model.InstalmentStart_Date</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+    private Staging_Details details = new Staging_Details();
+    private DtoLoanDisbursementStaff model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null && details.Staging_Id > 0)
+                {
+                    model = ConvertFromJson(details.Related_Account_Data!);
+                }
+                // var response = await _httpClient.GetAsync($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                // if (response.IsSuccessStatusCode)
+                // {
+                //     var data = await response.Content.ReadFromJsonAsync<DtoLoanDisbursementStaff>();
+                //     if (data != null)
+                //     {
+                //         model = data;
+                //     }
+                //     else
+                //     {
+                //         Console.WriteLine("No staff loan disbursement found to this employee.");
+                //     }
+                // }
+                // else if (response.StatusCode == HttpStatusCode.NotFound)
+                // {
+                //     Console.WriteLine("No staff loan disbursement found to this employee.");
+                // }
+                // else
+                // {
+                //     Console.WriteLine("Error: " + response.StatusCode);
+                // }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+
+    public static DtoLoanDisbursementStaff ConvertFromJson(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+        };
+
+        return JsonSerializer.Deserialize<DtoLoanDisbursementStaff>(jsonData, options)!;
+    }
+}
+

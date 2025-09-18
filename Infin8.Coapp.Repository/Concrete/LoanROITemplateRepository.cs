@@ -120,5 +120,37 @@ namespace Infin8.Coapp.Repository
             }
             return roi;
         }
+
+        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef , string brCode)
+        {
+            LoanROIAndPIVM roi = new LoanROIAndPIVM();
+            try
+            {
+                /// sample 2 linq
+                var roi1 = await CSISContext.Loan_Roi_Template
+                    .Where(t => t.Wef.Date == CSISContext.Loan_Roi_Template
+                        .Where(t => t.Wef.Date <= wef.Date &&
+                                    t.Agency == agency &&
+                                    t.Scheme_Id == schemeId &&
+                                    t.RoiTemplate_Delete == false &&
+                                    t.BrCode == brCode )
+                        .Max(t => (DateTime?)t.Wef.Date) &&
+                                t.Agency == agency &&
+                                t.Scheme_Id == schemeId &&
+                                t.RoiTemplate_Delete == false)
+                    .Select(t => new LoanROIAndPIVM
+                    {
+                        Roi = t.Roi,
+                        Pi = t.Pi
+                    })
+                    .FirstOrDefaultAsync();
+                if (roi1 != null) roi = roi1; // as LoanROIAndPIVM;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Loan rate of interest from template");
+            }
+            return roi;
+        }
     }
 }

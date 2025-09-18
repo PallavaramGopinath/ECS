@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -21,9 +22,22 @@ namespace Infin8.Coapp.Repository
             bool result = false;
             try
             {
-                decimal maxId = await CSISContext.Mem_Trn.Where(x => x.BrCode == memTrn.BrCode).MaxAsync(x => x.Mem_Trn_Id);
-                int maxTrnId = await CSISContext.Mem_Trn.Where(x=> x.Mem_Id == memTrn.Mem_Id && x.Trn_Type == memTrn.Trn_Type && x.Led_Id == memTrn.Led_Id && x.BrCode == memTrn.BrCode).MaxAsync(x => x.Trn_SlNo);
+                //decimal maxId = await CSISContext.Mem_Trn.Where(x => x.BrCode == memTrn.BrCode).MaxAsync(x => x.Mem_Trn_Id);
+                decimal maxId = await CSISContext.Mem_Trn
+                    .Where(x => x.BrCode == memTrn.BrCode)
+                    .Select(x => (decimal?)x.Mem_Trn_Id)
+                    .MaxAsync() ?? 0;
+
+                //int maxTrnId = await CSISContext.Mem_Trn.Where(x=> x.Mem_Id == memTrn.Mem_Id && x.Trn_Type == memTrn.Trn_Type && x.Led_Id == memTrn.Led_Id && x.BrCode == memTrn.BrCode).MaxAsync(x => x.Trn_SlNo);
+                int maxTrnId = await CSISContext.Mem_Trn
+                .Where(x => x.Mem_Id == memTrn.Mem_Id &&
+                            x.Trn_Type == memTrn.Trn_Type &&
+                            x.Led_Id == memTrn.Led_Id &&
+                            x.BrCode == memTrn.BrCode)
+                .Select(x => (int?)x.Trn_SlNo)
+                .MaxAsync() ?? 0;
                 maxId++;
+                maxTrnId++;
                 memTrn.Mem_Trn_Id = maxId;
                 memTrn.Trn_SlNo = maxTrnId;
                 await AddAsync(memTrn);

@@ -1,0 +1,431 @@
+﻿@page "/da-arrears"
+@using System.ComponentModel.DataAnnotations
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-centere mb-4">
+                <h2 class="text-primary mb-0">
+                    <i class="bi bi-currency-rupee"></i>
+                    DA arrears calculation
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container-fluid">
+        <!-- Date display -->
+        <div class="card">
+            <div class="card-header">
+                <h5>DA arrears date between</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Transaction Date</label>
+                            <InputDate class="form-control shadow-none" disabled="@_isTrnDateDisable"
+                                       @bind-Value="model.Transaction_Date"
+                                       @bind-Value:after="this.DisableTrnDate" />
+                            @* <ValidationMessage For="@(() => model.Transaction_Date)" /> *@
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>DA From Date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="model.DAFrom_Date" />
+                            @*  <ValidationMessage For="@(() => model.DAFrom_Date)" /> *@
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>DA To Date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="model.DATo_Date" />
+                            @* <ValidationMessage For="@(() => model.DATo_Date)" /> *@
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>DA Percentage</label>
+                            <InputNumber class="form-control shadow-none"
+                                         @bind-Value="model.DARate" />
+                            @* <ValidationMessage For="@(() => model.DARate)" /> *@
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- Display employees list -->
+        @if (employeeList != null && employeeList.Any())
+        {
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Employee data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            @foreach (var emp in employeeList)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="@($"emp_{emp.Mem_Id}")"
+                                           @onchange="e => ToggleEmployeeSelection(emp, (bool)e.Value)" />
+                                    <label class="form-check-label" for="@($"emp_{emp.Mem_Id}")">
+                                        @emp.MemberNo @emp.MemberName @emp.Emp_Desgn
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">No employees found to calculate DA arrears.</div>
+        }
+
+
+
+        <div class="mt-3">
+            @if (_isCalculating)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span class="ps-2">Calculating ...</span>
+            }
+            else
+            {
+            <button class="btn btn-secondary rounded-pill" @onclick="CalculateDAArrears" disabled="@(!selectedEmployeeList.Any())">
+                <i class="oi oi-list-rich"></i> Calculate DA Arrears
+            </button>
+            }
+        </div>
+    </div>
+
+    <!-- DA arrears data -->
+    @if (model.DAArrearsList != null && model.DAArrearsList.Any())
+    {
+        <div class="card mt-3">
+            <div class="card-header bg-info">
+                <h5 class="text-white">DA Calculated Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover mb-0">
+                        <thead class="table-dard">
+                            <tr>
+                                <th>Employee Name</th>
+                                <th>Period</th>
+                                <th>Total Gross</th>
+                                <th>DA Arrears</th>
+                                <th>PF Deductions</th>
+                                <th>Net Pay</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var da in model.DAArrearsList)
+                            {
+                                <tr>
+                                    <td>@da.MemberName</td>
+                                    <td>@model.DAFrom_Date.ToString("dd-MM-yyyy") to @model.DATo_Date.ToString("dd-MM-yyyy") </td>
+                                    <td>
+                                        <InputNumber class="form-control shadow none" @bind-Value="da.TotalBasicPay" />
+                                    </td>
+                                    <td>
+                                        <InputNumber class="form-control shadow none" @bind-Value="da.DAArrears" />
+                                    </td>
+                                    <td>
+                                        <InputNumber class="form-control shadow none" @bind-Value="da.PF" />
+                                    </td>
+                                    <td>
+                                        <div class="text-center bg-danger text-white rounded" style="width:200px;">
+                                            <div class="fw-bold">@da.NetDAArrears</div>
+                                            <small>Net Pay</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+
+                </div>
+            </div>
+            <div class="card-footer">
+                <button type="button" class="btn btn-primary" @onclick="GenerateDAArrears">
+                    @if (_isGenerating)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span class="ps-2">Generating...</span>
+                    }
+                    else
+                    {
+                        <i class="oi oi-pencil me-2"></i>
+                        <span class="ps-2">Generate DA arrears</span>
+                    }
+                </button>
+            </div>
+        </div>
+    }
+
+}
+
+
+@if (_isError)
+{
+    <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => _isError = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+
+@code {
+    private bool _isLoading = true;
+    private bool _isError = false;
+    private bool _isTrnDateDisable = false;
+    private bool _isCalculating = false;
+    private bool _isGenerating = false;
+    private string? errorMessage = string.Empty;
+    private string BrCode = "11001";
+    private decimal Usr_Id = 110010000001;
+    private decimal Yr_Id = 110010000023;
+    List<PaySlipDAArrearsVM> daArrearsList = new();
+    List<EmployeeMasterDto> employeeList = new();
+    List<EmployeeMasterDto> selectedEmployeeList = new();
+    DtoPayDAArrears model = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var mem = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{BrCode}");
+                if (mem != null && mem.Any())
+                {
+                    employeeList = mem.ToList();
+                }
+                model.EmployeeList = new List<EmployeeMasterDto>();
+                model.DAArrearsList = new List<PaySlipDAArrearsVM>();
+                // model.PaySlipList = new List<Pay_Slip>();
+                if (employeeList != null)
+                {
+                    model.EmployeeList.AddRange(employeeList);
+                }
+                model.Transaction_Date = DateTime.Now;
+                model.DATo_Date = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                model.DAFrom_Date = model.DATo_Date.AddMonths(-1);
+                model.DATo_Date = model.DATo_Date.AddDays(-1);
+                model.BrCode = BrCode;
+                model.Created_By = Usr_Id;
+                model.YrId = Yr_Id;
+                _isLoading = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during initialization: {ex.Message}");
+                _isLoading = false;
+                errorMessage = $"Error during initialization: {ex.Message}";
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void DisableTrnDate()
+    {
+        _isTrnDateDisable = true;
+    }
+
+    private void ToggleEmployeeSelection(EmployeeMasterDto emp, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedEmployeeList.Any(l => l.Mem_Id == emp.Mem_Id))
+            {
+                selectedEmployeeList.Add(emp);
+            }
+        }
+        else
+        {
+            selectedEmployeeList.RemoveAll(l => l.Mem_Id == emp.Mem_Id);
+        }
+    }
+
+    private async Task CalculateDAArrears()
+    {
+        decimal payId = 0;
+        try
+        {
+            if (selectedEmployeeList == null && !selectedEmployeeList!.Any())
+            {
+                _isError = true;
+                errorMessage = "Select atlease one employee to calculate da arrears";
+                return;
+            }
+            _isCalculating = true;
+            string fromDateToString = model.DAFrom_Date.ToString("yyyy-MM-dd");
+            string toDateToString = model.DATo_Date.ToString("yyyy-MM-dd");
+            string description = "D";
+            payId = await _httpClient.GetFromJsonAsync<decimal>($"https://localhost:7073/api/Pay/GetPayIdForDAArrears/{fromDateToString}/{toDateToString}/{description}/{BrCode}");
+            if (payId > 0)
+            {
+                foreach (var emp in selectedEmployeeList!)
+                {
+                    var result = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Pay/IsPaySlipGenerated/{payId}/{emp.Mem_Id}/{BrCode}");
+                    if (result)
+                    {
+                        errorMessage += " DA Arrears already generated for the employee " + emp.MemberName + " ";
+                    }
+                }
+                if (errorMessage!.Length > 0)
+                {
+                    _isError = true;
+                    _isCalculating = false;
+                    return;
+                }
+            }
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/CalculateDAArrears", model);
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<DtoPayDAArrears>();
+                    if (result != null && result.DAArrearsList!.Any())
+                    {
+                        model = result;
+                        _isError = false; // Clear any previous errors
+                        // isPayDisplay = true; // Show the calculated pay
+                        if (model.IsError == true)
+                        {
+                            errorMessage = model.ErrorMessage;
+                            _isError = true;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        errorMessage = "Error in calculating payslip. Please check the details.";
+                        _isError = true;
+                        // _isPaySlipModalError = true;
+                        // isPayDisplay = false;
+                    }
+                }
+                else
+                {
+                    // Handle HTTP error responses
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Server error: {response.StatusCode} - {errorContent}";
+                    _isError = true;
+                    // _isPaySlipModalError = true;
+                    // isPayDisplay = false;
+                }
+                _isCalculating = false;
+            }
+            catch (HttpRequestException ex)
+            {
+                errorMessage = $"Network error: {ex.Message}";
+                // _isPaySlipModalError = true;
+                // isPayDisplay = false;
+                Console.WriteLine($"HTTP Error calculating payslip: {ex.Message}");
+                _isCalculating = false;
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Unexpected error: {ex.Message}";
+                // _isPaySlipModalError = true;
+                // isPayDisplay = false;
+                Console.WriteLine($"Error calculating payslip: {ex.Message}");
+                _isCalculating = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            _isCalculating = false;
+        }
+    }
+
+    private async Task GenerateDAArrears()
+    {
+        try
+        {
+            if (model.DAArrearsList == null && model.DAArrearsList!.Any())
+            {
+                _isError = true;
+                errorMessage = "DA arrear details not available to generate";
+                return;
+            }
+            _isGenerating = true;
+            var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/GenerateDAArrears", model);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DtoPayDAArrears>();
+                if (result != null && result.DAArrearsList!.Any())
+                {
+                    model = result;
+                    _isError = false; 
+                    if (model.IsError == true)
+                    {
+                        errorMessage = model.ErrorMessage;
+                        _isError = true;
+                        _isGenerating = false;
+                        return;
+                    }
+                    employeeList = new List<EmployeeMasterDto>();
+                    model.EmployeeList = new List<EmployeeMasterDto>();
+                    model.DAArrearsList = new List<PaySlipDAArrearsVM>();
+                    model = new();
+                }
+                else
+                {
+                    errorMessage = "Error in calculating payslip. Please check the details.";
+                    _isError = true;
+                }
+            }
+            else
+            {
+                // Handle HTTP error responses
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Server error: {response.StatusCode} - {errorContent}";
+                _isError = true;
+            }
+            _isGenerating = false;
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"Network error: {ex.Message}";
+            Console.WriteLine($"HTTP Error calculating payslip: {ex.Message}");
+            _isGenerating = false;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unexpected error: {ex.Message}";
+            Console.WriteLine($"Error calculating payslip: {ex.Message}");
+            _isGenerating = false;
+        }
+    }
+}

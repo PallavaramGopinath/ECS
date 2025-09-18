@@ -22,6 +22,7 @@ namespace Infin8.Coapp.Repository
         Task<List<DropdownItem>> GetDisbursementTypeAsync();
         Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId);
         Task<Loan_Schemes> GetLoanSchemeByType(int loanType);
+        Task<List<Loan_Schemes>> GetLoanSchemeListByType(int loanType, string brCode);
         Task<int> GetPeriodOfLoan(int schemeId);
 
     }

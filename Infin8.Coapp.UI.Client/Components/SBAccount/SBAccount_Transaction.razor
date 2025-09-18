@@ -193,6 +193,21 @@
             Console.WriteLine($"Error fetching account name: {ex.Message}");
         }
         string newSBAccountJsonData = ConvertToJson(sbAccountTransaction);
+        double cashRecipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
+        if(CashOrAdjustment ==1)
+        {
+            cashRecipt = sbAccountTransaction.Receipt_Amount;
+            cashPayment = sbAccountTransaction.Payment_Amount;
+            adjReceipt = 0;
+            adjPayment = 0;
+        }
+        else
+        {
+            cashRecipt = 0;
+            cashPayment = 0;
+            adjReceipt = sbAccountTransaction.Receipt_Amount; ;
+            adjPayment = sbAccountTransaction.Payment_Amount;
+        }
         stagingDetails = new()
         {
             Id = 0,
@@ -210,7 +225,11 @@
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001"
+            BrCode = "11001",
+            CashReceipt_Amount = cashRecipt ,
+            CashPayment_Amount = cashPayment ,
+            AdjustmentReceipt_Amount = adjReceipt ,
+            AdjustmentPayment_Amount = adjPayment 
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);

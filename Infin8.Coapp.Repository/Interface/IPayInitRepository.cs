@@ -11,5 +11,6 @@ namespace Infin8.Coapp.Repository
     {
         Task<Pay_Init> AddPayInitAsync(Pay_Init payInit);
         Task<bool> EditPayInitAsync(Pay_Init payInit);
+        Task<decimal> GetPaySlipForDAArrears(DateTime fromDate, DateTime toDate, string description,string brCode);
     }
 }

@@ -444,7 +444,7 @@
             if (!string.IsNullOrWhiteSpace(transaction.Member_No))
             {
                 var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{transaction.Member_No}/11001");
-                if (mem != null)
+                if (mem != null && mem.Mem_Id > 0)
                 {
                     transaction.Member_Id = mem.Mem_Id;
                     transaction.Member_Name = mem.MemberName;
@@ -453,13 +453,16 @@
                     transaction.Dob = mem.Dob;
                     transaction.Age = mem.Age;
                     isMemberNoDisable = true;
+
                 }
                 else
                 {
-                    await JSRuntime.InvokeVoidAsync("alert", "Payment amount is greater than balance amount");
+                    await JSRuntime.InvokeVoidAsync("alert", "Member details not available");
                     isMemberNoDisable = false;
+                    transaction.Member_No = string.Empty;
                     return;
                 }
+
                 /// if already make for this member for the same date then do not allow for transaction
                 await UpdateJLRecoveryTransactionFromStaging("M");
                 if (transactionAccountsList.Count > 0)
@@ -478,12 +481,12 @@
                     transaction.Cash_Adjustment = transactionAccountsList.Select(x => x.CashAdjId).First();
                     isDdlCashAdjustmentDisable = true;
                 }
+                StateHasChanged();
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-
-            throw;
+            Console.WriteLine(ex.Message);
         }
     }
 
@@ -626,11 +629,12 @@
             }
             if (transaction.Account_Id == 8 || transaction.Account_Id == 9 || transaction.Account_Id == 24)
             {
+                string trnDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
                 /// 8= fd refund, 9= fd renewal 24=fd loan receipt
-                var result = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Staging/VerifyForFixedDepositLoanRecovery/{transaction.Account_Id}/{transaction.Member_Id}");
+                var result = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Staging/VerifyForFixedDepositLoanRecovery/{transaction.Account_Id}/{transaction.Member_Id}/{trnDate}");
                 if (result == true)
                 {
-                    await JSRuntime.InvokeVoidAsync("alert", "Member already has a SB Account");
+                    await JSRuntime.InvokeVoidAsync("alert", "Member had loan on the seleced Fixed deposit");
                     transaction.Account_Id = 0;
                     return;
                 }

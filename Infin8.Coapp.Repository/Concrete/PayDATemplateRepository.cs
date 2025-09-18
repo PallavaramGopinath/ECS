@@ -15,23 +15,20 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddPayDATemplateAsync(Pay_DA_Template payDaTemplate)
+        public async Task<Pay_DA_Template> AddPayDATemplateAsync(Pay_DA_Template payDaTemplate)
         {
-            bool result = false;
             try
             {
                 decimal maxId = await CSISContext.Pay_DA_Template.MaxAsync(x => x.DA_Id);
                 maxId++;
                 payDaTemplate.DA_Id  = maxId;
                 await AddAsync(payDaTemplate);
-                result = true;
             }
             catch (Exception ex)
             {
-                result = false;
                 throw new InvalidOperationException(ex.Message + " DA Template data not saved");
             }
-            return result;
+            return payDaTemplate;
         }
 
         public async Task<bool> EditPayDATemplateAsync(Pay_DA_Template payDaTemplate)

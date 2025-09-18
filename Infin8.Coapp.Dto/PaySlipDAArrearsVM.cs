@@ -2,7 +2,7 @@
 {
     public class PaySlipDAArrearsVM
     {
-        public int Mem_Id { get; set; }
+        public decimal Mem_Id { get; set; }
         public string? MemberName { get; set; }
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
@@ -11,6 +11,6 @@
         public double LLP { get; set; }
         public double DAArrears { get; set; }
         public double PF { get; set; }
-        public double NetDAArrears { get; set; }
+        public double NetDAArrears => DAArrears - PF;
     }
 }

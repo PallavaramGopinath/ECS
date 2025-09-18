@@ -1,0 +1,110 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@inject HttpClient _httpClient
+
+@if (daArrearsViewList != null && daArrearsViewList.Any())
+{
+    @foreach (var da in daArrearsViewList)
+    {
+        <div class="card" style="min-width:600px" >
+            <div class="card-header">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="text-center p-2 bg-success text-white rounded">
+                            <div class="fw-bold">@da.Employee_Name</div>
+                            <small>Employee Name</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-center p-2 bg-info text-white rounded">
+                            <div class="fw-bold">@da.Designation</div>
+                            <small>Designation</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="text-center p-2 bg-success text-white rounded">
+                            <div class="fw-bold">@da.DAArrears</div>
+                            <small>DA Arrears</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-2 bg-info text-white rounded">
+                            <div class="fw-bold">@da.PF</div>
+                            <small>Provident Fund</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-2 bg-info text-white rounded">
+                            <div class="fw-bold">@da.NetPay</div>
+                            <small>Net DA Arrears</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+    private Staging_Details details = new Staging_Details();
+    private DtoPaySlipPayment daPayment = new();
+    private List<DtoPayDAArrearsView> daArrearsViewList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null)
+                {
+                    daPayment = ConvertFromJson(details.Related_Account_Data!);
+                    List<decimal> empIdList = new();
+                    foreach (var emp in daPayment.Employee_Id_List!)
+                    {
+                        empIdList.Add(emp);
+                    }
+                    decimal PayId = daPayment.Pay_Id;
+                    string brCode = daPayment.BrCode!;
+                    await GetDAArrearsPaymentView(empIdList, PayId, brCode);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+
+    public static DtoPaySlipPayment ConvertFromJson(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+        };
+
+        return JsonSerializer.Deserialize<DtoPaySlipPayment>(jsonData, options)!;
+    }
+
+    private async Task GetDAArrearsPaymentView(List<decimal> empIds, decimal payId, string brCode)
+    {
+        var queryString = string.Join("&", empIds.Select(id => $"empIdList={id}"));
+        var url = $"https://localhost:7073/api/Pay/GetPayDAArrearsView?{queryString}&payId={payId}&brCode={brCode}";
+        var response = await _httpClient.GetFromJsonAsync<List<DtoPayDAArrearsView>>(url);
+
+        if (response != null && response.Any())
+        {
+            daArrearsViewList = response.ToList();
+        }
+    }
+}

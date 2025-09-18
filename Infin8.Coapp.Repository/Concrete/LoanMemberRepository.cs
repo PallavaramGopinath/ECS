@@ -23,10 +23,14 @@ namespace Infin8.Coapp.Repository
             {
                 foreach (var member in loanMemberList) 
                 {
-                    maxId = await CSISContext.Loan_Members.MaxAsync(x => x.LoanMem_Id);
+                    //maxId = await CSISContext.Loan_Members.MaxAsync(x => x.LoanMem_Id);
+                    maxId = await CSISContext.Loan_Members.AnyAsync()
+                   ? await CSISContext.Loan_Members.MaxAsync(sh => sh.LoanMem_Id)
+                   : 0;
                     maxId++;
                     member.LoanMem_Id = maxId;
                     await AddAsync(member);
+                    await CSISContext.SaveChangesAsync();
                 }
                 result = true;
             }

@@ -1,0 +1,421 @@
+﻿@page "/staff-loan-disbursement"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
+@using System.Net
+
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+@inject TransactionStateService TransactionState
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <h5 class="text-danger mt-2 text-center">Staff loan disbursement</h5>
+
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <div class="row d-flex justify-content-between">
+                <div class="col-md-6">
+                    <h5>Loan Scheme Details</h5>
+                </div>
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-outline-primary" @onclick="FetchLoanSchemeDetails">
+                        <i class="bi bi-database-fill-down"></i>
+                        Get Scheme Details
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <InputSelect class="form-select shadow-none" @bind-Value="model.Scheme_Id"
+                                     @bind-Value:after="FetchLoanSchemeDetails">
+                            <option value="0">--Select Loan Scheme--</option>
+                            @foreach (var loan in loanSchemes)
+                            {
+                                <option value="@loan.Value">@loan.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <input type="text" id="insterestType" class="form-control shadow-none"
+                               Value="@interestType" Disabled />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (model != null && model.Scheme_Id > 0)
+    {
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="row d-flex justify-content-between">
+                    <div class="col-md-6">
+                        <h5>Loan Details</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-outline-primary" @onclick="FetchLoanSchemeDetails">
+                            <i class="bi bi-database-fill-down"></i>
+                            Get Loan Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="prlprd">Principal Period </label>
+                            <InputNumber id="prlprd" class="form-control shadow-none"
+                                         @bind-Value="model.Principal_Period" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="intprd">Interest Period </label>
+                            <InputNumber id="intprd" class="form-control shadow-none"
+                                         @bind-Value="model.Interest_Period" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="roi">Rate of Interest </label>
+                            <InputNumber id="roi" class="form-control shadow-none"
+                                         @bind-Value="model.Rate_Of_Interest" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="loanamt">Loan Amount </label>
+                            <InputNumber id="loanamt" class="form-control shadow-none"
+                                         @bind-Value="model.DisbursementAmount" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-primary" @onclick="CalculateInstalmentAmount">
+                            <i class="bi bi-pencil"></i>
+                            Calculate Instalment Amount
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="instAmt">Instlment Amount </label>
+                            <InputNumber id="instAmt" class="form-control shadow-none"
+                                       @bind-Value="model.InstalmentAmount" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="instDate">Instlment start date </label>
+                            <InputDate id="instDate" class="form-control shadow-none"
+                                       @bind-Value="model.InstalmentStart_Date" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buttions Close, Reset and Initiate -->
+        <div class="d-flex justify-content-between mt-4 mb-4">
+            <div>
+                <!-- Left-aligned buttons -->
+                <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                    <i class="oi oi-x"></i>
+                    Close
+                </button>
+                <button type="reset" class="btn btn-outline-secondary" @onclick="ResetForm">
+                    <i class="oi oi-action-undo"></i>
+                    Reset
+                </button>
+            </div>
+
+            <!-- Right-aligned submit button -->
+            <button type="button" class="btn btn-primary" @onclick="Initiate" disabled="@(model!.DisbursementAmount <= 0)">
+                <i class="oi oi-check"></i>
+                Initiate
+            </button>
+        </div>
+    }
+}
+
+
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal Employee_Id { get; set; }
+    [Parameter] public string? Employee_Name { get; set; }
+    [Parameter] public string? Designation { get; set; }
+    [Parameter] public DateTime Transaction_Date { get; set; }
+    [Parameter] public EventCallback<bool> OnStaffLoanDisbursementComponentClose { get; set; }
+    #endregion
+
+    #region objects
+    private DtoLoanDisbursementStaff model = new();
+    private List<DropdownItem> loanSchemes = new();
+    Loan_Schemes schemes = new();
+    #endregion
+
+    #region variables
+    private string brCode = "11001";
+    private decimal Yr_Id = 110010000023;
+    private decimal Created_By = 110010000001;
+    private bool _isLoading = true;
+    private bool _isError = false;
+    private string errorMessage = string.Empty;
+    private string interestType = string.Empty;
+    private Staging_Details stagingDetails = new();
+    #endregion
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                DateTime firstInstDate = Transaction_Date.AddMonths(1);
+                firstInstDate = new DateTime(firstInstDate.Year, firstInstDate.Month, 1);
+                model.Transaction_Date = Transaction_Date;
+                model.InstalmentStart_Date = firstInstDate ;
+                model.Employee_Id = Employee_Id;
+                model.Employee_Name = Employee_Name;
+                model.Designation = Designation;
+                model.Created_By = Created_By;
+                model.YrId = Yr_Id;
+                model.BrCode = brCode;
+                model.RepaymentSchedule = new List<Loan_Repayment_Schedule>();
+                await LoadLoanSchemes();
+                _isLoading = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+
+    private async Task LoadLoanSchemes()
+    {
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/5");
+            if (result != null && result.Any())
+            {
+                loanSchemes = result.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading loan schemes: {ex.Message}");
+            model._isError = true;
+            model.errorMessage = "Failed to load loan schemes. Please try again.";
+        }
+    }
+
+    private async Task FetchLoanSchemeDetails()
+    {
+        schemes = new();
+        try
+        {
+            if (model.Scheme_Id > 0)
+            {
+                var result = await _httpClient.GetFromJsonAsync<Loan_Schemes>($"https://localhost:7073/api/Loan/GetLoanScheme/{model.Scheme_Id}");
+                if (result != null && result.Scheme_Id > 0)
+                {
+                    schemes = result;
+                    GetInterestType(schemes.StaffLoan_Int_Type);
+                    model.Principal_Period = schemes.MaximumPrincipalPeriod;
+                    model.Interest_Period = schemes.MaximumInterestPeriod;
+                    await GetRateOfInterest();
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Scheme name not selected");
+                schemes = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            model._isError = true;
+            model.errorMessage = "Error in fetching loan scheme details";
+            Console.WriteLine(ex.Message + " Error in fetching loan scheme details");
+        }
+    }
+
+    private async Task GetRateOfInterest()
+    {
+        if (model.Scheme_Id > 0)
+        {
+            LoanROIAndPIVM? roi = new LoanROIAndPIVM();
+            string wefFormatted = ((DateTime)model.Transaction_Date!).ToString("yyyy-MM-dd");
+            string agency = "S";
+            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest/{model.Scheme_Id}/{agency}/{wefFormatted}/{model.BrCode!}");
+            model.Rate_Of_Interest = roi!.Roi;
+        }
+    }
+
+    private string GetInterestType(int intType)
+    {
+        interestType = "";
+        switch (intType)
+        {
+            case 1:
+                interestType = "Interest Type : Paid after Principal";
+                break;
+            case 2:
+                interestType = "Interest Type : Paid with Principal";
+                break;
+            case 3:
+                interestType = "Interest Type : No interest";
+                break;
+            case 4:
+                interestType = "Interest Type : Fixed Principal";
+                break;
+        }
+        return interestType;
+    }
+
+    private void CalculateInstalmentAmount()
+    {
+        string error = "";
+        if (model.DisbursementAmount == 0) error = "Disbursement amount is missing";
+        if (model.Principal_Period == 0) error += " period of loan is missing";
+        if (model.Rate_Of_Interest == 0) error += " rate of interest is missing";
+        if (schemes == null) error += " interest type not available";
+        if(error.Length >0)
+        {
+            _isError = true;
+            errorMessage = error;
+            return;
+        }
+        double instAmt = Utilities.GetLoanInstalmentAmount(model.DisbursementAmount, model.Principal_Period, model.Rate_Of_Interest, schemes!.StaffLoan_Int_Type, 1);
+        model.InstalmentAmount = instAmt;
+    }
+
+    private async Task GetLoanNo()
+    {
+        string loanNo = "";
+        try
+        {
+            if (model.Scheme_Id > 0)
+            {
+                var result = await _httpClient.GetFromJsonAsync<string>($"https://localhost:7073/api/NewAccountNo/NewLoanNo/{model.Scheme_Id}/{model.BrCode!}");
+                if (result != null)
+                {
+                    loanNo = result.ToString();
+                    model.Loan_No = loanNo;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            model._isError = true;
+            model.errorMessage = ex.Message;
+        }
+    }
+
+    private async Task Close()
+    {
+        await OnStaffLoanDisbursementComponentClose.InvokeAsync(true);
+    }
+
+    private void ResetForm()
+    {
+        model = new()
+        {
+            Employee_Id = Employee_Id,
+            Employee_Name = Employee_Name,
+            Designation = Designation
+        };
+    }
+
+    private async Task Initiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        var schName = loanSchemes.Where(x => x.Value == model.Scheme_Id.ToString()).Select(x => x.Text).FirstOrDefault();
+        if (schName != null) model.Scheme_Name = schName;
+        string JsonData = ConvertToJson(model);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = Employee_Id,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = 0,
+            Payment_Amount = model.DisbursementAmount,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = JsonData,
+            Created_By = model.Created_By,
+            Created_Date = (DateTime)model.Transaction_Date!,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = model.BrCode,
+            CashReceipt_Amount = 0,
+            AdjustmentReceipt_Amount = 0,
+            CashPayment_Amount = CashOrAdjustment == 1 ? model.DisbursementAmount : 0,
+            AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.DisbursementAmount : 0
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        // await OnPFContributionComponentClose.InvokeAsync(model);
+        await TransactionState.NotifyIntiate(true);
+    }
+
+    private string ConvertToJson(DtoLoanDisbursementStaff loan)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(loan, options);
+    }
+}

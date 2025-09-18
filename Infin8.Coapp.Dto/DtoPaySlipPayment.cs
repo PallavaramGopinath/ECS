@@ -17,5 +17,8 @@ namespace Infin8.Coapp.Dto
         public double NetPay { get; set; }
         public double PF { get; set; }
         public  double TotalCommitments { get; set; }
+        public string? BrCode { get; set; }
+        public decimal YrId { get; set; }
+        public decimal Created_By { get; set; }
     }
 }

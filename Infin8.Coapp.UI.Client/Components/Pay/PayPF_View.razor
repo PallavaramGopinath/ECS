@@ -1,0 +1,139 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@inject HttpClient _httpClient
+
+<h3>Employee Provident Fund Contribution</h3>
+<div class="card mb-3">
+    <div class="card-header">
+        <h5>Employee Details</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="text-center p-2 bg-success text-white rounded">
+                    <div class="fw-bold">@model.Employee_Name</div>
+                    <small>Employee Name</small>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-center p-2 bg-info text-white rounded">
+                    <div class="fw-bold">@model.Designation</div>
+                    <small>Designation</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (relatedAccountId == 20)
+{
+    <div class="card">
+        <div class="card-header">
+            <h5>Provident fund subscription</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class=" card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title text-primary">Contribution by the employee other than salary</h6>
+                        <div class="row g-2">
+                            <div class="col-6"><strong>Contribution towards Provident Fund:</strong></div>
+                            <div class="col-6">@model.PFReceived</div>
+                            <div class="col-6"><strong>Voluntary Provident Fund Received:</strong></div>
+                            <div class="col-6">@model.VPFReceived</div>
+                            <div class="col-6"><strong>Total Receipt:</strong></div>
+                            <div class="col-6">@model.TotalReceived</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@if(relatedAccountId == 35)
+{
+    <div class="card">
+        <div class="card-header">
+            <h5>Provident fund subscription</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class=" card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title text-primary">Provident Fund Balance</h6>
+                        <div class="row g-2">
+                            <div class="col-3"><strong>Provident Fund Balance:</strong></div>
+                            <div class="col-3">@model.PFBalance</div>
+                            <div class="col-3"><strong>Provident Fund Withdrawn:</strong></div>
+                            <div class="col-3">@model.PFWithdrawn</div>
+
+                            <div class="col-3"><strong>Voluntary Provident Fund Balance:</strong></div>
+                            <div class="col-3">@model.VPFBalance</div>
+                            <div class="col-3"><strong>Voluntary Provident Withdrawn:</strong></div>
+                            <div class="col-3">@model.VPFWithdrawn</div>
+
+                            <div class="col-3"><strong>Employer's Provident Fund Balance:</strong></div>
+                            <div class="col-3">@model.EmployersPFBalance</div>
+                            <div class="col-3"><strong>Employer's Provident Withdrawn:</strong></div>
+                            <div class="col-3">@model.EmployersPFWithdrawn</div>
+
+                            <div class="col-3"><strong>Interest on Provident Fund Balance:</strong></div>
+                            <div class="col-3">@model.InterestOnPF</div>
+                            <div class="col-3"><strong>Interest on Provident Withdrawn:</strong></div>
+                            <div class="col-3">@model.InterestOnPFWithdrawn</div>
+
+                            <div class="col-3"><strong>Interest on Employer's Provident Fund Balance:</strong></div>
+                            <div class="col-3">@model.InterestOnEmployersPF</div>
+                            <div class="col-3"><strong>Interest on Employer's Provident Withdrawn:</strong></div>
+                            <div class="col-3">@model.InterestOnEmployersPFWithdrawn</div>
+
+                            <div class="col-6"><strong>Total Withdrawn:</strong></div>
+                            <div class="col-6">@model.TotalWidhdrawn</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+    private Staging_Details details = new Staging_Details();
+    private DtoPayPFData model = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null)
+                {
+                    model = ConvertFromJson(details.Related_Account_Data!);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+
+    public static DtoPayPFData ConvertFromJson(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+        };
+
+        return JsonSerializer.Deserialize<DtoPayPFData>(jsonData, options)!;
+    }
+
+
+}

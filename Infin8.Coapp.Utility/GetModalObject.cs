@@ -724,7 +724,7 @@ namespace Infin8.Coapp.Utility
             return mem;
         }
 
-        public static Loan_Repayment_Schedule GetLoanRepaymentSchedule(decimal DemId, decimal LoanId, string Status, DateTime DueDate, double PrlDem, double IntDem, double NonODAmt,decimal usrId, decimal yrId, string brCode)
+        public static Loan_Repayment_Schedule GetLoanRepaymentSchedule(decimal DemId, decimal LoanId, string Status, DateTime DueDate, double PrlDem, double IntDem, double NonODAmt,decimal usrId, decimal yrId,decimal vocId, string brCode)
         {
             Loan_Repayment_Schedule repayment = new Loan_Repayment_Schedule();
             try
@@ -737,10 +737,11 @@ namespace Infin8.Coapp.Utility
                 repayment.Interest_Demand = IntDem;
                 repayment.Non_OD_Amt = NonODAmt;
                 repayment.IsDemandRaised = false;
-                repayment.Voc_Id = 0;
+                repayment.Voc_Id = vocId;
                 repayment.Usr_Id = usrId;
                 repayment.Yr_Id = yrId;
                 repayment.BrCode = brCode;
+                repayment.Voc_Status = "V";
             }
             catch (Exception)
             {
@@ -1072,12 +1073,87 @@ namespace Infin8.Coapp.Utility
                 pf.Last_Int_ApplicationDate = Last_Int_ApplicationDate;
                 pf.Pf_Type = 0;
                 pf.BrCode = brCode;
+                pf.Voc_Status = "V";
+                
             }
             catch (Exception ex)
             {
                 pf = new();
             }
             return pf;
+        }
+        #endregion
+
+        #region Pay
+        public static Pay_Init GetPayIntObject(decimal Pay_Id, int Pay_Month, int Pay_Year, bool Pay_Delete, decimal usr_Id, decimal yr_id, string pay_des, DateTime? from_date, DateTime? to_date, decimal DA_Id,string brCode)
+        {
+            Pay_Init payInt = new();
+            try
+            {
+                payInt.Pay_Id = 0;
+                payInt.Pay_Month = Pay_Month;
+                payInt.Pay_Year = Pay_Year;
+                payInt.Pay_Delete = false;
+                payInt.Usr_Id = usr_Id;
+                payInt.Yr_Id = yr_id;
+                payInt.Pay_Des = pay_des;
+                payInt.From_Date = from_date; ;
+                payInt.To_Date = to_date;
+                payInt.DA_Id = DA_Id;
+                payInt.BrCode = brCode;
+            }
+            catch (Exception ex)
+            {
+                payInt = new();
+                Console.WriteLine(ex.Message);
+            }
+            return payInt;
+        }
+
+        public static Pay_Slip GetPaySlipObject(decimal PaySlip_Id, decimal Pay_Id, decimal Emp_Id, double Pay_Basic, double Pay_Basic_Earned, double Pay_PP,
+             double Pay_PP_Earned, double Pay_GradePay, double Pay_GradePay_Earned, double Pay_DA_Percent, double Pay_DA_Earned, double Pay_SLS,
+             double Pay_ExGratia, double Pay_Bonus, double Pay_PF, double Pay_VPF, double Pay_Tot_Allowance, double Pay_Tot_Deductions, double Pay_Net,
+             decimal usr_Id, decimal Yr_Id, bool pmt, DateTime? pmt_date, decimal voc_Id, bool Pay_Delete, int Pay_SLS_Days,string brCode)
+        {
+            Pay_Slip paySlip = new();
+            try
+            {
+
+                paySlip.PaySlip_Id = 0;
+                paySlip.Pay_Id = Pay_Id;
+                paySlip.Mem_Id = Emp_Id;
+                paySlip.Pay_Basic = Pay_Basic;
+                paySlip.Pay_Basic_Earned = Pay_Basic_Earned;
+                paySlip.Pay_PP = Pay_PP;
+                paySlip.Pay_PP_Earned = Pay_PP_Earned;
+                paySlip.Pay_GradePay = Pay_GradePay;
+                paySlip.Pay_GradePay_Earned = Pay_GradePay_Earned;
+                paySlip.Pay_DA_Percent = Pay_DA_Percent;
+                paySlip.Pay_DA_Earned = Pay_DA_Earned;
+                paySlip.Pay_SLS = Pay_SLS;
+                paySlip.Pay_ExGratia = Pay_ExGratia;
+                paySlip.Pay_Bonus = Pay_Bonus;
+                paySlip.Pay_PF = Pay_PF;
+                paySlip.Pay_VPF = Pay_VPF;
+                paySlip.Pay_Tot_Allowance = Pay_Tot_Allowance;
+                paySlip.Pay_Tot_Deductions = Pay_Tot_Deductions;
+                paySlip.Pay_Net = Pay_Net;
+                paySlip.Usr_Id = usr_Id;
+                paySlip.Yr_Id = Yr_Id;
+                paySlip.Pmt = pmt;
+                paySlip.Pmt_Date = pmt_date;
+                paySlip.Voc_Id = 0;
+                paySlip.Pay_Delete = false;
+                paySlip.Pay_SLS_Days = Pay_SLS_Days;
+                paySlip.BrCode = brCode;
+                paySlip.Voc_Status = "V";
+            }
+            catch (Exception ex)
+            {
+                paySlip = new();
+                Console.Write(ex.Message);
+            }
+            return paySlip;
         }
         #endregion 
     }

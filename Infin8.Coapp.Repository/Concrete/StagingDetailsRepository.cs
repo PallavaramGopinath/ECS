@@ -15,7 +15,7 @@ namespace Infin8.Coapp.Repository
     {
         public CSISContext CSISContext => (CSISContext)Context;
         private static readonly string[] sourceArray = new[] { "A", "R" };
-
+        private static readonly string[] sourceArrayInitiatedOrMacked = new[] { "I", "M" };
         public StagingDetailsRepository(DbContext context) : base(context)
         {
         }
@@ -501,7 +501,7 @@ namespace Infin8.Coapp.Repository
         public async Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId)
         {
             int resultCount = 0;
-            //string[] sourceArray = new[] { "A", "R" };
+            //string[] sourceArrayInitiatedOrMacked = new[] { "I", "M" };
             DateTime.TryParse(transactedDate, out DateTime transactedDateparsed);
             try
             {
@@ -511,7 +511,8 @@ namespace Infin8.Coapp.Repository
                              where master.Created_Date == transactedDateparsed
                                    && details.Member_Id == memId
                                    && details.Related_Account_Id == relatedAccountId
-                                   && !sourceArray.Contains(details.Staging_Status)
+                                   && sourceArrayInitiatedOrMacked.Contains(details.Staging_Status)
+                                   && sourceArrayInitiatedOrMacked.Contains(master.Staging_Status)
                              select details).CountAsync();
                 if(count > 0)
                 {
@@ -586,7 +587,7 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<bool> VerifyForFixedDepositLoanRecovery(int accountId, decimal memId)
+        public async Task<bool> VerifyForFixedDepositLoanRecovery(int accountId, decimal memId, DateTime createdDate)
         {
             /// account id = 8 fd refund
             /// account id = 9 fd renewal
@@ -611,11 +612,19 @@ namespace Infin8.Coapp.Repository
                         accountIds.Add(9);
                         break;
                 }
-                var count = await CSISContext.Staging_Details
-                         .CountAsync(d=> d.Member_Id == memId &&
-                                    accountIds.Contains(d.Related_Account_Id) &&
-                                     new[] { "I", "M" }.Contains(d.Staging_Status));
-                if(count > 0)  result = true; else result = false;
+                //var count = await CSISContext.Staging_Details
+                //         .CountAsync(d=> d.Member_Id == memId &&
+                //                    accountIds.Contains(d.Related_Account_Id) &&
+                //                     new[] { "I", "M" }.Contains(d.Staging_Status));
+                var count = await (from details in CSISContext.Staging_Details
+                             join master in CSISContext.Staging_Master on details.Staging_Id equals master.Staging_Id
+                             where accountIds.Contains(details.Related_Account_Id)
+                             && new[] { "I", "M" }.Contains(details.Staging_Status)
+                             && details.Member_Id == memId
+                             && master.Created_Date == createdDate
+                             select details).CountAsync();
+                         
+                if (count > 0)  result = true; else result = false;
             }
             catch (Exception)
             {

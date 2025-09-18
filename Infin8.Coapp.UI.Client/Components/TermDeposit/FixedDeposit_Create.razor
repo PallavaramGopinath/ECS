@@ -436,6 +436,7 @@
     #endregion
 
     /// <summary>
+    /// new fd member no 1100120006915
     ///  member no 1100120006915
     ///  for renewal mem no = 1100110009991
     ///  for renewal fd no 1001030008257
@@ -801,8 +802,24 @@
             _fixedDepositModel.IsCompoundInterest = true;
         else _fixedDepositModel.IsCompoundInterest = false;
 
+        /// cash items
+        double cashReceipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
         if (!IsRenewal)
         {
+            if(CashOrAdjustment == 1)
+            {
+                cashReceipt = _fixedDepositModel.Deposit_Amount;
+                cashPayment = 0;
+                adjReceipt =0;
+                adjPayment = 0;
+            }
+            else
+            {
+                cashReceipt = 0;
+                cashPayment = 0;
+                adjReceipt = _fixedDepositModel.Deposit_Amount;
+                adjPayment = 0;
+            }
             // accountName = "Fixed Deposit New Account";
             string newFDJsonData = ConvertNewFDToJson(_fixedDepositModel);
             stagingDetails = new()
@@ -822,7 +839,11 @@
                 Checked_By = 0,
                 Checked_Date = null,
                 Staging_Status = "I",
-                BrCode = "11001"
+                BrCode = "11001",
+                CashReceipt_Amount = cashReceipt  ,
+                CashPayment_Amount = cashPayment ,
+                AdjustmentReceipt_Amount = adjReceipt ,
+                AdjustmentPayment_Amount = adjPayment 
             };
             var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
             await TransactionState.NotifyIntiate(true);
@@ -845,6 +866,23 @@
             _fixedDepositRenewal.FixedDepositCreate = new();
             _fixedDepositRenewal.FixedDepositPayment = FixedDepositPayment;
             _fixedDepositRenewal.FixedDepositCreate = _fixedDepositModel;
+
+            if(CashOrAdjustment == 1)
+            {
+                cashReceipt = _fixedDepositRenewal.FixedDepositCreate.Deposit_Amount
+                 - (FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable);
+                cashPayment = 0;
+                adjReceipt = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable;
+                adjPayment = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable;
+            }
+            else
+            {
+                cashReceipt = 0;
+                cashPayment = 0;
+                adjReceipt = _fixedDepositRenewal.FixedDepositCreate.Deposit_Amount;
+                adjPayment = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable;
+            }
+
             // accountName = "Fixed Deposit Renewal";
             string renewalFDJsonData = ConvertRenewalFDToJson(_fixedDepositRenewal);
             stagingDetails = new()
@@ -864,7 +902,11 @@
                 Checked_By = 0,
                 Checked_Date = null,
                 Staging_Status = "I",
-                BrCode = "11001"
+                BrCode = "11001",
+                CashReceipt_Amount = cashReceipt ,
+                CashPayment_Amount = cashPayment ,
+                AdjustmentReceipt_Amount = adjReceipt ,
+                AdjustmentPayment_Amount = adjPayment 
             };
             var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
             // await OnFDRenewalInitiate.InvokeAsync(_fixedDepositRenewal);

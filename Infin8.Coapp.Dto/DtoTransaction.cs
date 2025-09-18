@@ -23,5 +23,11 @@ namespace Infin8.Coapp.Dto
         public int Related_Account_Id { get; set; }
         public string? Related_Account_Data { get; set; }
         public string? BrCode { get; set; }
+        public double CashReceipt_Amount { get; set; }
+        public double CashPayment_Amount { get; set; }
+        public double AdjustmentReceipt_Amount { get; set; }
+        public double AdjustmentPayment_Amount { get; set; }
+        public string? Type { get; set; }
+        public int Security_Type { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -50,6 +51,20 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Initialisation of payroll not modified");
             }
             return result;
+        }
+
+        public async Task<decimal> GetPaySlipForDAArrears(DateTime fromDate, DateTime toDate, string description, string brCode)
+        {
+            decimal payId = 0;
+            try
+            {
+                payId = await (CSISContext.Pay_Init.Where(x => x.From_Date == fromDate && x.To_Date == toDate && x.Pay_Des == description && x.BrCode == brCode  && x.Pay_Delete == false)).Select(x=> x.Pay_Id).FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return payId;
         }
     }
 }

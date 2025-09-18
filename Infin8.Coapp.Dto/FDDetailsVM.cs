@@ -5,12 +5,15 @@
         public decimal FDId { get; set; }
         public string? TDScheme_Name { get; set; }
         public string? FDNo { get; set; }
+        public string? TDH_Name { get; set; }
+        public int TDH_Age { get; set; }
         public int FDSchemeId { get; set; }
         public DateTime FDValueDate { get; set; }
         public double FDAmount { get; set; }
         public int FDPrdInMonths { get; set; }
         public int FDPrdInDays { get; set; }
         public int FDIntPayableFrequency { get; set; }
+        public string? FDIntPayableFrequencyString { get; set; }
         public int FDCompoundFrequency { get; set; }
         public double FDROI { get; set; }
         public bool FDIsDiscountRate { get; set; }

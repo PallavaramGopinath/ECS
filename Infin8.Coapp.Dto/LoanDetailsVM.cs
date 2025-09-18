@@ -2,6 +2,7 @@
 {
     public class LoanDetailsVM
     {
+        public decimal memid { get; set; }
         public decimal loanid { get; set; }
         public int schemeid { get; set; }
         public string? loanno { get; set; }

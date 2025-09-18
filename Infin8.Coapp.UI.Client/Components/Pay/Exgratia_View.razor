@@ -1,0 +1,92 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@inject HttpClient _httpClient
+
+@* <h3>Ex-gratia / Bonus Payment</h3> *@
+
+@if (model.Component_List != null && model.Component_List.Any())
+{
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <i class="oi oi-file"></i>
+            @if (relatedAccountId == 33)
+            {
+                <strong>Ex-gratia Payment</strong>
+            }
+            @if (relatedAccountId == 34)
+            {
+                <strong>Bonus Payment</strong>
+            }
+        </div>
+        <div class="card-body">
+            <h6 class="card-title text-primary">payment details</h6>
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>Designation</th>
+                        <th>Payment Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var exgratia in model.Component_List!)
+                    {
+                        <tr>
+                            <td> @exgratia.Employee_Name</td>
+                            <td>@exgratia.Designation</td>
+                            <td>@exgratia.PaymentAmount</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-info">
+                        <th colspan="2">Total Amount Paid</th>
+                        <th>
+                            @model.TotalPayment_Amount
+                        </th>
+                    </tr>
+
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+    private Staging_Details details = new Staging_Details();
+    private DtoPayExgratiaBonus model = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null)
+                {
+                    model = ConvertFromJson(details.Related_Account_Data!);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+
+    public static DtoPayExgratiaBonus ConvertFromJson(string jsonData)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+        };
+
+        return JsonSerializer.Deserialize<DtoPayExgratiaBonus>(jsonData, options)!;
+    }
+}

@@ -1,5 +1,7 @@
 ﻿@using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
+@using System.Text.Json
+
 @inject HttpClient _httpClient
 
 @if (paymentModel != null)
@@ -155,4 +157,6 @@ else
             details = new Staging_Details();
         }
     }
+
+    
 }

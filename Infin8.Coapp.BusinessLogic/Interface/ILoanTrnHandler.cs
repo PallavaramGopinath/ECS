@@ -24,7 +24,13 @@ namespace Infin8.Coapp.BusinessLogic
        
         Task<List<LoanDetailsVM>> GetLoanDetailsList2ByLoanIdsAsync(decimal[] loanIds);
         Task<(double appraisalFee, double bankCharges, double serviceCharges)> GetJewelLoanAppraisalFees(double loanAmount);
+
+        #region staff loan
         Task<List<PayLoanBalanceVM>> GetPayLoanBalance(decimal empId, int loanType, DateTime toDate, string brCode);
+
+        Task<List<PayLoanBalanceVM>> GetPayLoanBalance(decimal[] loanIdList, DateTime toDate, string brCode);
+        Task<DtoLoanDisbursementStaff> GetStaffLoanDisbursement(decimal vocId, string brCode);
+        #endregion
 
         #region td loan
         Task<List<LoanDetailsVM>> GetTDLoanDetailsByTDIdsAsync(decimal[] TDNos, DateTime toDate);

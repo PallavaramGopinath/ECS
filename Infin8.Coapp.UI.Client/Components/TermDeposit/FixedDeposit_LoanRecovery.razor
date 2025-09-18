@@ -470,6 +470,21 @@
         }
 
         string fdLoanRecoveryJsonData = ConvertToJson(fdRecovery);
+        double cashReceipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
+        if(CashOrAdjustment ==1)
+        {
+            cashReceipt = fdRecovery.Total_Collection;
+            cashPayment = 0;
+            adjReceipt = 0;
+            adjPayment = 0;
+        }
+        else
+        {
+            cashReceipt = 0;
+            cashPayment = 0;
+            adjReceipt = fdRecovery.Total_Collection;
+            adjPayment = 0;
+        }
         stagingDetails = new()
         {
             Id = 0,
@@ -487,7 +502,11 @@
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001"
+            BrCode = "11001",
+            CashReceipt_Amount = cashReceipt ,
+            CashPayment_Amount = cashPayment ,
+            AdjustmentReceipt_Amount = adjReceipt ,
+            AdjustmentPayment_Amount = adjPayment 
         };
         
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);

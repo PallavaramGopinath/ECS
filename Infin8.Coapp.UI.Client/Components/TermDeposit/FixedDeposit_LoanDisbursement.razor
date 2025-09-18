@@ -584,6 +584,21 @@
             Console.WriteLine($"Error fetching account name: {ex.Message}");
         }
         string fdLoanJsonData = ConvertNewFDToJson(loanModel);
+        double cashReceipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
+        if(CashOrAdjustment == 1)
+        {
+            cashReceipt = 0;
+            cashPayment = loanModel.Loan_Amount;
+            adjReceipt = 0;
+            adjPayment = 0;
+        }
+        else
+        {
+            cashReceipt = 0;
+            cashPayment = 0;
+            adjReceipt = 0;
+            adjPayment = loanModel.Loan_Amount;
+        }
         stagingDetails = new()
         {
             Id = 0,
@@ -601,7 +616,11 @@
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001"
+            BrCode = "11001",
+            CashReceipt_Amount = cashReceipt ,
+            CashPayment_Amount = cashPayment ,
+            AdjustmentReceipt_Amount = adjReceipt ,
+            AdjustmentPayment_Amount = adjPayment 
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);

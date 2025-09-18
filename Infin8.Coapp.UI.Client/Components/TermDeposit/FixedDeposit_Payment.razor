@@ -82,7 +82,7 @@
                 {
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="@($"fd{fd.TD_Id}")"
-                        @onchange="e => ToggleLoanSelection(fd, (bool)e.Value)" disabled="@isRenewal" />
+                               @onchange="e => ToggleLoanSelection(fd, (bool)e.Value)" disabled="@isRenewal" />
                         <label class="form-check-label" for="@($"fd_{fd.TD_Id}")">
                             @fd.TD_No
                         </label>
@@ -108,7 +108,6 @@
                 <table class="table table-bordered table-striped">
                     <thead class="table-dark">
                         <tr>
-                            <th>FD Id</th>
                             <th>FD Number</th>
                             <th>Interest Already Calculated</th>
                             <th>Interest Already Paid</th>
@@ -119,30 +118,37 @@
                             <th>Deposit Refund</th>
                             <th>Total Payable</th>
                             <th>Rate of Interest</th>
-                            <th>Rate of Interest Applied Now</th>
+                            <th>Rate of Interest Applied</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var fdData in paymentModel.Fixed_Deposit_Datas)
                         {
                             <tr>
-                                <td disabled="@isRenewal">@fdData.FD_Id</td>
                                 <td disabled="@isRenewal">@fdData.FD_No</td>
                                 <td disabled="@isRenewal">@fdData.Previous_Interest_Calculated.ToString("C")</td>
                                 <td disabled="@isRenewal">@fdData.Previous_Interest_Paid.ToString("C")</td>
                                 <td disabled="@isRenewal">@fdData.Pending_Interest.ToString("C")</td>
                                 <td disabled="@isRenewal">@fdData.Current_Interest_Calculated.ToString("C")</td>
                                 <td disabled="@isRenewal">@fdData.Total_Interest_Payable.ToString("C")</td>
-                                <td disabled="@isRenewal">@fdData.Current_Interest_Applied_Date</td>
+                                <td disabled="@isRenewal">@fdData.Current_Interest_Applied_Date </td>
                                 <td disabled="@isRenewal">@fdData.Deposit_Refund.ToString("C")</td>
                                 <td disabled="@isRenewal">@fdData.Total_Payable.ToString("C") </td>
                                 <td disabled="@isRenewal">@fdData.Rate_Of_Interest %</td>
                                 <td disabled="@isRenewal">@fdData.Rate_Of_Interest_Applied %</td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" @onclick="() => viewFDNo(fdData.FD_Id)">
+                                            <i class="oi oi-eye"></i> View
+                                        </button>
+                                    </div>
+                                </td>
 
                             </tr>
                         }
                         <tr class="table-info">
-                            <td colspan="2" class="text-end fw-bold">Total:</td>
+                            <td colspan="1" class="text-end fw-bold">Total:</td>
                             <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Previous_Interest_Calculated).ToString("C")</td>
                             <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Previous_Interest_Paid).ToString("C")</td>
                             <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Pending_Interest).ToString("C")</td>
@@ -151,7 +157,7 @@
                             <td></td>
                             <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Deposit_Refund).ToString("C")</td>
                             <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Payable).ToString("C") </td>
-                            <td colspan="2"></td>
+                            <td colspan="3"></td>
                         </tr>
                     </tbody>
                 </table>
@@ -332,19 +338,18 @@
 
     @if (isRenewal)
     {
-        <FixedDeposit_Create 
-        AccountId="@AccountId"
-        CashOrAdjustment="@CashOrAdjustment"
-        MemberId="@MemberId"
-        MemberNumber="@MemberNumber"
-        MemberName="@MemberName"
-        Age="@Age"
-        DOB="@DOB"
-        NewFDAmount="@paymentModel.Net_Payable"
-        ValueDate="@paymentModel.Fixed_Deposit_Datas!.Max(x => x.Maturity_Date)"
-        IsRenewal="true"
-        TransactionDate="@paymentModel.Transaction_Date"
-        FixedDepositPayment="@paymentModel">
+        <FixedDeposit_Create AccountId="@AccountId"
+                             CashOrAdjustment="@CashOrAdjustment"
+                             MemberId="@MemberId"
+                             MemberNumber="@MemberNumber"
+                             MemberName="@MemberName"
+                             Age="@Age"
+                             DOB="@DOB"
+                             NewFDAmount="@paymentModel.Net_Payable"
+                             ValueDate="@paymentModel.Fixed_Deposit_Datas!.Max(x => x.Maturity_Date)"
+                             IsRenewal="true"
+                             TransactionDate="@paymentModel.Transaction_Date"
+                             FixedDepositPayment="@paymentModel">
         </FixedDeposit_Create>
     }
 
@@ -357,6 +362,122 @@
     }
 </EditForm>
 
+@if (selectedFD != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="oi oi-file"></i>
+                        Fixed Deposit Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary"> Fixed Deposit Information </h6>
+                                    <div class="row g-2">
+                                        <div class="col-6"><strong>Fixed Deposit No</strong></div>
+                                        <div class="col-6"> @selectedFD.TDScheme_Name</div>
+                                        <div class="col-6"><strong>Bond Holder Name</strong></div>
+                                        <div class="col-6"> @selectedFD.TDH_Name</div>
+                                        <div class="col-6"><strong>Age</strong></div>
+                                        <div class="col-6"> @selectedFD.TDH_Age</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary"> Period and Rate of Interest</h6>
+                                    <div class="row g-2">
+                                        <div class="col-6"><strong>Period in Months</strong></div>
+                                        <div class="col-6"> @selectedFD.FDPrdInMonths (Months)</div>
+                                        <div class="col-6"><strong>Period in Days</strong></div>
+                                        <div class="col-6"> @selectedFD.FDPrdInDays </div>
+                                        <div class="col-6"><strong>Rate of Interest</strong></div>
+                                        <div class="col-6"> @selectedFD.FDROI</div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0 text-info">
+                                <i class="oi oi-calendar"></i>
+                                Details
+                            </h6>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-success text-white rounded">
+                                            <div class="fw-bold">@selectedFD.FDValueDate.ToString("dd-MM-yyyy")</div>
+                                            <small>Value Date</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-info text-white rounded">
+                                            <div class="fw-bold">@selectedFD.FDAmount</div>
+                                            <small>Deposit Amount</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-warning text-white rounded">
+                                            <div class="fw-bold">@selectedFD.FDMaturityDate.ToString("dd-MM-yyyy")</div>
+                                            <small>Maturity Date</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-danger text-white rounded">
+                                            <div class="fw-bold">@selectedFD.FDMaturityAmount</div>
+                                            <small>Maturity Amount</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-primary text-white rounded">
+                                            <div class="fw-bold">@selectedFD.FDIntPayableFrequencyString</div>
+                                            <small>Payable Frequency</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center p-2 bg-secondary text-white rounded">
+                                            <div class="fw-bold">@selectedFD.FDIntPayable</div>
+                                            <small>Interest Payable</small>
+                                        </div>
+                                    </div>
+                                    @if (selectedFD.FDIntCalculatedDateNow != null)
+                                    {
+                                        <div class="col-md-2">
+                                            <div class="text-center p-2 bg-success text-white rounded">
+                                                <div class="fw-bold">@((DateTime)selectedFD.FDIntCalculatedDateNow).ToString("dd-MM-yyyy")</div>
+                                                <small>Interest Calculated Date</small>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">
+                        <i class="bi bi-eye-slash"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+
 @code {
     #region parameters
     [Parameter] public int AccountId { get; set; }
@@ -365,7 +486,7 @@
     [Parameter] public string? MemberNumber { get; set; }
     [Parameter] public string? MemberName { get; set; }
     [Parameter] public int Age { get; set; }
-    [Parameter] public DateTime? DOB {get;set;}
+    [Parameter] public DateTime? DOB { get; set; }
     [Parameter] public DateTime TransactionDate { get; set; }
     [Parameter] public string? RequestType { get; set; }
 
@@ -384,12 +505,14 @@
     private DtoTermDepositFixedDepositPayment paymentModel = new DtoTermDepositFixedDepositPayment();
     private List<DtoTermDepositNo> selectedFDs = new List<DtoTermDepositNo>();
     // private Dictionary<decimal, bool> selectedFDs = new Dictionary<decimal, bool>();
+    private FDDetailsVM selectedFD = null;
     private string? processingMessage;
     private bool isError = false;
     private bool isRenewal = false;
     private bool isValidForProceedToRenewal = false;
     private bool isFixedDepositLoaded = false;
     private bool isDisableFixedDepositNoButton = true;
+    private string brCode = "11001";
 
     private Staging_Details stagingDetails = new();
     #endregion
@@ -399,6 +522,9 @@
     // paymentModel.Member_Name = "Saroja.K";
     ///  for renewal mem no = 1100110009991
     ///  for renewal fd no 1001030008257
+    ///
+    /// Interest payment mem no = 1100110009991
+    /// interest payment if no = 11001030011682
     protected override void OnInitialized()
     {
         isRenewal = false;
@@ -461,12 +587,12 @@
             List<DtoTermDepositNo> fdNosList = new List<DtoTermDepositNo>();
             List<DropdownItem> fdNos = new List<DropdownItem>();
             paymentModel.FixedDeposit_Nos!.Clear();
-            if(RequestType == "I" || RequestType =="P") /// for interest payment or refund
+            if (RequestType == "I" || RequestType == "P") /// for interest payment or refund
             {
                 var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosByMemId/{paymentModel.Mem_Id}/F/11001");
                 if (fdNosTmp != null) fdNos = fdNosTmp.ToList();
             }
-            else 
+            else
             {
                 string formatedDate = TransactionDate.ToString("yyyy-MM-dd");
                 var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosForRenewal/{paymentModel.Mem_Id}/F/{formatedDate}/11001");
@@ -624,7 +750,7 @@
             paymentModel.Loan_On_FixedDeposits = loanList;
             if (paymentModel.PaymentStatus == "P" || paymentModel.PaymentStatus == "R")
             {
-                paymentModel.Total_Loan_Interest_Receipt = loanList.Sum(x => x.Interest_Balance );
+                paymentModel.Total_Loan_Interest_Receipt = loanList.Sum(x => x.Interest_Balance);
                 paymentModel.Total_Loan_Principal_Receipt = loanList.Sum(x => x.Principal_Balance);
             }
             // Calculate Net Payable
@@ -647,7 +773,7 @@
         catch (Exception)
         {
             // isDisableFixedDepositNoButton = false;
-            if (paymentModel.PaymentStatus == "R") 
+            if (paymentModel.PaymentStatus == "R")
             {
                 isValidForProceedToRenewal = false;
                 isRenewal = false;
@@ -662,6 +788,43 @@
         StateHasChanged();
     }
 
+    private async Task viewFDNo(decimal fdId)
+    {
+        try
+        {
+            selectedFD = new();
+            var response = await _httpClient.GetFromJsonAsync<FDDetailsVM>($"https://localhost:7073/api/TermDeposit/GetFDData/{fdId}/{brCode}");
+            if (response != null && response.FDId > 0) selectedFD = response;
+
+            switch(selectedFD.FDIntPayableFrequency )
+            {
+                case 13:
+                    selectedFD.FDIntPayableFrequencyString = "On Maturity";
+                    break;
+                case 1:
+                    selectedFD.FDIntPayableFrequencyString = "Monthly";
+                    break;
+                case 3:
+                    selectedFD.FDIntPayableFrequencyString = "Quarterly";
+                    break;
+                case 6:
+                    selectedFD.FDIntPayableFrequencyString = "Half Yearly";
+                    break;
+                case 12:
+                    selectedFD.FDIntPayableFrequencyString = "Annual";
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void CloseModal()
+    {
+        selectedFD = null;
+    }
     // private void HandleSubmit()
     // {
     //     // Submit payment logic (e.g., API call to save paymentModel)
@@ -708,12 +871,30 @@
             // Handle exception
             Console.WriteLine($"Error fetching account name: {ex.Message}");
         }
-        double receiptAmount = 0;   
-        if(paymentModel.Total_Interest_Payable < 0)
-            receiptAmount = Math.Abs(paymentModel.Total_Interest_Payable);  
+        double receiptAmount = 0;
+        if (paymentModel.Total_Interest_Payable < 0)
+            receiptAmount = Math.Abs(paymentModel.Total_Interest_Payable);
         receiptAmount += paymentModel.Total_Loan_Interest_Receipt + paymentModel.Total_Loan_Principal_Receipt;
-        
+
         string fdPaymentJsonData = ConvertToJson(paymentModel);
+        double cashReceipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
+        if (CashOrAdjustment == 1)
+        {
+            if (paymentModel.Total_Interest_Payable < 0)
+                adjReceipt = Math.Abs(paymentModel.Total_Interest_Payable);
+            adjReceipt += paymentModel.Total_Loan_Interest_Receipt + paymentModel.Total_Loan_Principal_Receipt;
+
+            cashReceipt = 0;
+            cashPayment = paymentModel.Total_Deposit_Payable - adjReceipt;
+            adjPayment = adjReceipt;
+        }
+        else
+        {
+            if (paymentModel.Total_Interest_Payable < 0)
+                adjReceipt = Math.Abs(paymentModel.Total_Interest_Payable);
+            adjReceipt += paymentModel.Total_Loan_Interest_Receipt + paymentModel.Total_Loan_Principal_Receipt;
+            adjPayment = paymentModel.Total_Deposit_Payable + paymentModel.Total_Interest_Payable;
+        }
         stagingDetails = new()
         {
             Id = 0,
@@ -731,7 +912,11 @@
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001"
+            BrCode = "11001",
+            CashReceipt_Amount = cashReceipt,
+            CashPayment_Amount = cashPayment,
+            AdjustmentReceipt_Amount = adjReceipt,
+            AdjustmentPayment_Amount = adjPayment
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
@@ -756,5 +941,48 @@
         return JsonSerializer.Serialize(fdPayment, options);
     }
 
-    
+
 }
+
+<style>
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .card {
+        border: none;
+        border-radius: 8px;
+    }
+
+    .shadow-sm {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+
+    .btn {
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .badge {
+        font-weight: 500;
+    }
+
+    .form-control, .form-select {
+        border-radius: 6px;
+    }
+
+    .modal-content {
+        border-radius: 12px;
+        border: none;
+    }
+
+    .table-responsive {
+        border-radius: 6px;
+    }
+
+    .bg-opacity-10 {
+        --bs-bg-opacity: 0.1;
+    }
+</style>

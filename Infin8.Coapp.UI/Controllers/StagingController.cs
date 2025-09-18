@@ -75,13 +75,24 @@ namespace Infin8.Coapp.UI.Controllers
             //    return Ok(checkerDashboardList);
             //}
             //else return NotFound();
+            List<DtoCheckerDashboard> checkerDashboardList = new();
             if (!DateTime.TryParse(createdDate, out var transactionDate))
             {
                 return BadRequest("Invalid date format");
             }
 
             var query = await _stagingDetailsHandler.GetCheckerDashboard(transactionDate, stagingStatus, brCode);
-            return query?.Count > 0 ? Ok(query) : NotFound();
+            //return query?.Count > 0 ? Ok(query) : NotFound();
+            if (query != null && query.Any())
+            {
+                checkerDashboardList = query.ToList();
+                return Ok(checkerDashboardList);
+            }
+            else
+            {
+                return NotFound();
+            }
+            
         }
 
         [HttpGet]
@@ -142,10 +153,11 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
-        [Route("VerifyForFixedDepositLoanRecovery/{accountId:int}/{memId:decimal}")]
-        public async Task<ActionResult<bool>> VerifyForFixedDepositLoanRecovery(int accountId, decimal memId)
+        [Route("VerifyForFixedDepositLoanRecovery/{accountId:int}/{memId:decimal}/{createdDate}")]
+        public async Task<ActionResult<bool>> VerifyForFixedDepositLoanRecovery(int accountId, decimal memId, string createdDate)
         {
-            var result = await _stagingDetailsHandler.VerifyForFixedDepositLoanRecovery(accountId, memId);
+            DateTime.TryParse(createdDate, out DateTime trnDate);
+            var result = await _stagingDetailsHandler.VerifyForFixedDepositLoanRecovery(accountId, memId,trnDate );
             return Ok(result);
         }
 
@@ -172,7 +184,7 @@ namespace Infin8.Coapp.UI.Controllers
             {
                 case "Member Transaction":
                 case "Staff Transaction":
-                    var response = await _transactionsHandler.SaveTransaction(stagingId, "MTRN", 110010000002, 110010000023);
+                    var response = await _transactionsHandler.SaveTransaction(stagingId, stagingMaster.Type!.Trim() == "Member Transaction" ? "MTRN" : "STRN", 110010000002, 110010000023);
                     if (response) result = true; else result = false;
                         break;
                 case "Account Transaction":

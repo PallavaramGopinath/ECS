@@ -14,6 +14,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> AddLoanROIAsync(Loan_Roi_Template roiTemplate);
         Task<bool> EditLoanROIAsync(Loan_Roi_Template roiTemplate);
         Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef);
-
+        Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef, string brCode);
     }
 }

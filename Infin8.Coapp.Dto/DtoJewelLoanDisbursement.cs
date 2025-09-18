@@ -26,11 +26,15 @@ namespace Infin8.Coapp.Dto
         public double Rate_Of_Interest { get; set; }
         public double Penal_Rate { get; set; }
         public double Loan_Amount { get; set; }
+        public double Instalment_Amount { get; set; }
+        public DateTime? FirstInsterestDueDate { get; set; }
+        public DateTime? FirstPrincipalDueDate { get; set; }
         public double Gross_Weight { get; set; }
         public double Wasgate { get; set; }
         public double Net_Weight { get; set; }
         public double Jewels_Value { get; set; }
         public string? Jewels_Photo_Path { get; set; }
+        public List<DtoLoanRepaymentSchedule>? RepaymentSchedule { get; set; }
         public List<DtoJewelLoanOrnments>? Ornment_List { get; set; }
         public double AppraisalFee { get; set; }
         public double BankCharges { get; set; }

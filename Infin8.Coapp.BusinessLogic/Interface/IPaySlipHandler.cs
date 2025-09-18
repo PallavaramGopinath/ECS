@@ -12,6 +12,7 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<bool> AddPaySlipAsync(Pay_Slip paySlip);
         Task<bool> EditPaySlipAsync(Pay_Slip paySlip);
+        Task<bool> UpdatePaySlipForPayment(decimal empId, decimal payId, decimal vocId,DateTime trnDate);
         Task<DtoPaySlip> DeletePaySlip(DtoPaySlip paySlip);
         Task<List<DtoEmployeeLastPayInfo>> GetEmployeeLastPayInfo();
         Task<List<DtoPayComponentAssignments>> GetPayComponentAssignmentsByEmployeeId(decimal empId, string brCode);
@@ -23,8 +24,15 @@ namespace Infin8.Coapp.BusinessLogic
         Task<decimal> GetPaySlipId(int payMonth, int payYear, string payDes, string brCode);
         Task<DtoPaySlip> GetPaySlipById(decimal payId, decimal memId, string brCode);
         Task<List<DropdownItem>> GetPaySlipListForSalaryPayment(string payDescription, string brCode);
+        Task<List<DropdownItem>> GetPaySlipListForSalaryPaymentByEmpId(decimal EmpId, string payDescription, string brCode);
         Task<List<DropdownItem>> GetEmploeeNamesForSalaryPayment(decimal payId, string brCode);
         Task<DropdownItem> GetEmploeeNameForSalaryPayment(decimal empId, decimal payId, string brCode);
         Task<List<Pay_Slip>> GetPaySlipForPayment(List<decimal> empIdList, decimal payId, string brCode);
+        Task<DtoPayDAArrears> CalculateDAArrears(DtoPayDAArrears Arrears);
+        Task<DtoPayDAArrears> GenerateDAArrears(DtoPayDAArrears Arrears);
+        Task<List<DtoPayDAArrearsView>> GetPayDAArrearsViews(List<decimal> empIdList, decimal payId, string brCode);
+        Task<DtoPayPFData> GetPFBalance(decimal empId, DateTime AsOnDate);
+        Task<List<DtoSLSComponent>> GetSLSData(decimal empId);
+        Task<bool> IsSLSAlreadyPaid(decimal empId, DateTime fromDate, DateTime toDate, string payDesc, string brCode);
     }
 }

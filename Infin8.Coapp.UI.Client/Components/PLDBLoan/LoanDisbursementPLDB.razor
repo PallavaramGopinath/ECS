@@ -27,7 +27,8 @@ else
         <h3 class="mb-2">Loan Disbursement - (PCARDB)</h3>
         <hr class="mt-0" />
 
-        <EditForm Model="@loanDetails" OnValidSubmit="@HandleValidSubmit">
+        <EditForm Model="@loanDetails">
+            @* OnValidSubmit="@HandleValidSubmit" *@
             <DataAnnotationsValidator />
             <ValidationSummary />
 
@@ -44,9 +45,10 @@ else
                                 <InputSelect id="schemeId" class="form-control" @bind-Value="loanDetails.Scheme_Id"
                                              @bind-Value:after="FetchSchemeDetails">
                                     <option value="0">-- Select Scheme --</option>
-                                    @foreach (var scheme in loanSchemes)
+                                    @foreach (var scheme in loanSchemeList)
                                     {
-                                        <option value="@scheme.Value">@scheme.Text</option>
+                                        @* <option value="@scheme.Value">@scheme.Text</option> *@
+                                        <option value="@scheme.Scheme_Id">@scheme.Scheme_Name</option>
                                     }
                                 </InputSelect>
                             </div>
@@ -74,6 +76,74 @@ else
 
             @if (isLTDisbursement)
             {
+                <!-- Applicant and Co-applicats -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Applicant and Co-applicat</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="applicant">Applicant (Member No)</label>
+                                    <InputText id="applicant" class="form-control" @bind-Value="loanDetails.Applicant_No"
+                                               @onblur="handleMemNo" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="applicantname">Applicant Name</label>
+                                    <InputText id="applicantname" class="form-control" @bind-Value="loanDetails.Applicant_Name" readonly />
+                                </div>
+                                <div class="form-group">
+                                    <label for="applicantStatus">Applicant Status Type</label>
+                                    <InputSelect id="applicantStatus" class="form-select shadow-none" @bind-Value="loanDetails.Applicant_Status">
+                                        <option value="0">Select Applicant Status</option>
+                                        <option value="1">Applicant</option>
+                                        <option value="2">Co-Applicant</option>
+                                    </InputSelect>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="AddApplicant">
+                                    <i class="oi oi-plus"></i>
+                                    Add
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                @if (loanDetails.LTLoanDisbursement!.LoanMembersList != null && loanDetails.LTLoanDisbursement.LoanMembersList.Any())
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Membeer No</th>
+                                                    <th>Member Name</th>
+                                                    <th>Status</th>
+                                                    <th>Delete</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var mem in loanDetails.LTLoanDisbursement.LoanMembersList)
+                                                {
+                                                    <tr>
+                                                        <td>@mem.Member_No</td>
+                                                        <td>@mem.Member_Name</td>
+                                                        <td>@mem.StatusString</td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveApplicant(mem)">
+                                                                <i class="oi oi-trash"></i>
+                                                                Delete
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loan details -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">Long Term Loan Details</h5>
@@ -82,78 +152,104 @@ else
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
+                                    <label for="lano">Loan Application No</label>
+                                    <InputText id="lano" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.LANo" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="resno">Resolutino No</label>
+                                    <InputText id="resno" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.ResolutionNo" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="resdate">Resolution Date</label>
+                                    <InputDate id="resdate" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.ResolutionDate" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
                                     <label for="sanctionedAmount">Sanctioned Amount</label>
-                                    <InputNumber id="santionedAmount" class="form-control" @bind-Value="loanDetails.SanctionedAmount" readonly />
+                                    <InputNumber id="santionedAmount" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.SanctionedAmount" />
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="InstalmentDay">Instalment Day</label>
-                                    <InputNumber id="InstalmentDay" class="form-control" @bind-Value="loanDetails.InstalmentDay" readonly />
+                                    <InputNumber id="InstalmentDay" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.InstalmentDay" />
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="gracePeriod">Grace Period</label>
-                                    <InputNumber id="gracePeriod" class="form-control" @bind-Value="loanDetails.GracePeriod" readonly />
+                                    <InputNumber id="gracePeriod" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.GracePeriod" />
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="period">Repayment Period</label>
-                                    <InputNumber id="period" class="form-control" @bind-Value="loanDetails.Period_Of_Loan" readonly />
+                                    <InputNumber id="period" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.Period_Of_Loan" />
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="FirstInterestInstalmentDate">First Interest Instalment Date:</label>
-                                    <InputDate id="FirstInterestInstalmentDate" class="form-control" @bind-Value="loanDetails.Tranaction_Date" @onchange="CalculateDueDate" />
+                                    <InputDate id="FirstInterestInstalmentDate" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.FirstInsterestDueDate" @onchange="CalculateDueDate" />
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="FirstPrincipalInstalmentDate">First Principal Instalment Date:</label>
-                                    <InputDate id="FirstPrincipalInstalmentDate" class="form-control" @bind-Value="loanDetails.Tranaction_Date" @onchange="CalculateDueDate" />
+                                    <InputDate id="FirstPrincipalInstalmentDate" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.FirstPrincipalDueDate" @onchange="CalculateDueDate" />
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="DisbursementAmount">Disbursement Amount</label>
-                                    <InputNumber id="DisbursementAmount" class="form-control" @bind-Value="loanDetails.DisbursementAmount" readonly />
+                                    <InputNumber id="DisbursementAmount" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.DisbursementAmount" />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Instalment and roi -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">Rate of Interest and Instalment Details</h5>
+                        <div class="row d-flex justify-content-between">
+                            <div class="col-md-6">
+                                <h5 class="mb-0">Rate of Interest and Instalment Details</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-primary" @onclick="CalculateInstalment">
+                                    <i class="oi oi-check"></i>
+                                    Calculate Instalment Amount
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
+                                    <label for="InstalmentAmount">Instalment Amount</label>
+                                    <InputNumber id="InstalmentAmount" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.InstalmentAmount" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
                                     <label for="RateOfInterest">Rate Of Interest</label>
-                                    <InputNumber id="RateOfInterest" class="form-control" @bind-Value="loanDetails.Rate_Of_Interest" readonly />
+                                    <InputNumber id="RateOfInterest" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.Rate_Of_Interest" />
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="PenalRate">Penal Rate Of Interest</label>
-                                    <InputNumber id="PenalRate" class="form-control" @bind-Value="loanDetails.Penal_Rate" readonly />
+                                    <InputNumber id="PenalRate" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.Penal_Rate" />
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <button type="submit" class="btn btn-primary" @onclick="JLDisbursementInitiate">
-                                    <i class="oi oi-check"></i>
-                                    Calculate Instalment Amount
-                                </button>
-                                <div class="form-group">
-                                    <label for="InstalmentAmount">Instalment Amount</label>
-                                    <InputNumber id="InstalmentAmount" class="form-control" @bind-Value="loanDetails.InstalmentAmount" readonly />
-                                </div>
-                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -212,7 +308,7 @@ else
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="loanPeriod">Period of Loan (months):</label>
-                                    <InputNumber id="loanPeriod" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.Period_Of_Loan" @onchange="CalculateDueDate" readonly />
+                                    <InputNumber id="loanPeriod" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.Period_Of_Loan" @onchange="CalculateDueDate" />
                                 </div>
                             </div>
                         </div>
@@ -220,19 +316,19 @@ else
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="dueDate">Due Date:</label>
-                                    <InputDate id="dueDate" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.Due_Date" readonly />
+                                    <InputDate id="dueDate" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.Due_Date" />
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="interestRate">Rate of Interest (%):</label>
-                                    <InputNumber id="interestRate" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.Rate_Of_Interest" readonly />
+                                    <InputNumber id="interestRate" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.Rate_Of_Interest" />
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="penalRate">Penal Rate (%):</label>
-                                    <InputNumber id="penalRate" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.Penal_Rate" readonly />
+                                    <InputNumber id="penalRate" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.Penal_Rate" />
                                 </div>
                             </div>
                         </div>
@@ -310,7 +406,7 @@ else
                         <h5 class="mb-0">Weight,Value Calculation of Jewel Loan Amount</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row">
+                        <div class="row ">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="grossWeight">Gross Weight (grams):</label>
@@ -353,6 +449,32 @@ else
                                 <div class="form-group">
                                     <label for="bankCharges">Bank Charges:</label>
                                     <InputNumber id="bankCharges" class="form-control" disabled="true" @bind-Value="loanDetails.JewelLoanDisbursement!.BankCharges" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-primary" @onclick="CalculateJLInstalment">
+                                    <i class="oi oi-check"></i>
+                                    Calculate Instalment Amount
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="JLInstalmentAmount">Instalment Amount</label>
+                                    <InputNumber id="JLInstalmentAmount" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement.Instalment_Amount" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="JLFirstInterestInstalmentDate">First Interest Instalment Date:</label>
+                                    <InputDate id="JLFirstInterestInstalmentDate" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.FirstInsterestDueDate" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="JLFirstPrincipalInstalmentDate">First Principal Instalment Date:</label>
+                                    <InputDate id="FirstPrincipalInstalmentDate" class="form-control" @bind-Value="loanDetails.JewelLoanDisbursement!.FirstPrincipalDueDate" />
                                 </div>
                             </div>
                         </div>
@@ -403,54 +525,110 @@ else
             {
                 <div class="card mb-4">
                     <div>
-                    <div class="card-header">
-                        <h5 class="mb-0">Mortgage Bond Details</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label>Mortgage Bond Date</label>
-                                <InputDate class="form-control shadow-none"
-                                           @bind-Value="loanDetails.MortgageBondDate" />
-                            </div>
-                            <div class="col-md-4">
-                                <label>Mortgage Bond No</label>
-                                <InputText class="form-control shadow-none"
-                                           @bind-Value="loanDetails.MortgageBondNo" />
-                            </div>
-                            <div class="col-md-4">
-                                <label>Mortgage Bond Registration Date</label>
-                                <InputDate class="form-control shadow-none"
-                                           @bind-Value="loanDetails.MortgageBondRegistrationNo" />
-                            </div>
+                        <div class="card-header">
+                            <h5 class="mb-0">Mortgage Bond Details</h5>
                         </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label>SARD Bank Loan No</label>
-                                <InputText class="form-control shadow-none"
-                                           @bind-Value="loanDetails.SARDBLoanNo" />
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label>Mortgage Bond Date</label>
+                                    <InputDate class="form-control shadow-none"
+                                               @bind-Value="loanDetails.LTLoanDisbursement!.MortgageBondDate" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label>Mortgage Bond No</label>
+                                    <InputText class="form-control shadow-none"
+                                               @bind-Value="loanDetails.LTLoanDisbursement!.MortgageBondNo" />
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label>Mortgage Bond Registration Date</label>
+                                    <InputDate class="form-control shadow-none"
+                                               @bind-Value="loanDetails.LTLoanDisbursement!.MortgageBondRegistrationDate" />
+                                </div>
+
                             </div>
-                            <div class="col-md-4">
-                                <label>DV No</label>
-                                <InputText class="form-control shadow-none"
-                                           @bind-Value="loanDetails.DVNo" />
-                            </div>
-                            <div class="col-md-4">
-                                <label>Sub Registrar Office Name</label>
-                                <InputText class="form-control shadow-none"
-                                           @bind-Value="loanDetails.SubRegistrarOfficeName" />
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label>SARD Bank Loan No</label>
+                                    <InputText class="form-control shadow-none"
+                                               @bind-Value="loanDetails.LTLoanDisbursement!.SARDBLoanNo" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label>DV No</label>
+                                    <InputText class="form-control shadow-none"
+                                               @bind-Value="loanDetails.LTLoanDisbursement!.DVNo" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label>Sub Registrar Office Name</label>
+                                    <InputText class="form-control shadow-none"
+                                               @bind-Value="loanDetails.LTLoanDisbursement!.SubRegistrarOfficeName" />
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
             }
+
+            <!-- Loan repayment schedule -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="row d-flex justify-content-between ">
+                        <div class="col-md-6">
+                            <h5>Repayment Schedule</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-primary" @onclick="PrepareRepaymentSchedule">
+                                <i class="oi oi-check"></i>
+                                Prepare Repayment Schedule
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="card-body">
+                    @if (loanDetails.RepaymentSchedule != null && loanDetails.RepaymentSchedule.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Due Date</th>
+                                        <th>Interest Demand</th>
+                                        <th>Principal Demand</th>
+                                        <th>Outstanding</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var loan in loanDetails.RepaymentSchedule)
+                                    {
+                                        <tr>
+                                            <td>@loan.Due_Date </td>
+                                            <td>@loan.Interest_Demand </td>
+                                            <td>@loan.Principal_Demand </td>
+                                            <td>@loan.Loan_Outstanding </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-info">
+                                        <th>Total</th>
+                                        <th>@loanDetails.RepaymentSchedule.Sum(x => x.Interest_Demand)</th>
+                                        <th>@loanDetails.RepaymentSchedule.Sum(x => x.Principal_Demand)</th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
 
             <!-- Step 7: Close, Reset and Submissiont -->
             <div class="d-flex justify-content-between mt-4 mb-4">
                 <div>
                     <!-- Left-aligned buttons -->
-                    <button type="button" class="btn btn-secondary me-2" @onclick="ClosePLDBDisbursement">
+                    <button type="button" class="btn btn-secondary me-2" @onclick="Close">
                         <i class="oi oi-x"></i>
                         Close
                     </button>
@@ -461,9 +639,9 @@ else
                 </div>
 
                 <!-- Right-aligned submit button -->
-                <button type="submit" class="btn btn-primary" disabled="@isValidSubmit" @onclick="JLDisbursementInitiate">
+                <button type="button" class="btn btn-primary" disabled="@isValidSubmit" @onclick="Initiate">
                     <i class="oi oi-check"></i>
-                    Create Jewel Loan Account
+                    Initiate Loan Account
                 </button>
             </div>
 
@@ -492,10 +670,11 @@ else
     </div>
 }
 
+
 @code {
 
     #region doubts
-        ///  for MI Jewel loan, is mortgage is required
+    ///  for MI Jewel loan, is mortgage is required
     #endregion
 
     #region parameters
@@ -512,11 +691,15 @@ else
     #region declarations
     private bool _isLoading = true;
     private bool isValidSubmit = false;
+    private string brCode = "11001";
+    private decimal Yr_Id = 110010000023;
+    private decimal Created_By = 110010000001;
     // private bool isJlOnMI =false;
     private DtoLoanDisbursementPLDB loanDetails = new DtoLoanDisbursementPLDB();
     private DtoJewelLoanOrnments newOrnament = new DtoJewelLoanOrnments();
     private string memberNo = "";
     private List<DropdownItem> loanSchemes = new List<DropdownItem>();
+    private List<Loan_Schemes> loanSchemeList = new();
     private string capturedImageData = "";
     private bool isLTDisbursement = false;
     private bool isJewelSecurity = false;
@@ -542,9 +725,29 @@ else
                 loanDetails.Member_No = MemberNumber;
                 loanDetails.Member_Name = MemberName;
                 loanDetails.Tranaction_Date = TransactionDate;
-
-                // loanDetails.JewelLoanDisbursement!.Ornment_List = new List<DtoJewelLoanOrnments>();
-
+                loanDetails.BrCode = brCode;
+                loanDetails.Yr_Id = Yr_Id;
+                loanDetails.Created_By = Created_By;
+                loanDetails.LTLoanDisbursement = new DtoLoanDisbursementLT();
+                loanDetails.LTLoanDisbursement.RepaymentSchedule = new List<DtoLoanRepaymentSchedule>();
+                loanDetails.LTLoanDisbursement.LoanMembersList = new List<DtoLoanMembers>();
+                loanDetails.LTLoanDisbursement!.FirstInsterestDueDate = TransactionDate;
+                loanDetails.LTLoanDisbursement.FirstPrincipalDueDate = TransactionDate;
+                loanDetails.LTLoanDisbursement.MortgageBondDate = TransactionDate;
+                loanDetails.LTLoanDisbursement.MortgageBondRegistrationDate = TransactionDate;
+                loanDetails.JewelLoanDisbursement = new DtoJewelLoanDisbursement();
+                loanDetails.JewelLoanDisbursement!.Ornment_List = new List<DtoJewelLoanOrnments>();
+                loanDetails.JewelLoanDisbursement.FirstPrincipalDueDate = TransactionDate.AddMonths(6);
+                loanDetails.JewelLoanDisbursement.FirstInsterestDueDate = TransactionDate.AddMonths(6);
+                DtoLoanMembers member = new()
+                {
+                    Mem_Id = MemberId,
+                    Member_No = MemberNumber,
+                    Member_Name = MemberName,
+                    Status = 1,
+                    StatusString = "Applicant"
+                };
+                loanDetails.LTLoanDisbursement.LoanMembersList.Add(member);
                 // Fetch loan schemes from API
                 await LoadLoanSchemes();
             }
@@ -569,6 +772,11 @@ else
             if (result != null && result.Count > 0)
             {
                 loanSchemes = result.ToList();
+            }
+            var resultList = await _httpClient.GetFromJsonAsync<List<Loan_Schemes>>($"https://localhost:7073/api/Loan/GetLoanSchemeList/6/{loanDetails.BrCode!}");
+            if (resultList != null && resultList.Any())
+            {
+                loanSchemeList = resultList.ToList();
             }
         }
         catch (Exception ex)
@@ -623,46 +831,49 @@ else
             double maximumLimit = 0;
             double jlExistingLoanBalance = 0;
             int period = 0;
-
-            // Loan_Schemes? jlScheme = new Loan_Schemes();
             LoanROIAndPIVM? roi = new LoanROIAndPIVM();
-            var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate");
-            if (marketRate != null)
-            {
-                // loanDetails.JewelLoanDisbursement!.Market_Rate = marketRate.Market_Rate;
-                // loanDetails.JewelLoanDisbursement!.Govt_Rate = marketRate.Market_Rate;
-                jlDisbursement.Market_Rate = marketRate.Market_Rate;
-                jlDisbursement.Govt_Rate = marketRate.Govt_Rate;
-            }
-            eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage");
-            // loanDetails.JewelLoanDisbursement!.Percentage_Of_Eligibility_On_Market_Rate = eligiblePercentage;
-            jlDisbursement.Percentage_Of_Eligibility_On_Market_Rate = eligiblePercentage;
-
-            string formattedDate = loanDetails.Tranaction_Date.ToString("yyyy-MM-dd");
-            maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}");
-            // loanDetails.JewelLoanDisbursement!.Maximum_Loan_Limit = maximumLimit;
-            jlDisbursement.Maximum_Loan_Limit = maximumLimit;
-
-            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}");
-
-            // loanDetails.Period_Of_Loan = period;
-            jlDisbursement.Period_Of_Loan = period;
-
             string wefFormatted = ((DateTime)loanDetails.Tranaction_Date).ToString("yyyy-MM-dd");
             string agency = "S";
             roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}");
+            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}");
+            if (loanDetails.Security_Type == 1)
+            {
+                var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate");
+                if (marketRate != null)
+                {
+                    jlDisbursement.Market_Rate = marketRate.Market_Rate;
+                    jlDisbursement.Govt_Rate = marketRate.Govt_Rate;
+                }
+                eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage");
 
-            // loanDetails.Rate_Of_Interest = roi!.Roi;
-            // loanDetails.Penal_Rate = roi!.Pi;
-            jlDisbursement.Rate_Of_Interest = roi!.Roi;
-            jlDisbursement.Penal_Rate = roi!.Pi;
+                jlDisbursement.Percentage_Of_Eligibility_On_Market_Rate = eligiblePercentage;
 
-            jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}");
+                string formattedDate = loanDetails.Tranaction_Date.ToString("yyyy-MM-dd");
+                maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}");
 
-            // loanDetails.JewelLoanDisbursement!.Existing_Loan_Outstanding = jlExistingLoanBalance;
-            jlDisbursement.Existing_Loan_Outstanding = jlExistingLoanBalance;
+                jlDisbursement.Maximum_Loan_Limit = maximumLimit;
 
-            loanDetails.JewelLoanDisbursement = jlDisbursement;
+                jlDisbursement.Period_Of_Loan = period;
+
+                DateTime dueDate = TransactionDate.AddMonths(period);
+                jlDisbursement.Due_Date = dueDate;
+
+                jlDisbursement.Rate_Of_Interest = roi!.Roi;
+                jlDisbursement.Penal_Rate = roi!.Pi;
+
+                jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}");
+
+                jlDisbursement.Existing_Loan_Outstanding = jlExistingLoanBalance;
+
+                loanDetails.JewelLoanDisbursement = jlDisbursement;
+            }
+            else if(loanDetails.Security_Type == 2)
+            {
+                loanDetails.LTLoanDisbursement!.Rate_Of_Interest = roi!.Roi;
+                loanDetails.LTLoanDisbursement.Penal_Rate = roi.Pi;
+                loanDetails.LTLoanDisbursement.Period_Of_Loan = period;
+            }
+            StateHasChanged();
 
             // Example: Call API to get scheme details
             // var schemeDetails = await Http.GetFromJsonAsync<SchemeDetails>($"api/loanschemes/{loanDetails.Scheme_Id}");
@@ -718,7 +929,7 @@ else
         }
         try
         {
-            
+
             switch (loanDetails.Security_Type)
             {
                 case 1: // Jewel Loan
@@ -757,10 +968,187 @@ else
 
     private void CalculateDueDate()
     {
-        if (loanDetails.Period_Of_Loan > 0)
+        if (loanDetails.JewelLoanDisbursement!.Period_Of_Loan > 0)
         {
-            loanDetails.JewelLoanDisbursement!.Due_Date = loanDetails.Tranaction_Date.AddMonths(loanDetails.Period_Of_Loan);
+            loanDetails.JewelLoanDisbursement!.Due_Date = loanDetails.Tranaction_Date.AddMonths(loanDetails.JewelLoanDisbursement!.Period_Of_Loan);
         }
+    }
+
+    private void CalculateInstalment()
+    {
+        string errormessage = "";
+        if (loanDetails.LTLoanDisbursement!.DisbursementAmount == 0)
+            errormessage = "Disbursement is missing";
+        if (loanDetails.LTLoanDisbursement.Period_Of_Loan == 0)
+            errormessage += "Period of loan missing";
+        if (loanDetails.LTLoanDisbursement.Rate_Of_Interest == 0)
+            errormessage += "Rate of interest is missing";
+        
+        if (errormessage.Length > 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", errormessage);
+            return;
+        }
+        int instalmenttype = loanSchemeList.Where(x => x.Scheme_Id == loanDetails.Scheme_Id).Select(x => x.Inst_Type).FirstOrDefault();
+        int demandFrequency = loanSchemeList.Where(x => x.Scheme_Id == loanDetails.Scheme_Id).Select(x => x.Dem_Frequency).FirstOrDefault();
+        double instalmentAmount = Utilities.GetLoanInstalmentAmount(loanDetails.LTLoanDisbursement!.SanctionedAmount,
+            loanDetails.LTLoanDisbursement.Period_Of_Loan,
+            loanDetails.LTLoanDisbursement.Rate_Of_Interest, instalmenttype, demandFrequency);
+        loanDetails.LTLoanDisbursement.InstalmentAmount = instalmentAmount;
+    }
+
+    private void CalculateJLInstalment()
+    {
+        string errormessage = "";
+        if (loanDetails.JewelLoanDisbursement!.Loan_Amount == 0)
+            errormessage = "Disbursement is missing";
+        if (loanDetails.JewelLoanDisbursement!.Period_Of_Loan == 0)
+            errormessage += "Period of loan missing";
+        if (loanDetails.JewelLoanDisbursement.Rate_Of_Interest == 0)
+            errormessage += "Rate of interest is missing";
+        
+        if (errormessage.Length > 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", errormessage);
+            return;
+        }
+        int instalmenttype = loanSchemeList.Where(x => x.Scheme_Id == loanDetails.Scheme_Id).Select(x => x.Inst_Type).FirstOrDefault();
+        int demandFrequency = loanSchemeList.Where(x => x.Scheme_Id == loanDetails.Scheme_Id).Select(x => x.Dem_Frequency).FirstOrDefault();
+        double instalmentAmount = Utilities.GetLoanInstalmentAmount(loanDetails.JewelLoanDisbursement!.Loan_Amount,
+            loanDetails.JewelLoanDisbursement!.Period_Of_Loan,
+            loanDetails.JewelLoanDisbursement.Rate_Of_Interest, instalmenttype, demandFrequency);
+        loanDetails.JewelLoanDisbursement.Instalment_Amount = instalmentAmount;
+        loanDetails.JewelLoanDisbursement.FirstPrincipalDueDate = loanDetails.Tranaction_Date.AddMonths(demandFrequency);
+        loanDetails.JewelLoanDisbursement.FirstInsterestDueDate = loanDetails.Tranaction_Date.AddMonths(demandFrequency);
+    }
+
+    private void PrepareRepaymentSchedule()
+    {
+        string err = "";
+        if (loanDetails.Security_Type == 1)
+        {
+            if (loanDetails.JewelLoanDisbursement!.Loan_Amount == 0)
+                err = "Disbursement on Jewel pledged loan is missing";
+            if (loanDetails.JewelLoanDisbursement.Rate_Of_Interest == 0)
+                err += " Rate of interest on Jewels pledged loan is missing";
+            if (loanDetails.JewelLoanDisbursement.Penal_Rate == 0)
+                err += " Penal interest on Jewels pledged is missing";
+            if (loanDetails.JewelLoanDisbursement.Instalment_Amount == 0)
+                err += " Instalment amount on Jewels pledged is missing";
+        }
+        else
+        {
+            if (loanDetails.LTLoanDisbursement!.DisbursementAmount == 0)
+                err = "Disbursement amount on mortgage property is missing";
+            if (loanDetails.LTLoanDisbursement.Rate_Of_Interest == 0)
+                err += " Rate of interest on mortgage property is missing";
+            if (loanDetails.LTLoanDisbursement.Penal_Rate == 0)
+                err += " Penal interest on mortgage property is missing";
+
+            if (loanDetails.LTLoanDisbursement.InstalmentAmount == 0)
+                err += " Instalment amount on mortgage property is missing";
+
+        }
+        if (err.Length > 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", err);
+            return;
+        }
+        int instalmenttype = loanSchemeList.Where(x => x.Scheme_Id == loanDetails.Scheme_Id).Select(x => x.Inst_Type).FirstOrDefault();
+        int demandFrequency = loanSchemeList.Where(x => x.Scheme_Id == loanDetails.Scheme_Id).Select(x => x.Dem_Frequency).FirstOrDefault();
+        if (loanDetails.Security_Type == 1)
+        {
+            var result = Utilities.PrepareLoanRepaymentSchedule(loanDetails.Tranaction_Date,
+           loanDetails.JewelLoanDisbursement!.Loan_Amount,
+           loanDetails.JewelLoanDisbursement.Rate_Of_Interest,
+           loanDetails.JewelLoanDisbursement.Period_Of_Loan,
+           0,
+           loanDetails.JewelLoanDisbursement.Instalment_Amount,
+           instalmenttype,
+           demandFrequency,
+           (DateTime)loanDetails.Tranaction_Date,
+           (DateTime)loanDetails.Tranaction_Date);
+
+            if (result != null && result.Any())
+            {
+                loanDetails.RepaymentSchedule = new();
+                loanDetails.RepaymentSchedule = result.ToList();
+            }
+        }
+        else
+        {
+            var result = Utilities.PrepareLoanRepaymentSchedule(loanDetails.Tranaction_Date,
+            loanDetails.LTLoanDisbursement!.DisbursementAmount,
+            loanDetails.LTLoanDisbursement.Rate_Of_Interest,
+            loanDetails.LTLoanDisbursement.Period_Of_Loan,
+            loanDetails.LTLoanDisbursement.GracePeriod,
+            loanDetails.LTLoanDisbursement.InstalmentAmount,
+            instalmenttype,
+            demandFrequency,
+            (DateTime)loanDetails.LTLoanDisbursement.FirstInsterestDueDate!,
+            (DateTime)loanDetails.LTLoanDisbursement.FirstPrincipalDueDate!);
+
+            if (result != null && result.Any())
+            {
+                loanDetails.RepaymentSchedule = new();
+                loanDetails.RepaymentSchedule = result.ToList();
+            }
+        }
+
+    }
+
+    private async Task handleMemNo()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(loanDetails.Applicant_No))
+            {
+                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{loanDetails.Applicant_No}/{loanDetails.BrCode}");
+                if (mem != null && mem.Mem_Id > 0)
+                {
+                    loanDetails.Applicant_Name = mem.MemberName;
+                    loanDetails.Applicant_Id = mem.Mem_Id;
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Member details not available");
+
+
+                    return;
+                }
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void AddApplicant()
+    {
+        if (loanDetails.Applicant_Id != 0)
+        {
+            DtoLoanMembers mem = new()
+            {
+                Mem_Id = loanDetails.Applicant_Id,
+                Member_No = loanDetails.Applicant_No,
+                Member_Name = loanDetails.Applicant_Name,
+                Status = loanDetails.Applicant_Status,
+                StatusString = loanDetails.Applicant_Status == 1 ? "Applicant" : "Co-Applicatn"
+            };
+            loanDetails.LTLoanDisbursement!.LoanMembersList!.Add(mem);
+            loanDetails.Applicant_Id = 0;
+            loanDetails.Applicant_No = string.Empty;
+            loanDetails.Applicant_Name = string.Empty;
+            loanDetails.Applicant_Status = 0;
+
+        }
+    }
+
+    private void RemoveApplicant(DtoLoanMembers mem)
+    {
+        loanDetails.LTLoanDisbursement!.LoanMembersList!.Remove(mem);
     }
 
     private void AddOrnament()
@@ -1106,18 +1494,28 @@ else
 
         if (loanDetails.Scheme_Id <= 0)
             errorMessage += "\n Please select a loan scheme";
+        else
+        {
+            if (loanDetails.Scheme_Id == 1)  /// jewel loan for MI
+            {
+                if (loanDetails.JewelLoanDisbursement!.Ornment_List == null || !loanDetails.JewelLoanDisbursement!.Ornment_List.Any())
+                    errorMessage += "\n Please add at least one ornament";
 
-        if (loanDetails.JewelLoanDisbursement!.Ornment_List == null || !loanDetails.JewelLoanDisbursement!.Ornment_List.Any())
-            errorMessage += "\n Please add at least one ornament";
+                if (loanDetails.JewelLoanDisbursement!.Gross_Weight <= 0)
+                    errorMessage += "\n Please enter valid gross weight";
 
-        if (loanDetails.JewelLoanDisbursement!.Gross_Weight <= 0)
-            errorMessage += "\n Please enter valid gross weight";
+                if (loanDetails.JewelLoanDisbursement!.Loan_Amount <= 0 || loanDetails.JewelLoanDisbursement!.Loan_Amount > loanDetails.JewelLoanDisbursement!.Jewels_Value)
+                    errorMessage += "\n Please enter valid loan amount within the eligible limit";
 
-        if (loanDetails.JewelLoanDisbursement!.Loan_Amount <= 0 || loanDetails.JewelLoanDisbursement!.Loan_Amount > loanDetails.JewelLoanDisbursement!.Jewels_Value)
-            errorMessage += "\n Please enter valid loan amount within the eligible limit";
+                if (string.IsNullOrEmpty(loanDetails.JewelLoanDisbursement!.Jewels_Photo_Path))
+                    errorMessage += "\n Please capture a photo of the jewels";
 
-        if (string.IsNullOrEmpty(loanDetails.JewelLoanDisbursement!.Jewels_Photo_Path))
-            errorMessage += "\n Please capture a photo of the jewels";
+            }
+            else  /// other than jewel loan for MI
+            {
+
+            }
+        }
         if (errorMessage.Length > 0)
         {
             showErrorMessage = true;
@@ -1138,29 +1536,27 @@ else
         };
         memberNo = "";
         newOrnament = new DtoJewelLoanOrnments();
+        loanDetails.JewelLoanDisbursement!.Ornment_List = new();
         capturedImageData = "";
         showSuccessMessage = false;
         showErrorMessage = false;
     }
 
-
-    // protected async Task ClosePLDBDisbursement()
-    // {
-    //     await OnPLDBDisbursementComponentClose.InvokeAsync(true);
-    // }
-
-    protected async Task ClosePLDBDisbursement()
+    protected async Task Close()
     {
         await OnPLDBDisbursementComponentClose.InvokeAsync(true);
     }
 
-    protected async Task JLDisbursementInitiate()
+    protected async Task Initiate()
     {
-        if (string.IsNullOrEmpty(loanDetails.JewelLoanDisbursement!.Jewels_Photo_Path))
+        if (loanDetails.Security_Type == 1)
         {
-            errorMessage = "Please capture a photo of the jewels before submitting.";
-            showErrorMessage = true;
-            return;
+            if (string.IsNullOrEmpty(loanDetails.JewelLoanDisbursement!.Jewels_Photo_Path))
+            {
+                errorMessage = "Please capture a photo of the jewels before submitting.";
+                showErrorMessage = true;
+                return;
+            }
         }
         string accountName = "";
         try
@@ -1186,7 +1582,71 @@ else
             // Handle exception
             Console.WriteLine($"Error fetching account name: {ex.Message}");
         }
-        // string jewelLoanJsonData = ConvertToJson(loanDetails);
+        string relatedJsonData = "";
+        int security_type = 0;
+        double cashReceiptAmount = 0, cashPaymentAmount = 0, adjReceiptAmount = 0, adjPaymentAmount = 0, receiptAmount = 0, paymentAmount = 0;
+        if (loanDetails.Security_Type == 1) /// jewel loan related account data
+        {
+            security_type = 1;
+            receiptAmount = loanDetails.JewelLoanDisbursement!.AppraisalFee + loanDetails.JewelLoanDisbursement!.BankCharges;
+            paymentAmount = loanDetails.JewelLoanDisbursement!.Loan_Amount;
+            loanDetails.JewelLoanDisbursement.AccountId = AccountId;
+            loanDetails.JewelLoanDisbursement.CashOrAdjustment = CashOrAdjustment;
+            loanDetails.JewelLoanDisbursement.Tranaction_Date = TransactionDate;
+            loanDetails.JewelLoanDisbursement.Mem_Id = MemberId;
+            loanDetails.JewelLoanDisbursement.Member_No = MemberNumber;
+            loanDetails.JewelLoanDisbursement.Member_Name = MemberName;
+            loanDetails.JewelLoanDisbursement.Scheme_Id = loanDetails.Scheme_Id;
+            loanDetails.JewelLoanDisbursement.RepaymentSchedule = loanDetails.RepaymentSchedule;
+            relatedJsonData = ConvertToJsonJLForMI(loanDetails.JewelLoanDisbursement!);
+            if (loanDetails.CashOrAdjustment == 1)
+            {
+                cashPaymentAmount = paymentAmount - receiptAmount;
+                adjPaymentAmount = receiptAmount;
+                cashReceiptAmount = 0;
+                adjReceiptAmount = receiptAmount;
+            }
+            else
+            {
+                cashPaymentAmount = 0;
+                adjPaymentAmount = paymentAmount;
+                cashReceiptAmount = 0;
+                adjReceiptAmount = 0;
+            }
+        }
+        else /// other than jewel loan relaed account data
+        {
+            security_type = 2;
+            receiptAmount = 0;
+            paymentAmount = loanDetails.LTLoanDisbursement!.DisbursementAmount;
+            if (loanDetails.CashOrAdjustment == 1)
+            {
+                cashPaymentAmount = loanDetails.LTLoanDisbursement!.DisbursementAmount;
+                cashReceiptAmount = 0;
+                adjPaymentAmount = 0;
+                adjReceiptAmount = 0;
+            }
+            else
+            {
+                cashPaymentAmount = 0;
+                adjPaymentAmount = loanDetails.LTLoanDisbursement!.DisbursementAmount;
+                cashReceiptAmount = 0;
+                adjReceiptAmount = 0;
+            }
+            loanDetails.LTLoanDisbursement.AccountId = loanDetails.AccountId;
+            loanDetails.LTLoanDisbursement.CashOrAdjustment = loanDetails.CashOrAdjustment;
+            loanDetails.LTLoanDisbursement.Scheme_Id = loanDetails.Scheme_Id;
+            loanDetails.LTLoanDisbursement.Mem_Id = loanDetails.Mem_Id;
+            loanDetails.LTLoanDisbursement.Member_No = loanDetails.Member_No;
+            loanDetails.LTLoanDisbursement.Member_Name = loanDetails.Member_Name;
+            loanDetails.LTLoanDisbursement.Tranaction_Date = loanDetails.Tranaction_Date;
+            loanDetails.LTLoanDisbursement.Yr_Id = loanDetails.Yr_Id;
+            loanDetails.LTLoanDisbursement.Created_By = loanDetails.Created_By;
+            loanDetails.LTLoanDisbursement.BrCode = loanDetails.BrCode;
+            loanDetails.LTLoanDisbursement.RepaymentSchedule = loanDetails.RepaymentSchedule;
+            
+            relatedJsonData = ConvertToJsonJLForLT(loanDetails.LTLoanDisbursement!);
+        }
         stagingDetails = new()
         {
             Id = 0,
@@ -1194,21 +1654,46 @@ else
             Member_Id = MemberId,
             Ledger_Id = 0,
             Related_Account_Id = AccountId,
-            Receipt_Amount = loanDetails.JewelLoanDisbursement!.AppraisalFee + loanDetails.JewelLoanDisbursement!.BankCharges,
-            Payment_Amount = loanDetails.JewelLoanDisbursement!.Loan_Amount,
+            Receipt_Amount = receiptAmount,
+            Payment_Amount = paymentAmount,
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
-            // Related_Account_Data = jewelLoanJsonData,
-            Created_By = 110010000001,
+            Related_Account_Data = relatedJsonData,
+            Created_By = loanDetails.Created_By,
             Created_Date = TransactionDate,
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001"
+            BrCode = loanDetails.BrCode,
+            CashReceipt_Amount = cashReceiptAmount,
+            CashPayment_Amount = cashPaymentAmount,
+            AdjustmentReceipt_Amount = adjReceiptAmount,
+            AdjustmentPayment_Amount = adjPaymentAmount,
+            Security_Type = security_type
+
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
-        // await OnJLDisbursementInitiate.InvokeAsync(loanDetails);
         await TransactionState.NotifyIntiate(true);
+    }
+
+    private string ConvertToJsonJLForMI(DtoJewelLoanDisbursement JL)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(JL, options);
+    }
+
+    private string ConvertToJsonJLForLT(DtoLoanDisbursementLT LT)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(LT, options);
     }
 
     private string ConvertToJson(DtoJewelLoanDisbursementPLDB disbursement)

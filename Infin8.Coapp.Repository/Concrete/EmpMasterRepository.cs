@@ -101,5 +101,40 @@ namespace Infin8.Coapp.Repository
             }
             return list;
         }
+
+        public async Task<EmployeeMasterDto> GetEmployeeMasterById(decimal empId, string brCode)
+        {
+            EmployeeMasterDto employee = new();
+            try
+            {
+                var result = await (from master in CSISContext.mem_master
+                                     join emp in CSISContext.Emp_Master on master.mem_id equals emp.Mem_Id
+                                     join info in CSISContext.Pay_Gen_Info on emp.Emp_Desgn_Id equals info.Pay_Info_Id
+                                     where master.mem_id == empId && master.membertype == 4 
+                                     && master.isaccountclosed == false && master.memberdelete == false
+                                     && master.brcode == brCode
+                                     select new EmployeeMasterDto
+                                     {
+                                         Mem_Id = master.mem_id,
+                                         MemberNo = master.memberno,
+                                         MemberName = master.membername,
+                                         FatherName = master.fathername,
+                                         Emp_Desgn = info.Pay_Info_Name,
+                                         Emp_Desgn_Id = emp.Emp_Desgn_Id,
+                                         Emp_Category_Id = emp.Emp_Category_Id,
+                                         Emp_Grade_Id = emp.Emp_Grade_Id,
+                                         Emp_Scale = emp.Emp_Scale,
+                                         Nominee_Name = master.nomineename ,
+                                         NomineeAge = master.nomineeage ,
+                                         Nominee_Relationship = master.nomineerelationship ,
+                                     }).FirstOrDefaultAsync();
+                if (result != null && result.Mem_Id > 0) employee = result;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching employee data.");
+            }
+            return employee;
+        }
     }
 }

@@ -202,9 +202,9 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<bool> VerifyForFixedDepositLoanRecovery(int accountId, decimal memId)
+        public async Task<bool> VerifyForFixedDepositLoanRecovery(int accountId, decimal memId, DateTime createdDate)
         {
-            return await _unitOfWork.StagingDetails.VerifyForFixedDepositLoanRecovery(accountId, memId);
+            return await _unitOfWork.StagingDetails.VerifyForFixedDepositLoanRecovery(accountId, memId,createdDate);
         }
 
         

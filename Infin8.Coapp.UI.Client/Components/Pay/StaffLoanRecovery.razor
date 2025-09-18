@@ -1,0 +1,524 @@
+﻿@page "/staff-loan-recovery"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
+@using System.Net
+
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+@inject TransactionStateService TransactionState
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <h5 class="text-danger mt-2 text-center">Staff loan recovery</h5>
+    <!-- Step 2: Loan No(s) -->
+    @if (!string.IsNullOrEmpty(model.Member_Name))
+    {
+        <div class="card mt-4">
+            <div class="card-header ">
+                <h5 class="mb-0">Available Loan Numbers</h5>
+            </div>
+            <div class="card-body">
+                <button  type="button" class="btn btn-secondary rounded-pill mb-3" @onclick="GetLoanNumbers" disabled="@(model.Mem_Id <= 0)">
+                    <i class="oi oi-list-rich"></i> Get Loan No(s)
+                </button>
+
+                @if (model.LoanNo_List != null)
+                {
+                    <div class="row">
+                        <div class="col">
+                            @foreach (var loan in model.LoanNo_List)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="@($"loan_{loan.Loan_Id}")"
+                                           @onchange="e => ToggleLoanSelection(loan, (bool)e.Value)" />
+                                    <label class="form-check-label" for="@($"loan_{loan.Loan_Id}")">
+                                        @loan.Loan_No
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-secondary rounded-pill" @onclick="GetLoanBalances" disabled="@(!selectedLoans.Any())">
+                            <i class="oi oi-list-rich"></i> Get Loan Balance
+                        </button>
+                    </div>
+                }
+                else /// if (loanNumbersLoaded)
+                {
+                    <div class="alert alert-info">No loans found for this member.</div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Step 3: Loan Balance -->
+    @if (model.LoanBalance_List != null && model.LoanBalance_List.Any())
+    {
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Loan Balance & Recovery Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Loan No</th>
+                            <th>Scheme</th>
+                            <th>Status</th>
+                            <th>Loan Amount</th>
+                            <th>Loan Date</th>
+                            <th>Due Date</th>
+                            <th>Interest %</th>
+                            <th>Outstanding</th>
+                            <th>Recovery Amount</th>
+                            <th>Int Calc Amount</th>
+                            <th>Int Applied Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < model.LoanBalance_List.Count; i++)
+                        {
+                            var loan = model.LoanBalance_List[i];
+                            var index = i; // Capture for lambda
+                                           <tr>
+                                               <td>@loan.Loan_No</td>
+                                               <td>@loan.Scheme_Name</td>
+                                               <td>@loan.Status</td>
+                                               <td>@loan.Loan_Amount.ToString("C2")</td>
+                                               <td>@loan.Loan_Date.ToShortDateString()</td>
+                                               <td>@loan.Due_Date.ToShortDateString()</td>
+                                               <td>@loan.ROI% </td>
+                                               <td>@loan.Outstanding.ToString("C2")</td>
+                                               <td>@loan.Recovery_Amount.ToString("C2")</td>
+                                               <td>@loan.Calculated_Amount.ToString("C2") </td>
+                                               <td>@loan.Interest_Application_Date</td>
+                                           </tr>
+                        }
+                        <tr class="table-info">
+                            <td colspan="7" class="text-end fw-bold">Total:</td>
+                            <td class="fw-bold">@model.LoanBalance_List.Sum(l => l.Outstanding).ToString("C2")</td>
+                            <td class="fw-bold">@model.LoanBalance_List.Sum(l => l.Recovery_Amount).ToString("C2")</td>
+                            <td class="fw-bold">@model.LoanBalance_List.Sum(l => l.Calculated_Amount).ToString("C2")</td>
+                            <td class="fw-bold"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!-- Step 4: Recovery Appropriation -->
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="totalBalance" class="form-label">Total Outstanding</label>
+                        <input type="number" class="form-control" id="totalBalance" @bind=model.Total_Outstanding readonly />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="recoveryAmount" class="form-label">Enter Recovery Amount</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="recoveryAmount"
+                                   @bind=model.Recovery_Amount
+                                   @bind:event="oninput"
+                                   @onchange="() => ValidateTotalRecoveryAmount()" />
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3 d-flex align-items-end">
+                        <button class="btn btn-secondary  rounded-pill" @onclick="AppropriateRecovery" disabled="@(model.Recovery_Amount <= 0)">
+                            <i class="oi oi-list-rich"></i> Appropriate Recovery
+                        </button>
+                    </div>
+                </div>
+                <!-- Step 5: Final Initiation -->
+                <div class="mt-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="number" class="form-control fw-bold fs-3 h-100" id="totalRecoveryAmount"
+                                       @bind="model.Recovery_Amount" readonly />
+                                <label for="totalRecoveryAmount">Total Recovery Amount</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 4: Button group -->
+    <div class="d-flex justify-content-between mt-4 mb-4">
+        <div>
+            <!-- Left-aligned buttons -->
+            <button type="button" class="btn btn-secondary me-2" @onclick="CloseJLRecovery">
+                <i class="oi oi-x"></i>
+                Close
+            </button>
+            <button type="reset" class="btn btn-outline-secondary">
+                <i class="oi oi-action-undo"></i>
+                Reset
+            </button>
+        </div>
+
+        <!-- Right-aligned submit button -->
+        <button type="button" class="btn btn-primary" disabled="@(!IsRecoveryValid())" @onclick="JLRecoveryInitiate">
+            <i class="oi oi-check"></i>
+            Initiate Jewel Loan Recovery
+        </button>
+    </div>
+}
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal Employee_Id { get; set; }
+    [Parameter] public string? Employee_Name { get; set; }
+    [Parameter] public DateTime Transaction_Date { get; set; }
+    [Parameter] public EventCallback<bool> OnStaffLoanRecoveryComponentClose { get; set; }
+    #endregion
+
+    #region objects
+    private DtoLoanRecoveryStaff model = new();
+    private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
+    private List<DtoJewelLoanBalance> JewelLoanBalanceFromDB = new List<DtoJewelLoanBalance>();
+    #endregion
+
+    #region variables
+    private string brCode = "11001";
+    private decimal Yr_Id = 110010000023;
+    private decimal Created_By = 110010000001;
+    private bool _isLoading = true;
+    private bool _isError = false;
+    private string errorMessage = string.Empty;
+    private Staging_Details stagingDetails = new();
+    #endregion
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                model.AccountId = AccountId;
+                model.CashOrAdjustment = CashOrAdjustment;
+                model.Mem_Id = Employee_Id;
+                model.Member_Name = Employee_Name;
+                model.Transaction_Date = Transaction_Date;
+                model.LoanNo_List = null;
+                model.LoanBalance_List = null;
+                selectedLoans.Clear();
+                _isLoading = false;
+                await Task.Delay(100);
+                StateHasChanged();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+
+    private async Task GetLoanNumbers()
+    {
+        try
+        {
+            List<DropdownItem> jlNoList = new List<DropdownItem>();
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/5");
+            List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
+            if (result != null && result.Count > 0)
+            {
+                jlNoList = result.ToList();
+                foreach (var jl in jlNoList)
+                {
+                    DtoLoanNo newJL = new DtoLoanNo();
+                    newJL.Loan_Id = Convert.ToDecimal(jl.Value);
+                    newJL.Loan_No = jl.Text;
+                    loanNosList.Add(newJL);
+                }
+                model.LoanNo_List = loanNosList;
+            }
+            // loanNumbersLoaded = true;
+            selectedLoans.Clear();
+            model.LoanBalance_List = null;
+            // processingMessage = null;
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            errorMessage = $"Error retrieving loan numbers: {ex.Message}";
+        }
+    }
+
+    private void ToggleLoanSelection(DtoLoanNo loan, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedLoans.Any(l => l.Loan_Id == loan.Loan_Id))
+            {
+                selectedLoans.Add(loan);
+            }
+        }
+        else
+        {
+            selectedLoans.RemoveAll(l => l.Loan_Id == loan.Loan_Id);
+        }
+    }
+
+    private async Task GetLoanBalances()
+    {
+        if (!selectedLoans.Any())
+        {
+            _isError = true;
+            errorMessage = "Please select at least one loan";
+            return;
+        }
+        try
+        {
+            List<PayLoanBalanceVM> loanBalanceList = new List<PayLoanBalanceVM>();
+            List<decimal> loanIdList = new List<decimal>();
+            foreach (var loan in selectedLoans)
+            {
+                loanIdList.Add(loan.Loan_Id);
+            }
+            decimal[] loanIds = loanIdList.ToArray();
+
+            // Build query parameters properly
+            var queryString = new System.Text.StringBuilder("loanIdList=");
+            // Add loan IDs with proper URL encoding
+            for (int i = 0; i < loanIdList.Count; i++)
+            {
+                queryString.Append(loanIdList[i]);
+                if (i < loanIdList.Count - 1)
+                    queryString.Append("&loanIdList=");
+            }
+            queryString.Append($"&endDate={Uri.EscapeDataString(model.Transaction_Date.ToString("yyyy-MM-dd"))}");
+            queryString.Append("&brCode=11001");
+            var result = await _httpClient.GetFromJsonAsync<List<PayLoanBalanceVM>>($"https://localhost:7073/api/Loan/GetPayLoanBalance?{queryString}");
+            if (result != null && result.Count > 0) loanBalanceList = result.ToList();
+            model.LoanBalance_List = new List<DtoLoanBalance>();
+            foreach (var loan in loanBalanceList)
+            {
+                
+                if (loan.IntBal > 0 || loan.IntCalc > 0)
+                {
+                    model.LoanBalance_List.Add(new DtoLoanBalance
+                    {
+                        Loan_Id = loan.Loan_Id,
+                        Loan_No = loan.Loan_No,
+                        Scheme_Name = loan.Scheme_Name,
+                        Status = "Interest",
+                        Loan_Amount = loan.San_Amt,
+                        Loan_Date = loan.San_Date,
+                        ROI = loan.Roi,
+                        PI_Rate = 0,
+                        Due_Date = loan.FirstPrl_DueDate,
+                        Interest_Application_Date = loan.IntCalcDate,
+                        Outstanding = loan.IntBal + loan.IntCalc,
+                        Principal_Demand = 0,
+                        Calculated_Amount = loan.IntCalc,
+                        Recovery_Amount = 0,
+                        Led_Id = loan.IntLed_Id,
+                        OverDue_Amount = loan.IntBal,
+                        OrderNo = 1
+                    });
+                }
+                if (loan.PrlOD > 0 || loan.PrlDemand >0 || loan.PrlOS >0)
+                {
+                    model.LoanBalance_List.Add(new DtoLoanBalance
+                    {
+                        Loan_Id = loan.Loan_Id,
+                        Loan_No = loan.Loan_No,
+                        Scheme_Name = loan.Scheme_Name,
+                        Status = "Principal",
+                        Loan_Amount = loan.San_Amt,
+                        Loan_Date = loan.San_Date,
+                        ROI = 0,
+                        PI_Rate = 0,
+                        Due_Date = loan.FirstPrl_DueDate,
+                        Principal_Demand = loan.PrlDemand,
+                        Interest_Application_Date = null,
+                        Outstanding = loan.PrlOS,
+                        Calculated_Amount = 0,
+                        Recovery_Amount = 0,
+                        Led_Id = loan.PrlLed_Id,
+                        OverDue_Amount = loan.PrlOD,
+                        OrderNo = 2
+                    });
+                }
+            }
+            model.Total_Outstanding = model.LoanBalance_List.Sum(l => l.Outstanding);
+            // processingMessage = null;
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            errorMessage = $"Error retrieving loan balances: {ex.Message}";
+            Console.WriteLine(ex.Message + " " + errorMessage);
+        }
+    }
+
+    private void ValidateRecoveryAmount(int index)
+    {
+        var loan = model.LoanBalance_List![index];
+
+        // Ensure recovery amount is not negative
+        if (loan.Recovery_Amount < 0)
+        {
+            loan.Recovery_Amount = 0;
+        }
+
+        // Cap recovery at outstanding amount
+        if (loan.Recovery_Amount > loan.Outstanding)
+        {
+            // The UI will show a warning, but we don't cap it
+            // This way the user can see the error and correct it
+        }
+
+        // Update total recovery amount
+        model.Recovery_Amount = model.LoanBalance_List.Sum(l => l.Recovery_Amount);
+    }
+
+    private void ValidateTotalRecoveryAmount()
+    {
+        if (model.Recovery_Amount > model.Total_Outstanding)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Total recovery amount is greater than total outstanding amount");
+            model.Recovery_Amount = model.Total_Outstanding;
+            AppropriateRecovery();
+        }
+        else
+        {
+            AppropriateRecovery();
+        }
+    }
+
+    private bool IsRecoveryValid()
+    {
+        if (model.LoanBalance_List == null || !model.LoanBalance_List.Any())
+        {
+            return false;
+        }
+
+        // Check if any recovery amount is greater than outstanding
+        if (model.LoanBalance_List.Any(l => l.Recovery_Amount > l.Outstanding))
+        {
+            return false;
+        }
+
+        // Check if total recovery is greater than zero
+        if (model.LoanBalance_List.Sum(l => l.Recovery_Amount) <= 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void AppropriateRecovery()
+    {
+        double totalRecovery = model.Recovery_Amount;
+        foreach (var rec in model.LoanBalance_List!.OrderBy(x => x.Loan_Id).ThenBy(x => x.OrderNo))
+        {
+            rec.Recovery_Amount = 0;
+        }
+        foreach (var rec in model.LoanBalance_List!.OrderBy(x => x.Loan_Id).ThenBy(x => x.OrderNo))
+        {
+            if (totalRecovery > 0)
+            {
+                if (totalRecovery >= rec.Outstanding)
+                {
+                    rec.Recovery_Amount = rec.Outstanding;
+                    totalRecovery -= rec.Outstanding;
+                }
+                else
+                {
+                    rec.Recovery_Amount = totalRecovery;
+                    totalRecovery = 0;
+                }
+            }
+        }
+
+    }
+
+    protected async Task CloseJLRecovery()
+    {
+        await OnStaffLoanRecoveryComponentClose.InvokeAsync(true);
+    }
+
+    protected async Task JLRecoveryInitiate() /// submit jl recovery initiated
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+
+        string staffLoanRecoveryJsonData = ConvertToJson(model);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = model.Mem_Id,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = model.Recovery_Amount,
+            Payment_Amount = 0,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = staffLoanRecoveryJsonData,
+            Created_By = 110010000001,
+            Created_Date = model.Transaction_Date,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = brCode,
+            CashReceipt_Amount = CashOrAdjustment == 1 ? model.Recovery_Amount : 0,
+            AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? model.Recovery_Amount : 0,
+            CashPayment_Amount = 0,
+            AdjustmentPayment_Amount = 0
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        await TransactionState.NotifyIntiate(true);
+    }
+
+    private string ConvertToJson(DtoLoanRecoveryStaff staffLoanRecovery)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(staffLoanRecovery, options);
+    }
+
+}
+

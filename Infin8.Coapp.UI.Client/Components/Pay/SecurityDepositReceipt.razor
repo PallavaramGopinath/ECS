@@ -1,0 +1,356 @@
+﻿@page "/security-deposit-receipt"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
+@using System.Net
+
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+@inject TransactionStateService TransactionState
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <h5 class="text-danger mt-2 text-center">Security Deposit Creation</h5>
+    <!-- Display security deposit if exist -->
+    @if (securityDepositData != null && securityDepositData.Td_Id > 0)
+    {
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Security Deposit Details</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <div class="text-center p-2 bg-success text-white rounded">
+                        <div class="fw-bold">@model.Employee_Name</div>
+                        <small>Employee Name</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-2 bg-success text-white rounded">
+                        <div class="fw-bold">@model.Designation </div>
+                        <small>Designation</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-2 bg-info text-white rounded">
+                        <div class="fw-bold">@model.SecurityDeposit!.Td_No </div>
+                        <small>Security Deposit No</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-2 bg-warning text-white rounded">
+                        <div class="fw-bold">@model.SecurityDeposit.Balance </div>
+                        <small>Balance Amount</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-2 bg-danger text-white rounded">
+                        <div class="fw-bold">The security deposit already created for this employee </div>
+                        <small>Can't create deposit</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Creaton of security deposit</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center p-2 bg-success text-white rounded">
+                            <div class="fw-bold">@model.Employee_Name</div>
+                            <small>Employee Name</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-2 bg-info text-white rounded">
+                            <div class="fw-bold">@model.Designation</div>
+                            <small>Designation Name</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="age">Employee Age </label>
+                            <InputNumber id="age" class="form-control shadow-none"
+                                         @bind-Value="model.SecurityDeposit!.Age" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="amount">Deposit Amount </label>
+                            <InputNumber id="amount" class="form-control shadow-none"
+                                         @bind-Value="model.Receipt_Amount" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="roi">Rate of Interest </label>
+                            <InputNumber id="roi" class="form-control shadow-none"
+                                         @bind-Value="model.SecurityDeposit!.RateOfInterest " />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="nommineename">Nominee Name </label>
+                            <InputText id="nommineename" class="form-control shadow-none"
+                                         @bind-Value="model.SecurityDeposit!.Nominee_Name" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="nomineeage">Nominee Age </label>
+                            <InputNumber id="nomineeage" class="form-control shadow-none"
+                                         @bind-Value="model.SecurityDeposit!.Nominee_Age" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="nommineerelationship">Nominee Name </label>
+                            <InputText id="nommineerelationship" class="form-control shadow-none"
+                                       @bind-Value="model.SecurityDeposit.Nominee_Relationship" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <!-- Buttions Close, Reset and Initiate -->
+    <div class="d-flex justify-content-between mt-4 mb-4">
+        <div>
+            <!-- Left-aligned buttons -->
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="oi oi-x"></i>
+                Close
+            </button>
+            <button type="reset" class="btn btn-outline-secondary" @onclick="ResetForm">
+                <i class="oi oi-action-undo"></i>
+                Reset
+            </button>
+        </div>
+
+        <!-- Right-aligned submit button -->
+        <button type="button" class="btn btn-primary" @onclick="Initiate" disabled="@(model!.Receipt_Amount <= 0)">
+            <i class="oi oi-check"></i>
+            Initiate
+        </button>
+    </div>
+}
+
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal Employee_Id { get; set; }
+    [Parameter] public string? Employee_Name { get; set; }
+    [Parameter] public string? Designation { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnSecurityDepositReceiptComponentClose { get; set; }
+    #endregion
+
+    #region objects
+    private DtoSecurityDeposit model = new();
+    private DtoSecurityDepositData securityDepositData = new();
+    #endregion
+
+    #region variables
+    private string brCode = "11001";
+    private decimal Yr_Id = 110010000023;
+    private decimal Created_By = 110010000001;
+    private bool _isLoading = true;
+    private bool _isError = false;
+    private string errorMessage = string.Empty;
+    private double bonusAmount = 0;
+    private Staging_Details stagingDetails = new();
+    #endregion
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                model.BrCode = brCode;
+                model.Transaction_Date = TransactionDate;
+                model.Employee_Id = Employee_Id;
+                model.Employee_Name = Employee_Name;
+                model.Designation = Designation;
+                model.Created_By = Created_By;
+                model.YrId = Yr_Id;
+
+                // DtoSecurityDepositCreate empData = new()
+                // {
+                //     Employee_Id = Employee_Id,
+                //     Employee_Name = Employee_Name,
+                //     Designation = Designation,
+                //     Yr_Id = model.YrId,
+                //     Rate_Of_Interest = model.Rate_Of_Interest ,
+
+                // };
+
+                await GetSecurityBalance();
+                await GetEmployeeData();
+                securityDepositData.Yr_Id = Yr_Id;
+                model.SecurityDeposit = securityDepositData;
+                _isLoading = false;
+                // await Task.Delay(100);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+
+    private async Task GetEmployeeData()
+    {
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<EmployeeMasterDto>($"https://localhost:7073/api/Pay/GetEmployee/{model.Employee_Id}/{model.BrCode!}");
+            if (result != null && result.Mem_Id > 0)
+            {
+                securityDepositData.Employee_Id = result.Mem_Id;
+                securityDepositData.Employee_No = result.MemberNo;
+                securityDepositData.Employee_Name = result.MemberName;
+                securityDepositData.Designation = result.Emp_Desgn;
+                securityDepositData.Nominee_Name = result.Nominee_Name;
+                securityDepositData.Nominee_Age = result.NomineeAge;
+                securityDepositData.Nominee_Relationship = result.Nominee_Relationship;
+
+            }
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            errorMessage = "Error in fecthing security details " + ex.Message;
+            Console.WriteLine(ex.Message);
+        }
+    }
+    private async Task GetSecurityBalance()
+    {
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<DtoSecurityDepositData>($"https://localhost:7073/api/TermDeposit/GetSecurityDepositData/{model.Employee_Id}/{model.BrCode!}");
+            if (result != null && result.Employee_Id > 0)
+            {
+                securityDepositData = new();
+                securityDepositData = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            errorMessage = "Error in fecthing security details " + ex.Message;
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task Close()
+    {
+        await OnSecurityDepositReceiptComponentClose.InvokeAsync(true);
+    }
+
+    private void ResetForm()
+    {
+        model = new()
+        {
+            Employee_Id = Employee_Id,
+            Employee_Name = Employee_Name,
+            Designation = Designation
+        };
+    }
+
+    private async Task Initiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+
+        string JsonData =  ConvertToJson(model.SecurityDeposit!);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = Employee_Id,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = model.Receipt_Amount,
+            Payment_Amount = 0,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = JsonData ,
+            Created_By = model.Created_By,
+            Created_Date = TransactionDate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = model.BrCode,
+            CashReceipt_Amount = CashOrAdjustment == 1 ? model.Receipt_Amount : 0,
+            AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? model.Receipt_Amount : 0,
+            CashPayment_Amount = 0,
+            AdjustmentPayment_Amount = 0
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        if (response.IsSuccessStatusCode)
+        {
+            await TransactionState.NotifyIntiate(true);
+            await JSRuntime.InvokeVoidAsync("alert", "Succefully Initiated");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Initiated failure, somethis went wrong!");
+        }
+    }
+
+    private string ConvertToJson(DtoSecurityDepositData emp)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(emp, options);
+    }
+}

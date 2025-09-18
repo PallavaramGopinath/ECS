@@ -1,4 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -78,6 +80,20 @@ namespace Infin8.Coapp.Utility
             return ts.Days;
         }
 
+        public static int GetNoOfDaysInAMonth(int dMonth, int dYear)
+        {
+            int noOfDays = 0;
+            try
+            {
+                DateTime selectDate = new DateTime(dYear, dMonth, 1);
+                noOfDays = GetNoOfDays(AddMonths(selectDate, 1), selectDate);
+            }
+            catch (Exception ex)
+            {
+                noOfDays = 0;
+            }
+            return noOfDays;
+        }
         public static double Calculate_Interest(double loanAmount, double ROI, int noOfDays)
         {
             double interest = 0;
@@ -646,5 +662,101 @@ namespace Infin8.Coapp.Utility
             return paySlip;
         }
 
+        public static List<DtoLoanRepaymentSchedule> PrepareLoanRepaymentSchedule(DateTime fromDate,  double prlAmt, double roi, int prd, int gracePeriod, double instAmt, int instType, int demandFrequency,
+            DateTime firstIntDueDate, DateTime firstPrlDueDate)
+        {
+            List<DtoLoanRepaymentSchedule> scheduleList = new();
+            DtoLoanRepaymentSchedule schedule = new();
+            DateTime duedate = firstIntDueDate;
+            try
+            {
+                gracePeriod = Utilities.GetNoOfCompletedMonthsBetweenTwoDates(firstIntDueDate, firstPrlDueDate);
+                //dgvSchedule.Rows.Clear();
+                double loanOs = 0, nonODPrl = 0, prlDem = 0, intCalc = 0,  totIntCalc = 0, totPrlDem = 0, totAmt = 0;
+
+                nonODPrl = prlAmt;
+                loanOs = prlAmt;
+                if (gracePeriod > 0)
+                   
+                {
+                    for (int i = 1; i <= gracePeriod; i += demandFrequency)
+                    {
+                        schedule = new();
+                        intCalc = 0;
+                        intCalc = Utilities.Calculate_Interest(nonODPrl, roi, Utilities.GetNoOfDays(duedate.AddMonths(demandFrequency), duedate));
+                        schedule.Due_Date = duedate;
+                        schedule.Interest_Demand = intCalc;
+                        schedule.Principal_Demand = 0;
+                        schedule.Total_Demand = intCalc;
+                        schedule.Loan_Outstanding = prlAmt;
+                        //dgvSchedule.Rows.Add(duedate.ToString("dd-MM-yyyy"), 0, intCalc, intCalc);
+                        scheduleList.Add(schedule);
+                        totIntCalc += intCalc;
+                        duedate = duedate.AddMonths(demandFrequency);
+                    }
+                }
+                duedate = firstPrlDueDate.Date;
+                
+                for (int i = 1; i <= prd; i += demandFrequency)
+                {
+                    schedule = new();
+                    //intCalc = TermDepositService.CalcIntForFD(nonODPrl, roi, 1, false);
+                    intCalc = Utilities.Calculate_Interest(nonODPrl, roi, Utilities.GetNoOfDays(duedate, fromDate));
+                    if (i == prd)
+                    {
+                        prlDem = nonODPrl;
+                        nonODPrl = 0;
+                    }
+                    else
+                    {
+                        switch (instType)
+                        {
+                            case 1:
+                                prlDem = instAmt;
+                                break;
+                            case 2:
+                                prlDem = instAmt - intCalc;
+                                break;
+                        }
+                        nonODPrl -= prlDem;
+                    }
+                    totPrlDem += prlDem;
+                    if (totPrlDem > prlAmt)
+                    {
+                        prlDem -= (totPrlDem - prlAmt);
+                        totPrlDem = prlAmt;
+                    }
+                    if (i == prd - demandFrequency + 1)
+                        prlDem += (prlAmt - totPrlDem);
+                    //dgvSchedule.Rows.Add(duedate.ToString("dd-MM-yyyy"), prlDem, intCalc, prlDem + intCalc);
+                    schedule.Due_Date = duedate;
+                    schedule.Interest_Demand = intCalc;
+                    schedule.Principal_Demand = prlDem;
+                    schedule.Total_Demand = intCalc + prlDem;
+                    schedule.Loan_Outstanding = nonODPrl;
+                    scheduleList.Add(schedule);
+
+                    fromDate = duedate;
+                    duedate = duedate.AddMonths(demandFrequency);
+                    totIntCalc += intCalc;
+                    //totPrlDem += prlDem;
+                    totAmt += intCalc + prlDem;
+                }
+                //dgvSchedule.Rows.Add("Total", totPrlDem, totIntCalc, totAmt);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine (ex.Message + "\n error in prepare schedule", "error");
+            }
+            return scheduleList;
+        }
+
+        public static int GetNoOfCompletedMonthsBetweenTwoDates(DateTime startDate, DateTime endDate)
+        {
+            int noOfCompletedMonths = 0;
+            noOfCompletedMonths = (endDate.Year - startDate.Year) * 12 + endDate.Month - startDate.Month - (endDate.Day < startDate.Day ? 1 : 0);
+            return noOfCompletedMonths;
+        }
     }
 }

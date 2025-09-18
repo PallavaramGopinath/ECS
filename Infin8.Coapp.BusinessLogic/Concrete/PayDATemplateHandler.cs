@@ -16,21 +16,19 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddPayDATemplateAsync(Pay_DA_Template payDaTemplate)
+        public async Task<Pay_DA_Template> AddPayDATemplateAsync(Pay_DA_Template payDaTemplate)
         {
-            bool result = false;
             try
             {
-                result = await _unitOfWork.PayDATemplate.AddPayDATemplateAsync(payDaTemplate);
+                var result = await _unitOfWork.PayDATemplate.AddPayDATemplateAsync(payDaTemplate);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if(result != null)  payDaTemplate = result ;
             }
             catch (Exception ex)
             {
-                result = false;
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Dearness allowance template not saved");
             }
-            return result;
+            return payDaTemplate;
         }
 
         public async Task<bool> EditPayDATemplateAsync(Pay_DA_Template payDaTemplate)

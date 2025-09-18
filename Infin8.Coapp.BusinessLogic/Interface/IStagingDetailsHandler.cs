@@ -25,6 +25,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId);
         Task<bool> MakeStagingDetails(decimal stagingId);
         Task<bool> CheckerStateStaging(decimal stagingId, decimal vocId, decimal checkerBy, string stagingStatus);
-        Task<bool> VerifyForFixedDepositLoanRecovery(int accountId, decimal memId);
+        Task<bool> VerifyForFixedDepositLoanRecovery(int accountId, decimal memId, DateTime createdDate);
     }
 }

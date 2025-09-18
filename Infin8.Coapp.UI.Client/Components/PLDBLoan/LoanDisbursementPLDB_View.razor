@@ -1,0 +1,241 @@
+﻿@using System.Globalization
+@using Infin8.Coapp.Dto
+@using System.Text.Json
+@using System.Net
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+
+<div class="container" style="max-width: 100%;">
+    <!-- Step 2: Loan Scheme Section and security -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Loan Scheme Selection</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Scheme Name :</label>
+                    <div class="form-control-plaintext">@loanDetails.Scheme_Id</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Transaction Date:</label>
+                    <div class="form-control-plaintext">@loanDetails.Tranaction_Date</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applicant and Co-applicats -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Applicant and Co-applicat</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    @if (loanDetails.LoanMembersList != null && loanDetails.LoanMembersList.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Membeer No</th>
+                                        <th>Member Name</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var mem in loanDetails.LoanMembersList)
+                                    {
+                                        <tr>
+                                            <td>@mem.Member_No</td>
+                                            <td>@mem.Member_Name</td>
+                                            <td>@mem.StatusString</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Long Term Loan Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Loan Application No</label>
+                    <div class="form-control-plaintext">@loanDetails.LANo</div>
+                </div>
+                <div class="col-md-4">
+
+                    <label class="form-label">Resolutino No</label>
+                    <div class="form-control-plaintext">@loanDetails.ResolutionNo</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Resolution Date</label>
+                    <div class="form-control-plaintext">@loanDetails.ResolutionDate</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Sanctioned Amount</label>
+                    <div class="form-control-plaintext">@loanDetails.SanctionedAmount</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Instalment Day</label>
+                    <div class="form-control-plaintext">@loanDetails.InstalmentDay</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Grace Period</label>
+                    <div class="form-control-plaintext">@loanDetails.GracePeriod</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Repayment Period</label>
+                    <div class="form-control-plaintext">@loanDetails.Period_Of_Loan</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">First Interest Instalment Date:</label>
+                    <div class="form-control-plaintext">@loanDetails.FirstInsterestDueDate</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">First Principal Instalment Date:</label>
+                    <div class="form-control-plaintext">@loanDetails.FirstPrincipalDueDate</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Disbursement Amount</label>
+                    <div class="form-control-plaintext">@loanDetails.DisbursementAmount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instalment and roi -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="row d-flex justify-content-between">
+                <div class="col-md-6">
+                    <h5 class="mb-0">Rate of Interest and Instalment Details</h5>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Instalment Amount</label>
+                    <div class="form-control-plaintext">@loanDetails.InstalmentAmount</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Rate Of Interest</label>
+                    <div class="form-control-plaintext">@loanDetails.Rate_Of_Interest</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Penal Rate Of Interest</label>
+                    <div class="form-control-plaintext">@loanDetails.Penal_Rate</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan repayment schedule -->
+    <div class="card">
+        <div class="card-header">
+            <div class="row d-flex justify-content-between ">
+                <div class="col-md-6">
+                    <h5>Repayment Schedule</h5>
+                </div>
+            </div>
+
+        </div>
+        <div class="card-body">
+            @if (loanDetails.RepaymentSchedule != null && loanDetails.RepaymentSchedule.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Due Date</th>
+                                <th>Interest Demand</th>
+                                <th>Principal Demand</th>
+                                <th>Outstanding</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var loan in loanDetails.RepaymentSchedule)
+                            {
+                                <tr>
+                                    <td>@loan.Due_Date </td>
+                                    <td>@loan.Interest_Demand </td>
+                                    <td>@loan.Principal_Demand </td>
+                                    <td>@loan.Loan_Outstanding </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-info">
+                                <th>Total</th>
+                                <th>@loanDetails.RepaymentSchedule.Sum(x => x.Interest_Demand)</th>
+                                <th>@loanDetails.RepaymentSchedule.Sum(x => x.Principal_Demand)</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card-footer">
+        <button class="btn btn-primary" @onclick="OnPrint">Print</button>
+        <button class="btn btn-secondary ms-2" @onclick="OnClose">Close</button>
+    </div>
+</div>
+
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private Staging_Details details = new Staging_Details();
+    private DtoLoanDisbursementLT loanDetails { get; set; } = new DtoLoanDisbursementLT();
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (stagingId > 0 && relatedAccountId > 0)
+            {
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                details = query ?? new Staging_Details();
+                if (details != null)
+                {
+                    loanDetails = Utility.JsonbObject.ConvertFromJsonForLTDisbursement(details.Related_Account_Data!);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            details = new Staging_Details();
+        }
+    }
+
+    private async Task OpenImageInNewTab(string imageUrl)
+    {
+        await JSRuntime.InvokeVoidAsync("window.open", imageUrl, "_blank");
+    }
+
+    private async Task OnPrint()
+    {
+        await JSRuntime.InvokeVoidAsync("window.print");
+    }
+}

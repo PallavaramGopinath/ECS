@@ -32,5 +32,10 @@ namespace Infin8.Coapp.Models
         public DateTime? Cheque_Date { get; set; }
         public string? Issue_Bank_Name { get; set; }
         public decimal? Voc_Id { get; set; }
+        public double CashReceipt_Amount { get; set; }
+        public double CashPayment_Amount { get; set; }
+        public double AdjustmentReceipt_Amount { get; set; }
+        public double AdjustmentPayment_Amount { get; set; }
+        public int Security_Type { get; set; } = 0;
     }
 }

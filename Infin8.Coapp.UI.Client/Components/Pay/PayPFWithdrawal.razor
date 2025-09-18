@@ -1,0 +1,438 @@
+﻿@page "/pf-withdrawal"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
+@using System.Net
+
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@inject TransactionStateService TransactionState
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+
+    <h3>Employee Provident Fund Contribution</h3>
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5>Employee Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="text-center p-2 bg-success text-white rounded">
+                        <div class="fw-bold">@Employee_Name</div>
+                        <small>Employee Name</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-2 bg-info text-white rounded">
+                        <div class="fw-bold">@Designation</div>
+                        <small>Designation</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-outline-primary" style="min-height: 63px;" @onclick="GetPFData">
+                        <i class="bi bi-pencil"></i>
+                        Get Provident Balance
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Display PF Balance -->
+    @if (model != null)
+    {
+        <div class="row mb-3 g-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Provident fund balance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="pfbalance">PF Balance</label>
+                            <input type="number" id="pfbalance" class="form-control" value="@model.PFBalance" readonly disabled />
+                        </div>
+                        <div class="form-group">
+                            <label for="volPfbalance">Voluntary PF Balance</label>
+                            <input type="number" id="volPfbalance" class="form-control" value="@model.VPFBalance" readonly disabled />
+                        </div>
+                        <div class="form-group">
+                            <label for="socPFBal">Employer's  PF Balance</label>
+                            <input type="number" id="socPFBal" class="form-control" value="@model.EmployersPFBalance" readonly disabled />
+                        </div>
+                        <div class="form-group">
+                            <label for="intOnPFBal">Interest on PF Balance</label>
+                            <input type="number" id="intOnPFBal" class="form-control" value="@model.InterestOnPF" readonly disabled />
+                        </div>
+                        <div class="form-group">
+                            <label for="intOnSocPFBal">Interest on Employer's PF Balance</label>
+                            <input type="number" id="intOnSocPFBal" class="form-control" value="@model.InterestOnEmployersPF" readonly disabled />
+                        </div>
+                        <div class="form-group">
+                            <label for="totalBalance">Interest on Employer's Balance</label>
+                            <input type="number" id="totalBalance" class="form-control" readonly disabled value="@model.TotalBalance" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Provident fund subscription</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="pfreceived">Provident fund</label>
+                            <InputNumber id="pfreceived" class="form-control shadow-none" @bind-Value="model.PFWithdrawn" @oninput="handlePFWithdrawn" />
+                        </div>
+                        <div class="form-group">
+                            <label for="vpfreceived">Voluntary Provident fund</label>
+                            <InputNumber id="vpfreceived" class="form-control shadow-none" @bind-Value="model.VPFWithdrawn" @oninput="handleVPFWithdrawn"  /> 
+                        </div>
+                        <div class="form-group">
+                            <label for="vpfreceived">Voluntary Provident fund</label>
+                            <InputNumber id="vpfreceived" class="form-control shadow-none" @bind-Value="model.EmployersPFWithdrawn" @oninput="handleEmployerPFWithdrawn" /> 
+                        </div>
+                        <div class="form-group">
+                            <label for="vpfreceived">Voluntary Provident fund</label>
+                            <InputNumber id="vpfreceived" class="form-control shadow-none" @bind-Value="model.InterestOnPFWithdrawn" @oninput="handleIntOnPFWithdrawn" />
+                        </div>
+                        <div class="form-group">
+                            <label for="vpfreceived">Voluntary Provident fund</label>
+                            <InputNumber id="vpfreceived" class="form-control shadow-none" @bind-Value="model.InterestOnEmployersPFWithdrawn" @oninput="handleIntOnEmployerPFWithdrawn" />
+                        </div>
+                        <div class="form-group">
+                            <label for="totalreceived">Total Received</label>
+                            <input type="number" id="totalreceived" class="form-control shadow-non text-primary fs-4" value="@model.TotalWidhdrawn" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Buttions Close, Reset and Initiate -->
+    <div class="d-flex justify-content-between mt-4 mb-4">
+        <div>
+            <!-- Left-aligned buttons -->
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="oi oi-x"></i>
+                Close
+            </button>
+            <button type="reset" class="btn btn-outline-secondary" @onclick="ResetForm">
+                <i class="oi oi-action-undo"></i>
+                Reset
+            </button>
+        </div>
+
+        <!-- Right-aligned submit button -->
+        <button type="button" class="btn btn-primary" @onclick="Initiate" disabled="@(model!.TotalWidhdrawn <= 0)">
+            <i class="oi oi-check"></i>
+            Initiate
+        </button>
+    </div>
+}
+
+
+@if (_isError)
+{
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => _isError = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal Employee_Id { get; set; }
+    [Parameter] public string? Employee_Name { get; set; }
+    [Parameter] public string? Designation { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnPFWithdrawalComponentClose { get; set; }
+    #endregion
+
+    #region objects
+    private DtoPayPFData model = new();
+    #endregion
+
+    #region variables
+    private string brCode = "11001";
+    private decimal Yr_Id = 110010000023;
+    private decimal Created_By = 110010000001;
+    private bool _isLoading = true;
+    private bool _isError = false;
+    private string errorMessage = string.Empty;
+    private Staging_Details stagingDetails = new();
+    #endregion
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                model.Employee_Id = Employee_Id;
+                model.Employee_Name = Employee_Name;
+                model.Designation = Designation;
+                model.Transaction_Date = TransactionDate;
+                model.BrCode = brCode;
+                model.YrId = Yr_Id;
+                model.Created_By = Created_By;
+                // string asOnDate = TransactionDate.ToString("yyyy-MM-dd");
+                // var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}");
+                // if (response != null && response.Employee_Id > 0)
+                // {
+                //     model = response!;
+                // }
+                await GetPFData();
+                _isLoading = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+
+    private async Task GetPFData()
+    {
+        try
+        {
+            string asOnDate = TransactionDate.ToString("yyyy-MM-dd");
+            var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}");
+            if (response != null && response.Employee_Id > 0)
+            {
+                if (response._isError)
+                {
+                    _isError = true;
+                    errorMessage = response.errorMessage!;
+                }
+                else
+                {
+                    model.PFBalance = response.PFBalance;
+                    model.VPFBalance = response.VPFBalance;
+                    model.EmployersPFBalance = response.EmployersPFBalance;
+
+
+                    model.InterestOnPF = response.InterestOnPF;
+                    model.InterestOnEmployersPF = response.InterestOnEmployersPF;
+                    model.InterestAppliledDate = response.InterestAppliledDate;
+
+                    model.PFReceived = response.PFReceived;
+                    model.VPFReceived = response.VPFReceived;
+                    model.EmployersPFReceived = response.EmployersPFReceived;
+
+                    model.PFWithdrawn = response.PFWithdrawn;
+                    model.VPFWithdrawn = response.VPFWithdrawn;
+                    model.EmployersPFWithdrawn = response.EmployersPFWithdrawn;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            errorMessage = "Error in fetching DA Arrears Month " + ex.Message;
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async void handlePFWithdrawn(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double newValue))
+        {
+            if (newValue > model.PFBalance)
+            {
+                // Set to a different value first to trigger change detection
+                model.PFWithdrawn = -1;
+                await Task.Yield(); // Allow UI to update
+                model.PFWithdrawn = model.PFBalance;
+            }
+            else
+            {
+                model.PFWithdrawn = newValue;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async void handleVPFWithdrawn(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double newValue))
+        {
+
+            if (newValue > model.VPFBalance)
+            {
+                // Set to a different value first to trigger change detection
+                model.VPFWithdrawn = -1;
+                await Task.Yield(); // Allow UI to update
+                model.VPFWithdrawn = model.VPFBalance;
+            }
+            else
+            {
+                model.VPFWithdrawn = newValue;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async void handleEmployerPFWithdrawn(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double newValue))
+        {
+
+            if (newValue > model.EmployersPFBalance)
+            {
+                // Set to a different value first to trigger change detection
+                model.EmployersPFWithdrawn = -1;
+                await Task.Yield(); // Allow UI to update
+                model.EmployersPFWithdrawn = model.EmployersPFBalance;
+            }
+            else
+            {
+                model.EmployersPFWithdrawn = newValue;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async void handleIntOnPFWithdrawn(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double newValue))
+        {
+            if (newValue > model.InterestOnPF)
+            {
+                // Set to a different value first to trigger change detection
+                model.InterestOnPFWithdrawn = -1;
+                await Task.Yield(); // Allow UI to update
+                model.InterestOnPFWithdrawn = model.InterestOnPF;
+            }
+            else
+            {
+                model.InterestOnPFWithdrawn = newValue;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async void handleIntOnEmployerPFWithdrawn(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double newValue))
+        {
+            if (newValue > model.InterestOnEmployersPF)
+            {
+                // Set to a different value first to trigger change detection
+                model.InterestOnEmployersPFWithdrawn = -1;
+                await Task.Yield(); // Allow UI to update
+                model.InterestOnEmployersPFWithdrawn = model.InterestOnEmployersPF;
+            }
+            else
+            {
+                model.InterestOnEmployersPFWithdrawn = newValue;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task Close()
+    {
+        await OnPFWithdrawalComponentClose.InvokeAsync(true);
+    }
+
+    private void ResetForm()
+    {
+        model = new()
+        {
+            Employee_Id = Employee_Id,
+            Employee_Name = Employee_Name,
+            Designation = Designation
+        };
+    }
+
+    private async Task Initiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+
+        string pfSubscriptionJsonData = ConvertToJson(model);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = Employee_Id,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = model.TotalReceived,
+            Payment_Amount = model.TotalWidhdrawn,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = pfSubscriptionJsonData,
+            Created_By = 110010000001,
+            Created_Date = TransactionDate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = "11001",
+            CashReceipt_Amount = CashOrAdjustment == 1 ? model.TotalReceived : 0,
+            AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? model.TotalReceived : 0,
+            CashPayment_Amount = CashOrAdjustment == 1 ? model.TotalWidhdrawn : 0,
+            AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.TotalWidhdrawn : 0
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        // await OnPFContributionComponentClose.InvokeAsync(model);
+        await TransactionState.NotifyIntiate(true);
+    }
+
+    private string ConvertToJson(DtoPayPFData pf)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(pf, options);
+    }
+}
+

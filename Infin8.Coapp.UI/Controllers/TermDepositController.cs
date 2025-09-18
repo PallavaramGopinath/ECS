@@ -99,5 +99,53 @@ namespace Infin8.Coapp.API.Controllers
             if (nominee != null) return Ok(nominee);
             else return NotFound();
         }
+
+        [HttpGet]
+        [Route("GetFDData/{tdId:decimal}/{brCode}")]
+        public async Task<ActionResult<FDDetailsVM>> GetFDDataByTDId(decimal tdId, string brCode)
+        {
+            FDDetailsVM fd = new();
+            try
+            {
+                var result = await _termDepositTrnHandler.GetFDDataByTDId(tdId, brCode);
+                if (result != null )
+                {
+                    fd = result;
+                }
+                else
+                {
+                    return NotFound();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Write(ex.Message);
+            }
+            return Ok(fd);
+        }
+
+        [HttpGet]
+        [Route("GetSecurityDepositData/{empId:decimal}/{brCode}")]
+        public async Task<ActionResult<DtoSecurityDepositData>> GetSecurityDepositData(decimal empId, string brCode)
+        {
+            DtoSecurityDepositData sd = new();
+            try
+            {
+                var result = await _termDepositTrnHandler.GetSecurityDepositData(empId, brCode);
+                if (result != null)
+                {
+                    sd = result;
+                }
+                else
+                {
+                    return NotFound();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Write(ex.Message);
+            }
+            return Ok(sd);
+        }
     }
 }

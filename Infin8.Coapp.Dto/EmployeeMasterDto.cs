@@ -11,5 +11,9 @@
         public decimal Emp_Category_Id { get; set; }
         public decimal Emp_Grade_Id { get; set; }
         public string? Emp_Scale { get; set; }
+        public string? Nominee_Name { get; set; }
+        public int NomineeAge { get; set; }
+        public string? Nominee_Relationship { get; set; }
+        public decimal Yr_Id { get; set; }
     }
 }

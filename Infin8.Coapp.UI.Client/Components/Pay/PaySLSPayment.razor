@@ -1,0 +1,414 @@
+﻿@page "/sls-payment"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Infin8.Coapp.Utility
+@using System.Net
+
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@inject TransactionStateService TransactionState
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <h5 class="text-danger mt-2 text-center">Surrender leave salary payment</h5>
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5>Employee Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="text-center p-2 bg-success text-white rounded">
+                        <div class="fw-bold">@Employee_Name</div>
+                        <small>Employee Name</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-2 bg-info text-white rounded">
+                        <div class="fw-bold">@Designation</div>
+                        <small>Designation</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-start  p-2 bg-warning text-white rounded">
+                        <div class="form-check ms-3" style="min-height:46px;">
+                            <input class="form-check-input ps-2 align-middle" type="checkbox" id="isFinalSettlement" checked="@model.IsFinalSettlement" @onchange="handlerFinalSettlementChange" />
+                            <label class="form-check-label" for="isFinalSettlement">
+                                Is Final Settlement
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>SLS Days:</label>
+                        <InputNumber  class="form-control" @bind-Value="model.SLSDays" @onblur="handleSLSInput" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-primary" style="min-height: 63px;" @onclick="GetSLSData">
+                        <i class="bi bi-database-down"></i>
+                        Get Pay Details to Calculate SLS
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Display SLS Data -->
+    @if (model.Component_List != null && model.Component_List.Any())
+    {
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Pay details to calculate Surrender Leave Salary</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Allowance Name</th>
+                            <th>Allowance Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sls in model.Component_List)
+                        {
+                            <tr>
+                                <td> @sls.Component_Name </td>
+                                <td>
+                                    <InputNumber class="form-control" @bind-Value="sls.Allowance_Amount" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- Summary -->
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5 class="text-primary">Summary</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-outline-primary" style="min-height: 63px;" @onclick="CalculateSLS">
+                        <i class="bi bi-calculator"></i>
+                        Calculate SLS Amount
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Total Pay:</label>
+                        <input type="number" class="form-control" value="@model.Component_List!.Sum(x => x.Allowance_Amount)" readonly />
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>SLS Amount:</label>
+                        <input type="number" class="form-control" value="@model.SLSAmount" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buttions Close, Reset and Initiate -->
+    <div class="d-flex justify-content-between mt-4 mb-4">
+        <div>
+            <!-- Left-aligned buttons -->
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="oi oi-x"></i>
+                Close
+            </button>
+            <button type="reset" class="btn btn-outline-secondary" @onclick="ResetForm">
+                <i class="oi oi-action-undo"></i>
+                Reset
+            </button>
+        </div>
+
+        <!-- Right-aligned submit button -->
+        <button type="button" class="btn btn-primary" @onclick="Initiate" disabled="@(model!.SLSAmount <= 0)">
+            <i class="oi oi-check"></i>
+            Initiate
+        </button>
+    </div>
+}
+
+
+@if (_isError)
+{
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => _isError = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal Employee_Id { get; set; }
+    [Parameter] public string? Employee_Name { get; set; }
+    [Parameter] public string? Designation { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnSLSComponentClose { get; set; }
+    #endregion
+
+    #region objects
+    private DtoPaySLSPayment model = new();
+    private List<DtoSLSComponent> SLSList = new();
+    #endregion
+
+    #region variables
+    private DateTime fromDate = new DateTime(2024, 4, 1);
+    private DateTime toDate = new DateTime(2025, 3, 31);
+    private string brCode = "11001";
+    private decimal Yr_Id = 110010000023;
+    private decimal Created_By = 110010000001;
+    private bool _isLoading = true;
+    private bool _isError = false;
+    private string errorMessage = string.Empty;
+    private Staging_Details stagingDetails = new();
+    #endregion
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                model.Employee_Id = Employee_Id;
+                model.Employee_Name = Employee_Name;
+                model.Designation = Designation;
+                model.Transaction_Date = TransactionDate;
+                model.BrCode = brCode;
+                model.YrId = Yr_Id;
+                model.Created_By = Created_By;
+                model.Component_List = new List<DtoSLSComponent>();
+                await GetSLSData();
+                _isLoading = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+
+    private async Task handlerFinalSettlementChange(ChangeEventArgs e)
+    {
+        model.IsFinalSettlement = (bool)e.Value;
+        StateHasChanged();
+        if(!model.IsFinalSettlement)
+        {
+            if (model.SLSDays != 15 && model.SLSDays != 30)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Surrender salary days either 15 days or 30 days.");
+                model.SLSDays = 15;
+                StateHasChanged();
+                return;
+            }
+        }
+    }
+
+    private async Task handleSLSInput()
+    {
+        if (!model.IsFinalSettlement)
+        {
+            if (model.SLSDays != 15 && model.SLSDays != 30)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Surrender salary days either 15 days or 30 days.");
+                model.SLSDays = 15;
+                StateHasChanged();
+                return;
+            }
+        }
+    }
+
+    private async Task GetSLSData()
+    {
+        try
+        {
+            string fromDateString = fromDate.ToString("yyyy-MM-dd");
+            string toDateString = toDate.ToString("yyyy-MM-dd");
+            var isAlreadyPaid = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Pay/IsSLSPaid/{Employee_Id}/{fromDateString}/{toDateString}/{"S"}/{brCode}");
+            if (isAlreadyPaid)
+            {
+                model._isError = true;
+                model.errorMessage = "SLS for the period from " + fromDate.ToString("dd-MM-yyyy") + " to " + toDate.ToString("dd-MM-yyyy") + " already paid";
+                return;
+            }
+            var response = await _httpClient.GetFromJsonAsync<List<DtoSLSComponent>>($"https://localhost:7073/api/Pay/GetSLSData/{Employee_Id}");
+            if (response != null && response.Any())
+            {
+                SLSList = new();
+                SLSList = response.ToList();
+
+                model.Component_List = SLSList;
+                foreach (var sls in SLSList)
+                {
+                    switch (sls.Component_Code)
+                    {
+                        case "BP":
+                            model.BasicPay = sls.Allowance_Amount;
+                            break;
+                        case "PP":
+                            model.PerPay = sls.Allowance_Amount;
+                            break;
+                        case "GP":
+                            model.GradePay = sls.Allowance_Amount;
+                            break;
+                    }
+
+                }
+                model.DAId = SLSList.Select(x => x.DAId).FirstOrDefault();
+                model.DAPercentage = SLSList.Select(x => x.DAPercentage).FirstOrDefault();
+                double da = (model.BasicPay + model.PerPay + model.GradePay) * (model.DAPercentage / 100);
+                model.DAAmount = da;
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            errorMessage = "Error in fetching SLS data " + ex.Message;
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task CalculateSLS()
+    {
+        double SLSAmount = 0;
+        try
+        {
+            if (model.IsFinalSettlement)
+            {
+                SLSAmount = Math.Round((model.TotalAmount / 30) * model.SLSDays, 0);
+            }
+            else
+            {
+                if (model.SLSDays == 15)
+                {
+                    SLSAmount = Math.Round(model.TotalAmount / 2, 0);
+                }
+                else
+                {
+                    model.SLSDays = 30;
+                    SLSAmount = Math.Round((model.TotalAmount / 30) * model.SLSDays, 0);
+                }
+            }
+            model.SLSAmount = 0;
+            await Task.Yield(); // Allow UI to update
+            model.SLSAmount = SLSAmount;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            model._isError = true;
+            model.errorMessage = ex.Message;
+        }
+    }
+
+    private async Task Close()
+    {
+        await OnSLSComponentClose.InvokeAsync(true);
+    }
+
+    private void ResetForm()
+    {
+        model = new()
+        {
+            Employee_Id = Employee_Id,
+            Employee_Name = Employee_Name,
+            Designation = Designation
+        };
+    }
+
+    private async Task Initiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+
+        string slsJsonData = ConvertToJson(model);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = Employee_Id,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = 0,
+            Payment_Amount = model.SLSAmount,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = slsJsonData,
+            Created_By = 110010000001,
+            Created_Date = TransactionDate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = "11001",
+            CashReceipt_Amount =  0,
+            AdjustmentReceipt_Amount =  0,
+            CashPayment_Amount = CashOrAdjustment == 1 ? model.SLSAmount : 0,
+            AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.SLSAmount : 0
+        };
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        // await OnPFContributionComponentClose.InvokeAsync(model);
+        await TransactionState.NotifyIntiate(true);
+    }
+
+    private string ConvertToJson(DtoPaySLSPayment sls)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(sls, options);
+    }
+}
