@@ -117,6 +117,10 @@ namespace Infin8.Coapp.Repository
         #region staging
         IStagingMasterRepository StagingMaster { get; }
         IStagingDetailsRepository StagingDetails { get; }
+        #endregion
+
+        #region Menu
+        IMenuMainRepository MenuMain { get; }
         #endregion 
         ITransactionsRepository TransactionsRepository { get; }
         IMaxId MaxId { get; }

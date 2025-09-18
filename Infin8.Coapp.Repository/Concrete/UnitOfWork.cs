@@ -128,8 +128,11 @@ namespace Infin8.Coapp.Repository
         #region staging
         private StagingMasterRepository? _stagingMasterRepository;
         private StagingDetailsRepository? _stagingDetailsRepository;
-        #endregion 
+        #endregion
 
+        #region Menu
+        private MenuMainRepository? _menuMainRepository;
+        #endregion 
         private TransactionsRepository? _transactionsRepository;
 
         
@@ -221,6 +224,9 @@ namespace Infin8.Coapp.Repository
         public IStagingDetailsRepository StagingDetails => _stagingDetailsRepository ??= new StagingDetailsRepository(_context);
         #endregion
 
+        #region Menu
+        public IMenuMainRepository MenuMain => _menuMainRepository ??= new MenuMainRepository(_context);
+        #endregion
         #region Termdeposit
         public ITermDepositFCTemplateRepository TermDepositFCTemplate => _termDepositFCTemplateRepository ??= new TermDepositFCTemplateRepository(_context);    
         public ITermDepositIntCalcCalendarRepository TermDepositIntCalcCalendar => _termDepositIntCalcCalendarRepository ??= new TermDepositIntCalcCalendarRepository(_context);

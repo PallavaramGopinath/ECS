@@ -163,6 +163,12 @@ namespace Infin8.Coapp.Repository
         public virtual DbSet<Staging_Details> Staging_Details { get; set; }
         public virtual DbSet<Staging_History> Staging_History { get; set; }
         public virtual DbSet<Staging_Balance> Staging_Balance { get; set; }
+        #endregion
+
+        #region Menu
+        public virtual DbSet<Menu_Main> Menu_Main { get; set; }
+        public virtual DbSet<Menu_Sub> Menu_Sub { get; set; }
+        public virtual DbSet<Menu_Forms> Menu_Forms { get; set; }
         #endregion 
     }
 

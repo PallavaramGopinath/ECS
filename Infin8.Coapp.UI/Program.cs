@@ -163,6 +163,9 @@ builder.Services.AddScoped<IReportsAudit, ReportsAudit>();
 //builder.Services.AddScoped<IInstant_Reports, Instant_Reports>();
 #endregion 
 
+#region Menu Services
+builder.Services.AddScoped<IMenuMainHandler, MenuMainHandler>();
+#endregion 
 
 //builder.Services.AddHttpClient().ConfigurePrimaryHttpMessageHandler(() =>
 //{

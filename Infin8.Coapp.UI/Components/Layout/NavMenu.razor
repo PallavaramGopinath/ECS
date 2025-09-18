@@ -1,4 +1,9 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using Infin8.Coapp.Dto
+@implements IDisposable
+@inject HttpClient _httpClient
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">ARD Bank</a>
     </div>
@@ -14,12 +19,82 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
+        <!-- nav bar from database start -->
+        @if (_menuStructure != null)
+        {
+            @foreach (var mainMenu in _menuStructure)
+            {
+                if (mainMenu.SubMenus.Any())
+                {
+                    <div class="nav-item px-3">
+                        <div class="nav-link dropdown-toggle" @onclick="() => ToggleMenu(mainMenu.MenuId)">
+                            <span class="bi bi-collection-fill" aria-hidden="true"></span>
+                            @mainMenu.MenuName?.Trim()
+                        </div>
+
+                        @if (_expandedMenus.Contains(mainMenu.MenuId))
+                        {
+                            <div class="dropdown-menu show">
+                                @foreach (var subMenu in mainMenu.SubMenus)
+                                {
+                                    if (subMenu.Forms.Any())
+                                    {
+                                        <div class="dropdown-item dropdown-toggle"
+                                             @onclick="() => ToggleSubMenu(subMenu.SubMenuId)">
+                                            @subMenu.SubMenuName?.Trim()
+                                        </div>
+
+                                        @if (_expandedSubMenus.Contains(subMenu.SubMenuId))
+                                        {
+                                            <div class="dropdown-menu show">
+                                                @foreach (var form in subMenu.Forms)
+                                                {
+                                                    <NavLink class="dropdown-item" href="@GetFormUrl(form.FormName)">
+                                                        @form.FormName?.Trim()
+                                                    </NavLink>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <NavLink class="dropdown-item" href="@GetSubMenuUrl(subMenu.FormName)">
+                                            @subMenu.SubMenuName?.Trim()
+                                        </NavLink>
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="#">
+                            <span class="bi bi-menu-button-wide" aria-hidden="true"></span>
+                            @mainMenu.MenuName?.Trim()
+                        </NavLink>
+                    </div>
+                }
+            }
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <div class="nav-link text-muted">Loading menu...</div>
+            </div>
+        }
+
+
+
+        <!-- nav bar from database end -->
+
+        <!-- old nav bar start-->
+        @* <div class="nav-item px-3">
             <NavLink class="nav-link" href="products">
                 <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Products
             </NavLink>
         </div>
-
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="member-transactions">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Transaction
@@ -34,7 +109,75 @@
             <NavLink class="nav-link" href="checker-dashboard">
                 <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Checker Dashboard
             </NavLink>
-        </div>
+        </div> *@
+        <!-- old nav bar end -->
     </nav>
 </div>
 
+@code {
+    private List<MenuMain>? _menuStructure;
+    private HashSet<int> _expandedMenus = new();
+    private HashSet<int> _expandedSubMenus = new();
+
+    private string brCode = "11001";
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMenu();
+    }
+    private async Task LoadMenu()
+    {
+        try
+        {
+            var query = await _httpClient.GetFromJsonAsync<List<MenuMain>>($"https://localhost:7073/api/Menu/GetMenuStructure/{brCode}");
+            if(query != null && query.Any())
+            {
+                _menuStructure = query.ToList();
+            }
+            // _menuStructure = await MenuService.GetMenuStructureAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading menu: {ex.Message}");
+            // Handle error (you might want to show a message to the user)
+        }
+    }
+
+    private void ToggleMenu(int menuId)
+    {
+        if (_expandedMenus.Contains(menuId))
+        {
+            _expandedMenus.Remove(menuId);
+        }
+        else
+        {
+            _expandedMenus.Add(menuId);
+        }
+    }
+
+    private void ToggleSubMenu(int subMenuId)
+    {
+        if (_expandedSubMenus.Contains(subMenuId))
+        {
+            _expandedSubMenus.Remove(subMenuId);
+        }
+        else
+        {
+            _expandedSubMenus.Add(subMenuId);
+        }
+    }
+    
+    private string GetSubMenuUrl(string? formName)
+    {
+        return formName?.ToLower().Replace(" ", "-") ?? "#";
+    }
+
+    private string GetFormUrl(string? formName)
+    {
+        return formName?.ToLower().Replace(" ", "-") ?? "#";
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+}
