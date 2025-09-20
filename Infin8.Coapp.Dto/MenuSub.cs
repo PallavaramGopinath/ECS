@@ -12,6 +12,7 @@ namespace Infin8.Coapp.Dto
         public int SubMenuId { get; set; }
         public int MenuId { get; set; }
         public string? SubMenuName { get; set; }
+        public string? SubMenuIcon { get; set; }
         public string? FormName { get; set; }
         public bool SubMenuDelete { get; set; }
         public string? BrCode { get; set; }

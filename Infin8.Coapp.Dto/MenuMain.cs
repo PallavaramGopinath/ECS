@@ -11,6 +11,7 @@ namespace Infin8.Coapp.Dto
     {
         public int MenuId { get; set; }
         public string? MenuName { get; set; }
+        public string? MenuIcon { get; set; }
         public bool MenuDelete { get; set; }
         public string? BrCode { get; set; }
         public string? VocStatus { get; set; }

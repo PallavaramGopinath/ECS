@@ -11,5 +11,6 @@ namespace Infin8.Coapp.Models
         public bool Menu_Delete { get; set; }
         public string? BrCode { get; set; }
         public string? Voc_Status { get; set; }
+        public string? Menu_Icon { get; set; }
     }
 }

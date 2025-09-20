@@ -19,7 +19,7 @@
             </NavLink>
         </div>
 
-        <!-- nav bar from database start -->
+        <!-- nav bar from database inclusion of icons begin-->
         @if (_menuStructure != null)
         {
             @foreach (var mainMenu in _menuStructure)
@@ -27,29 +27,140 @@
                 if (mainMenu.SubMenus.Any())
                 {
                     <div class="nav-item px-3">
-                        <div class="nav-link dropdown-toggle" @onclick="() => ToggleMenu(mainMenu.MenuId)">
-                            <span class="bi bi-collection-fill" aria-hidden="true"></span>
+                        <div class="nav-link clickable" @onclick="@(() => ToggleMenu(mainMenu.MenuId))">
+                            <!-- Main Menu Icon with helper -->
+                            <span class="@MenuIcons.GetIcon(mainMenu.MenuIcon, MenuIcons.DefaultMain) pe-2" aria-hidden="true"></span>
                             @mainMenu.MenuName?.Trim()
+                            <span class="float-end">@(_expandedMenus.Contains(mainMenu.MenuId) ? "▼" : "►")</span>
                         </div>
 
                         @if (_expandedMenus.Contains(mainMenu.MenuId))
                         {
-                            <div class="dropdown-menu show">
+                            <div class="submenu-container">
+                                @foreach (var subMenu in mainMenu.SubMenus)
+                                {
+                                    if (subMenu.Forms.Any())
+                                    {
+                                        <div class="submenu-item clickable" @onclick="@(() => ToggleSubMenu(subMenu.SubMenuId))">
+                                            <!-- Sub Menu Icon with helper -->
+                                            <span class="@MenuIcons.GetIcon(subMenu.SubMenuIcon, MenuIcons.DefaultSub) pe-2" aria-hidden="true"></span>
+                                            @subMenu.SubMenuName?.Trim()
+                                            <span class="float-end">@(_expandedSubMenus.Contains(subMenu.SubMenuId) ? "▼" : "►")</span>
+                                        </div>
+
+                                        @if (_expandedSubMenus.Contains(subMenu.SubMenuId))
+                                        {
+                                            <div class="form-container">
+                                                @foreach (var form in subMenu.Forms)
+                                                {
+                                                    <NavLink class="form-item" href="@GetFormUrl(form.FormName)"
+                                                             ActiveClass="active">
+                                                        <!-- Form Icon with helper -->
+                                                        <span class="@MenuIcons.GetIcon(form.FormIcon, MenuIcons.DefaultForm) ps-2" aria-hidden="true"></span>
+                                                        @form.FormName?.Trim()
+                                                    </NavLink>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <NavLink class="submenu-item" href="@GetSubMenuUrl(subMenu.FormName)"
+                                                 ActiveClass="active">
+                                            <!-- Sub Menu Icon (for items without forms) with helper -->
+                                            <span class="@MenuIcons.GetIcon(subMenu.SubMenuIcon, MenuIcons.DefaultLink) pe-2" aria-hidden="true"></span>
+                                            @subMenu.SubMenuName?.Trim()
+                                        </NavLink>
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="#">
+                            <!-- Main Menu Icon (no submenus) with helper -->
+                            <span class="@MenuIcons.GetIcon(mainMenu.MenuIcon, MenuIcons.DefaultMain) pe-2" aria-hidden="true"></span>
+                            @mainMenu.MenuName?.Trim()
+                        </NavLink>
+                    </div>
+                }
+            }
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <div class="nav-link text-muted">Loading menu...</div>
+            </div>
+        }
+        <!-- nav bar from database inclusion of icons end -->
+
+        <!-- nav bar from database start commented since, icon not included -->
+        @* @if (_menuStructure != null)
+        {
+            @foreach (var mainMenu in _menuStructure)
+            {
+                if (mainMenu.SubMenus.Any())
+                {
+                    <div class="nav-item px-3">
+                        <div class="nav-link dropdown-toggle" @onclick="() => ToggleMenu(mainMenu.MenuId)">
+
+                            <!-- Main Menu Icon -->
+                            @if (!string.IsNullOrEmpty(mainMenu.MenuIcon))
+                            {
+                                <span class="@mainMenu.MenuIcon" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <span class="bi bi-collection-fill" aria-hidden="true"></span>
+                            }
+                            <!-- <span class="bi bi-collection-fill" aria-hidden="true"></span>--> 
+                            @mainMenu.MenuName?.Trim()
+                            <span class="float-end">@(_expandedMenus.Contains(mainMenu.MenuId) ? "▼" : "►")</span>
+                        </div>
+
+                        @if (_expandedMenus.Contains(mainMenu.MenuId))
+                        {
+                            <div class="submenu-container">
+                                <!-- <div class="dropdown-menu show"> -->  
                                 @foreach (var subMenu in mainMenu.SubMenus)
                                 {
                                     if (subMenu.Forms.Any())
                                     {
                                         <div class="dropdown-item dropdown-toggle"
                                              @onclick="() => ToggleSubMenu(subMenu.SubMenuId)">
+                                            <!-- Sub Menu Icon -->
+                                            @if (!string.IsNullOrEmpty(subMenu.SubMenuIcon))
+                                            {
+                                                <span class="@subMenu.SubMenuIcon" aria-hidden="true"></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="bi bi-folder-fill" aria-hidden="true"></span>
+                                            }
                                             @subMenu.SubMenuName?.Trim()
+                                            <span class="float-end">@(_expandedSubMenus.Contains(subMenu.SubMenuId) ? "▼" : "►")</span>
                                         </div>
 
                                         @if (_expandedSubMenus.Contains(subMenu.SubMenuId))
                                         {
-                                            <div class="dropdown-menu show">
+                                            <div class="form-container">
+                                                <!-- <div class="dropdown-menu show">-->
                                                 @foreach (var form in subMenu.Forms)
                                                 {
                                                     <NavLink class="dropdown-item" href="@GetFormUrl(form.FormName)">
+                                                        ActiveClass="active">
+                                                        <!-- Form Icon -->
+                                                        @if (!string.IsNullOrEmpty(form.FormIcon))
+                                                        {
+                                                            <span class="@form.FormIcon" aria-hidden="true"></span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="bi bi-file-earmark-text" aria-hidden="true"></span>
+                                                        }
                                                         @form.FormName?.Trim()
                                                     </NavLink>
                                                 }
@@ -84,10 +195,9 @@
                 <div class="nav-link text-muted">Loading menu...</div>
             </div>
         }
+ *@
 
-
-
-        <!-- nav bar from database end -->
+        <!-- nav bar from database end  commented since, icon not included-->
 
         <!-- old nav bar start-->
         @* <div class="nav-item px-3">
@@ -165,14 +275,16 @@
             _expandedSubMenus.Add(subMenuId);
         }
     }
-    
+
     private string GetSubMenuUrl(string? formName)
     {
+        formName = formName?.ToLower().Trim();
         return formName?.ToLower().Replace(" ", "-") ?? "#";
     }
 
     private string GetFormUrl(string? formName)
     {
+        formName = formName?.ToLower().Trim();
         return formName?.ToLower().Replace(" ", "-") ?? "#";
     }
 
@@ -181,3 +293,98 @@
         // Cleanup if needed
     }
 }
+
+<style>
+    /* Custom dropdown styles for Blazor */
+    .nav-scrollable .dropdown-menu {
+        position: static;
+        float: none;
+        background-color: #6c757d;
+        border: none;
+        display: none; /* Hide by default */
+    }
+
+        .nav-scrollable .dropdown-menu.show {
+            display: block; /* Show when expanded */
+        }
+
+    .nav-scrollable .dropdown-item {
+        color: #fff;
+        padding: 0.5rem 1.5rem;
+        cursor: pointer;
+    }
+
+        .nav-scrollable .dropdown-item:hover {
+            background-color: #5a6268;
+            color: #fff;
+        }
+
+    .nav-scrollable .dropdown-toggle {
+        cursor: pointer;
+    }
+
+    .nav-scrollable .dropdown-menu .dropdown-menu {
+        margin-left: 1.5rem;
+        background-color: #5a6268;
+    }
+
+    /* Make sure nav items are properly spaced */
+    .nav-item {
+        position: relative;
+    }
+
+    /* Pointer cursor for clickable items */
+    .clickable {
+        cursor: pointer;
+    }
+
+    .submenu-container {
+        margin-left: 1rem;
+        border-left: 2px solid #495057;
+    }
+
+    .submenu-item {
+        padding: 0.5rem 1rem;
+        color: #fff;
+        display: block;
+        text-decoration: none;
+    }
+
+        .submenu-item:hover {
+            background-color: #5a6268;
+        }
+
+    .form-container {
+        margin-left: 1rem;
+        border-left: 2px solid #6c757d;
+    }
+
+    .form-item {
+        padding: 0.5rem 1.5rem;
+        color: #e9ecef;
+        display: block;
+        text-decoration: none;
+    }
+
+        .form-item:hover, .form-item.active {
+            background-color: #495057;
+        }
+
+    .clickable {
+        cursor: pointer;
+    }
+    /* Ensure icons have proper spacing */
+    .nav-link span[class^="bi-"],
+    .submenu-item span[class^="bi-"],
+    .form-item span[class^="bi-"] {
+        margin-right: 0.5rem;
+        width: 1em;
+        display: inline-block;
+        text-align: center;
+    }
+
+    /* Home icon specific styling */
+    .nav-link .bi-house-door-fill-nav-menu {
+        margin-right: 0.5rem;
+    }
+</style>

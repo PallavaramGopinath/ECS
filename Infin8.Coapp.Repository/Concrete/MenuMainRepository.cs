@@ -29,6 +29,7 @@ namespace Infin8.Coapp.Repository
                             {
                                 MenuId = main.Menu_Id,
                                 MenuName = main.Menu_Name,
+                                MenuIcon = main.Menu_Icon,
                                 MenuDelete = main.Menu_Delete,
                                 BrCode = main.BrCode,
                                 VocStatus = main.Voc_Status,
@@ -42,6 +43,7 @@ namespace Infin8.Coapp.Repository
                                                 SubMenuId = sub.SubMenu_Id,
                                                 MenuId = sub.Menu_Id,
                                                 SubMenuName = sub.SubMenu_Name,
+                                                SubMenuIcon = sub.SubMenu_Icon,
                                                 FormName = sub.Form_Name,
                                                 SubMenuDelete = sub.SubMenu_Delete,
                                                 BrCode = sub.BrCode,
@@ -57,6 +59,7 @@ namespace Infin8.Coapp.Repository
                                                              SubMenuId = form.SubMenu_Id,
                                                              FormMenu = form.Form_Menu,
                                                              FormName = form.Form_Name,
+                                                             FormIcon = form.Form_Icon,
                                                              FormDelete = form.Form_Delete,
                                                              BrCode = form.BrCode,
                                                              VocStatus = form.Voc_Status
