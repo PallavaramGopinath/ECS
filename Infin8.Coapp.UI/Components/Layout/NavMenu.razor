@@ -3,7 +3,7 @@
 @inject HttpClient _httpClient
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
-<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row ps-3 navbar navbar-dark bg-success">
     <div class="container-fluid">
         <a class="navbar-brand" href="">ARD Bank</a>
     </div>
@@ -11,7 +11,7 @@
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<div class="nav-scrollable bg-secondary" onclick="document.querySelector('.navbar-toggler').click()">
+<div class="nav-scrollable bg-success" style="--bs-bg-opacity: .5;" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -31,7 +31,7 @@
                             <!-- Main Menu Icon with helper -->
                             <span class="@MenuIcons.GetIcon(mainMenu.MenuIcon, MenuIcons.DefaultMain) pe-2" aria-hidden="true"></span>
                             @mainMenu.MenuName?.Trim()
-                            <span class="float-end">@(_expandedMenus.Contains(mainMenu.MenuId) ? "▼" : "►")</span>
+                            <span class="float-end ps-1">@(_expandedMenus.Contains(mainMenu.MenuId) ? "▼" : "►")</span>
                         </div>
 
                         @if (_expandedMenus.Contains(mainMenu.MenuId))
@@ -45,7 +45,7 @@
                                             <!-- Sub Menu Icon with helper -->
                                             <span class="@MenuIcons.GetIcon(subMenu.SubMenuIcon, MenuIcons.DefaultSub) pe-2" aria-hidden="true"></span>
                                             @subMenu.SubMenuName?.Trim()
-                                            <span class="float-end">@(_expandedSubMenus.Contains(subMenu.SubMenuId) ? "▼" : "►")</span>
+                                            <span class="float-end ps-1">@(_expandedSubMenus.Contains(subMenu.SubMenuId) ? "▼" : "►")</span>
                                         </div>
 
                                         @if (_expandedSubMenus.Contains(subMenu.SubMenuId))
