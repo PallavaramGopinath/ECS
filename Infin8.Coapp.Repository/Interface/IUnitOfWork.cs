@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.AspNetCore.Connections.Abstractions;
 using System.Net;
 
 namespace Infin8.Coapp.Repository
@@ -117,6 +118,8 @@ namespace Infin8.Coapp.Repository
         #region staging
         IStagingMasterRepository StagingMaster { get; }
         IStagingDetailsRepository StagingDetails { get; }
+        IStagingHistoryRepository StagingHistory { get; }
+        IStagingBalanceRepository StagingBalance { get; }
         #endregion
 
         #region Menu

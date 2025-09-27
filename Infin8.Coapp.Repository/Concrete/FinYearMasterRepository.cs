@@ -35,6 +35,19 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<Fin_Yr_Master> GetWorkingYear()
+        {
+            Fin_Yr_Master currentYear = new();
+            var result = await CSISContext.Fin_Yr_Master
+            .Where(f => f.Yr_Id == CSISContext.Fin_Yr_Master.Max(f2 => f2.Yr_Id))
+            .FirstOrDefaultAsync();
+            if (result != null && result.Yr_Id >0)
+            {
+                currentYear = result;
+            }
+            return currentYear;
+        }
+
         //public async Task<bool> EditFinYearMasterAsync(Fin_Yr_Master finYrMaster)
         //{
         //    bool result = false;

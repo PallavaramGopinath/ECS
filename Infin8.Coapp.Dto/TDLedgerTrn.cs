@@ -2,7 +2,7 @@
 {
     public class TDLedgerTrn
     {
-        public int TD_Id { get; set; }
+        public decimal TD_Id { get; set; }
         public DateTime Trn_Date { get; set; }
         public string? Voc_No { get; set; }
         public double DepositReceiptAmount { get; set; }
@@ -15,6 +15,8 @@
         public double PenalReceivedAmount { get; set; }
         public double PenalReceivableAmount { get; set; }
         public double DepositPaidAmount { get; set; }
-        public int Voc_Id { get; set; }
+        public decimal Voc_Id { get; set; }
+        public decimal Yr_Id { get; set; }
+        public string? BrCode { get; set; }
     }
 }

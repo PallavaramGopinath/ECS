@@ -33,6 +33,11 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
+        public async Task<bool> AddFinLedgerTrnListAsync(List<Fin_Ledger_Trn> finLedgerTrnList)
+        {
+            return  await _unitOfWork.FinLedgerTrn.AddFinLedgerTrnListAsync(finLedgerTrnList);
+        }
+
         public async Task<bool> EditFinLedgerTrnAsync(Fin_Ledger_Trn finLedgerTrn)
         {
             bool result = false;

@@ -3,6 +3,7 @@ using Infin8.Coapp.Dto;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace API.Controllers
 {
@@ -87,6 +88,41 @@ namespace API.Controllers
             }
 
             return Ok(accountName);
+        }
+
+        [HttpPost]
+        [Route("update-ledger-balance")]
+        public async Task<ActionResult<bool>> UpdateLedgerBalane(decimal yrId, DateTime fromDate, DateTime toDate, string brCode)
+        {
+            bool requestResult = false;
+            try
+            {
+                var result = await _accountsHandler.UpdateLedgerBalance(yrId, fromDate, toDate, brCode);
+                requestResult = result;
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return Ok(requestResult);
+        }
+
+        [HttpGet]
+        [Route("create-year/{yrId:decimal}/{fromDate}/{toDate}/{created_By:decimal}/{brCode}")]
+        public async Task<ActionResult<bool>> CreateYear(decimal yrId, string fromDate, string toDate, decimal created_By, string brCode)
+        {
+            DateTime.TryParse(fromDate, out DateTime fromDateFormated);
+            DateTime.TryParse(toDate,out DateTime toDateFormated);
+            var result = await _accountsHandler.CreateNewFinancialYear(yrId , fromDateFormated,toDateFormated,created_By,brCode );
+            if(result ==  true)
+            {
+                return Ok(result);
+            }
+            else
+            {
+                return BadRequest("Failed to create new financial year");
+            }
         }
     }
 }

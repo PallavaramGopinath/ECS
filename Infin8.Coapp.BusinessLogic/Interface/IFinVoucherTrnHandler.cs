@@ -15,6 +15,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> EditFinVoucherTrnAsync(Fin_Voucher_Trn finVoucherTrn);
         Task<double> GetLedgerBalanceByLedIdAsync(decimal ledId,  decimal yearId, string brCode);
         Task<DtoVoucher> GetTransactionById(decimal vocId, string brCode);
+        Task<DtoVoucher> GetTransactionByIds(decimal vocId, decimal yrId, string brCode);
         Task<DtoVoucher> GetTransactionByNo(string rptNo, string pmtNo, decimal yrId);
     }
 }

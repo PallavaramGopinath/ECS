@@ -2,8 +2,8 @@
 {
     public  class MemberDashBoardLoans
     {
-        public int Mem_Id { get; set; }
-        public int Loan_Id { get; set; }
+        public decimal Mem_Id { get; set; }
+        public decimal Loan_Id { get; set; }
         public int Scheme_Id { get; set; }
         public string? Loan_No { get; set; }
         public string? Scheme_Name { get; set; }

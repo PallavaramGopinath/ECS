@@ -11,5 +11,6 @@ namespace Infin8.Coapp.Repository
     {
         Task<bool> AddFinYearMasterAsync(Fin_Yr_Master finYrMaster);
         //Task<bool> EditFinYearMasterAsync(Fin_Yr_Master finYrMaster);
+        Task<Fin_Yr_Master> GetWorkingYear();
     }
 }

@@ -2,8 +2,8 @@
 {
     public class LoanHeaderDetailsVM
     {
-        public int MemId { get; set; }
-        public int SanctionId { get; set; }
+        public decimal MemId { get; set; }
+        public decimal SanctionId { get; set; }
         public int SchemeId { get; set; }
         public int PurposeId { get; set; }
         public string? LoanNo { get; set; }
@@ -16,7 +16,7 @@
         public double PenalRate { get; set; }
         public double InstalmentAmount { get; set; }
         public DateTime? FirstPrlDueDate { get; set; }
-        public DateTime FirstIntDueDate { get; set; }
+        public DateTime? FirstIntDueDate { get; set; }
         public string? SchemeName { get; set; }
     }
 }

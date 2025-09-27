@@ -14,6 +14,7 @@ namespace Infin8.Coapp.Repository
         Task<bool> AddTermDepositTrnListAsync(List<TermDeposit_Trn> termDepositTrnList);
         Task<bool> EditTermDepositTrnAsync(TermDeposit_Trn termDepositTrn);
         Task<List<DropdownItem>> GetTDNosByMemIdAsync(decimal memId, string tdSchemeType, string brCode);
+        Task<List<decimal>> GetFDIdListForDayEndCalculation(int day, string brCode);
         Task<List<FDDetailsVM>> GetFDPayableByTDIdsAsync(decimal[] fdNos);
         Task<FDDetailsVM> GetFDDataByTDId(decimal tdId, string brCode);
         Task<List<DropdownItem>> GetTDNosByMemIdForRenewal(decimal memId , string tdSchemeType, DateTime trnDate, string brCode);

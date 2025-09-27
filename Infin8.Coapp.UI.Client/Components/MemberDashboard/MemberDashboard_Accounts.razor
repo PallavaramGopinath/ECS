@@ -1,0 +1,165 @@
+﻿@* @page "/account-Ledger" *@
+@using Infin8.Coapp.Dto
+@using System.Reflection
+@using Infin8.Coapp.UI.Client.Components.ModalDialog
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<h3>Accounts Details</h3>
+
+@if (ledgerList != null && ledgerList.Any())
+{
+    @if (Trn_Type == 3 || Trn_Type == 2 || Trn_Type == 6 || Trn_Type == 7)    /// share capital or suspense creditor or sb account
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ledger Name</th>
+                        <th>Date</th>
+                        <th>Transaction No</th>
+                        <th>Receipt Amount</th>
+                        <th>Payment Amount</th>
+                        <th>Closing Balance</th>
+                        <th>Display</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ledger in ledgerList)
+                    {
+                        <tr>
+                            <td>@ledger.Led_Name</td>
+                            <td>@ledger.Trn_Date</td>
+                            <td>@ledger.Voc_No</td>
+                            <td>@ledger.Rpt_Amt</td>
+                            <td>@ledger.Pmt_Amt </td>
+                            <td>@ledger.Bal_Amt</td>
+                            <td>
+                                <button class="btn btn-outline-info" @onclick="() => ViewSlip(ledger)">
+                                    <i class="oi oi-eye"></i>
+                                    Display
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ledger Name</th>
+                        <th>Date</th>
+                        <th>Transaction No</th>
+                        <th>Payment Amount</th>
+                        <th>Receipt Amount</th>
+                        <th>Closing Balance</th>
+                        <th>Display</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ledger in ledgerList)
+                    {
+                        <tr>
+                            <td>@ledger.Led_Name</td>
+                            <td>@ledger.Trn_Date</td>
+                            <td>@ledger.Voc_No</td>
+                            <td>@ledger.Pmt_Amt</td>
+                            <td>@ledger.Rpt_Amt  </td>
+                            <td>@ledger.Bal_Amt</td>
+                            <td>
+                                <button type="button" class="btn btn-outline-warning" @onclick="() => ViewSlip(ledger)">
+                                    <i class="oi oi-eye"></i>
+                                    display
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <ModalDialog @bind-Show="showModal" Title="Ledger">
+        <ChildContent>
+            @if (viewComponent != null)
+            {
+                <DynamicComponent Type="viewComponent" Parameters="parameters" />
+            }
+        </ChildContent>
+    </ModalDialog>
+}
+
+
+@code {
+    #region parameters
+    [Parameter] public decimal Mem_Id { get; set; }
+    [Parameter] public byte Trn_Type { get; set; }
+    [Parameter] public DateTime From_Date { get; set; }
+    [Parameter] public DateTime To_Date { get; set; }
+    [Parameter] public string? BrCode { get; set; }
+    #endregion
+
+    #region Modal
+    private bool showModal = false;
+    private string componentName = "";
+    private Type? viewComponent;
+    #endregion 
+
+    private Dictionary<string, object> parameters = new();
+
+    private List<MemberLedgerVM> ledgerList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        string fromDateString = From_Date.ToString("yyyy-MM-dd");
+        string toDateString = To_Date.ToString("yyyy-MM-dd");
+        var response = await _httpClient.GetFromJsonAsync<List<MemberLedgerVM>>($"https://localhost:7073/api/Dashboard/dashboard-accounts-ledger/{Mem_Id}/{Trn_Type}/{fromDateString}/{toDateString}/{BrCode}");
+        if (response != null && response.Any())
+        {
+            ledgerList = response.ToList();
+        }
+        StateHasChanged();
+    }
+
+    private void ViewSlip(MemberLedgerVM ledger)
+    {
+        if (ledger.Voc_Id > 0)
+        {
+            string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+            var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
+            componentName = "SlipDashboard";
+            fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Pages.AccountsDashboard"}.{componentName},{assemblyName}";
+            Type? type = Type.GetType(fullyQualifiedName);
+            if (type == null)
+            {
+                Console.WriteLine($"Could not find type: {fullyQualifiedName}");
+                // Try loading the assembly first
+                var assembly = Assembly.Load(assemblyName);
+                type = assembly.GetType($"{componentName}");
+            }
+            if (type != null)
+            {
+                viewComponent = type;
+                if (viewComponent != null)
+                {
+                    parameters.Clear();
+                    parameters = new Dictionary<string, object>
+                {
+                    { "Voc_Id",ledger.Voc_Id  },
+                    { "Yr_Id",ledger.Yr_Id },
+                    { "BrCode" ,ledger.BrCode!}
+                };
+                }
+                showModal = true;
+            }
+            StateHasChanged();
+        }
+    }
+
+}

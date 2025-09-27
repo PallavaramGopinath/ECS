@@ -11,5 +11,6 @@ namespace Infin8.Coapp.Repository
     {
         Task<bool> AddFinLedgerTrnAsync(Fin_Ledger_Trn finLedgerTrn);
         Task<bool> EditFinLedgerTrnAsync(Fin_Ledger_Trn finLedgerTrn);
+        Task<bool> AddFinLedgerTrnListAsync(List<Fin_Ledger_Trn> finLedgerTrnList);
     }
 }

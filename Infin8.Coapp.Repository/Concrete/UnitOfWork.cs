@@ -128,6 +128,8 @@ namespace Infin8.Coapp.Repository
         #region staging
         private StagingMasterRepository? _stagingMasterRepository;
         private StagingDetailsRepository? _stagingDetailsRepository;
+        private StagingHistoryRepository? _stagingHistoryRepository;
+        private StagingBalanceRepository? _stagingBalanceRepository;
         #endregion
 
         #region Menu
@@ -222,6 +224,8 @@ namespace Infin8.Coapp.Repository
         #region staging
         public IStagingMasterRepository StagingMaster => _stagingMasterRepository ??= new StagingMasterRepository(_context);
         public IStagingDetailsRepository StagingDetails => _stagingDetailsRepository ??= new StagingDetailsRepository(_context);
+        public IStagingHistoryRepository StagingHistory => _stagingHistoryRepository ??= new StagingHistoryRepository(_context);
+        public IStagingBalanceRepository StagingBalance => _stagingBalanceRepository ??= new StagingBalanceRepository(_context);
         #endregion
 
         #region Menu

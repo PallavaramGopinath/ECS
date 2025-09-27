@@ -10,9 +10,11 @@ namespace Infin8.Coapp.Repository
     public interface IStagingMasterRepository
     {
         Task<decimal> AddStagingMaster(Staging_Master stagingMaster);
+        Task<bool> DeleteStagingMaster(decimal stagingId, string brCode);
+        Task<bool> DeleteStagingMaster(List<Staging_Master> masterList);
         Task<Staging_Master> GetStagingMasterById(decimal stagingId);
+        Task<List<Staging_Master>> GetStagingMasterListByDate(DateTime stagingDate, string brCode);
         bool IsStagingMasterCreated(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate);
-        Task<bool> DeleteStagingMaster(decimal stagingId);
         Task<Decimal> GetStagingMasterId(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate);
         Task<bool> MakeStagingMaster(decimal stagingId);
         Task<bool> CheckerStateStaging(decimal stagingId,decimal vocId, decimal checkedBy, string stagingStatus);

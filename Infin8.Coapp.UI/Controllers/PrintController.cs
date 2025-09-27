@@ -524,7 +524,7 @@ namespace Infin8.Coapp.API.Controllers
         }
         #endregion
 
-        public  System.Data.DataTable ObjectToDataTable(object o)
+        private  System.Data.DataTable ObjectToDataTable(object o)
         {
             Type t = o.GetType();
             System.Data.DataTable dt = new System.Data.DataTable(t.Name);

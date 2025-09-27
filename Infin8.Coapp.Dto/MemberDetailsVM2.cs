@@ -2,8 +2,8 @@
 {
     public class MemberDetailsVM2
     {
-        public int Mem_Id { get; set; }
-        public byte[]? PhotoImage { get; set; }
+        public decimal Mem_Id { get; set; }
+        public string? PhotoImage { get; set; }
         public string? NomineeName { get; set; }
         public Nullable<int> NomineeAge { get; set; }
         public string? NomineeRelationShip { get; set; } 

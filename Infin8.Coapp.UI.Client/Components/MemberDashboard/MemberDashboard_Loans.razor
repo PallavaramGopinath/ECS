@@ -1,0 +1,278 @@
+﻿@using Infin8.Coapp.Dto
+@using System.Reflection
+@using Infin8.Coapp.UI.Client.Components.ModalDialog
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<h3>Loan Details</h3>
+
+@if (model.Header != null )
+{
+    <!-- Header -->
+    <div class="row">
+        <div class="col-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Loan Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <tr>
+                                <td>Purpose</td>
+                                <td colspan="3">@model.Header.SchemeName</td>
+                            </tr>
+                            <tr>
+                                <td>Sanctioned Amount</td>
+                                <td>@model.Header.LoanAmount</td>
+                                <td>Rate of Interest</td>
+                                <td>@model.Header.RateOfInterest</td>
+                            </tr>
+                            <tr>
+                                <td>Sanctioned Date</td>
+                                <td>@model.Header.DisbursementDate</td>
+                                <td>Penal Rate</td>
+                                <td>@model.Header.PenalRate</td>
+                            </tr>
+                            <tr>
+                                <td>First Pricipal Due Date</td>
+                                <td>@model.Header.FirstPrlDueDate</td>
+                                <td>Principal Period</td>
+                                <td>@model.Header.PrlPrd</td>
+                            </tr>
+                            <tr>
+                                <td>First Interest Due Date</td>
+                                <td>@model.Header.FirstIntDueDate</td>
+                                <td>Interest Period</td>
+                                <td>@model.Header.IntPrd</td>
+                            </tr>
+                            <tr>
+                                <td>Instalment Amount</td>
+                                <td>@model.Header.InstalmentAmount</td>
+                            </tr>
+
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Instalment Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Instalment w.e.f</th>
+                                    <th>Instalment Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                @foreach (var inst in model.LoanInst!)
+                                {
+                                    <tr>
+                                        <td>@inst.Inst_Wef</td>
+                                        <td>@inst.Inst_Amt</td>
+                                    </tr>
+                                }
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Rate of Interest Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Instalment w.e.f</th>
+                                    <th>Rate of Interest</th>
+                                    <th>Penal Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                                    @foreach (var roi in model.LoanROI!)
+                                    {
+                                    <tr>
+                                        <td>@roi.Roi_Wef</td>
+                                        <td>@roi.Roi</td>
+                                        <td>@roi.Pi</td>
+                                    </tr>
+                                    }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions -->
+    @if (model.Transactions != null && model.Transactions.Any())
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5>Transactions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Trn No</th>
+                                <th>Disb Amount</th>
+                                <th>Prl.Demand</th>
+                                <th>Demand Date</th>
+                                <th>Int.Amount</th>
+                                <th>Int.Calc.Date</th>
+                                <th>PI Amount</th>
+                                <th>PI.Calc.Date</th>
+                                <th>Prl.Coll</th>
+                                <th>Int.Coll</th>
+                                <th>PI.Coll</th>
+                                <th>Prl.OS</th>
+                                <th>Int.Balance</th>
+                                <th>PI.Balance</th>
+                                <th>Prl.OD</th>
+                                <th>View</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                                @foreach (var loan in model.Transactions)
+                                {
+                                <tr>
+                                    <td>@loan.Trn_Date</td>
+                                    <td>@loan.Trn_Status </td>
+                                    <td>@loan.Voc_No </td>
+                                    <td>@loan.Disb_Amt </td>
+                                    <td>@loan.Prl_Dem </td>
+                                    <td>@loan.Due_Date</td>
+                                    <td>@loan.IntCalc_Amt</td>
+                                    <td>@loan.IntCalc_Date</td>
+                                    <td>@loan.PICalc_Amt</td>
+                                    <td>@loan.PICalc_Date</td>
+                                    <td>@loan.PrlColl_Amt</td>
+                                    <td>@loan.IntColl_Amt</td>
+                                    <td>@loan.PIColl_Amt</td>
+                                    <td>@loan.Prl_OS</td>
+                                    <td>@loan.Int_Bal</td>
+                                    <td>@loan.PI_Bal</td>
+                                    <td>@loan.Prl_OD</td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-info" @onclick="() => ViewSlip(loan)">
+                                            <i class="oi oi-eye"></i>
+                                            View
+                                        </button>
+                                    </td>
+                                </tr>
+                                }
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <ModalDialog @bind-Show="showModal" Title="Ledger">
+        <ChildContent>
+            @if (viewComponent != null)
+            {
+                <DynamicComponent Type="viewComponent" Parameters="parameters" />
+            }
+        </ChildContent>
+    </ModalDialog>
+}
+
+
+@code {
+    #region parameters
+    [Parameter] public decimal Loan_Id { get; set; }
+    [Parameter] public DateTime From_Date { get; set; }
+    [Parameter] public DateTime To_Date { get; set; }
+    [Parameter] public string? BrCode { get; set; }
+    #endregion
+
+    #region Modal
+    private bool showModal = false;
+    private string componentName = "";
+    private Type? viewComponent;
+    private Dictionary<string, object> parameters = new();
+    #endregion
+
+    private LoanLedgerVM model = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                if (Loan_Id > 0)
+                {
+                    string fromDateString = From_Date.ToString("yyyy-MM-dd");
+                    string toDateString = To_Date.ToString("yyyy-MM-dd");
+                    var empResponse = await _httpClient.GetFromJsonAsync<LoanLedgerVM>($"https://localhost:7073/api/Dashboard/dashboard-loan-ledger/{Loan_Id}/{fromDateString}/{toDateString}/{BrCode}");
+                    if (empResponse != null && empResponse.Header!.SchemeId > 0) model = empResponse;
+                }
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+
+    private void ViewSlip(LoanTransactionVM ledger)
+    {
+        if (ledger.Voc_Id > 0)
+        {
+            string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+            var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
+            componentName = "SlipDashboard";
+            fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Pages.AccountsDashboard"}.{componentName},{assemblyName}";
+            Type? type = Type.GetType(fullyQualifiedName);
+            if (type == null)
+            {
+                Console.WriteLine($"Could not find type: {fullyQualifiedName}");
+                // Try loading the assembly first
+                var assembly = Assembly.Load(assemblyName);
+                type = assembly.GetType($"{componentName}");
+            }
+            if (type != null)
+            {
+                viewComponent = type;
+                if (viewComponent != null)
+                {
+                    parameters.Clear();
+                    parameters = new Dictionary<string, object>
+                {
+                    { "Voc_Id",ledger.Voc_Id  },
+                    { "Yr_Id",ledger.Yr_Id },
+                    { "BrCode" ,ledger.BrCode!}
+                };
+                }
+                showModal = true;
+            }
+            StateHasChanged();
+        }
+    }
+
+}

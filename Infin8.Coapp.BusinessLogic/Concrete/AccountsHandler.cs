@@ -76,6 +76,31 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.Accounts.UpdateLedgerBalance(yrId, fromDate, toDate, brCode);
         }
 
-        
+        public async Task<bool> CreateNewFinancialYear(decimal yrId,DateTime fromDate, DateTime toDate, decimal created_By, string brCode)
+        {
+            bool result = false;
+            try
+            {
+                _unitOfWork.BeginTransaction();
+                var isAllDaysClosed = await _unitOfWork.Calendars.CanBeginDay(brCode);
+                if (isAllDaysClosed == false)
+                {
+                    Console.Write("Some of dates are not closed");
+                    result = false;
+                    return result;
+                }
+                //var resultUpdt = await UpdateLedgerBalance(yrId, fromDate, toDate, brCode);
+                var resultNewYear = await _unitOfWork.Accounts.CreateNewFinancialYear(yrId, fromDate, toDate, created_By, brCode);
+                var resultNewCalendar = await _unitOfWork.Calendars.CreateNewCalendar(toDate,resultNewYear.Yr_Id ,created_By ,brCode);
+                _unitOfWork.CommitTransaction();
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                _unitOfWork.RollBack();
+            }
+            return result;
+        }
     }
 }

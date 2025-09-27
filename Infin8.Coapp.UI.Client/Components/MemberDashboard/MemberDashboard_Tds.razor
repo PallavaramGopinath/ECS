@@ -1,0 +1,177 @@
+﻿@using Infin8.Coapp.Dto
+@using System.Reflection
+@using Infin8.Coapp.UI.Client.Components.ModalDialog
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<h3>Term Deposit Ledger</h3>
+
+@if(model.TDMaster!= null)
+{
+    <div class="card">
+        <div class="card-header">
+            <h5>Term Deposit Data</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <tr>
+                        <td>Bond No</td>
+                        <td>@model.TDMaster.TD_No</td>
+                        <td>Name</td>
+                        <td>@model.TDMaster.TDH_Name</td>
+                        <td>Age</td>
+                        <td>@model.TDMaster.TDH_Age</td>
+                    </tr>
+                    <tr>
+                        <td>Value Date</td>
+                        <td>@model.TDMaster.ValueDate</td>
+                        <td>Deposit Amount</td>
+                        <td>@model.TDMaster.DepositAmount</td>
+                        <td>Period</td>
+                        <td>@model.TDMaster.PeriodInMonths (Months) @model.TDMaster.PeriodInDays (Days)</td>
+                    </tr>
+                    <tr>
+                        <td>Rate of Interest</td>
+                        <td>@model.TDMaster.RateOfInterest</td>
+                        <td>Maturity Date</td>
+                        <td>@model.TDMaster.MaturityAmount</td>
+                        <td>Interest Payable Frequency</td>
+                        <td>@model.TDMaster.InterestPayableFrequency</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @if(model.TDTrnList!= null && model.TDTrnList.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Trn No</th>
+                        <th>Deposit Amount</th>
+                        <th>Int.Calc.Amt</th>
+                        <th>Int.Calc.Date</th>
+                        <th>Int.Paid Amt</th>
+                        <th>Int.Payable Amt</th>
+                        <th>Deposit Paid Amt</th>
+                        <th>Deposit Balance</th>
+                        <th>View</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var td in model.TDTrnList)
+                    {
+                        <tr>
+                            <td>@td.Trn_Date</td>
+                            <td>@td.Voc_No</td>
+                            <td>@td.DepositReceiptAmount</td>
+                            <td>@td.InterestCalculatedAmount</td>
+                            <td>@td.InterestAppliedDate</td>
+                            <td>@td.InterestPaidAmount</td>
+                            <td>@td.InterestPayableAmount</td>
+                            <td>@td.DepositPaidAmount</td>
+                            <td>@(td.DepositReceiptAmount - td.DepositPaidAmount)</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-warning" @onclick="() => ViewSlip(td)">
+                                    <i class="oi oi-eye"></i>
+                                    View
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                
+            </table>
+        </div>
+    }
+
+    <ModalDialog @bind-Show="showModal" Title="Ledger">
+        <ChildContent>
+            @if (viewComponent != null)
+            {
+                <DynamicComponent Type="viewComponent" Parameters="parameters" />
+            }
+        </ChildContent>
+    </ModalDialog>
+}
+
+
+@code {
+    #region parameters
+    [Parameter] public decimal Td_Id { get; set; }
+    [Parameter] public DateTime From_Date { get; set; }
+    [Parameter] public DateTime To_Date { get; set; }
+    [Parameter] public string? BrCode { get; set; }
+    #endregion
+
+    #region Modal
+    private bool showModal = false;
+    private string componentName = "";
+    private Type? viewComponent;
+    private Dictionary<string, object> parameters = new();
+    #endregion
+
+    private TDLedgerVM model = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                if (Td_Id > 0)
+                {
+                    string fromDateString = From_Date.ToString("yyyy-MM-dd");
+                    string toDateString = To_Date.ToString("yyyy-MM-dd");
+                    var response = await _httpClient.GetFromJsonAsync<TDLedgerVM>($"https://localhost:7073/api/Dashboard/dashboard-td-ledger/{Td_Id}/{fromDateString}/{toDateString}/{BrCode}");
+                    if (response != null && response.TDMaster!.TDScheme_Id > 0) model = response;
+                }
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+
+    private void ViewSlip(TDLedgerTrn ledger)
+    {
+        if (ledger.Voc_Id > 0)
+        {
+            string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+            var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
+            componentName = "SlipDashboard";
+            fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Pages.AccountsDashboard"}.{componentName},{assemblyName}";
+            Type? type = Type.GetType(fullyQualifiedName);
+            if (type == null)
+            {
+                Console.WriteLine($"Could not find type: {fullyQualifiedName}");
+                // Try loading the assembly first
+                var assembly = Assembly.Load(assemblyName);
+                type = assembly.GetType($"{componentName}");
+            }
+            if (type != null)
+            {
+                viewComponent = type;
+                if (viewComponent != null)
+                {
+                    parameters.Clear();
+                    parameters = new Dictionary<string, object>
+                {
+                    { "Voc_Id",ledger.Voc_Id  },
+                    { "Yr_Id",ledger.Yr_Id },
+                    { "BrCode" ,ledger.BrCode!}
+                };
+                }
+                showModal = true;
+            }
+            StateHasChanged();
+        }
+    }
+}

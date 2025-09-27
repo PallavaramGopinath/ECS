@@ -14,7 +14,7 @@ namespace Infin8.Coapp.Dto
         public DateTime Voc_Date { get; set; }
         public int Voc_Type { get; set; }
         public string? Voc_Narration { get; set; }
-        public string brCode { get; set; }
+        public string? brCode { get; set; }
         public List<DtoVoucherTrn> Transactions { get; set; } = new();
     }
 }

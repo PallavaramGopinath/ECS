@@ -10,5 +10,7 @@ namespace Infin8.Coapp.BusinessLogic
     public interface IFinYearMasterHandler
     {
         Task<bool> AddFinYearMasterAsync(Fin_Yr_Master finYrMaster);
+
+        Task<Fin_Yr_Master> GetWorkingYear();
     }
 }

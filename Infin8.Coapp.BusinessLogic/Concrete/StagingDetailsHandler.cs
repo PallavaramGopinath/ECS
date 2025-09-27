@@ -74,7 +74,6 @@ namespace Infin8.Coapp.BusinessLogic
             
             return await _unitOfWork.StagingDetails.AddStagingDetailsForAccountTransaciton(stagingDetails, stagingId);
         }
-           
         
         public async Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId, int relateAccountId)
         {
@@ -86,7 +85,7 @@ namespace Infin8.Coapp.BusinessLogic
                 int count = await VerifyStagingIdExistinsInStagingDetails(stagingId);
                 if (count == 0) 
                 { 
-                    result = await  _unitOfWork.StagingMaster.DeleteStagingMaster(stagingId);
+                    result = await  _unitOfWork.StagingMaster.DeleteStagingMaster(stagingId,"11001");
                 }
                 _unitOfWork.Complete();
                 _unitOfWork.CommitTransaction();
@@ -97,6 +96,10 @@ namespace Infin8.Coapp.BusinessLogic
                 _unitOfWork.RollBack();
             }
             return result;
+        }
+        public async Task<bool> DeleteStagingDetails(List<Staging_Details> detailsList)
+        {
+            return await _unitOfWork.StagingDetails.DeleteStagingDetails(detailsList);
         }
         public async Task<int> VerifyStagingIdExistinsInStagingDetails(decimal stagingId)
         {
@@ -139,6 +142,11 @@ namespace Infin8.Coapp.BusinessLogic
         public Task<List<Staging_Details>> GetAllStagingDetails(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<List<Staging_Details>> GetStagingDetailsByDate(DateTime stagingDate, string brCode)
+        {
+            return await _unitOfWork.StagingDetails.GetStagingDetailsByDate(stagingDate, brCode);
         }
         public async Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId)
         {

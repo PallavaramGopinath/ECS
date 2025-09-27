@@ -72,6 +72,9 @@ else
     <iframe src="@pdfDataUrl" style="width:100%; height:800px;" frameboarder="0"></iframe>
 } *@
 @code {
+    [Parameter] public decimal Voc_Id { get; set; }
+    [Parameter] public decimal Yr_Id { get; set; }
+    [Parameter] public string? BrCode { get; set; }
 
     private string rptNo = "";
     private string pmtNo = "";
@@ -87,6 +90,21 @@ else
 
     // Property to hold the current selection. Default to Receipt.
     private SearchType SelectedSearchType { get; set; } = SearchType.Receipt;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if(Voc_Id > 0)
+            {
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByVocId/{Voc_Id}/{BrCode}");
+                voucherData = result;
+                voucherData!.brCode = BrCode;
+                isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
 
     // Event handler for the radio button's onchange event
     private void OnSearchTypeChanged(ChangeEventArgs e)

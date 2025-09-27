@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -54,6 +55,7 @@ namespace Infin8.Coapp.Repository
                     td.TDTrn_Id = maxId;
                     td.Trn_SlNo = maxSlNo;
                     await AddAsync(td);
+                    await CSISContext.SaveChangesAsync();
                 }
                 result = true;
             }
@@ -113,6 +115,32 @@ namespace Infin8.Coapp.Repository
             return tdNos;
         }
 
+        public async Task<List<decimal>> GetFDIdListForDayEndCalculation(int day, string brCode)
+        {
+            List<decimal> fdIdList = new();
+            try
+            {
+                var result = await (CSISContext.TermDeposit_Master
+                    .Where(master =>
+                        master.BrCode == brCode &&
+                        master.TD_Delete == false &&
+                        master.AccountClosed == false &&
+                        master.ValueDate.Day == day &&
+                        master.TDScheme_Id < 11001400)
+                    .Select(master => master.TD_Id)).ToListAsync();
+
+                if (result != null && result.Any())
+                {
+                    fdIdList = result.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return fdIdList;
+        }
+
         public async Task<List<FDDetailsVM>> GetFDPayableByTDIdsAsync(decimal[] fdNos)
         {
             List<FDDetailsVM> fdDetails = new List<FDDetailsVM>();
@@ -168,7 +196,7 @@ namespace Infin8.Coapp.Repository
                                         FDIntAlreadyCalculatedDate = grouped.Max(g => g.trn.InterestAppliedDate),
                                         FDIntAlreadyPaid = grouped.Sum(g => g.trn.InterestPaidAmount)
                                     }).ToListAsync();
-                if (fdList!= null && fdList.Any()) fdDetails = fdList;
+                if (fdList != null && fdList.Any()) fdDetails = fdList;
             }
             catch (Exception ex)
             {
@@ -177,32 +205,32 @@ namespace Infin8.Coapp.Repository
             return fdDetails;
         }
 
-        public async Task<FDDetailsVM> GetFDDataByTDId(decimal tdId,string brCode)
+        public async Task<FDDetailsVM> GetFDDataByTDId(decimal tdId, string brCode)
         {
             FDDetailsVM fdData = new FDDetailsVM();
             try
             {
                 var query = await (from master in CSISContext.TermDeposit_Master
-                                    join trn in CSISContext.TermDeposit_Trn
-                                        on master.TD_Id equals trn.TD_Id
-                                    join scheme in CSISContext.TermDeposit_Schemes
-                                        on master.TDScheme_Id equals scheme.TDScheme_Id
-                                    where trn.TD_Delete == false
-                          && master.AccountClosed == false
-                                        && master.TD_Id == tdId
-                                        && master.BrCode == brCode 
-                                        && scheme.BrCode == brCode
-                                    group new
-                                    {
-                                        master,
-                                        scheme,
-                                        trn
-                                    } by new
-                                    {
+                                   join trn in CSISContext.TermDeposit_Trn
+                                       on master.TD_Id equals trn.TD_Id
+                                   join scheme in CSISContext.TermDeposit_Schemes
+                                       on master.TDScheme_Id equals scheme.TDScheme_Id
+                                   where trn.TD_Delete == false
+                         && master.AccountClosed == false
+                                       && master.TD_Id == tdId
+                                       && master.BrCode == brCode
+                                       && scheme.BrCode == brCode
+                                   group new
+                                   {
+                                       master,
+                                       scheme,
+                                       trn
+                                   } by new
+                                   {
                                        master.TD_Id,
                                        master.TD_No,
                                        master.TDH_Name,
-                                       master.TDH_Age ,
+                                       master.TDH_Age,
                                        scheme.TDScheme_Name,
                                        master.TDScheme_Id,
                                        master.ValueDate,
@@ -215,30 +243,30 @@ namespace Infin8.Coapp.Repository
                                        master.IsDiscountRate,
                                        master.MaturityAmount,
                                        master.MaturityDate
-                                    } into grouped
-                                    select new FDDetailsVM
-                                    {
-                                        FDId = grouped.Key.TD_Id,
-                                        TDScheme_Name = grouped.Key.TDScheme_Name,
-                                        TDH_Name = grouped.Key.TDH_Name,
-                                        TDH_Age = grouped.Key.TDH_Age ,
-                                        FDNo = grouped.Key.TD_No,
-                                        FDSchemeId = grouped.Key.TDScheme_Id,
-                                        FDValueDate = grouped.Key.ValueDate,
-                                        FDAmount = grouped.Key.DepositAmount,
-                                        FDPrdInMonths = grouped.Key.PeriodInMonths,
-                                        FDPrdInDays = grouped.Key.PeriodInDays,
-                                        FDIntPayableFrequency = grouped.Key.InterestPayableFrequency,
-                                        FDCompoundFrequency = grouped.Key.CompoundFrequency,
-                                        FDROI = grouped.Key.RateOfInterest,
-                                        FDIsDiscountRate = grouped.Key.IsDiscountRate,
-                                        FDMaturityAmount = grouped.Key.MaturityAmount,
-                                        FDMaturityDate = grouped.Key.MaturityDate,
-                                        FDIntAlreadyCalculated = grouped.Sum(g => g.trn.InterestCalculatedAmount),
-                                        FDIntAlreadyCalculatedDate = grouped.Max(g => g.trn.InterestAppliedDate),
-                                        FDIntAlreadyPaid = grouped.Sum(g => g.trn.InterestPaidAmount)
-                                    }).FirstAsync();
-                if (query != null && query.FDId >0) fdData = query;
+                                   } into grouped
+                                   select new FDDetailsVM
+                                   {
+                                       FDId = grouped.Key.TD_Id,
+                                       TDScheme_Name = grouped.Key.TDScheme_Name,
+                                       TDH_Name = grouped.Key.TDH_Name,
+                                       TDH_Age = grouped.Key.TDH_Age,
+                                       FDNo = grouped.Key.TD_No,
+                                       FDSchemeId = grouped.Key.TDScheme_Id,
+                                       FDValueDate = grouped.Key.ValueDate,
+                                       FDAmount = grouped.Key.DepositAmount,
+                                       FDPrdInMonths = grouped.Key.PeriodInMonths,
+                                       FDPrdInDays = grouped.Key.PeriodInDays,
+                                       FDIntPayableFrequency = grouped.Key.InterestPayableFrequency,
+                                       FDCompoundFrequency = grouped.Key.CompoundFrequency,
+                                       FDROI = grouped.Key.RateOfInterest,
+                                       FDIsDiscountRate = grouped.Key.IsDiscountRate,
+                                       FDMaturityAmount = grouped.Key.MaturityAmount,
+                                       FDMaturityDate = grouped.Key.MaturityDate,
+                                       FDIntAlreadyCalculated = grouped.Sum(g => g.trn.InterestCalculatedAmount),
+                                       FDIntAlreadyCalculatedDate = grouped.Max(g => g.trn.InterestAppliedDate),
+                                       FDIntAlreadyPaid = grouped.Sum(g => g.trn.InterestPaidAmount)
+                                   }).FirstAsync();
+                if (query != null && query.FDId > 0) fdData = query;
             }
             catch (Exception ex)
             {
@@ -299,25 +327,25 @@ namespace Infin8.Coapp.Repository
             try
             {
                 var result = await (from td in CSISContext.TermDeposit_Master
-                              join scheme in CSISContext.TermDeposit_Schemes
-                                  on td.TDScheme_Id equals scheme.TDScheme_Id
-                              where td.Mem_Id == memId &&
-                                    td.BrCode == brCode &&
-                                    td.TD_Delete == false &&
-                                    td.Nominee1Name != null &&
-                                    scheme.TDSchemeType == tdSchemeType
-                              orderby td.TD_Id descending
-                              select new DtoNominee
-                              {
-                                  Nominee1Name = td.Nominee1Name,
-                                  Nominee1Age = td.Nominee1Age,
-                                  Nominee1Relationship = td.Nominee1Relationship,
-                                  Nominee2Name=td.Nominee2Name,
-                                  Nominee2Age = td.Nominee2Age,
-                                  Nominee2Relationship = td.Nominee2Relationship,
-                              }).FirstOrDefaultAsync();
+                                    join scheme in CSISContext.TermDeposit_Schemes
+                                        on td.TDScheme_Id equals scheme.TDScheme_Id
+                                    where td.Mem_Id == memId &&
+                                          td.BrCode == brCode &&
+                                          td.TD_Delete == false &&
+                                          td.Nominee1Name != null &&
+                                          scheme.TDSchemeType == tdSchemeType
+                                    orderby td.TD_Id descending
+                                    select new DtoNominee
+                                    {
+                                        Nominee1Name = td.Nominee1Name,
+                                        Nominee1Age = td.Nominee1Age,
+                                        Nominee1Relationship = td.Nominee1Relationship,
+                                        Nominee2Name = td.Nominee2Name,
+                                        Nominee2Age = td.Nominee2Age,
+                                        Nominee2Relationship = td.Nominee2Relationship,
+                                    }).FirstOrDefaultAsync();
 
-                if (result != null ) 
+                if (result != null)
                     nominee = result;
                 else
                 {
@@ -328,11 +356,11 @@ namespace Infin8.Coapp.Repository
                                              Nominee1Name = td.Nominee1Name,
                                              Nominee1Age = td.Nominee1Age,
                                              Nominee1Relationship = td.Nominee1Relationship,
-                                             Nominee2Name ="",
+                                             Nominee2Name = "",
                                              Nominee2Age = 0,
-                                             Nominee2Relationship ="",
+                                             Nominee2Relationship = "",
                                          }).FirstOrDefaultAsync();
-                    if(result1 != null ) nominee = result1;
+                    if (result1 != null) nominee = result1;
                 }
             }
             catch (Exception ex)
@@ -347,7 +375,7 @@ namespace Infin8.Coapp.Repository
             int MaxSlNo = 0;
             try
             {
-                var maxSlNo = CSISContext.TermDeposit_Trn.Where(x=> x.TD_Id == TDId).Max(x => x.Trn_SlNo);
+                var maxSlNo = CSISContext.TermDeposit_Trn.Where(x => x.TD_Id == TDId).Max(x => x.Trn_SlNo);
                 if (maxSlNo == 0) MaxSlNo = 1;
                 else
                     MaxSlNo++;
@@ -361,7 +389,7 @@ namespace Infin8.Coapp.Repository
         }
 
         #region security deposit
-        public async Task<DtoSecurityDepositData> GetSecurityDepositData(decimal empId,string brCode)
+        public async Task<DtoSecurityDepositData> GetSecurityDepositData(decimal empId, string brCode)
         {
             DtoSecurityDepositData securityDeposit = new();
             try

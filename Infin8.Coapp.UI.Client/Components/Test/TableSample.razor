@@ -1,0 +1,48 @@
+﻿@using Infin8.Coapp.Dto
+<div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Ledger Name</th>
+                <th>Receipt Amount</th>
+                <th>Payment Amount</th>
+                <th>Narration</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var account in transactionAccountsList)
+            {
+                <tr>
+                    <td>@account.AccountName</td>
+                    <td>@account.ReceiptAmount</td>
+                    <td>@account.PaymentAmount</td>
+                    <td>@account.Narration</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveAccountRow(account)">
+                            <i class="oi oi-trash"></i>
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr class="table-info">
+                <th>Total</th>
+                <th>@transactionAccountsList.Sum(a => a.ReceiptAmount)</th>
+                <th>@transactionAccountsList.Sum(a => a.PaymentAmount)</th>
+                <th></th>
+                <th></th>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+@code {
+    private List<AccountTransactionVM> transactionAccountsList = new();
+    private void RemoveAccountRow(AccountTransactionVM account)
+    {
+        transactionAccountsList.Remove(account);
+    }
+}

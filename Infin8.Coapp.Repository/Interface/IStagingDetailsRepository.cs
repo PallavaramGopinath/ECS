@@ -13,8 +13,10 @@ namespace Infin8.Coapp.Repository
         Task<bool> AddStagingDetails (Staging_Details stagingDetails, decimal stagingId);
         Task<bool> AddStagingDetailsForAccountTransaciton(List<Staging_Details> stagingDetails, decimal stagingId);
         Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId, int relateAccountId);
+        Task<bool> DeleteStagingDetails(List<Staging_Details> detailsList);
         Task<int> VerifyStagingIdExistinsInStagingDetails(decimal stagingId);
         Task<List<Staging_Details>> GetAllStagingDetails (decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate);
+        Task<List<Staging_Details>> GetStagingDetailsByDate(DateTime stagingDate, string brCode);
 
         //Task<string> GetAccountType(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate,string brCode);
         Task<string> GetAccountType(int accId);

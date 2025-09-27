@@ -279,14 +279,59 @@ namespace Infin8.Coapp.Repository
             return dtoVoucher;
         }
 
+        public async Task<DtoVoucher> GetTransactionByIds(decimal vocId,decimal yrId, string brCode)
+        {
+            DtoVoucher dtoVoucher = new();
+            try
+            {
+                decimal cashLedId = CSISContext.Map_General.Where(x => x.BrCode == brCode).Select(x => x.Cash_Led_Id).FirstOrDefault();
+                // This query populates the master-detail ViewModel directly
+                var voucherViewModel = await CSISContext.Fin_Voucher
+                    .Where(v => v.Voc_Id == vocId && !v.Voc_Delete && v.Yr_Id == yrId && v.BrCode == brCode)
+                    .Select(v => new DtoVoucher // Project into your ViewModel
+                    {
+                        // Master Details
+                        Voc_Id = v.Voc_Id,
+                        Voc_Rpt_No = v.Voc_Rpt_No,
+                        Voc_Pmt_No = v.Voc_Pmt_No,
+                        Voc_Date = v.Voc_Date,
+                        Voc_Type = v.Voc_Type,
+                        Voc_Narration = v.Voc_Narration
+                    }).FirstOrDefaultAsync();
+                if (voucherViewModel != null) dtoVoucher = voucherViewModel;
+
+                var trans = await (from trn in CSISContext.Fin_Voucher_Trn
+                                   join ledger in CSISContext.Fin_Ledger on trn.Led_Id equals ledger.Led_Id
+                                   where trn.Led_Id != cashLedId && trn.Voc_Id == vocId && trn.FinVocTr_Delete == false
+                                   && trn.Yr_Id == yrId && trn.BrCode == brCode
+                                   orderby trn.Voc_Trn_Id
+                                   select new DtoVoucherTrn
+                                   {
+                                       Led_Id = trn.Led_Id,
+                                       Led_Name = ledger.Led_Name,
+                                       Voc_Rpt = trn.Voc_Rpt,
+                                       Voc_Pmt = trn.Voc_Pmt,
+                                       Voc_Narr = trn.Voc_Narr,
+                                       Voc_Trn_Type = trn.Voc_Trn_Type,
+                                   }).ToListAsync();
+                if (trans != null)
+                {
+                    dtoVoucher.Transactions = trans;
+                }
+            }
+            catch (Exception)
+            {
+                dtoVoucher = new();
+            }
+            return dtoVoucher;
+        }
+
         public async Task<DtoVoucher> GetTransactionByNo(string rptNo, string pmtNo, decimal yrId)
         {
             DtoVoucher dtoVoucher = new();
             decimal vocId = 0;
             try
             {
-
-                
                 if (rptNo.Length > 0)
                 {
                     var vocModal = await CSISContext.Fin_Voucher
@@ -323,7 +368,6 @@ namespace Infin8.Coapp.Repository
                 }
                 decimal cashLedId = CSISContext.Map_General.Where(x => x.BrCode == dtoVoucher.brCode).Select(x => x.Cash_Led_Id).FirstOrDefault();
                 vocId = dtoVoucher.Voc_Id;
-                
 
                 var trans = await (from trn in CSISContext.Fin_Voucher_Trn
                                    join ledger in CSISContext.Fin_Ledger on trn.Led_Id equals ledger.Led_Id

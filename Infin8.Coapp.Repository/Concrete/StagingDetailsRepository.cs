@@ -123,6 +123,39 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<bool> DeleteStagingDetails(List<Staging_Details> detailsList)
+        {
+            try
+            {
+                if (detailsList == null || !detailsList.Any())
+                {
+                    Console.WriteLine("No staging detals records to delete.");
+                    return true;
+                }
+
+                // Replace 'Id' with your actual primary key property name
+                var idsToDelete = detailsList.Select(m => m.Staging_Id).ToList();
+
+                Console.WriteLine($"Attempting to delete  staging details {idsToDelete.Count} records...");
+
+                var rowsAffected = await CSISContext.Staging_Details
+                    .Where(m => idsToDelete.Contains(m.Staging_Id))
+                    .ExecuteDeleteAsync();
+
+                Console.WriteLine($"Successfully deleted staging details {rowsAffected} records.");
+                return rowsAffected == idsToDelete.Count; // Return true only if all were deleted
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during bulk deletion of staging details: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                }
+                return false;
+            }
+        }
+
         public async Task<int> VerifyStagingIdExistinsInStagingDetails(decimal stagingId)
         {
             var count = await CSISContext.Staging_Details
@@ -189,6 +222,29 @@ namespace Infin8.Coapp.Repository
         public Task<List<Staging_Details>> GetAllStagingDetails(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<List<Staging_Details>> GetStagingDetailsByDate(DateTime stagingDate, string brCode)
+        {
+            List<Staging_Details> detailsList = new();
+            try
+            {
+                var result = await (from detail in CSISContext.Staging_Details
+                                    join master in CSISContext.Staging_Master on detail.Staging_Id equals master.Staging_Id
+                                    where detail.BrCode == brCode &&
+                                    detail.Staging_Status == "V" &&
+                                    master.BrCode == brCode &&
+                                    master.Staging_Status == "V" &&
+                                    master.Created_Date == stagingDate 
+                                    select detail).ToListAsync();
+                if (result != null && result.Any()) detailsList = result.ToList();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return detailsList;
         }
 
         public async Task<List<AccountTransactionVM>> GetAccountTransactions(DateTime createdDate, decimal memId, string stagingStatus, string brCode)
@@ -370,7 +426,7 @@ namespace Infin8.Coapp.Repository
                                     join sd in CSISContext.Staging_Details on sm.Staging_Id equals sd.Staging_Id
                                     join mm in CSISContext.mem_master on sm.Member_Id equals mm.mem_id into mmGroup
                                     from mm in mmGroup.DefaultIfEmpty() // This creates the left join
-                                    join u in CSISContext.Users on sm.Created_By equals u.id
+                                    join u in CSISContext.Users on sm.Created_By equals u.Id
                                     where sm.Created_Date == createdDate
                                         && sm.Staging_Status == stagingStatus
                                         && sm.BrCode == brCode
@@ -384,7 +440,7 @@ namespace Infin8.Coapp.Repository
                                         sm.Type,
                                         sm.Created_By,
                                         sm.Created_Date,
-                                        u.username
+                                        u.Username
                                     } into g
                                     select new DtoCheckerDashboard
                                     {
@@ -396,7 +452,7 @@ namespace Infin8.Coapp.Repository
                                         Type = g.Key.Type,
                                         Created_By = g.Key.Created_By,
                                         Created_Date = g.Key.Created_Date,
-                                        Created_By_Name = g.Key.username,
+                                        Created_By_Name = g.Key.Username,
                                         Receipt_Amount = g.Sum(x => x.sd.Receipt_Amount),
                                         Payment_Amount = g.Sum(x => x.sd.Payment_Amount)
                                     }).ToListAsync();

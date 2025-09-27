@@ -25,10 +25,10 @@ namespace Infin8.Coapp.Repository
             try
             {
                 //maxId = await CSISContext.Users.MaxAsync(x => x.id);
-                maxId = await CSISContext.Users.AnyAsync() ? await CSISContext.Users.MaxAsync(x => x.id) : 0;
+                maxId = await CSISContext.Users.AnyAsync() ? await CSISContext.Users.MaxAsync(x => x.Id) : 0;
 
                 maxId++;
-                users.id = maxId;
+                users.Id = maxId;
                 await AddAsync(users);
                 result = true;
             }
@@ -72,7 +72,7 @@ namespace Infin8.Coapp.Repository
 
         public Users? GetUserByUsernameAsync(string username, string password)
         {
-            var user = CSISContext.Users.Where(x => x.username == username).FirstOrDefault();
+            var user = CSISContext.Users.Where(x => x.Username == username).FirstOrDefault();
             return user;
         }
     }

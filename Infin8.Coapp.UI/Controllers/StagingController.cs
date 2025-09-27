@@ -3,6 +3,7 @@ using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.JSInterop;
 using Microsoft.Reporting.Map.WebForms.BingMaps;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -174,28 +175,44 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpPost]
         [Route("ApproveStaging")]
-        public async Task<ActionResult<bool>> ApproveStaging([FromBody] decimal stagingId)
+        public async Task<ActionResult<DtoVoucher>> ApproveStaging([FromBody] decimal stagingId)
         {
+            DtoVoucher voucherData = new();
             bool result = false;
+            decimal vocId = 0;
             Staging_Master master = new();
             /// Step 1: Check Transaction Type (Member Transaction, Accounting Transaction or Staff Transaction)
+            /// public class ApproveStagingResponse
+            /// {
+            /// public decimal VoucherId { get; set; }
+            /// public bool Success { get; set; }
+            /// public string? Message { get; set; }
+            /// }
+            /// result = await response.Content.ReadFromJsonAsync<ApproveStagingResponse>();
+            //await JSRuntime.InvokeVoidAsync("alert", $"{result?.Message} Voucher Id: {result?.VoucherId}");
+
             var stagingMaster = await _stagingMasterHandler.GetStagingMasterById(stagingId);
+            voucherData.brCode = stagingMaster.BrCode;
             switch (stagingMaster.Type!.Trim())
             {
                 case "Member Transaction":
                 case "Staff Transaction":
                     var response = await _transactionsHandler.SaveTransaction(stagingId, stagingMaster.Type!.Trim() == "Member Transaction" ? "MTRN" : "STRN", 110010000002, 110010000023);
-                    if (response) result = true; else result = false;
-                        break;
+                    if (response.Voc_Id >0) result = true; else result = false;
+                    voucherData.Voc_Id = response.Voc_Id;
+                    voucherData.brCode = response.brCode;
+                    break;
                 case "Account Transaction":
                     var accResponse = await _transactionsHandler.SaveAccountTransaction(stagingId, "ACTR", 110010000002, 110010000023);
-                    if (accResponse) result = true; else result = false;
+                    if (accResponse.Voc_Id >0) result = true; else result = false;
+                    voucherData.Voc_Id = accResponse.Voc_Id;
+                    voucherData.brCode = accResponse.brCode;
                     break;
             }
 
             if (result)
             {
-                return Ok(true);
+                return Ok(voucherData);
             }
             else
             {

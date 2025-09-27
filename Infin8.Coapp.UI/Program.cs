@@ -95,6 +95,7 @@ builder.Services.AddScoped<IMemTrnHandler, MemTrnHandler>();
 #region Employee
 builder.Services.AddScoped<IEmpMasterHandler, EmpMasterHandler>();
 #endregion 
+
 #region Reference
 builder.Services.AddScoped<IReferenceHandler, ReferenceHandler>();
 builder.Services.AddScoped<IAreaMasterHandler, AreaMasterHandler>();
@@ -146,6 +147,8 @@ builder.Services.AddScoped<ITransactionsHandler, TransactionsHandler>();
 #region staging
 builder.Services.AddScoped<IStagingMasterHandler, StagingMasterHandler>();
 builder.Services.AddScoped<IStagingDetailsHandler, StagingDetailsHandler>();
+builder.Services.AddScoped<IStagingHistoryHandler, StagingHistoryHandler>();
+builder.Services.AddScoped<IStagingBalanceHandler, StagingBalanceHandler>();
 #endregion 
 
 #region SBAccount
@@ -165,6 +168,14 @@ builder.Services.AddScoped<IReportsAudit, ReportsAudit>();
 
 #region Menu Services
 builder.Services.AddScoped<IMenuMainHandler, MenuMainHandler>();
+#endregion 
+
+#region user
+builder.Services.AddScoped <IUserHandler, UserHandler>();
+#endregion 
+
+#region DayProcess
+builder.Services.AddScoped<ICalendarHandler, CalendarHandler>();
 #endregion 
 
 //builder.Services.AddHttpClient().ConfigurePrimaryHttpMessageHandler(() =>

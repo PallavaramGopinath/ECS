@@ -58,9 +58,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.TransactionsRepository.GetViewComponentName(accountId);
         }
-        public async Task<bool> SaveTransaction(decimal stagingId, string vocMode, decimal Checked_By, decimal yrId)
+        public async Task<DtoVoucher> SaveTransaction(decimal stagingId, string vocMode, decimal Checked_By, decimal yrId)
         {
             bool result = false;
+            DtoVoucher? voucherData = new();
             int cashOrAdj = 0;
             string brCode = "";
             string Status = "";
@@ -81,9 +82,9 @@ namespace Infin8.Coapp.BusinessLogic
                 transactions = await _unitOfWork.TransactionsRepository.GetStagingDataByStagingId(stagingId);
                 if (transactions == null || transactions.Count == 0)
                 {
-                    return false;
+                    return voucherData!;
                 }
-
+                voucherData.brCode = transactions!.Select(x => x.BrCode).FirstOrDefault();
                 cashOrAdj = transactions.Select(x => x.Cash_Or_Adjustment).First();
                 brCode = transactions.Select(x => x.BrCode!).First();
                 string type = transactions.Select(x => x.Type!).First();
@@ -142,7 +143,7 @@ namespace Infin8.Coapp.BusinessLogic
                 if (rptPmtNo == null)
                 {
                     //throw new Exception("Failed to generate receipt and payment numbers.");
-                    return false;
+                    return voucherData;
                 }
 
 
@@ -150,6 +151,8 @@ namespace Infin8.Coapp.BusinessLogic
                                 rptPmtNo.Voc_Rpt_SlNo, rptPmtNo.Voc_Rpt_No, rptPmtNo.Voc_Rpt_Mode, rptPmtNo.Voc_Pmt_SlNo, rptPmtNo.Voc_Pmt_No, rptPmtNo.Voc_Pmt_Mode,
                                  Checked_By, yrId, brCode, Transacted_Member_Id);
                 (result, vocId) = await _unitOfWork.FinVoucher.AddFinVoucherAsync(voc);
+                voucherData.Voc_Id = vocId;
+
                 Map_General mapGeneral = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
 
                 /// cash transactions
@@ -340,7 +343,7 @@ namespace Infin8.Coapp.BusinessLogic
                             (result, newFDIdForRenewal, newFDNoForRenewal) = await _unitOfWork.TermDepositMaster.AddTermDepositMasterAsync(newFDForRenewal);
                             if (!result)
                             {
-                                return false;
+                                return voucherData;
                             }
                             fdRenewalTrn = Utility.GetModalObject.GetTermDepositTrn(0, fdRenewal.Transaction_Date, newFDIdForRenewal, 0,
                                 fdRenewal.FixedDepositCreate.Deposit_Amount, fdRenewal.FixedDepositCreate.Maturity_Amount, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, false, false,
@@ -575,7 +578,7 @@ namespace Infin8.Coapp.BusinessLogic
                             (result, newTDId, newTDNo) = await _unitOfWork.TermDepositMaster.AddTermDepositMasterAsync(tdMasterNew);
                             if (!result)
                             {
-                                return false;
+                                return voucherData;
                             }
                             tdTrnNew = Utility.GetModalObject.GetTermDepositTrn(0, newFD.Common.Account_Opendate, newTDId, 0,
                                 newFD.Deposit_Amount, newFD.Maturity_Amount, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, false, false,
@@ -1172,7 +1175,7 @@ namespace Infin8.Coapp.BusinessLogic
                             (result, newTDId, newTDNo) = await _unitOfWork.TermDepositMaster.AddTermDepositMasterAsync(sdMaster);
                             if (!result)
                             {
-                                return false;
+                                return voucherData;
                             }
                             sdTrn = Utility.GetModalObject.GetTermDepositTrn(0, trns.Transacted_Date, newTDId, 0,
                                 trns.Receipt_Amount, 0, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, false, false,
@@ -1306,7 +1309,7 @@ namespace Infin8.Coapp.BusinessLogic
                 result = false;
                 _unitOfWork.RollBack();
             }
-            return result;
+            return voucherData;
         }
 
         private async Task<(bool result, List<Fin_Voucher_Trn> finVoucherTrns)> SaveJewelLoanDisbursement(DtoTransaction trns, int loanType, decimal vocId, decimal Checked_By,
@@ -1517,7 +1520,7 @@ namespace Infin8.Coapp.BusinessLogic
             return (result, finVoucherTrns);
         }
 
-        public async Task<bool> SaveAccountTransaction(decimal stagingId, string vocMode, decimal Checked_By, decimal yrId)
+        public async Task<DtoVoucher> SaveAccountTransaction(decimal stagingId, string vocMode, decimal Checked_By, decimal yrId)
         {
             bool result = false;
             int cashOrAdj = 0;
@@ -1528,6 +1531,7 @@ namespace Infin8.Coapp.BusinessLogic
             DateTime Transacted_Date;
             bool IsChequeOnly = false;
             double vocAmt = 0, receiptAmount = 0, paymentAmount = 0, cashReceipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
+            DtoVoucher voucherData = new();
             List<DtoTransaction> transactions = new();
             DtoTransactionRptPmtNos rptPmtNo = new();
             List<Fin_Voucher_Trn> finVoucherTrns = new();
@@ -1539,11 +1543,11 @@ namespace Infin8.Coapp.BusinessLogic
                 transactions = await _unitOfWork.TransactionsRepository.GetStagingDataByStagingId(stagingId);
                 if (transactions == null || transactions.Count == 0)
                 {
-                    return false;
+                    return voucherData;
                 }
                 cashOrAdj = transactions.Select(x => x.Cash_Or_Adjustment).First();
                 brCode = transactions.Select(x => x.BrCode!).First();
-
+                voucherData.brCode = brCode;
                 Transacted_Date = transactions.Select(x => x.Transacted_Date).First();
                 receiptAmount = transactions.Sum(x => x.Receipt_Amount);
                 paymentAmount = transactions.Sum(x => x.Payment_Amount);
@@ -1565,7 +1569,7 @@ namespace Infin8.Coapp.BusinessLogic
                 if (rptPmtNo == null)
                 {
                     //throw new Exception("Failed to generate receipt and payment numbers.");
-                    return false;
+                    return voucherData;
                 }
 
 
@@ -1573,6 +1577,7 @@ namespace Infin8.Coapp.BusinessLogic
                                 rptPmtNo.Voc_Rpt_SlNo, rptPmtNo.Voc_Rpt_No, rptPmtNo.Voc_Rpt_Mode, rptPmtNo.Voc_Pmt_SlNo, rptPmtNo.Voc_Pmt_No, rptPmtNo.Voc_Pmt_Mode,
                                  Checked_By, yrId, brCode, 0);
                 (result, vocId) = await _unitOfWork.FinVoucher.AddFinVoucherAsync(voc);
+                voucherData.Voc_Id = vocId;
                 Map_General mapGeneral = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
 
                 /// cash transactions
@@ -1624,7 +1629,7 @@ namespace Infin8.Coapp.BusinessLogic
                 Console.Write(ex.Message + " " + ex.StackTrace);
                 _unitOfWork.RollBack();
             }
-            return result;
+            return voucherData;
         }
         public async Task<bool> RejectTransaction(decimal stagingId, decimal Checked_By)
         {

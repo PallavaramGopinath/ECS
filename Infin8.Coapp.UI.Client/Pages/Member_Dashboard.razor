@@ -1,16 +1,77 @@
 ﻿@page "/member-dashboard"
-@inject HttpClient Http // Or a dedicated service to fetch data
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using System.Net
+@using System.Reflection
+@using Infin8.Coapp.UI.Client.Components.ModalDialog
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @* You might want to add a CSS file for custom styles, e.g., MemberDashboard.razor.css *@
 
 <PageTitle>Member Dashboard</PageTitle>
 
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3><i class="fas fa-tachometer-alt me-2"></i>Primary Agriculture & Rural Development Bank - Overview</h3>
-        <button class="btn btn-sm btn-outline-primary" @onclick="LoadDashboardDataAsync">
-            <i class="fas fa-sync-alt me-1"></i> Refresh Data
-        </button>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Select Member to display dash board</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="memNo">Member No</label>
+                        <InputText class="form-control shadow-none" id="memNo" placeholder="Enter Member No" @bind-Value="memberDetails.MemberNo"
+                                   @onblur="() => handleMemNo(memberDetails)" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="memName">Member Name</label>
+                        <InputText class="form-control shadow-none" id="memName" disabled="true" @bind-Value="memberDetails.MemberName" readonly />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="fatherName">Father's Name</label>
+                        <InputText class="form-control shadow-none" id="fatherName" disabled="true" @bind-Value="memberDetails.FatherName" readonly />
+                    </div>
+                </div>
+
+                <div class="col-md-3 ">
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <textarea class="form-control shadow-none" id="address" disabled @bind="memberDetails.Address" readonly rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="fDate">Transaction Date</label>
+                        <InputDate class="form-control shadow-none" id="fDate" 
+                                   @bind-Value="@fromDate" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="eDate">Transaction Date</label>
+                        <InputDate class="form-control shadow-none" id="eDate" 
+                                   @bind-Value="@toDate" />
+                    </div>
+                </div>
+                <div class="col-md-4 mt-4">
+                    @if (memberDetails != null && memberDetails.Mem_Id >0)
+                    {
+                        <button bype="button" class="btn btn-outline-primary" @onclick="LoadData">
+                            <i class="oi oi-reload me-1" aria-hidden="true"></i>
+                            Load data
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
 
     @if (isLoading)
@@ -25,7 +86,7 @@
     else if (!string.IsNullOrEmpty(errorMessage))
     {
         <div class="alert alert-danger" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>@errorMessage
+            <i class="oi oi-warning me-2" aria-hidden="true"></i>@errorMessage
         </div>
     }
     else
@@ -35,37 +96,60 @@
             <div class="col-xl-7 col-lg-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-users me-2"></i>Member Segments</h5>
+                        <h5 class="mb-0"><i class="oi oi-people me-2" aria-hidden="true"></i>Member Segment</h5>
                     </div>
                     <div class="card-body">
-                        @if (Members.Any())
+                        @if (Member != null)
                         {
-                            <table class="table table-hover table-sm">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Member Type</th>
-                                        <th class="text-end">No. of Members</th>
-                                        <th class="text-end">Total Share Capital</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var memberType in Members)
+                            <div class="row">
+                                <div class="col-6">
+                                    @if (!string.IsNullOrEmpty(Member.PhotoImage))
                                     {
-                                        <tr>
-                                            <td>@memberType.Member_Type</td>
-                                            <td class="text-end">@memberType.NoofMembers.ToString("N0")</td>
-                                            <td class="text-end">@memberType.Share_Capital.ToString("C")</td>
-                                        </tr>
+                                        <img src="@Member.PhotoImage" style="width: 60%; height:70%" />
                                     }
-                                </tbody>
-                                <tfoot class="fw-bold">
-                                    <tr>
-                                        <td>Total</td>
-                                        <td class="text-end">@Members.Sum(m => m.NoofMembers).ToString("N0")</td>
-                                        <td class="text-end">@Members.Sum(m => m.Share_Capital).ToString("C")</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                                    else
+                                    {
+                                        <div class="text-center text-muted">
+                                            <i class="oi oi-image" style="font-size: 3rem;"></i>
+                                            <p>No image captured yet</p>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="col-6">
+                                    <table class="table table-hover table-sm">
+                                        <tbody>
+                                            <tr>
+                                                <td>Nominee</td>
+                                                <td>@Member.NomineeName</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Nominee Age</td>
+                                                <td>@Member.NomineeAge</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Nominee Relationship</td>
+                                                <td>@Member.NomineeRelationShip</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Bank Name</td>
+                                                <td>@Member.BankName</td>
+                                            </tr>
+                                            <tr>
+                                                <td>IFS Code</td>
+                                                <td>@Member.IFSCCode</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Smart Card No</td>
+                                                <td>@Member.SmartCardNo</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Aadhar No</td>
+                                                <td>@Member.AadharNo</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         }
                         else
                         {
@@ -78,29 +162,40 @@
             <div class="col-xl-5 col-lg-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Suspense Accounts</h5>
+                        <h5 class="mb-0"><i class="oi oi-info me-2" aria-hidden="true"></i>Member Accounts</h5>
                     </div>
                     <div class="card-body">
-                        @if (MemberSuspenseAccounts.Any())
+                        @if (MemberAccounts != null && MemberAccounts.Any())
                         {
                             <table class="table table-hover table-sm">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Suspense Account</th>
+                                        <th>Type</th>
+                                        <th>Account Name</th>
+                                        <th class="text-end">OB</th>
                                         <th class="text-end">Receipts</th>
                                         <th class="text-end">Payments</th>
                                         <th class="text-end">Net Balance</th>
+                                        <th>Display</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var suspense in MemberSuspenseAccounts)
+                                    @foreach (var suspense in MemberAccounts)
                                     {
                                         <tr>
-                                            <td>@suspense.Sus_Name </td>
+                                            <td>@suspense.Trn_Type</td>
+                                            <td>@suspense.Led_Name </td>
+                                            <td class="text-end">@suspense.OB.ToString("C")</td>
                                             <td class="text-end">@suspense.Rpt_Amt.ToString("C")</td>
                                             <td class="text-end">@suspense.Pmt_Amt.ToString("C")</td>
-                                            <td class="text-end @((suspense.Rpt_Amt - suspense.Pmt_Amt) < 0 ? "text-danger" : "text-success")">
-                                                @((suspense.Rpt_Amt - suspense.Pmt_Amt).ToString("C"))
+                                            <td class="text-end @((suspense.CB) < 0 ? "text-danger" : "text-success")">
+                                                @((suspense.CB).ToString("C"))
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-outline-info" @onclick="() => ViewAccountLedger(suspense)">
+                                                    <i class="oi oi-eye"></i>
+                                                    Display
+                                                </button>
                                             </td>
                                         </tr>
                                     }
@@ -118,40 +213,62 @@
 
         <!-- Row 2: Loans & Term Deposits -->
         <div class="row mb-4">
-            <div class="col-lg-7">
+            <div class="col-lg-12">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-hand-holding-usd me-2"></i>Loans to Members</h5>
+                        <h5 class="mb-0"><i class="oi-custom oi-rupee me-2" aria-hidden="true"></i>Loans to Members</h5>
                     </div>
                     <div class="card-body">
-                        @if (Loans.Any())
+                        @if (MemberLoans !=  null && MemberLoans.Any())
                         {
                             <table class="table table-hover table-sm">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Scheme Name</th>
-                                        <th class="text-end">No. of Loans</th>
-                                        <th class="text-end">Total Disbursed</th>
-                                        <th class="text-end">Principal Outstanding</th>
+                                        <th class="text-start">Loan No</th>
+                                        <th class="text-start">Loan Date</th>
+                                        <th class="text-end">Loan Amount</th>
+                                        <th class="text-end">Loan Outstanding</th>
+                                        <th class="text-end">Principal Overdue</th>
+                                        <th class="text-end">Interest Overdue</th>
+                                        <th class="text-end">Penal Interest Balance</th>
+                                        <th class="text-start">Last Demand Date</th>
+                                        <th class="text-start">Display</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var loan in Loans)
+                                    @foreach (var loan in MemberLoans)
                                     {
                                         <tr>
                                             <td>@loan.Scheme_Name</td>
-                                            <td class="text-end">@loan.NoOfLoans.ToString("N0")</td>
-                                            <td class="text-end">@loan.Disb_Amt.ToString("C")</td>
-                                            <td class="text-end">@loan.Prl_OS.ToString("C")</td>
+                                            <td class="text-start">@loan.Loan_No</td>
+                                            <td class="text-start">@loan.San_Date.ToString("dd-MM-yyyy")</td>
+                                            <td class="text-end">@loan.San_Amt.ToString("C")</td>
+                                            <td class="text-end">@loan.PrlOS.ToString("C")</td>
+                                            <td class="text-end">@loan.PrlOD.ToString("C")</td>
+                                            <td class="text-end">@loan.IntOD.ToString("C")</td>
+                                            <td class="text-end">@loan.PIBal.ToString("C")</td>
+                                            <td class="text-start">@loan.Due_Date</td>
+                                            <td>
+                                                <button type="button" class="btn btn-outline-info" @onclick="() => ViewLoanLedger(loan)">
+                                                    <i class="oi oi-eye"></i>
+                                                    Dispay
+                                                </button>
+                                            </td>
+
                                         </tr>
                                     }
                                 </tbody>
                                 <tfoot class="fw-bold">
                                     <tr>
                                         <td>Total</td>
-                                        <td class="text-end">@Loans.Sum(l => l.NoOfLoans).ToString("N0")</td>
-                                        <td class="text-end">@Loans.Sum(l => l.Disb_Amt).ToString("C")</td>
-                                        <td class="text-end">@Loans.Sum(l => l.Prl_OS).ToString("C")</td>
+                                        <td colspan="2"></td>
+                                        <td class="text-end">@MemberLoans.Sum(l => l.San_Amt).ToString("C")</td>
+                                        <td class="text-end">@MemberLoans.Sum(l => l.PrlOS).ToString("C")</td>
+                                        <td class="text-end">@MemberLoans.Sum(l => l.PrlOD).ToString("C")</td>
+                                        <td class="text-end">@MemberLoans.Sum(l => l.IntOD).ToString("C")</td>
+                                        <td class="text-end">@MemberLoans.Sum(l => l.PIBal).ToString("C")</td>
+                                        <td></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -167,37 +284,65 @@
                     </div>
                 </div>
             </div>
-            <div class="col-lg-5">
+            <div class="col-lg-12">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="fas fa-piggy-bank me-2"></i>Term Deposits</h5>
+                        <h5 class="mb-0"><i class="oi oi-spreadsheet me-2" aria-hidden="true"></i>Term Deposits</h5>
                     </div>
                     <div class="card-body">
-                        @if (TermDeposits.Any())
+                        @if (MemberTermDeposits != null && MemberTermDeposits.Any())
                         {
                             <table class="table table-hover table-sm">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Scheme Name</th>
-                                        <th class="text-end">No. of TDs</th>
-                                        <th class="text-end">Total Deposit Amount</th>
+                                        <th class="text-start">Scheme Name</th>
+                                        <th class="text-start">Bond No</th>
+                                        <th class="text-end">Period</th>
+                                        <th class="text-end">Rate of Interest</th>
+                                        <th class="text-start">Value Date</th>
+                                        <th class="text-end">Deposit Amount</th>
+                                        <th class="text-start">Maturity Date</th>
+                                        <th class="text-end">Maturity Amount</th>
+                                        <th class="text-end">Interest Calculated</th>
+                                        <th class="text-end">Interest Paid</th>
+                                        <th class="text-start">Interest Applied Date</th>
+                                        <th>View</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var td in TermDeposits)
+                                    @foreach (var td in MemberTermDeposits)
                                     {
                                         <tr>
                                             <td>@td.TDScheme_Name</td>
-                                            <td class="text-end">@td.NoofTDs.ToString("N0")</td>
-                                            <td class="text-end">@td.DepositReceiptAmount.ToString("C")</td>
+                                            <td class="text-start">@td.TD_No</td>
+                                            <td class="text-end">@td.PeriodInMonths.ToString("N0")</td>
+                                            <td class="text-end">@td.RateOfInterest.ToString("0.00")%</td>
+                                            <td class="text-start">@td.ValueDate</td>
+                                            <td class="text-end">@td.TDAmt.ToString("C")</td>
+                                            <td class="text-start">@td.MaturityDate</td>
+                                            <td class="text-end">@td.MaturityAmount.ToString("C")</td>
+                                            <td class="text-end">@td.IntCalc.ToString("C")</td>
+                                            <td class="text-end">@td.IntPaid.ToString("C")</td>
+                                            <td class="text-start">@td.IntCalcDate</td>
+                                            <td>
+                                                <button type="button" class="btn btn-outline-info" @onclick="() => ViewTDLedger(td)">
+                                                    <i class="oi oi-eye"></i>
+                                                    Display
+                                                </button>
+                                            </td>
                                         </tr>
                                     }
                                 </tbody>
                                 <tfoot class="fw-bold">
                                     <tr>
                                         <td>Total</td>
-                                        <td class="text-end">@TermDeposits.Sum(td => td.NoofTDs).ToString("N0")</td>
-                                        <td class="text-end">@TermDeposits.Sum(td => td.DepositReceiptAmount).ToString("C")</td>
+                                        <td colspan="4"></td>
+                                        <td class="text-end">@MemberTermDeposits.Sum(td => td.TDAmt).ToString("N0")</td>
+                                        <td onclose="1"></td>
+                                        <td class="text-end">@MemberTermDeposits.Sum(td => td.MaturityAmount).ToString("C")</td>
+                                        <td class="text-end">@MemberTermDeposits.Sum(td => td.IntCalc).ToString("C")</td>
+                                        <td class="text-end">@MemberTermDeposits.Sum(td => td.IntPaid).ToString("C")</td>
+                                        <td colspan="2"></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -214,276 +359,395 @@
                 </div>
             </div>
         </div>
-
-        <!-- Row 3: Bank Account Balances -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0"><i class="fas fa-landmark me-2"></i>Bank Account Balances</h5>
-                    </div>
-                    <div class="card-body">
-                        @if (BankAccounts.Any())
-                        {
-                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3">
-                                @foreach (var account in BankAccounts)
-                                {
-                                    <div class="col">
-                                        <div class="card border-light h-100">
-                                            <div class="card-body text-center">
-                                                <h6 class="card-title text-truncate">@account.Led_Name</h6>
-                                                <p class="card-text fs-4 fw-bold @(account.Balance_Amount >= 0 ? "text-success-emphasis" : "text-danger-emphasis")">
-                                                    @account.Balance_Amount.ToString("C")
-                                                </p>
-                                                <small class="text-muted">Ledger ID: @account.Led_Id</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <p class="text-muted text-center">No bank account data available.</p>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- Row 4: Loan Collections -->
-        <div class="row mb-4">
-            <div class="col-lg-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header" style="background-color: #6f42c1; color: white;">
-                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Loan Collection (During The Month)</h5>
-                    </div>
-                    <div class="card-body">
-                        @if (CollectionDuringTheMonth.Any())
-                        {
-                            <table class="table table-hover table-sm">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Scheme Name</th>
-                                        <th class="text-end">Principal</th>
-                                        <th class="text-end">Interest</th>
-                                        <th class="text-end">IOD</th>
-                                        <th class="text-end">Penal Int.</th>
-                                        <th class="text-end fw-bold">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var collection in CollectionDuringTheMonth)
-                                    {
-                                        <tr>
-                                            <td>@collection.Scheme_Name</td>
-                                            <td class="text-end">@collection.PrlColl_Amt.ToString("C")</td>
-                                            <td class="text-end">@collection.IntColl_Amt.ToString("C")</td>
-                                            <td class="text-end">@collection.IODColl_Amt.ToString("C")</td>
-                                            <td class="text-end">@collection.PIColl_Amt.ToString("C")</td>
-                                            <td class="text-end fw-bold">
-                                                @((collection.PrlColl_Amt + collection.IntColl_Amt + collection.IODColl_Amt + collection.PIColl_Amt).ToString("C"))
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        }
-                        else
-                        {
-                            <p class="text-muted text-center">No monthly loan collection data available.</p>
-                        }
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header" style="background-color: #fd7e14; color: white;">
-                        <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Loan Collection (For The Year)</h5>
-                    </div>
-                    <div class="card-body">
-                        @if (CollectionForTheYear.Any())
-                        {
-                            <table class="table table-hover table-sm">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Scheme Name</th>
-                                        <th class="text-end">Principal</th>
-                                        <th class="text-end">Interest</th>
-                                        <th class="text-end">IOD</th>
-                                        <th class="text-end">Penal Int.</th>
-                                        <th class="text-end fw-bold">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var collection in CollectionForTheYear)
-                                    {
-                                        <tr>
-                                            <td>@collection.Scheme_Name</td>
-                                            <td class="text-end">@collection.PrlColl_Amt.ToString("C")</td>
-                                            <td class="text-end">@collection.IntColl_Amt.ToString("C")</td>
-                                            <td class="text-end">@collection.IODColl_Amt.ToString("C")</td>
-                                            <td class="text-end">@collection.PIColl_Amt.ToString("C")</td>
-                                            <td class="text-end fw-bold">
-                                                @((collection.PrlColl_Amt + collection.IntColl_Amt + collection.IODColl_Amt + collection.PIColl_Amt).ToString("C"))
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        }
-                        else
-                        {
-                            <p class="text-muted text-center">No yearly loan collection data available.</p>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
     }
+
+
+    <ModalDialog @bind-Show="showModal" Title="Ledger">
+        <ChildContent>
+            @if (viewComponent != null)
+            {
+                <DynamicComponent Type="viewComponent" Parameters="parameters" />
+            }
+        </ChildContent>
+    </ModalDialog>
+
 </div>
 
 @code {
-    private List<DashBoardMembers> Members { get; set; } = new();
-    private List<DashBoardMemberSuspense> MemberSuspenseAccounts { get; set; } = new();
-    private List<DashBoardLoanToMembers> Loans { get; set; } = new();
-    private List<DashBoardTermDepoist> TermDeposits { get; set; } = new();
-    private List<DashBoardBankAccounts> BankAccounts { get; set; } = new();
-    private List<DashBoardLoanCollection> CollectionDuringTheMonth { get; set; } = new();
-    private List<DashBoardLoanCollection> CollectionForTheYear { get; set; } = new();
+    private MemberDetailsVM2 Member { get; set; } = new();
+    private List<MemberDashBoardAccountsDto> MemberAccounts { get; set; } = new();
+    private List<MemberDashBoardLoans> MemberLoans { get; set; } = new();
+    private List<MemberDashBoardTD> MemberTermDeposits { get; set; } = new();
 
-    private bool isLoading = true;
+    #region Modl dialog variables
+    private bool showModal = false;
+    private string componentName = "JewelLoanRecovery";
+    private Type? viewComponent;
+    private Type? currentComponent;
+    private Dictionary<string, object> parameters = new();
+    #endregion 
+
+    private bool isLoading = false;
     private string? errorMessage;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadDashboardDataAsync();
-    }
+    private MemberDetailsVM memberDetails = new();
 
-    private async Task LoadDashboardDataAsync()
-    {
-        isLoading = true;
-        errorMessage = null;
-        StateHasChanged(); // Update UI to show loading state
+    // private decimal memId = 110010008478;
+    // member no = 1100110009991
+    private DateTime fromDate = DateTime.Now;
+    private DateTime toDate = DateTime.Now;
 
+    private string brCode = "11001";
+    // private string userName = "Gopinath";
+    // private string password = "aaa123";
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+
+    //         await LoadData();
+    //         isLoading = false;
+    //     }
+    // }
+
+    private async Task handleMemNo(MemberDetailsVM member)
+    {
         try
         {
-            // Simulate API calls - replace with actual Http.GetFromJsonAsync calls
-            // Example: Members = await Http.GetFromJsonAsync<List<DashBoardMembers>>("api/dashboard/members") ?? new();
-
-            await Task.Delay(1500); // Simulate network latency
-
-            // Dummy Data Population (Replace with API calls)
-            Members = new List<DashBoardMembers>
+            if (!string.IsNullOrWhiteSpace(member.MemberNo))
             {
-                new DashBoardMembers { Member_Type = "Regular", NoofMembers = 1250, Share_Capital = 2500000 },
-                new DashBoardMembers { Member_Type = "Associate", NoofMembers = 300, Share_Capital = 300000 },
-                new DashBoardMembers { Member_Type = "Nominal", NoofMembers = 50, Share_Capital = 5000 }
-            };
-
-            MemberSuspenseAccounts = new List<DashBoardMemberSuspense>
+                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{member.MemberNo}/{brCode}");
+                if (mem != null && mem.Mem_Id > 0)
+                {
+                    memberDetails.Mem_Id = mem.Mem_Id;
+                    memberDetails.MemberNo = mem.MemberNo;
+                    memberDetails.MemberName = mem.MemberName;
+                    memberDetails.Address = mem.Address;
+                    memberDetails.Dob = mem.Dob;
+                    memberDetails.Age = mem.Age;
+                    memberDetails.BrCode = mem.BrCode;
+                    StateHasChanged();
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Member details not available");
+                    // memberDetails.MemberNo = string.Empty;
+                    memberDetails = new();
+                    StateHasChanged();
+                    return;
+                }
+            }
+            else
             {
-                new DashBoardMemberSuspense { Sus_Type = 101, Sus_Name ="Member due to", Rpt_Amt = 50000, Pmt_Amt = 10000 },
-                new DashBoardMemberSuspense { Sus_Type = 102, Sus_Name ="Member due by", Rpt_Amt = 25000, Pmt_Amt = 5000 }
-            };
-
-            Loans = new List<DashBoardLoanToMembers>
-            {
-                new DashBoardLoanToMembers { Scheme_Id = 1, Scheme_Name = "Personal Loan", NoOfLoans = 150, Disb_Amt = 7500000, Prl_OS = 6200000 },
-                new DashBoardLoanToMembers { Scheme_Id = 2, Scheme_Name = "Housing Loan", NoOfLoans = 30, Disb_Amt = 15000000, Prl_OS = 13500000 },
-                new DashBoardLoanToMembers { Scheme_Id = 3, Scheme_Name = "Vehicle Loan", NoOfLoans = 75, Disb_Amt = 4500000, Prl_OS = 3800000 }
-            };
-
-            TermDeposits = new List<DashBoardTermDepoist>
-            {
-                new DashBoardTermDepoist { TDScheme_Id = 1, TDScheme_Name = "Fixed Deposit", NoofTDs = 500, DepositReceiptAmount = 12000000 },
-                new DashBoardTermDepoist { TDScheme_Id = 2, TDScheme_Name = "Recurring Deposit", NoofTDs = 800, DepositReceiptAmount = 3500000 }
-            };
-
-            BankAccounts = new List<DashBoardBankAccounts>
-            {
-                new DashBoardBankAccounts { Led_Id = 201, Led_Name = "Main Current Account (SBI)", Balance_Amount = 1250340.50 },
-                new DashBoardBankAccounts { Led_Id = 202, Led_Name = "Savings Account (HDFC)", Balance_Amount = 54200.75 },
-                new DashBoardBankAccounts { Led_Id = 203, Led_Name = "Petty Cash Account", Balance_Amount = 15000.00 },
-                new DashBoardBankAccounts { Led_Id = 204, Led_Name = "Overdraft Account (ICICI)", Balance_Amount = -50000.00 }
-            };
-
-            CollectionDuringTheMonth = new List<DashBoardLoanCollection>
-            {
-                new DashBoardLoanCollection { Scheme_Id = 1, Scheme_Name = "Personal Loan", PrlColl_Amt = 150000, IntColl_Amt = 30000, IODColl_Amt = 1000, PIColl_Amt = 500 },
-                new DashBoardLoanCollection { Scheme_Id = 2, Scheme_Name = "Housing Loan", PrlColl_Amt = 250000, IntColl_Amt = 120000, IODColl_Amt = 0, PIColl_Amt = 0 }
-            };
-
-            CollectionForTheYear = new List<DashBoardLoanCollection>
-            {
-                new DashBoardLoanCollection { Scheme_Id = 1, Scheme_Name = "Personal Loan", PrlColl_Amt = 1800000, IntColl_Amt = 350000, IODColl_Amt = 8000, PIColl_Amt = 3000 },
-                new DashBoardLoanCollection { Scheme_Id = 2, Scheme_Name = "Housing Loan", PrlColl_Amt = 3000000, IntColl_Amt = 1400000, IODColl_Amt = 1000, PIColl_Amt = 0 },
-                new DashBoardLoanCollection { Scheme_Id = 3, Scheme_Name = "Vehicle Loan", PrlColl_Amt = 900000, IntColl_Amt = 150000, IODColl_Amt = 2000, PIColl_Amt = 1000 }
-            };
-
+                memberDetails = new();
+                StateHasChanged();
+            }
         }
         catch (Exception ex)
         {
-            // Log the exception (using ILogger or similar)
-            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
-            errorMessage = "Failed to load dashboard data. Please try again later.";
+            Console.WriteLine(ex.Message);
         }
-        finally
+    }
+
+    private async Task LoadData()
+    {
+        if (memberDetails.Mem_Id == 0)
         {
-            isLoading = false;
-            StateHasChanged(); // Update UI to hide loading state and show data/error
+            await JSRuntime.InvokeVoidAsync("alert", "Member No is empty or error in fetching member data");
+            return;
+        }
+        isLoading = true;
+        string fromDateString = fromDate.ToString("yyyy-MM-dd");
+        string toDateString = toDate.ToString("yyyy-MM-dd");
+        var memReponse = await _httpClient.GetFromJsonAsync<MemberDetailsVM2>($"https://localhost:7073/api/Dashboard/get-member-dashboard/{memberDetails.Mem_Id}/{memberDetails.BrCode}");
+        if (memReponse != null && memReponse.Mem_Id > 0)
+        {
+            Member = memReponse;
+            StateHasChanged();
+        }
+
+        var memAccounts = await _httpClient.GetFromJsonAsync<List<MemberDashBoardAccountsDto>>($"https://localhost:7073/api/Dashboard/get-member-dashboard-acoount/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
+        if (memAccounts != null && memAccounts.Any())
+        {
+            MemberAccounts = memAccounts;
+            foreach (var account in memAccounts)
+            {
+                switch (account.Trn_Type)
+                {
+                    case 1: /// member due to
+                        account.CB = account.OB + account.Pmt_Amt - account.Rpt_Amt;
+                        break;
+                    case 2: /// member due by
+                    case 3: /// member share capital
+                        account.CB = account.OB + account.Rpt_Amt - account.Pmt_Amt;
+                        break;
+                    case 4:
+                        break;
+                    case 5: /// staff due to
+                        account.CB = account.OB + account.Pmt_Amt - account.Rpt_Amt;
+                        break;
+                    case 6: /// staff due by
+                        account.CB = account.OB + account.Rpt_Amt - account.Pmt_Amt;
+                        break;
+                    case 7: /// sb account
+                        account.CB = account.OB + account.Rpt_Amt - account.Pmt_Amt;
+                        break;
+                }
+            }
+            StateHasChanged();
+        }
+
+        var memLoans = await _httpClient.GetFromJsonAsync<List<MemberDashBoardLoans>>($"https://localhost:7073/api/Dashboard/get-member-dashboard-loans/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
+        if (memLoans != null && memLoans.Any())
+        {
+            MemberLoans = memLoans;
+            StateHasChanged();
+        }
+
+        var memTD = await _httpClient.GetFromJsonAsync<List<MemberDashBoardTD>>($"https://localhost:7073/api/Dashboard/get-member-dashboard-td/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
+        if (memTD != null && memTD.Any())
+        {
+            MemberTermDeposits = memTD;
+            StateHasChanged();
+        }
+        isLoading = false;
+    }
+
+    private void ViewAccountLedger(MemberDashBoardAccountsDto account)
+    {
+        string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+        var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
+        componentName = "MemberDashboard_Accounts";
+        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.MemberDashboard"}.{componentName},{assemblyName}";
+        Type? type = Type.GetType(fullyQualifiedName);
+        if (type == null)
+        {
+            Console.WriteLine($"Could not find type: {fullyQualifiedName}");
+            // Try loading the assembly first
+            var assembly = Assembly.Load(assemblyName);
+            type = assembly.GetType($"{componentName}");
+        }
+        if (type != null)
+        {
+            viewComponent = type;
+            if (viewComponent != null)
+            {
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "Mem_Id",memberDetails.Mem_Id },
+                    { "Trn_Type",account.Trn_Type },
+                    { "From_Date" ,fromDate},
+                    { "To_Date",toDate },
+                    { "BrCode", memberDetails.BrCode!}
+                };
+            }
+            showModal = true;
+        }
+        StateHasChanged();
+    }
+
+    private void ViewLoanLedger(MemberDashBoardLoans account)
+    {
+        string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+        var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
+        componentName = "MemberDashboard_Loans";
+        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.MemberDashboard"}.{componentName},{assemblyName}";
+        Type? type = Type.GetType(fullyQualifiedName);
+        if (type == null)
+        {
+            Console.WriteLine($"Could not find type: {fullyQualifiedName}");
+            // Try loading the assembly first
+            var assembly = Assembly.Load(assemblyName);
+            type = assembly.GetType($"{componentName}");
+        }
+        if (type != null)
+        {
+            viewComponent = type;
+            if (viewComponent != null)
+            {
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "Loan_Id",account.Loan_Id },
+                    { "From_Date" ,fromDate},
+                    { "To_Date",toDate },
+                    { "BrCode", memberDetails.BrCode!}
+                };
+            }
+            showModal = true;
+        }
+        StateHasChanged();
+    }
+
+    private void ViewTDLedger(MemberDashBoardTD account)
+    {
+        string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+        var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
+        componentName = "MemberDashboard_Tds";
+        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.MemberDashboard"}.{componentName},{assemblyName}";
+        Type? type = Type.GetType(fullyQualifiedName);
+        if (type == null)
+        {
+            Console.WriteLine($"Could not find type: {fullyQualifiedName}");
+            // Try loading the assembly first
+            var assembly = Assembly.Load(assemblyName);
+            type = assembly.GetType($"{componentName}");
+        }
+        if (type != null)
+        {
+            viewComponent = type;
+            if (viewComponent != null)
+            {
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "Td_Id",account.TD_Id },
+                    { "From_Date" ,fromDate},
+                    { "To_Date",toDate },
+                    { "BrCode", memberDetails.BrCode!}
+                };
+            }
+            showModal = true;
+        }
+        StateHasChanged();
+    }
+
+    private async Task GetViewComponentName(AccountTransactionVM account)
+    {
+        string fullyQualifiedName = ""; /// = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+        try
+        {
+            var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
+            if (isComponent(account.AccountId))
+            {
+                var url = $"https://localhost:7073/api/Transaction/GetViewComponentName/{account.AccountId}";
+                using var response = await _httpClient.GetAsync(url);
+                var jsonString = await response.Content.ReadAsStringAsync();
+                componentName = jsonString;
+                switch (account.AccountId)
+                {
+                    case 3:     /// Member suspense due by
+                    case 4:     /// Member suspense due to
+                    case 5:     /// Member share capital
+                    case 11:    /// bank ledger
+                    case 21:    /// Leder Entry
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.OtherTransactions"}.{componentName},{assemblyName}";
+                        break;
+                    case 7:     /// Fd Interest Payment
+                    case 8:     /// FD Refund
+                    case 9:     /// FD Renewal
+                    case 13:    /// Loan on Fixed Deposit
+                    case 16:    /// fd account creation
+                    case 24:    /// FD loan recovery
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName},{assemblyName}";
+                        break;
+                    case 31:    /// Jewel Loan Recovery
+                    case 37:    /// Jewel Loan disbursement
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName},{assemblyName}";
+                        break;
+                    case 18: /// New SB Account creation
+                    case 36:    /// SB Account Transaction
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.SBAccount"}.{componentName},{assemblyName}";
+                        break;
+                    case 20:    /// PF contribution
+                    case 35:    /// PF withdrawn
+                    case 39:    /// Salary payment
+                    case 40:    /// DA arrears payment
+                    case 41:    /// SLS Payment
+                    case 33:    /// Ex-gratia payment
+                    case 34:    /// Bonus payment
+                    case 15:    /// Staff loan disbursement
+                    case 19:    /// Staff loan recovery
+                    case 42:    /// Staff security deposit receipt
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
+                        break;
+                    case 48:    /// Loan disbursement PLDB
+                        var staging = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{account.Staging_Id}/{account.AccountId}");
+                        if (staging != null && staging.Staging_Id > 0)
+                        {
+                            if (staging.Security_Type == 1)
+                            {
+                                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName},{assemblyName}";
+                            }
+                            else
+                            {
+                                string compName = "LoanDisbursementPLDB_View";
+                                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.PLDBLoan"}.{compName},{assemblyName}";
+                            }
+                        }
+
+                        break;
+                    case 1000:  /// Account Transactions
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.AccountTransaction"}.{componentName},{assemblyName}";
+                        break;
+                }
+                Type? type = Type.GetType(fullyQualifiedName);
+                if (type == null)
+                {
+                    Console.WriteLine($"Could not find type: {fullyQualifiedName}");
+                    // Try loading the assembly first
+                    var assembly = Assembly.Load(assemblyName);
+                    type = assembly.GetType($"{componentName}");
+                }
+                if (type != null)
+                {
+                    viewComponent = type;
+                    if (viewComponent != null)
+                    {
+                        parameters.Clear();
+                        parameters = new Dictionary<string, object>
+                        {
+                            { "stagingId",account.Staging_Id },
+                            { "relatedAccountId",account.AccountId }
+                        };
+                    }
+                    showModal = true;
+                }
+                StateHasChanged();
+            }
+            else
+            {
+                showModal = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            showModal = false;
+            StateHasChanged();
         }
     }
 
-    // Your model classes here (or in a separate .cs file imported with @using)
-    public class DashBoardMembers
+    private bool isComponent(decimal Account_Id)
     {
-        public int NoofMembers { get; set; }
-        public string Member_Type { get; set; } = string.Empty;
-        public double Share_Capital { get; set; }
-    }
-
-    public class DashBoardMemberSuspense
-    {
-        public int Sus_Type { get; set; }
-        public string? Sus_Name { get; set; }
-        public double Rpt_Amt { get; set; }
-        public double Pmt_Amt { get; set; }
-    }
-
-    public class DashBoardLoanToMembers
-    {
-        public int Scheme_Id { get; set; }
-        public string Scheme_Name { get; set; } = string.Empty;
-        public int NoOfLoans { get; set; }
-        public double Disb_Amt { get; set; }
-        public double Prl_OS { get; set; }
-    }
-
-    public class DashBoardTermDepoist
-    {
-        public int TDScheme_Id { get; set; }
-        public string TDScheme_Name { get; set; } = string.Empty;
-        public int NoofTDs { get; set; }
-        public double DepositReceiptAmount { get; set; }
-    }
-
-    public class DashBoardBankAccounts
-    {
-        public int Led_Id { get; set; }
-        public string Led_Name { get; set; } = string.Empty;
-        public double Balance_Amount { get; set; }
-    }
-
-    public class DashBoardLoanCollection
-    {
-        public int Scheme_Id { get; set; }
-        public string Scheme_Name { get; set; } = string.Empty;
-        public double PrlColl_Amt { get; set; }
-        public double IntColl_Amt { get; set; }
-        public double IODColl_Amt { get; set; }
-        public double PIColl_Amt { get; set; }
+        bool result = true;
+        switch (Account_Id)
+        {
+            case 3: /// membser suspense creditor receipt/payment
+                result = true;
+                break;
+            case 4: /// member suspense debtor receipt/payment
+                result = true;
+                break;
+            case 5: /// member share capital receipt/payment
+                result = true;
+                break;
+            case 11: /// bank name receipt/payment
+                result = true;
+                break;
+            case 21: /// ledger entry receipt/payment
+                result = true;
+                break;
+            case 22: /// Staff susepense Creditor receipt/payment
+                result = false;
+                break;
+            case 23: /// Staff suspense Debtor receipt/payment
+                result = false;
+                break;
+        }
+        return result;
     }
 }
 

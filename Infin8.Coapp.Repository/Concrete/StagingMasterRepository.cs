@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -50,13 +51,13 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<bool> DeleteStagingMaster(decimal stagingId)
+        public async Task<bool> DeleteStagingMaster(decimal stagingId,string brCode)
         {
             bool result = false;
             try
             {
                  await CSISContext.Staging_Master
-                .Where(x => x.Staging_Id == stagingId )
+                .Where(x => x.Staging_Id == stagingId && x.BrCode == brCode )
                 .ExecuteDeleteAsync();
                 await CSISContext.SaveChangesAsync();
                 result = true;
@@ -67,6 +68,54 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while deleting Staging Master");
             }
             return result;
+        }
+
+        public async Task<bool> DeleteStagingMaster(List<Staging_Master> masterList)
+        {
+            try
+            {
+                if (masterList == null || !masterList.Any())
+                {
+                    Console.WriteLine("No records to delete.");
+                    return true;
+                }
+
+                // Replace 'Id' with your actual primary key property name
+                var idsToDelete = masterList.Select(m => m.Staging_Id).ToList();
+
+                Console.WriteLine($"Attempting to delete {idsToDelete.Count} records...");
+
+                var rowsAffected = await CSISContext.Staging_Master
+                    .Where(m => idsToDelete.Contains(m.Staging_Id))
+                    .ExecuteDeleteAsync();
+
+                Console.WriteLine($"Successfully deleted {rowsAffected} records.");
+                return rowsAffected == idsToDelete.Count; // Return true only if all were deleted
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during bulk delete: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                }
+                return false;
+            }
+        }
+
+        public async Task<List<Staging_Master>> GetStagingMasterListByDate(DateTime stagingDate,string brCode)
+        {
+            List<Staging_Master> masterList = new();
+            try
+            {
+                var result = await CSISContext.Staging_Master.Where(x => x.Created_Date == stagingDate && x.BrCode == brCode).ToListAsync();
+                if(result != null && result.Count > 0) masterList = result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return masterList;
         }
 
         public async Task<decimal> GetStagingMasterId(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate)
@@ -164,5 +213,7 @@ namespace Infin8.Coapp.Repository
             }
             return master;
         }
+
+        
     }
 }

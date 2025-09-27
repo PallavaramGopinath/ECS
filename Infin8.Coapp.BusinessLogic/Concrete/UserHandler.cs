@@ -54,17 +54,22 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+
+        public Users? GetUserByUsernameAsync(string username, string password)
+        {
+            return _unitOfWork.UserRepository.GetUserByUsernameAsync(username, password);
+        }
         public async Task<AuthenticationResponse> AuthenticateAsync(string username, string password)
         {
             //var user = CSISContext.Users.Where(x => x.username == username).FirstOrDefault();
             Users? user = new Users();
             user = _unitOfWork.UserRepository.GetUserByUsernameAsync(username, password);
-            if (user == null || !_unitOfWork.UserRepository.VerifyPassWord(password, user.password_hash!, user.password_salt!))
+            if (user == null || !_unitOfWork.UserRepository.VerifyPassWord(password, user.Password_Hash!, user.Password_Salt!))
             {
                 throw new UnauthorizedAccessException("Invalid credentials.");
             }
 
-            var accessToken = _jwtService.GenerateAccessToken(user.id,user.username! , user.role!);
+            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username! , user.Role!);
             var refreshToken = _jwtService.GenerateRefreshToken();
 
             var refreshTokenEntity = new RefreshToken
@@ -72,7 +77,7 @@ namespace Infin8.Coapp.BusinessLogic
                 Token = refreshToken,
                 Expires = DateTime.UtcNow.AddDays(_jwtService.GetRefreshTokenExpireDays()),
                 Created = DateTime.UtcNow,
-                MemberId = user.id
+                MemberId = user.Id
             };
 
             await _unitOfWork.RefreshTokenRepository.AddRefreshTokenAsync(refreshTokenEntity);
@@ -91,6 +96,36 @@ namespace Infin8.Coapp.BusinessLogic
             using var hmac = new HMACSHA512(); // Generates a unique key
             passwordSalt = hmac.Key; // Store this salt
             passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password)); // Hash the password
+        }
+
+        public async Task<AppState> GetAppStateAsync(Users user)
+        {
+            AppState appState = new();
+            Fin_Yr_Master currentYear = new();
+            Gen_Bank_Name societyData = new Gen_Bank_Name();
+            DateTime workingDate = DateTime.UtcNow;
+            try
+            {
+                currentYear = await  _unitOfWork.FinYearMaster.GetWorkingYear();
+                societyData = await _unitOfWork.General.GetSocietyData(user.BrCode!);
+                workingDate = await _unitOfWork.Calendars.GetCurrentDate(user.BrCode !);
+                appState = new()
+                {
+                    UserId = user.Id,
+                    UserName = user.Username,
+                    BrCode = user.BrCode,
+                    Working_Date = workingDate,
+                    Yr_FromDate = currentYear.From_Date,
+                    Yr_ToDate = currentYear.To_Date ,
+                    Society_Name = societyData.Bank_Name,
+                    SocietyType = societyData.Bank_Type
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return appState;
         }
     }
 }

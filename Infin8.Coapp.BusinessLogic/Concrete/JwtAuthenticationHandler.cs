@@ -33,7 +33,7 @@ namespace Infin8.Coapp.BusinessLogic
                 throw new UnauthorizedAccessException("Invalid credentials.");
             }
 
-            var accessToken = _jwtService.GenerateAccessToken(user.id,"user.username", "user.role");
+            var accessToken = _jwtService.GenerateAccessToken(user.Id,"user.username", "user.role");
             var refreshToken = _jwtService.GenerateRefreshToken();
 
             // Save the refresh token to the database
@@ -42,7 +42,7 @@ namespace Infin8.Coapp.BusinessLogic
                 Token = refreshToken,
                 Expires = DateTime.UtcNow.AddDays(_jwtService.GetRefreshTokenExpireDays()),
                 Created = DateTime.UtcNow,
-                MemberId = user.id // Replace with the actual user ID
+                MemberId = user.Id // Replace with the actual user ID
             };
 
             await _unitOfWork.RefreshTokenRepository.AddRefreshTokenAsync(refreshTokenEntity);

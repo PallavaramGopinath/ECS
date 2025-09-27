@@ -1,0 +1,125 @@
+﻿@page "/create-financial-year"
+
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@if (model != null)
+{
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-center align-items-centere mb-4">
+                    <h2 class="text-primary mb-0">
+                        <i class="oi oi-cog"></i>
+                        Create New Financial Year
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day end process-->
+    <div class="card">
+        <div class="card-header">
+            <h5>@model.ProcessDate.ToString("dd-MM-yyyy")</h5>
+        </div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between mt-4 mb-4">
+
+                <button type="button" class="btn btn-primary" @onclick="HandleValidSubmit">
+                    @if (_isProcessing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span class="ps-2">Creating New Financial Year...</span>
+                    }
+                    else
+                    {
+                        <i class="oi oi-pencil me-2"></i>
+                        <span class="ps-2">Create New Financial Year</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (_isProcessed)
+{
+    <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+        <strong>Error!</strong> @statusMessage
+        <button type="button" class="close" @onclick="() => _isProcessed = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+
+@if (_isError)
+{
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => _isError = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+
+@code {
+    private bool _isProcessing = false;
+    private bool _isError = false;
+    private bool _isProcessed = false;
+    private string statusMessage = "";
+    private string errorMessage = "";
+    private DtoDayProcess model = new()
+    {
+        ProcessDate = new DateTime(2025, 3, 31),
+        FromDate = new DateTime(2024, 4, 1),
+        ToDate = new DateTime(2025, 3, 31),
+        Created_By = 110010000002,
+        YrId = 110010000023,
+        BrCode = "11001",
+        Message = string.Empty
+    };
+    
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         try
+    //         {
+
+    //         }
+    //         catch (Exception ex)
+    //         {
+    //             Console.WriteLine(ex.Message);
+    //         }
+    //     }
+    // }
+
+    private async Task HandleValidSubmit()
+    {
+        _isProcessing = true;
+        string fromDateToString = model.FromDate.ToString("yyyy-MM-dd");
+        string toDateToString = model.ToDate.ToString("yyyy-MM-dd");
+        var response = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Accounts/create-year/{model.YrId}/{fromDateToString}/{toDateToString}/{model.Created_By}/{model.BrCode}");
+        if (response==true)
+        {
+            _isProcessed = true;
+            statusMessage = "Financial year created";
+            _isProcessing = false;
+            StateHasChanged();
+        }
+        else
+        {
+            _isError = true;
+            errorMessage = $"Request failed with status code";
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+}

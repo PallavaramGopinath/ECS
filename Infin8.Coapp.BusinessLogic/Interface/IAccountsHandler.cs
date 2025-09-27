@@ -25,5 +25,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<DtoLedgerBalance> GetLedgerBalanceWithFnlId(decimal ledId, decimal yrId, DateTime upToDate, string brCode);
         string GetLedgerNameByLedId(decimal ledId);
         Task<bool> UpdateLedgerBalance(decimal yrId, DateTime fromDate, DateTime toDate, string brCode);
+
+        Task<bool> CreateNewFinancialYear(decimal yrId, DateTime fromDate, DateTime toDate, decimal created_By, string brCode);
     }
 }

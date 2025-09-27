@@ -21,5 +21,6 @@
         public int? MemberStatus { get; set; }
         public DateTime? AdmissionDate { get; set; }
         public string? Address { get; set; }
+        public   string? BrCode { get; set; }
     }
 }

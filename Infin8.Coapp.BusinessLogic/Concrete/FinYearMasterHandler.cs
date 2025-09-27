@@ -32,5 +32,10 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+
+        public async Task<Fin_Yr_Master> GetWorkingYear()
+        {
+            return await _unitOfWork.FinYearMaster.GetWorkingYear();
+        }
     }
 }

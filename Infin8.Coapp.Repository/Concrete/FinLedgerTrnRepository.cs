@@ -35,6 +35,26 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<bool> AddFinLedgerTrnListAsync(List<Fin_Ledger_Trn> finLedgerTrnList)
+        {
+            bool result = false;
+            try
+            {
+                //decimal maxId = await CSISContext.Fin_Ledger_Trn.MaxAsync(x => x.Trn_Id);
+                //maxId++;
+                //finLedgerTrn.Trn_Id = maxId;
+                //await AddAsync(finLedgerTrn);
+                await CSISContext.AddRangeAsync(finLedgerTrnList);
+                await CSISContext.SaveChangesAsync();
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! General ledger trn not saved");
+            }
+            return result;
+        }
         public async Task<bool> EditFinLedgerTrnAsync(Fin_Ledger_Trn finLedgerTrn)
         {
             bool result = false;

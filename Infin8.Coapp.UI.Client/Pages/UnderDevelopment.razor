@@ -1,0 +1,50 @@
+﻿@page "/under-development"
+
+<div class="header">
+    <h4>Under Development</h4>
+</div>
+<div class="under-development">
+    <div class="m-2">
+        <img class="pt-2" src="@imagePath" alt="Under Development" height=150 width=200 />
+        <h5 class="p-2">Will deploy soon!</h5>
+    </div>
+</div>
+
+@code {
+    private string imagePath = "/uploads/app-images/under-development.jpg";
+}
+<style>
+    .header {
+        background-color: lightslategray;
+        width: 100%;
+        height: 150px;
+        display: flex;
+        justify-content: center;
+        margin: auto;
+        border-radius: 10px;
+    }
+
+    h4 {
+        color: white;
+        padding-top: 20px;
+        font-weight: 800;
+    }
+
+    .under-development {
+        width: 80%;
+        height: 25vh;
+        display: flex;
+        justify-content: center;
+        position: relative;
+        align-items: center;
+        top: -75px;
+        margin: auto;
+        background-color: lightgray;
+        border-radius: 10px;
+    }
+
+    h5 {
+        color: brown;
+        font-weight: 800;
+    }
+</style>

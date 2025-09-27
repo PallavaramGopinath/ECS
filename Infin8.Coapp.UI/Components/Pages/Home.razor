@@ -1,5 +1,11 @@
 ﻿@page "/"
-@inject HttpClient Http // Or a dedicated service to fetch data
+@* @inject HttpClient Http // Or a dedicated service to fetch data *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @* You might want to add a CSS file for custom styles, e.g., MemberDashboard.razor.css *@
 
@@ -358,6 +364,10 @@
     private bool isLoading = true;
     private string? errorMessage;
 
+    private string userName ="Gopinath";
+    private string password = "aaa123";
+    private AppState appState = new();
+
     protected override async Task OnInitializedAsync()
     {
         await LoadDashboardDataAsync();
@@ -448,6 +458,16 @@
         }
     }
 
+    private async Task LoanUserCredentialAndAppSettings()
+    {
+        var response = await _httpClient.GetFromJsonAsync<AppState>($"https://localhost:7073/api/User/get-appstate/{userName}/{password}");
+        if (response !=null && response.SocietyType >0)
+        {
+            appState = response;
+            StateHasChanged();
+        }
+    }
+
     // Your model classes here (or in a separate .cs file imported with @using)
     public class DashBoardMembers
     {
@@ -497,5 +517,7 @@
         public double IODColl_Amt { get; set; }
         public double PIColl_Amt { get; set; }
     }
+
+   
 }
 

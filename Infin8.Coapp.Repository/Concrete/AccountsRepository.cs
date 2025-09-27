@@ -91,7 +91,7 @@ namespace Infin8.Coapp.Repository
                 var count = await CSISContext.Map_Banks
                             .Where(x => x.Led_Id == ledgerId && x.BrCode == brCode)
                             .CountAsync();
-                if(count >0) result = true;
+                if (count > 0) result = true;
             }
             catch (Exception ex)
             {
@@ -349,7 +349,7 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate,string brCode)
+        public async Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate, string brCode)
         {
             double ledgerOB = 0;
             double rptAmt = 0;
@@ -383,8 +383,8 @@ namespace Infin8.Coapp.Repository
                                           && trn.LedgerTrn_Delete == false
                                           && ledger.Led_Delete == false
                                           && trn.Led_Id == ledId
-                                          && trn.BrCode == brCode 
-                                          && ledger.BrCode == brCode 
+                                          && trn.BrCode == brCode
+                                          && ledger.BrCode == brCode
                                           && trn.BrCode == brCode
                                        select new LedgerBalanceModel
                                        {
@@ -425,8 +425,8 @@ namespace Infin8.Coapp.Repository
                                                 && voucherTr.FinVocTr_Delete == false
                                                 && voucher.Voc_Delete == false
                                                 && voucher.Voc_Date.Date < upToDate
-                                                && voucher.BrCode == brCode 
-                                                && voucherTr.BrCode == brCode 
+                                                && voucher.BrCode == brCode
+                                                && voucherTr.BrCode == brCode
                                              select new { voucherTr.Voc_Rpt, voucherTr.Voc_Pmt })
                   .GroupBy(x => 1) // Group by a constant for single-row aggregation
                   .Select(g => new LedgerReceiptAndPaymentsModel
@@ -481,7 +481,7 @@ namespace Infin8.Coapp.Repository
             double pmtAmt = 0;
             int fnlId = 0;
             decimal cashLedId = 0;
-            
+
             LedgerBalanceModel ledObj = new LedgerBalanceModel();
             DtoLedgerBalance dtoLedgerBalance = new();
             LedgerReceiptAndPaymentsModel ledRptAndPmt = new LedgerReceiptAndPaymentsModel();
@@ -491,23 +491,23 @@ namespace Infin8.Coapp.Repository
                 cashLedId = await CSISContext.Map_General.Select(x => x.Cash_Led_Id).FirstAsync();
                 /// Get OB and final Ledger Id
                 #region linq
-                var ledObjTmp = await(from trn in CSISContext.Fin_Ledger_Trn
-                                      join ledger in CSISContext.Fin_Ledger
-                                          on trn.Led_Id equals ledger.Led_Id
-                                      join grp in CSISContext.Fin_Ledger_Grp
-                                          on ledger.Grp_Id equals grp.Grp_Id
-                                      where trn.Yr_Id == yrId
-                                         && trn.LedgerTrn_Delete == false
-                                         && ledger.Led_Delete == false
-                                         && trn.Led_Id == ledId
-                                         && trn.BrCode == brCode
-                                         && ledger.BrCode == brCode
-                                         && trn.BrCode == brCode
-                                      select new LedgerBalanceModel
-                                      {
-                                          LedgerBalance = trn.OB_Amt,
-                                          FnlId = grp.Fnl_Id
-                                      }).FirstOrDefaultAsync();
+                var ledObjTmp = await (from trn in CSISContext.Fin_Ledger_Trn
+                                       join ledger in CSISContext.Fin_Ledger
+                                           on trn.Led_Id equals ledger.Led_Id
+                                       join grp in CSISContext.Fin_Ledger_Grp
+                                           on ledger.Grp_Id equals grp.Grp_Id
+                                       where trn.Yr_Id == yrId
+                                          && trn.LedgerTrn_Delete == false
+                                          && ledger.Led_Delete == false
+                                          && trn.Led_Id == ledId
+                                          && trn.BrCode == brCode
+                                          && ledger.BrCode == brCode
+                                          && trn.BrCode == brCode
+                                       select new LedgerBalanceModel
+                                       {
+                                           LedgerBalance = trn.OB_Amt,
+                                           FnlId = grp.Fnl_Id
+                                       }).FirstOrDefaultAsync();
                 if (ledObjTmp != null) ledObj = ledObjTmp;
                 #endregion 
 
@@ -524,17 +524,17 @@ namespace Infin8.Coapp.Repository
                 /// Get receipt and payment amount
 
                 #region linq
-                var ledRptAndPmtTmp = await(from voucher in CSISContext.Fin_Voucher
-                                            join voucherTr in CSISContext.Fin_Voucher_Trn
-                                                on voucher.Voc_Id equals voucherTr.Voc_Id
-                                            where voucher.Yr_Id == yrId
-                                               && voucherTr.Led_Id == ledId
-                                               && voucherTr.FinVocTr_Delete == false
-                                               && voucher.Voc_Delete == false
-                                               && voucher.Voc_Date.Date < upToDate
-                                               && voucher.BrCode == brCode
-                                               && voucherTr.BrCode == brCode
-                                            select new { voucherTr.Voc_Rpt, voucherTr.Voc_Pmt })
+                var ledRptAndPmtTmp = await (from voucher in CSISContext.Fin_Voucher
+                                             join voucherTr in CSISContext.Fin_Voucher_Trn
+                                                 on voucher.Voc_Id equals voucherTr.Voc_Id
+                                             where voucher.Yr_Id == yrId
+                                                && voucherTr.Led_Id == ledId
+                                                && voucherTr.FinVocTr_Delete == false
+                                                && voucher.Voc_Delete == false
+                                                && voucher.Voc_Date.Date < upToDate
+                                                && voucher.BrCode == brCode
+                                                && voucherTr.BrCode == brCode
+                                             select new { voucherTr.Voc_Rpt, voucherTr.Voc_Pmt })
                   .GroupBy(x => 1) // Group by a constant for single-row aggregation
                   .Select(g => new LedgerReceiptAndPaymentsModel
                   {
@@ -597,7 +597,7 @@ namespace Infin8.Coapp.Repository
             decimal cashLedId = 0;
             double ledgerbalance = 0, totalReceipts = 0, totalPayments = 0;
             List<FinBal> obList = new List<FinBal>();
-            FinBal? trn = new ();
+            FinBal? trn = new();
             try
             {
                 cashLedId = await GetCashLedgerId(brCode);
@@ -643,6 +643,7 @@ namespace Infin8.Coapp.Repository
                                            Fnl_Id = grp.Fnl_Id
                                        }).ToListAsync();
                 #endregion 
+
                 if (obListTmp != null && obListTmp.Any())
                 {
                     obList = obListTmp.ToList();
@@ -668,26 +669,26 @@ namespace Infin8.Coapp.Repository
 
                     #region linq
                     var trnTmp = (from vtr in CSISContext.Fin_Voucher_Trn
-                           join v in CSISContext.Fin_Voucher on vtr.Voc_Id equals v.Voc_Id
-                           where v.Voc_Date.Date >= fromDate.Date
-                              && v.Voc_Date.Date <= toDate.Date
-                              && vtr.Yr_Id == yrId
-                              && v.Yr_Id == yrId
-                              && vtr.FinVocTr_Delete == false
-                              && v.Voc_Delete == false
-                           group vtr by vtr.Led_Id into g
-                           where g.Key == ob.Led_Id
-                           select new FinBal
-                           {
-                               Led_Id = g.Key,
-                               TotalReceipts = g.Sum(x => (double?)x.Voc_Rpt) ?? 0,
-                               TotalPayments = g.Sum(x => (double?)x.Voc_Pmt) ?? 0
-                           }).FirstOrDefault();
+                                  join v in CSISContext.Fin_Voucher on vtr.Voc_Id equals v.Voc_Id
+                                  where v.Voc_Date.Date >= fromDate.Date
+                                     && v.Voc_Date.Date <= toDate.Date
+                                     && vtr.Yr_Id == yrId
+                                     && v.Yr_Id == yrId
+                                     && vtr.FinVocTr_Delete == false
+                                     && v.Voc_Delete == false
+                                  group vtr by vtr.Led_Id into g
+                                  where g.Key == ob.Led_Id
+                                  select new FinBal
+                                  {
+                                      Led_Id = g.Key,
+                                      TotalReceipts = g.Sum(x => (double?)x.Voc_Rpt) ?? 0,
+                                      TotalPayments = g.Sum(x => (double?)x.Voc_Pmt) ?? 0
+                                  }).FirstOrDefault();
                     #endregion 
-                    if(trnTmp != null) trn = trnTmp; else trn = null;
+
+                    if (trnTmp != null) trn = trnTmp; else trn = null;
                     if (trn != null)
                     {
-
                         totalReceipts = trn.TotalReceipts;
                         totalPayments = trn.TotalPayments;
                         switch (ob.Fnl_Id)
@@ -744,5 +745,79 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
+        public async Task<Fin_Yr_Master> CreateNewFinancialYear(decimal existingYrId, DateTime fromDate, DateTime toDate, decimal created_By, string brCode)
+        {
+            Fin_Yr_Master newYear = new Fin_Yr_Master();
+            List<Fin_Ledger_Trn> ledgerTrnList = new();
+            List<Fin_Ledger_Trn> newLedgerTrnList = new();
+            decimal newYrId = 0;
+            DateTime newFromDate = fromDate.AddYears(1);
+            DateTime newToDate = toDate.AddYears(1);
+            try
+            {
+                var maxId = await CSISContext.Fin_Yr_Master.Where(x => x.BrCode == brCode).AnyAsync()
+                   ? await CSISContext.Fin_Yr_Master.MaxAsync(sh => sh.Yr_Id)
+                   : 0;
+                if(maxId == 0)
+                {
+                    string stringmaxId = brCode + "0000001";
+                    decimal.TryParse(stringmaxId, out decimal tmpMaxId);
+                    newYrId = tmpMaxId;
+                }
+                else
+                {
+                    newYrId = maxId;
+                }
+                newYrId++;
+                newYear = new Fin_Yr_Master()
+                {
+                    Yr_Id = newYrId++,
+                    From_Date = newFromDate,
+                    To_Date = newToDate,
+                    Usr_Id = created_By,
+                    Yr_closed = false,
+                    BrCode = brCode ,
+                    Voc_Status ="V"
+                };
+                await CSISContext.AddAsync(newYear);
+                await CSISContext.SaveChangesAsync();
+                var response = await CSISContext.Fin_Ledger_Trn.Where(x => x.Yr_Id == existingYrId).OrderBy(x => x.Led_Id).ToListAsync();
+                if (response != null && response.Any())
+                {
+                    ledgerTrnList = response.ToList();
+                }
+                var maxLedTrnId = await CSISContext.Fin_Ledger_Trn.Where(x => x.BrCode == brCode).AnyAsync()
+                    ? await CSISContext.Fin_Ledger_Trn.MaxAsync(sh => sh.Trn_Id)
+                    : 0;
+                #region  Step 3: Create new staging_history records with new IDs
+                var ledgerTrn = ledgerTrnList.Select((sd, index) => new Fin_Ledger_Trn
+                {
+                    Trn_Id = maxLedTrnId + index + 1, // Generate new unique ID
+                    Led_Id = sd.Led_Id,
+                    OB_Amt = sd.CB_Amt,
+                    Tot_Rpt_Amt = 0,
+                    Tot_Pmt_Amt = 0,
+                    CB_Amt = 0,
+                    Yr_Id = newYear.Yr_Id,
+                    Usr_Id = created_By,
+                    LedgerTrn_Delete = false,
+                    BrCode = brCode
+                }).ToList();
+                if(ledgerTrn != null && ledgerTrn.Any())
+                {
+                    newLedgerTrnList = ledgerTrn.ToList();
+                }
+                await CSISContext.AddRangeAsync(newLedgerTrnList);
+                await CSISContext.SaveChangesAsync();
+                #endregion 
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return newYear;
+        }
+
     }
 }

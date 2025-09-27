@@ -7,5 +7,6 @@
         public double OB { get; set; }
         public double Rpt_Amt { get; set; }
         public double Pmt_Amt { get; set; }
+        public double CB { get; set; }
     }
 }

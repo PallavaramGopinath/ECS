@@ -82,6 +82,11 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.FinVoucherTrn.GetTransactionById(vocId, brCode);
         }
 
+        public async Task<DtoVoucher> GetTransactionByIds(decimal vocId, decimal yrId, string brCode)
+        {
+            return await _unitOfWork.FinVoucherTrn.GetTransactionByIds(vocId,yrId, brCode);
+        }
+
         public async Task<DtoVoucher> GetTransactionByNo(string rptNo, string pmtNo, decimal yrId)
         {
             return await _unitOfWork.FinVoucherTrn.GetTransactionByNo(rptNo, pmtNo, yrId);

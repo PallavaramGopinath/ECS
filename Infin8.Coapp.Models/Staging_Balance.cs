@@ -13,13 +13,15 @@ namespace Infin8.Coapp.Models
         public decimal Id { get; set; }
         public decimal Ledger_Id { get; set; }
         public int Fnl_Id { get; set; }
-        public DateTime Balance_Date { get; set; }
-        public double Balance_Amount { get; set; }
+        public DateTime Accounting_Date { get; set; }
+        public double Opening_Balance { get; set; }
+        public double Receipt { get; set; }
+        public double Payment { get; set; }
+        public double Closing_Balance { get; set; }
         public decimal Created_By { get; set; }
         public DateTime  Created_Date { get; set; }
         public bool Balance_Delete { get; set; }
         public string? BrCode { get; set; }
         public decimal Yr_Id { get; set; }
-        public decimal Voc_Id { get; set; }
     }
 }

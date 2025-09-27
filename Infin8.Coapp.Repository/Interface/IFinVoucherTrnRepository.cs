@@ -17,6 +17,7 @@ namespace Infin8.Coapp.Repository
         Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate,string brCode);
         Task<decimal> GetCashLedgerId(string brCode);
         Task<DtoVoucher> GetTransactionById(decimal vocId,string brCode);
+        Task<DtoVoucher> GetTransactionByIds(decimal vocId, decimal yrId, string brCode);
         Task<DtoVoucher> GetTransactionByNo(string rptNo, string pmtNo, decimal yrId);
     }
 }

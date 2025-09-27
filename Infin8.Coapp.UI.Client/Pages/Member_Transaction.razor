@@ -840,6 +840,11 @@
         // string? ChequeNo = "", IssueBankName = "";
         // DateOnly? ChequeDate = null;
         // string chequeJsonData = "";
+        if(transaction.Ledger_Id == 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Ledger Name not selected");
+            return;
+        }
         string otherRelatedJsonData = "";
         switch (transaction.Account_Id)
         {

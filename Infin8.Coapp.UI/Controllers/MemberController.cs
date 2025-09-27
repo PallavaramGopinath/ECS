@@ -155,22 +155,27 @@ namespace API.Controllers
             }
         }
 
-        [HttpGet("{id:decimal}/{fromDate:datetime}/{toDate:datetime}")]
-        public ActionResult<List<MemberDashBoardAccountsDto>> GetMemberDashBoardAccounts(decimal id, DateTime fromDate, DateTime toDate)
-        {
-            List<MemberDashBoardAccountsDto> memberDashBoardAccounts = new List<MemberDashBoardAccountsDto>();
-            memberDashBoardAccounts = _dashboardHandler.GetMemberDashBoardAccounts(id, fromDate, toDate);
-            if (memberDashBoardAccounts == null)
-                return NotFound();
-            else
-                return Ok(memberDashBoardAccounts);
-        }
+        //[HttpGet("{id:decimal}/{fromDate}/{toDate}")]
+        //public ActionResult<List<MemberDashBoardAccountsDto>> GetMemberDashBoardAccounts(decimal id, string fromDate, string toDate)
+        //{
+        //    List<MemberDashBoardAccountsDto> memberDashBoardAccounts = new List<MemberDashBoardAccountsDto>();
+        //    DateTime.TryParse(fromDate, out DateTime fromDateFormated);
+        //    DateTime.TryParse(toDate, out DateTime toDateFormated);
+        //    memberDashBoardAccounts = _dashboardHandler.GetMemberDashBoardAccounts(id, fromDateFormated, toDateFormated);
+        //    if (memberDashBoardAccounts == null)
+        //        return NotFound();
+        //    else
+        //        return Ok(memberDashBoardAccounts);
+        //}
+
         [HttpGet()]
-        [Route("Dashboard/{id:decimal}/{fromDate:datetime}/{toDate:datetime}")]
-        public ActionResult<List<MemberDashBoardAccountsDto>> GetDashboardAccounts(decimal id, DateTime fromDate, DateTime toDate)
+        [Route("Dashboard/{id:decimal}/{fromDate}/{toDate}/{brCode}")]
+        public ActionResult<List<MemberDashBoardAccountsDto>> GetDashboardAccounts(decimal id, string fromDate, string toDate, string brCode)
         {
+            DateTime.TryParse(fromDate, out DateTime fromDateFormated);
+            DateTime.TryParse(toDate, out DateTime toDateFormated);
             List<MemberDashBoardAccountsDto> memberDashBoardAccounts = new List<MemberDashBoardAccountsDto>();
-            memberDashBoardAccounts = _dashboardHandler.DashboardAccounts(id, fromDate, toDate);
+            memberDashBoardAccounts = _dashboardHandler.DashboardAccounts(id, fromDateFormated, toDateFormated,brCode );
             if (memberDashBoardAccounts == null)
                 return NotFound();
             else

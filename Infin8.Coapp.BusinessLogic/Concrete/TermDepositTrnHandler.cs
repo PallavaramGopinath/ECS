@@ -298,6 +298,11 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.TermDepositTrn.GetTDNosByMemIdAsync(memId, tdSchemeType, brCode);
         }
+
+        public async Task<List<decimal>> GetFDIdListForDayEndCalculation(int day, string brCode)
+        {
+            return await _unitOfWork.TermDepositTrn.GetFDIdListForDayEndCalculation(day, brCode);
+        }
         public async Task<List<DropdownItem>> GetTDNosByMemIdForRenewal(decimal memId, string tdSchemeType, DateTime trnDate, string brCode)
         {
             return await _unitOfWork.TermDepositTrn.GetTDNosByMemIdForRenewal(memId, tdSchemeType,trnDate, brCode);
@@ -316,5 +321,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.TermDepositTrn.GetSecurityDepositData(empId, brCode);
         }
+
+        
     }
 }

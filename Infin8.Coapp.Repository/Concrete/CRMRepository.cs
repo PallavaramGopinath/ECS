@@ -140,6 +140,7 @@ namespace Infin8.Coapp.Repository
                                       DOJ = f.doj,
                                       BasicPay = f.basicpay,
                                       AdmissionDate = f.admissiondate,
+                                      BrCode = f.brcode,
                                       Address = (f.peradd1 ?? "") +
                                                 (!string.IsNullOrEmpty(f.peradd2) ? ", " + f.peradd2 : "") +
                                                 (!string.IsNullOrEmpty(f.peradd3) ? ", " + f.peradd3 : "") +

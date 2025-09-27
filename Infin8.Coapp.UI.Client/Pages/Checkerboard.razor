@@ -191,6 +191,10 @@ else
     #endregion
     private bool _isDataLoaded = false;
 
+    #region print variables
+    private byte[] fileBytes;
+    private DtoVoucher? voucherData = new();
+    #endregion 
     #region commented section
     // protected override async Task OnInitializedAsync()
     // protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -445,9 +449,15 @@ else
 
     private async Task ApproveTransactions(decimal stagingId)
     {
-        var response = await _httpClient.PostAsJsonAsync<decimal>("https://localhost:7073/api/Staging/ApproveStaging", stagingId);
+        // decimal vocId = 0;
+        var response = await _httpClient.PostAsJsonAsync("https://localhost:7073/api/Staging/ApproveStaging", stagingId);
         if (response.IsSuccessStatusCode)
         {
+            // vocId = await response.Content.ReadFromJsonAsync<decimal>();
+            voucherData = await response.Content.ReadFromJsonAsync<DtoVoucher>();
+            /// print receipt and payment reports
+            await HandlePrint();
+
             checkerDashboardList = new();
             try
             {
@@ -610,6 +620,328 @@ else
         {
             showModal = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task HandlePrint()
+    {
+        List<rptReceiptAndPaymentAmount> rptPmtList = new();
+        try
+        {
+            var rptPmtResponse = await _httpClient.GetFromJsonAsync<List<rptReceiptAndPaymentAmount>>($"https://localhost:7073/api/Print/GetReceiptAndPaymentData/{voucherData!.Voc_Id}/{voucherData.brCode}");
+            if (rptPmtResponse!.Count > 0)
+            {
+                rptPmtList = rptPmtResponse.ToList();
+            }
+            else
+            {
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            string msg = ex.Message;
+            return;
+        }
+
+        rptReceiptObject rpt = new()
+        {
+            vocId = voucherData!.Voc_Id,
+            receiptAmt = voucherData.Transactions.Sum(l => l.Voc_Rpt),
+            brCode = voucherData.brCode,
+            vocTrnType = voucherData.Transactions.Select(x => x.Voc_Trn_Type).FirstOrDefault()
+        };
+        rptReportObject rptObject = new()
+        {
+            Voc_Id = voucherData.Voc_Id,
+            BrCode = voucherData.brCode,
+            VocTrnType = voucherData.Transactions.Select(x => x.Voc_Trn_Type).FirstOrDefault()
+        };
+
+        foreach (var receipt in rptPmtList)
+        {
+            if (receipt.Voc_Rpt > 0)
+            {
+                if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 14)    /// voc_Type 5 = member transaction,Voc_Type 11 = decreed loan issue)
+                {
+                    if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11)
+                    {
+                        await Print_Member_Receipt(rpt);
+                    }
+                    if (receipt.Voc_Type == 14) /// Voc_type 14 = tsis loan disbursement by ecs
+                    {
+
+                    }
+                }
+                else  /// receipt general (other than member receipt)
+                {
+                    await Print_General_Receipt(rpt);
+                }
+
+            }
+        }
+        foreach (var payment in rptPmtList)
+        {
+            if (payment.Voc_Pmt > 0)
+            {
+                rptObject.VocTrnType = payment.Voc_Trn_Type;
+                break;
+            }
+        }
+        double pmtAmt = 0;
+        pmtAmt = rptPmtList.Sum(x => x.Voc_Pmt);
+        if (pmtAmt > 0)
+        {
+            rptObject.ReportId = 89;
+            await Print_Voucher(rptObject);
+        }
+
+        List<string> statusList = new();
+        var statusResult = await _httpClient.GetFromJsonAsync<List<string>>($"https://localhost:7073/api/Print/GetStatus/{voucherData!.Voc_Id}");
+        if (statusResult!.Count > 0)
+        {
+            statusList = statusResult!.ToList();
+        }
+        foreach (var status in statusList)
+        {
+            switch (status.Trim())
+            {
+                case "FI":      /// FD Interest payment
+                case "FR":  /// FD Refund report id = 92
+                    await Print_FDPayment(rpt);
+                    break;
+                case "FDR":
+                case "FW":  /// FD Bond Report Id = 116
+                    await Print_FDBond(rpt);
+                    break;
+                case "DVP": /// Dividend paid report id = 124
+
+                    break;
+                case "DVPB":    /// Dividend/int on td payment bulk society type = 1 report id = 90  employee soc, else report id = 146, 154 other soc
+
+                    break;
+                case "MMDTo":    /// Member due to multiple report id = 91
+
+                    break;
+                case "MMDBy":    /// Member due by multiple report id = 91
+
+                    break;
+                case "ECSGB":    /// Member due by multiple report id = 91
+
+                    break;
+                case "JLI": /// Jewel Loan Disbursement (JL Ledger) report id = 136,136,153
+                    rptObject.ReportId = 135;
+                    await Print_JL_Ledger(rptObject);
+                    rptObject.ReportId = 136;
+                    await Print_JL_Ledger(rptObject);
+                    rptObject.ReportId = 153;
+                    await Print_JL_Ledger(rptObject);
+                    break;
+                case "BTOA": /// Transaction between Associate Members to A-Class Members report id = 145
+
+                    break;
+                case "DVPM":    /// bulk dividend payment HSIS report id = 146
+
+                    break;
+                case "HLI":    /// PLDB Loan for MI for Jewels report id = 136,136
+
+                    break;
+            }
+        }
+
+        // #region Member Receipt
+        // var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rpt);
+        // if (response.IsSuccessStatusCode)
+        // {
+        //     fileBytes = await response.Content.ReadAsByteArrayAsync();
+        //     // 1. Convert byte array to a Base64 string
+        //     var base64String = Convert.ToBase64String(fileBytes);
+
+        //     /// 2. Render in iframe commented
+        //     // Set the data URL to a property bound to the iframe's src
+        //     // pdfDataUrl = $"data:application/pdf;base64,{base64String}";
+
+        //     // If fileBytes is null or empty, the API returned nothing.
+        //     if (fileBytes == null || fileBytes.Length == 0)
+        //     {
+        //         Console.WriteLine("Error: API returned a success status code but with no content.");
+        //         return; // Stop here
+        //     }
+        //     // 3. Call the new JavaScript function to open the PDF in a new tab
+        //     await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+
+        //     // 4. Down load pdf commented
+        //     // await JSRuntime.SaveAs("Receipt.pdf", fileBytes!);
+        // }
+        // else
+        // {
+        //     // Log or show error
+        //     Console.WriteLine($"Error: {response.StatusCode}");
+        // }
+        // #endregion
+    }
+
+    private async Task Print_Member_Receipt(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            /// 2. Render in iframe commented
+            // Set the data URL to a property bound to the iframe's src
+            // pdfDataUrl = $"data:application/pdf;base64,{base64String}";
+
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 3. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+
+            // 4. Down load pdf commented
+            // await JSRuntime.SaveAs("Receipt.pdf", fileBytes!);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_General_Receipt(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt-general", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            /// 2. Render in iframe commented
+            // Set the data URL to a property bound to the iframe's src
+            // pdfDataUrl = $"data:application/pdf;base64,{base64String}";
+
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 3. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+
+            // 4. Down load pdf commented
+            // await JSRuntime.SaveAs("Receipt.pdf", fileBytes!);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_Voucher(rptReportObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"https://localhost:7073/api/Print/print-voucher", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 3. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_FDPayment(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-fdpayment", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // 2. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_FDBond(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-fdbond", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // 2. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_JL_Ledger(rptReportObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"https://localhost:7073/api/Print/print-jl-ledger", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // 2. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
         }
     }
 }
