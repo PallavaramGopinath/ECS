@@ -1,0 +1,466 @@
+﻿@page "/report-staff"
+@using Infin8.Coapp.Dto
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+
+<!-- loading spinner -->
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Select Report -->
+    <div class="card mt-2">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Select Report</label>
+                        <InputSelect class="form-select shadow-none"
+                                     @bind-Value="rptObject.ReportId"
+                                     @bind-Value:after="handlerSelectRportName">
+                            @foreach (var rpt in reportList)
+                            {
+                                <option value="@rpt.Value">@rpt.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Select Staff -->
+    <div class="card mt-2">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Select Employee</label>
+                        <InputSelect class="form-select shadow-none"
+                                     @bind-Value="rptObject.Emp_Id">
+                            @foreach (var emp in employeeLastPayInfos)
+                            {
+                                <option value="@emp.Employee_Id">@emp.Employee_Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Select Salary Month -->
+    @if (isPayMonth)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Select Salary Month</label>
+                            <InputSelect class="form-select shadow-none"
+                                         @bind-Value="rptObject.Pay_Id">
+                                @foreach (var pay in payIdList)
+                                {
+                                    <option value="@pay.Value">@pay.Text</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Between two dates -->
+    @if (isBetweenDates)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>From date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.FromDate" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>To date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.ToDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- General Ledger List -->
+    @if (isLoanList)
+    {
+        @if (loanList != null && loanList.Any())
+        {
+            <!-- Select All -->
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <!-- Select all -->
+                            <div class="form-check  ms-3">
+                                <input class="form-check-input" type="checkbox" id="selectAllCheckbox"
+                                       checked="@isAllSelected"
+                                       @onchange="SelectAllChanged" />
+                                <label class="form-check-label" for="selectAllCheckbox">
+                                    <strong>Select All</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List of ledgers -->
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <div style="height: 450px; overflow-x: hidden ; overflow-y: auto;">
+                                <div style="white-space: nowrap;">
+                                    @foreach (var led in loanList)
+                                    {
+                                        <div class="form-check ms-3">
+                                            <input class="form-check-input ps-2" type="checkbox" id="@($"ledger_{led.Value}")"
+                                                   checked="@(selectedLedgers.Contains(led))"
+                                                   @onchange="e => ToggleLedgerSelection(led, (bool)e.Value)" />
+                                            <label class="form-check-label" for="@($"ledger_{led.Text}")">
+                                                @led.Text
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- Button -->
+    <button type="button" class="btn btn-primary mt-3" disabled="@isPrintDisbled" @onclick="HandlePrint">
+        @* <i class="oi oi-print" aria-hidden="true"></i> *@
+        @if (_isFetchingData)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" area-hidden="true"></span>
+            <span class="ps-2">Loading....</span>
+        }
+        else
+        {
+            <i class="oi oi-print" aria-hidden="true"></i>
+            <span class="ps-2">Print</span>
+        }
+    </button>
+}
+<!-- Show spinner while loading data -->
+@if (_isFetchingData)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<DropdownItem> reportList = new();
+    private List<DropdownItem> loanList = new();
+    private List<DropdownItem> payIdList = new();
+    private List<DropdownItem> selectedLedgers = new();
+
+    private List<DtoEmployeeLastPayInfo> employeeLastPayInfos = new();
+    rptReportEmployeeObject rptObject = new()
+    {
+        BrCode = "11001",
+        Yr_Id = 110010000023
+    };
+
+    private byte[] fileBytes;
+    private bool _isLoading = true;
+    private bool isPayMonth = false;
+    private bool isBetweenDates = false;
+    private bool isLoanList = false;
+    private bool isAllSelected = false;
+    private bool isPrintDisbled = true;
+    private bool _isFetchingData = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                rptObject.ToDate = DateTime.UtcNow;
+                rptObject.FromDate = new DateTime(2025, 4, 1);
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/6");
+                if (result!.Count > 0)
+                {
+                    reportList = result.ToList();
+                    StateHasChanged();
+                }
+                // var ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/{rptObject.BrCode}");
+                // if (ledgers != null && ledgers.Any())
+                // {
+                //     ledgerList = ledgers.OrderBy(x => x.Text).ToList();
+                // }
+                await GetEmployeesLastPayInfo();
+                await GetPayIdInfo();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task GetEmployeesLastPayInfo()
+    {
+        var mem = await _httpClient.GetFromJsonAsync<List<DtoEmployeeLastPayInfo>>($"https://localhost:7073/api/Pay/GetLastPayInfo");
+        if (mem != null && mem.Any())
+        {
+            employeeLastPayInfos = mem;
+        }
+        StateHasChanged();
+    }
+
+    private async Task GetPayIdInfo()
+    {
+        var payIds = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPayIdList/{rptObject.Yr_Id}/P/{rptObject.BrCode}");
+        if (payIds != null && payIds.Any())
+        {
+            payIdList = payIds;
+        }
+        StateHasChanged();
+    }
+
+    private void handlerSelectRportName()
+    {
+        isPayMonth = false;
+        isBetweenDates = false;
+        isLoanList = false;
+        isPrintDisbled = false;
+        try
+        {
+            switch (rptObject.ReportId)
+            {
+                case 66:    /// Pay bill
+                    isPayMonth = true;
+                    break;
+                case 67:    /// Pay bill office note
+                    isPayMonth = true;
+                    break;
+                case 87:    /// Employee providend fund register
+                    isBetweenDates = true;
+                    break;
+                case 96:    /// Staff loan ledger
+                    isBetweenDates = true;
+                    isLoanList = true;
+                    break;
+                case 131:    /// Salary for the year
+                    isBetweenDates = true;
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void ToggleLedgerSelection(DropdownItem led, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedLedgers.Any(l => l.Value == led.Value))
+            {
+                selectedLedgers.Add(led);
+            }
+        }
+        else
+        {
+            selectedLedgers.RemoveAll(l => l.Value == led.Value);
+        }
+        isAllSelected = selectedLedgers.Count == loanList.Count;
+    }
+
+    private void SelectAllChanged(ChangeEventArgs e)
+    {
+        // Determine if "Select All" was checked or unchecked
+        isAllSelected = (bool)(e.Value ?? false);
+
+        if (isAllSelected)
+        {
+            // If checked, add all ledger values to the selected set
+            selectedLedgers.AddRange(loanList);
+        }
+        else
+        {
+            // If unchecked, clear the selected set
+            selectedLedgers.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandlePrint()
+    {
+        _isFetchingData = true;
+        // rptObject.FromDateString = rptObject.FromDate.ToString("yyyy-MM-dd");
+        // rptObject.ToDateString = rptObject.ToDate.ToString("yyyy-MM-dd");
+        try
+        {
+            switch (rptObject.ReportId)
+            {
+                case 66:    /// Pay bill
+                    await PrintPayslip(66);
+                    break;
+                case 67:    /// Pay bill office note
+                    await PrintPayslip(67);
+                    break;
+                case 87:    /// Employee providend fund register
+                    await PrintPFRegister();
+                    break;
+                case 96:    /// Staff loan ledger
+
+                    break;
+                case 131:    /// Salary for the year
+                    await PrintOneYearPayBill();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _isFetchingData = false;
+            Console.WriteLine(ex.Message);
+        }
+        _isFetchingData = false;
+    }
+
+    private async Task PrintPayslip(int reportId)
+    {
+        try
+        {
+            rptObject.ReportId = reportId;
+            var response = await _httpClient.PostAsJsonAsync<rptReportEmployeeObject>($"https://localhost:7073/api/ReportsEmployee/Print_PayBillOfficeNote", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task PrintPFRegister()
+    {
+        try
+        {
+            rptObject.ReportId = 87;
+
+            var response = await _httpClient.PostAsJsonAsync<rptReportEmployeeObject>($"https://localhost:7073/api/ReportsEmployee/Print_PFRegister", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task PrintOneYearPayBill()
+    {
+        try
+        {
+            // rptObject.ReportId = 131;
+
+            var response = await _httpClient.PostAsJsonAsync<rptReportEmployeeObject>($"https://localhost:7073/api/ReportsEmployee/Print_OneYearPayBill", rptObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                // If fileBytes is null or empty, the API returned nothing.
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return; // Stop here
+                }
+                // 1. Convert byte array to a Base64 string
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // 2. Call the new JavaScript function to open the PDF in a new tab
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+            }
+            else
+            {
+                // Log or show error
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}

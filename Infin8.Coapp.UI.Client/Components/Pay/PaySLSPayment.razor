@@ -260,7 +260,7 @@ else
                 model.errorMessage = "SLS for the period from " + fromDate.ToString("dd-MM-yyyy") + " to " + toDate.ToString("dd-MM-yyyy") + " already paid";
                 return;
             }
-            var response = await _httpClient.GetFromJsonAsync<List<DtoSLSComponent>>($"https://localhost:7073/api/Pay/GetSLSData/{Employee_Id}");
+            var response = await _httpClient.GetFromJsonAsync<List<DtoSLSComponent>>($"https://localhost:7073/api/Pay/GetSLSData/{Employee_Id}/{brCode}");
             if (response != null && response.Any())
             {
                 SLSList = new();

@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
 using System;
 using System.Collections.Generic;
@@ -51,9 +52,16 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
+       
         public async Task<decimal> GetPaySlipForDAArrears(DateTime fromDate, DateTime toDate, string description, string brCode)
         {
             return await _unitOfWork.PayInit.GetPaySlipForDAArrears(fromDate, toDate, description,brCode);
         }
+
+        public async Task<List<DropdownItem>> GetPayIdList(decimal yearId, string payDes, string brCode)
+        {
+            return await _unitOfWork.PayInit.GetPayIdList(yearId, payDes, brCode);
+        }
+
     }
 }

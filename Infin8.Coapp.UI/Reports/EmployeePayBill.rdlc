@@ -33,16 +33,16 @@
           <DataField>Deduction_Amt</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="dob">
-          <DataField>dob</DataField>
+        <Field Name="Dob">
+          <DataField>Dob</DataField>
           <rd:TypeName>System.Nullable`1[[System.DateTime, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
-        <Field Name="DOJ">
-          <DataField>DOJ</DataField>
+        <Field Name="Doj">
+          <DataField>Doj</DataField>
           <rd:TypeName>System.Nullable`1[[System.DateTime, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
-        <Field Name="DOR">
-          <DataField>DOR</DataField>
+        <Field Name="Dor">
+          <DataField>Dor</DataField>
           <rd:TypeName>System.Nullable`1[[System.DateTime, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
         <Field Name="Emp_Desgn">
@@ -69,8 +69,8 @@
           <DataField>Mem_Id</DataField>
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
-        <Field Name="memberName">
-          <DataField>memberName</DataField>
+        <Field Name="MemberName">
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="Pay_Basic_Earned">
@@ -259,7 +259,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!memberName.Value</Value>
+                                  <Value>=Fields!MemberName.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
@@ -444,7 +444,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=IIF(IsNothing(Fields!dob.Value),"", Format(Fields!dob.Value,"dd-MM-yyyy"))</Value>
+                                  <Value>=IIF(IsNothing(Fields!Dob.Value),"", Format(Fields!Dob.Value,"dd-MM-yyyy"))</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
@@ -509,7 +509,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Format(Fields!DOJ.Value,"dd-MM-yyyy")</Value>
+                                  <Value>=Format(Fields!Doj.Value,"dd-MM-yyyy")</Value>
                                   <Style>
                                     <Format>dd-MM-yyyy</Format>
                                   </Style>
@@ -564,14 +564,14 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="DOR">
+                        <Textbox Name="Dor">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=IIF(IsNothing(Fields!DOR.Value),"",Format(Fields!DOR.Value,"dd-MM-yyyy"))</Value>
+                                  <Value>=IIF(IsNothing(Fields!Dor.Value),"",Format(Fields!Dor.Value,"dd-MM-yyyy"))</Value>
                                   <Style>
                                     <Format>dd-MM-yyyy</Format>
                                   </Style>
@@ -580,7 +580,7 @@
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>DOR</rd:DefaultName>
+                          <rd:DefaultName>Dor</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1991,14 +1991,14 @@ IIF(Fields!Led_Id.Value &gt;0, Fields!Led_Name.Value,"")))</Value>
               <TablixMembers>
                 <TablixMember />
                 <TablixMember>
-                  <Group Name="memberName">
+                  <Group Name="MemberName">
                     <GroupExpressions>
-                      <GroupExpression>=Fields!memberName.Value</GroupExpression>
+                      <GroupExpression>=Fields!MemberName.Value</GroupExpression>
                     </GroupExpressions>
                   </Group>
                   <SortExpressions>
                     <SortExpression>
-                      <Value>=Fields!memberName.Value</Value>
+                      <Value>=Fields!MemberName.Value</Value>
                     </SortExpression>
                   </SortExpressions>
                   <TablixMembers>

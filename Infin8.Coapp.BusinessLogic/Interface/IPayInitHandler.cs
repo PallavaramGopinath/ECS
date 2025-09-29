@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +13,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<Pay_Init> AddPayInitAsync(Pay_Init payInit);
         Task<bool> EditPayInitAsync(Pay_Init payInit);
         Task<decimal> GetPaySlipForDAArrears(DateTime fromDate, DateTime toDate, string description, string brCode);
+        Task<List<DropdownItem>> GetPayIdList(decimal yearId, string payDes, string brCode);
     }
 }

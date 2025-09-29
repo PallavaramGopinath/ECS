@@ -29,8 +29,8 @@
           <DataField>IT</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="memberName">
-          <DataField>memberName</DataField>
+        <Field Name="MemberName">
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="OtherAllowances">
@@ -53,8 +53,8 @@
           <DataField>Pay_DA_Earned</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="pay_des">
-          <DataField>pay_des</DataField>
+        <Field Name="Pay_Des">
+          <DataField>Pay_Des</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="Pay_Exgratia">
@@ -65,8 +65,8 @@
           <DataField>Pay_GradePay_Earned</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="pay_month">
-          <DataField>pay_month</DataField>
+        <Field Name="Pay_Month">
+          <DataField>Pay_Month</DataField>
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
         <Field Name="Pay_Net">
@@ -552,14 +552,14 @@
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="memberName1">
+                        <Textbox Name="MemberName1">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!memberName.Value</Value>
+                                  <Value>=Fields!MemberName.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
@@ -568,7 +568,7 @@
                               </Style>
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>memberName1</rd:DefaultName>
+                          <rd:DefaultName>MemberName1</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -665,7 +665,7 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="memberName">
+                        <Textbox Name="MemberName">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
@@ -683,7 +683,7 @@
                               </Style>
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>memberName</rd:DefaultName>
+                          <rd:DefaultName>MemberName</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>

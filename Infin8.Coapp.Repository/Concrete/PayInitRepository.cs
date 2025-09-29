@@ -66,5 +66,48 @@ namespace Infin8.Coapp.Repository
             }
             return payId;
         }
+
+        public async Task<List<DropdownItem>> GetPayIdList(decimal yearId, string payDes, string brCode)
+        {
+            List<DropdownItem> payIdList = new List<DropdownItem>();
+            try
+            {
+                var result = await CSISContext.Pay_Init.Where(x => x.Pay_Delete == false && x.Yr_Id == yearId && x.Pay_Des == payDes && x.BrCode == brCode ).ToListAsync();
+                var distinctValues = result.GroupBy(c => c.Pay_Id, (key, c) => c.FirstOrDefault());
+                if (distinctValues != null)
+                {
+                    foreach (Pay_Init single in distinctValues)
+                    {
+                        if (payDes == "P")
+                        {
+                            DateTime date = new DateTime(single!.Pay_Year, single.Pay_Month, 1);
+                            DropdownItem pay1 = new DropdownItem
+                            {
+                                Value = single.Pay_Id.ToString(),
+                                Text = date.ToString("MMMM") + " " + single.Pay_Year.ToString()
+                            };
+                            payIdList.Add(pay1);
+                        }
+                        if (payDes == "D")
+                        {
+                            DateTime fromDate = (DateTime)single.From_Date!;
+                            DateTime toDate = (DateTime)single.To_Date!;
+                            DropdownItem pay = new DropdownItem
+                            {
+                                Value = single.Pay_Id.ToString(),
+                                Text = fromDate.ToString("dd-MM-yyyy") + " to " + toDate.ToString("dd-MM-yyyy")
+                            };
+
+                            payIdList.Add(pay);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+            return payIdList;
+        }
     }
 }

@@ -8,7 +8,7 @@ namespace Infin8.Coapp.Models
     {
         [Key]
         public decimal Roi_Id { get; set; }
-        public Nullable<System.DateTime> Roi_Wef { get; set; }
+        public DateTime Roi_Wef { get; set; }
         public double Roi { get; set; }
         public bool Roi_Delete { get; set; }
         public decimal Usr_Id { get; set; }

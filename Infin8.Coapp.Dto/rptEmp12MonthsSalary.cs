@@ -2,7 +2,7 @@
 {
     public  class rptEmp12MonthsSalary
     {
-        public int Emp_Id { get; set; }
+        public decimal Emp_Id { get; set; }
         public string? MemberName { get; set; }
         public string? Emp_Desgn { get; set; }
         public string? SalaryMonth { get; set; }

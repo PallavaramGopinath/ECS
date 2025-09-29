@@ -13,7 +13,7 @@ namespace Infin8.Coapp.BusinessLogic
         //Task<List<rptLoanOutstanding>> GetLoanOutstandingWithAgewise(DateTime toDate, int loanType);
         //Task<List<rptLoanDCB>> GetLoanDCB(DateTime fromDate, DateTime toDate);
         //Task<List<rptLoanDisbursementHSIS>> GetLoanDisbursement(DateTime fromDate, DateTime toDate, int loanType);
-        Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate);
+        Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate, string brCode);
         Task<List<rptLoanOutstanding>> GetLoanOutstandingWithAgewise(DateTime toDate, int loanType, string brCode);
         Task<List<rptLoanDCB>> GetLoanDCB(DateTime fromDate, DateTime toDate, string brCode);
         Task<List<rptLoanDisbursementHSIS>> GetLoanDisbursement(DateTime fromDate, DateTime toDate, int loanType, string brCode);

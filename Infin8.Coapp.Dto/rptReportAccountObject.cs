@@ -16,5 +16,7 @@ namespace Infin8.Coapp.Dto
         public int ReportId { get; set; }
         public List<decimal>? LedgerList { get; set; }
         public string? BrCode { get; set; }
+        public decimal Mem_Id { get; set; }
+        public decimal Pay_Id { get; set; }
     }
 }

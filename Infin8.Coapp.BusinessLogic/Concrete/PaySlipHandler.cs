@@ -124,9 +124,9 @@ namespace Infin8.Coapp.BusinessLogic
             return paySlip;
         }
 
-        public async Task<List<DtoEmployeeLastPayInfo>> GetEmployeeLastPayInfo()
+        public async Task<List<DtoEmployeeLastPayInfo>> GetEmployeeLastPayInfo(string brCode)
         {
-            return await _unitOfWork.PaySlip.GetEmployeeLastPayInfo();
+            return await _unitOfWork.PaySlip.GetEmployeeLastPayInfo(brCode);
         }
 
         public async Task<List<DtoPayComponentAssignments>> GetPayComponentAssignmentsByEmployeeId(decimal empId, string brCode)
@@ -941,15 +941,15 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.PaySlip.GetPayDAArrearsViews(empIdList, payId, brCode);
         }
 
-        public async Task<DtoPayPFData> GetPFBalance(decimal empId, DateTime AsOnDate)
+        public async Task<DtoPayPFData> GetPFBalance(decimal empId, DateTime AsOnDate, string brCode)
         {
-            return await _unitOfWork.PaySlip.GetPFBalance(empId, AsOnDate);
+            return await _unitOfWork.PaySlip.GetPFBalance(empId, AsOnDate,brCode);
         }
 
         #region SLS
-        public async Task<List<DtoSLSComponent>> GetSLSData(decimal empId)
+        public async Task<List<DtoSLSComponent>> GetSLSData(decimal empId, string brCode)
         {
-            return await _unitOfWork.PaySlip.GetSLSData(empId);
+            return await _unitOfWork.PaySlip.GetSLSData(empId,brCode);
         }
 
         public async Task<bool> IsSLSAlreadyPaid(decimal empId, DateTime fromDate, DateTime toDate, string payDesc, string brCode)

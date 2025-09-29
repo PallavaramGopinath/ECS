@@ -14,7 +14,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> EditPaySlipAsync(Pay_Slip paySlip);
         Task<bool> UpdatePaySlipForPayment(decimal empId, decimal payId, decimal vocId,DateTime trnDate);
         Task<DtoPaySlip> DeletePaySlip(DtoPaySlip paySlip);
-        Task<List<DtoEmployeeLastPayInfo>> GetEmployeeLastPayInfo();
+        Task<List<DtoEmployeeLastPayInfo>> GetEmployeeLastPayInfo(string brCode);
         Task<List<DtoPayComponentAssignments>> GetPayComponentAssignmentsByEmployeeId(decimal empId, string brCode);
         Task<bool> Find_PaySlipInit(int payMonth, int payYear, string payDes, string brCode);
         Task<bool> IsPreviousPaySlipInitialised(int payMonth, int payYear, string payDes, string brCode);
@@ -31,8 +31,8 @@ namespace Infin8.Coapp.BusinessLogic
         Task<DtoPayDAArrears> CalculateDAArrears(DtoPayDAArrears Arrears);
         Task<DtoPayDAArrears> GenerateDAArrears(DtoPayDAArrears Arrears);
         Task<List<DtoPayDAArrearsView>> GetPayDAArrearsViews(List<decimal> empIdList, decimal payId, string brCode);
-        Task<DtoPayPFData> GetPFBalance(decimal empId, DateTime AsOnDate);
-        Task<List<DtoSLSComponent>> GetSLSData(decimal empId);
+        Task<DtoPayPFData> GetPFBalance(decimal empId, DateTime AsOnDate,string brCode);
+        Task<List<DtoSLSComponent>> GetSLSData(decimal empId,string brCode);
         Task<bool> IsSLSAlreadyPaid(decimal empId, DateTime fromDate, DateTime toDate, string payDesc, string brCode);
     }
 }

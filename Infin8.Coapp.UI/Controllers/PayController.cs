@@ -56,11 +56,11 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
-        [Route("GetLastPayInfo")]
-        public async Task<ActionResult<List<DtoEmployeeLastPayInfo>>> GetLastPayInfo()
+        [Route("GetLastPayInfo/{brCode}")]
+        public async Task<ActionResult<List<DtoEmployeeLastPayInfo>>> GetLastPayInfo(string brCode)
         {
             List<DtoEmployeeLastPayInfo> list = new List<DtoEmployeeLastPayInfo>();
-            var result = await _paySlipHandler.GetEmployeeLastPayInfo();
+            var result = await _paySlipHandler.GetEmployeeLastPayInfo(brCode);
             if(result != null) 
             { 
                 list = result; 
@@ -381,12 +381,12 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
-        [Route("GetPFBalance/{empId:decimal}/{asOnDate}")]
-        public async Task<ActionResult<DtoPayPFData>> GetPayPFData(decimal empId, string asOnDate)
+        [Route("GetPFBalance/{empId:decimal}/{asOnDate}/{brCode}")]
+        public async Task<ActionResult<DtoPayPFData>> GetPayPFData(decimal empId, string asOnDate,string brCode)
         {
             DtoPayPFData pfData = new();
             DateTime.TryParse(asOnDate, out DateTime asOnDataFormatted);
-            var result = await _paySlipHandler.GetPFBalance(empId, asOnDataFormatted);
+            var result = await _paySlipHandler.GetPFBalance(empId, asOnDataFormatted, brCode);
             if (result != null)
             {
                 pfData = result;
@@ -399,11 +399,11 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
-        [Route("GetSLSData/{empId:decimal}")]
-        public async Task<ActionResult <List<DtoSLSComponent>>> GetSLSData(decimal empId)
+        [Route("GetSLSData/{empId:decimal}/{brCode}")]
+        public async Task<ActionResult <List<DtoSLSComponent>>> GetSLSData(decimal empId, string brCode)
         {
             List<DtoSLSComponent> slsList = new();
-            var result = await _paySlipHandler.GetSLSData(empId);
+            var result = await _paySlipHandler.GetSLSData(empId, brCode);
             if (result != null)
             {
                 slsList = result.ToList ();
@@ -429,6 +429,23 @@ namespace Infin8.Coapp.UI.Controllers
             else
             {
                 return Ok(false);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetPayIdList/{yrId:decimal}/{payDes}/{brCode}")]
+        public async Task<ActionResult<List<DropdownItem>>> GetPayIdList(decimal yrId, string payDes, string brCode)
+        {
+            List<DropdownItem> list = new List<DropdownItem>();
+            var result = await _payInitHandler.GetPayIdList(yrId, payDes, brCode);
+            if (result != null)
+            {
+                list = result;
+                return Ok(list);
+            }
+            else
+            {
+                return NotFound("No Data Found");
             }
         }
     }

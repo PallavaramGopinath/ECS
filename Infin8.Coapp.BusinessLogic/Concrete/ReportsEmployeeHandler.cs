@@ -64,14 +64,14 @@ namespace Infin8.Coapp.BusinessLogic
             return payList;
         }
 
-        public async Task<(List<rptEmpPF> pfList, string rateList)> GetEmpPFLedger(decimal empId, DateTime fromDate, DateTime toDate)
+        public async Task<(List<rptEmpPF> pfList, string rateList)> GetEmpPFLedger(decimal empId, DateTime fromDate, DateTime toDate,string brCode)
         {
-            return await _unitOfWork.ReportsEmployee.GetEmpPFLedger(empId, fromDate, toDate);  
+            return await _unitOfWork.ReportsEmployee.GetEmpPFLedger(empId, fromDate, toDate, brCode);  
         }
 
-        public async Task<List<rptLoanLedger>> GetStaffLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate)
+        public async Task<List<rptLoanLedger>> GetStaffLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate, string brCode)
         {
-            return await _unitOfWork.ReportsLoan.GetLoanLedger(loanIdList, fromDate, toDate);
+            return await _unitOfWork.ReportsLoan.GetLoanLedger(loanIdList, fromDate, toDate, brCode);
         }
     }
 }

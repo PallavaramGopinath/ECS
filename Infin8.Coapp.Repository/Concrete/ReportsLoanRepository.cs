@@ -21,7 +21,7 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate)
+        public async Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate, string brCode)
         {
             List<rptLoanLedger> loanList = new List<rptLoanLedger>();
             try
@@ -34,6 +34,9 @@ namespace Infin8.Coapp.Repository
                                      from lnScheme in CSISContext.Loan_Schemes.Where(y => y.Scheme_Id == lnMaster.Scheme_Id).DefaultIfEmpty()
                                      from memMaster in CSISContext.mem_master.Where(y => y.mem_id == lnMaster.Mem_Id).DefaultIfEmpty()
                                      from sro in CSISContext.Refer_Data.Where(y => y.ReferId == lnMaster.Mort_Sro).DefaultIfEmpty()
+                                     where lnMaster.BrCode == brCode 
+                                     && lnScheme.BrCode == brCode 
+                                     && memMaster.brcode == brCode 
                                      select new rptLoanLedger
                                      {
                                          Trn_Id = x.Trn_Id,

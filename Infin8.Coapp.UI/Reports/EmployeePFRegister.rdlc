@@ -17,80 +17,80 @@
         <CommandText>/* Local Query */</CommandText>
       </Query>
       <Fields>
-        <Field Name="bpf_balance">
-          <DataField>bpf_balance</DataField>
+        <Field Name="Bpf_Balance">
+          <DataField>Bpf_Balance</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="bpf_contribution">
-          <DataField>bpf_contribution</DataField>
+        <Field Name="Bpf_Contribution">
+          <DataField>Bpf_Contribution</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="bpf_Interest">
-          <DataField>bpf_Interest</DataField>
+        <Field Name="Bpf_Interest">
+          <DataField>Bpf_Interest</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="bpf_product">
-          <DataField>bpf_product</DataField>
+        <Field Name="Bpf_Product">
+          <DataField>Bpf_Product</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="bpf_withdrawn">
-          <DataField>bpf_withdrawn</DataField>
+        <Field Name="Bpf_Withdrawn">
+          <DataField>Bpf_Withdrawn</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="Emp_No">
           <DataField>Emp_No</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="epf_Interest">
-          <DataField>epf_Interest</DataField>
+        <Field Name="Epf_Interest">
+          <DataField>Epf_Interest</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="memberName">
-          <DataField>memberName</DataField>
+        <Field Name="MemberName">
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="no_of_days">
-          <DataField>no_of_days</DataField>
+        <Field Name="No_Of_Days">
+          <DataField>No_Of_Days</DataField>
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
-        <Field Name="pf_balance">
-          <DataField>pf_balance</DataField>
+        <Field Name="Pf_Balance">
+          <DataField>Pf_Balance</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="pf_date">
-          <DataField>pf_date</DataField>
+        <Field Name="Pf_Date">
+          <DataField>Pf_Date</DataField>
           <rd:TypeName>System.DateTime</rd:TypeName>
         </Field>
-        <Field Name="pf_id">
-          <DataField>pf_id</DataField>
+        <Field Name="Pf_Id">
+          <DataField>Pf_Id</DataField>
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
-        <Field Name="pf_Product">
-          <DataField>pf_Product</DataField>
+        <Field Name="Pf_Product">
+          <DataField>Pf_Product</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="pf_subscription">
-          <DataField>pf_subscription</DataField>
+        <Field Name="Pf_Subscription">
+          <DataField>Pf_Subscription</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="pf_withdrawn">
-          <DataField>pf_withdrawn</DataField>
+        <Field Name="Pf_Withdrawn">
+          <DataField>Pf_Withdrawn</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="total_balance">
-          <DataField>total_balance</DataField>
+        <Field Name="Total_Balance">
+          <DataField>Total_Balance</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="vpf_balance">
-          <DataField>vpf_balance</DataField>
+        <Field Name="Vpf_Balance">
+          <DataField>Vpf_Balance</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="vpf_contribution">
-          <DataField>vpf_contribution</DataField>
+        <Field Name="Vpf_Contribution">
+          <DataField>Vpf_Contribution</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
-        <Field Name="vpf_withdrawn">
-          <DataField>vpf_withdrawn</DataField>
+        <Field Name="Vpf_Withdrawn">
+          <DataField>Vpf_Withdrawn</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
       </Fields>
@@ -917,23 +917,23 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="pf_date">
+                        <Textbox Name="Pf_Date">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Format(Fields!pf_date.Value,"dd-MM-yyyy")</Value>
+                                  <Value>=Format(Fields!Pf_Date.Value,"dd-MM-yyyy")</Value>
                                   <Style>
-                                    <Format>dd/MM/yyyy</Format>
+                                    <Format>dd-MM-yyyy</Format>
                                   </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>pf_date</rd:DefaultName>
+                          <rd:DefaultName>Pf_Date</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -949,21 +949,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="pf_subscription">
+                        <Textbox Name="Pf_Subscription">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!pf_subscription.Value</Value>
+                                  <Value>=Fields!Pf_Subscription.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>pf_subscription</rd:DefaultName>
+                          <rd:DefaultName>Pf_Subscription</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -979,21 +979,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="pf_withdrawn">
+                        <Textbox Name="Pf_Withdrawn">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!pf_withdrawn.Value</Value>
+                                  <Value>=Fields!Pf_Withdrawn.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>pf_withdrawn</rd:DefaultName>
+                          <rd:DefaultName>Pf_Withdrawn</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1009,21 +1009,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="pf_balance">
+                        <Textbox Name="Pf_Balance">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!pf_balance.Value</Value>
+                                  <Value>=Fields!Pf_Balance.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>pf_balance</rd:DefaultName>
+                          <rd:DefaultName>Pf_Balance</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1039,21 +1039,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="no_of_days">
+                        <Textbox Name="No_Of_Days">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!no_of_days.Value</Value>
+                                  <Value>=Fields!No_Of_Days.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>no_of_days</rd:DefaultName>
+                          <rd:DefaultName>No_Of_Days</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1069,21 +1069,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="pf_Product">
+                        <Textbox Name="Pf_Product">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!pf_Product.Value</Value>
+                                  <Value>=Fields!Pf_Product.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>pf_Product</rd:DefaultName>
+                          <rd:DefaultName>Pf_Product</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1099,21 +1099,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="epf_Interest">
+                        <Textbox Name="Epf_Interest">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!epf_Interest.Value</Value>
+                                  <Value>=Fields!Epf_Interest.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>epf_Interest</rd:DefaultName>
+                          <rd:DefaultName>Epf_Interest</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1129,21 +1129,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="bpf_contribution">
+                        <Textbox Name="Bpf_Contribution">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!bpf_contribution.Value</Value>
+                                  <Value>=Fields!Bpf_Contribution.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>bpf_contribution</rd:DefaultName>
+                          <rd:DefaultName>Bpf_Contribution</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1159,21 +1159,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="bpf_withdrawn">
+                        <Textbox Name="Bpf_Withdrawn">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!bpf_withdrawn.Value</Value>
+                                  <Value>=Fields!Bpf_Withdrawn.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>bpf_withdrawn</rd:DefaultName>
+                          <rd:DefaultName>Bpf_Withdrawn</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1189,21 +1189,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="bpf_balance">
+                        <Textbox Name="Bpf_Balance">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!bpf_balance.Value</Value>
+                                  <Value>=Fields!Bpf_Balance.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>bpf_balance</rd:DefaultName>
+                          <rd:DefaultName>Bpf_Balance</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1219,21 +1219,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="bpf_product">
+                        <Textbox Name="Bpf_Product">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!bpf_product.Value</Value>
+                                  <Value>=Fields!Bpf_Product.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>bpf_product</rd:DefaultName>
+                          <rd:DefaultName>Bpf_Product</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1249,21 +1249,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="bpf_Interest">
+                        <Textbox Name="Bpf_Interest">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!bpf_Interest.Value</Value>
+                                  <Value>=Fields!Bpf_Interest.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>bpf_Interest</rd:DefaultName>
+                          <rd:DefaultName>Bpf_Interest</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1279,21 +1279,21 @@
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="total_balance">
+                        <Textbox Name="Total_Balance">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!total_balance.Value</Value>
+                                  <Value>=Fields!Total_Balance.Value</Value>
                                   <Style />
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>total_balance</rd:DefaultName>
+                          <rd:DefaultName>Total_Balance</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1385,7 +1385,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Sum(Fields!pf_subscription.Value)</Value>
+                                  <Value>=Sum(Fields!Pf_Subscription.Value)</Value>
                                   <Style>
                                     <FontWeight>Bold</FontWeight>
                                   </Style>
@@ -1417,7 +1417,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Sum(Fields!pf_withdrawn.Value)</Value>
+                                  <Value>=Sum(Fields!Pf_Withdrawn.Value)</Value>
                                   <Style>
                                     <FontWeight>Bold</FontWeight>
                                   </Style>
@@ -1577,7 +1577,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Sum(Fields!bpf_contribution.Value)</Value>
+                                  <Value>=Sum(Fields!Bpf_Contribution.Value)</Value>
                                   <Style>
                                     <FontWeight>Bold</FontWeight>
                                   </Style>
@@ -1609,7 +1609,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Sum(Fields!bpf_withdrawn.Value)</Value>
+                                  <Value>=Sum(Fields!Bpf_Withdrawn.Value)</Value>
                                   <Style>
                                     <FontWeight>Bold</FontWeight>
                                   </Style>

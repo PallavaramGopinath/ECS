@@ -16,9 +16,9 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate)
+        public async Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate,string brCode)
         {
-            return await _unitOfWork.ReportsLoan.GetLoanLedger(loanIdList, fromDate, toDate);
+            return await _unitOfWork.ReportsLoan.GetLoanLedger(loanIdList, fromDate, toDate, brCode);
         }
         public async Task<List<rptLoanOutstanding>> GetLoanOutstandingWithAgewise(DateTime toDate, int loanType,string brCode)
         {
@@ -49,9 +49,6 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsLoan.GetLoanDisbursement(fromDate, toDate, loanType,brCode );
         }
-
-        
-
         
     }
 }

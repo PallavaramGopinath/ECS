@@ -188,11 +188,12 @@ namespace Infin8.Coapp.Repository
             }
             return paySlip;
         }
-        public async Task<List<DtoEmployeeLastPayInfo>> GetEmployeeLastPayInfo()
+        public async Task<List<DtoEmployeeLastPayInfo>> GetEmployeeLastPayInfo(string brCode)
         {
             List<DtoEmployeeLastPayInfo> list = new List<DtoEmployeeLastPayInfo>();
             try
             {
+                #region commented
                 //var latestPayId = CSISContext.Pay_Slip
                 //    .Where(ps => ps.Pmt == true)
                 //    .Max(ps => ps.Pay_Id);
@@ -297,6 +298,8 @@ namespace Infin8.Coapp.Repository
                 //                  Pay_Year = init.Pay_Year,
                 //                  Payment_Status = slip.Pmt == true ? "Salary Paid" : "Salary Generated", // Assuming 'P' for paid and 'U' for unpaid
                 //              }).ToList();
+                #endregion 
+
                 var query = await (from emp in CSISContext.Emp_Master
                                    join mem in CSISContext.mem_master on emp.Mem_Id equals mem.mem_id
                                    join info in CSISContext.Pay_Gen_Info on emp.Emp_Desgn_Id equals info.Pay_Info_Id
@@ -306,6 +309,11 @@ namespace Infin8.Coapp.Repository
                                          && mem.memberdelete == false
                                          && mem.isaccountclosed == false
                                          && init.Pay_Des == "P"
+                                         && emp.BrCode == brCode
+                                         && mem.brcode == brCode
+                                         && info.BrCode == brCode
+                                         && slip.BrCode == brCode
+                                         && init.BrCode == brCode
                                    orderby emp.Mem_Id, slip.Pay_Id descending
                                    select new DtoEmployeeLastPayInfo
                                    {
@@ -952,7 +960,7 @@ namespace Infin8.Coapp.Repository
             }
             return roiList!;
         }
-        public async Task<DtoPayPFData> GetPFBalance(decimal empId, DateTime AsOnDate)
+        public async Task<DtoPayPFData> GetPFBalance(decimal empId, DateTime AsOnDate, string brCode)
         {
             DtoPayPFData pfData = new();
             try
@@ -965,7 +973,7 @@ namespace Infin8.Coapp.Repository
                     return pfData;
                 }
 
-                var pfbalance = CSISContext.Emp_Pf.Where(x => x.Mem_Id == empId && x.Pf_Delete == false && x.Pf_Date <= AsOnDate)
+                var pfbalance = CSISContext.Emp_Pf.Where(x => x.Mem_Id == empId && x.Pf_Delete == false && x.Pf_Date <= AsOnDate && x.BrCode == brCode )
                     .GroupBy(x => x.Mem_Id)
                     .Select(g => new
                     {
@@ -1014,12 +1022,12 @@ namespace Infin8.Coapp.Repository
         #endregion
 
         #region SLS
-        public async Task<List<DtoSLSComponent>> GetSLSData(decimal empId)
+        public async Task<List<DtoSLSComponent>> GetSLSData(decimal empId, string brCode)
         {
             List<DtoSLSComponent> slsList = new();
             try
             {
-
+                #region commented
                 //string sql = @"SELECT PAY_slip.Pay_Id,  Pay_Slip.Pay_Basic, Pay_Slip.Pay_PP, Pay_Slip.Pay_GradePay, Pay_Slip.Pay_DA_Percent, Pay_Slip_Trn.All_Id, 
                 //        Pay_Slip_Trn.Allowance_Amt,  Pay_Components.Component_Name ,Pay_Components.Component_Code, Pay_init.DA_Id
                 //        FROM Pay_Slip
@@ -1065,6 +1073,7 @@ namespace Infin8.Coapp.Repository
                 //                  DAId =  pi.DA_Id,
                 //                  DAAmount = ps.Pay_DA_Earned,
                 //              }).FirstOrDefaultAsync();
+                #endregion 
 
                 var maxPayId = (from ps in CSISContext.Pay_Slip
                                 join pi in CSISContext.Pay_Init on ps.Pay_Id equals pi.Pay_Id
@@ -1072,6 +1081,8 @@ namespace Infin8.Coapp.Repository
                                       && ps.Pay_Delete == false
                                       && ps.Mem_Id == empId
                                       && pi.Pay_Des == "P"
+                                      && ps.BrCode == brCode 
+                                      && pi.BrCode == brCode 
                                 select ps.Pay_Id).Max();
 
                 var result = await (from ps in CSISContext.Pay_Slip
@@ -1083,9 +1094,12 @@ namespace Infin8.Coapp.Repository
                                    && ps.Pmt == true
                                    && ps.Pay_Delete == false
                                    && ps.Mem_Id == empId
+                                   && ps.BrCode == brCode 
                                    && pi.Pay_Des == "P"
                                    && pi.Pay_Delete == false
+                                   && pi.BrCode == brCode
                                    && pst.PayTr_Delete == false
+                                   && pst.BrCode == brCode 
                                    && pst.All_Id > 0
                                    && (pc == null || pc.Is_SL_Applicable == true)
                              orderby pst.All_Id

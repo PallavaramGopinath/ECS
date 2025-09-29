@@ -205,7 +205,7 @@ else
                 model.YrId = Yr_Id;
                 model.Created_By = Created_By;
                 // string asOnDate = TransactionDate.ToString("yyyy-MM-dd");
-                // var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}");
+                // var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}/{brCode}");
                 // if (response != null && response.Employee_Id > 0)
                 // {
                 //     model = response!;
@@ -226,7 +226,7 @@ else
         try
         {
             string asOnDate = TransactionDate.ToString("yyyy-MM-dd");
-            var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}");
+            var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}/{brCode}");
             if (response != null && response.Employee_Id > 0)
             {
                 if (response._isError)

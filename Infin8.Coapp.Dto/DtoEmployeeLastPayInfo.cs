@@ -18,5 +18,6 @@ namespace Infin8.Coapp.Dto
         public int Pay_Year { get; set; }
         public string? Pay_Month_Year { get; set; }
         public bool Pmt { get; set; }
+        public string? BrCode { get; set; }
     }
 }

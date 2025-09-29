@@ -20,6 +20,6 @@
         public double Vpf_Contribution { get; set; }
         public double Vpf_Withdrawn { get; set; }
         public double Vpf_Balance { get; set; }
-        public int Pf_Id { get; set; }
+        public decimal Pf_Id { get; set; }
     }
 }
