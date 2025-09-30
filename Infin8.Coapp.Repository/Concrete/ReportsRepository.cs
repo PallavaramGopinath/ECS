@@ -661,7 +661,7 @@ namespace Infin8.Coapp.Repository
             }
             return (paymentData, chequeDetails);
         }
-        public async Task<string> GetChequeDetailsForReceipt(decimal vocId)
+        public async Task<string> GetChequeDetailsForReceipt(decimal vocId, string brCode)
         {
             string data = "";
             try
@@ -669,9 +669,12 @@ namespace Infin8.Coapp.Repository
                 var result = await (from bank in CSISContext.Fin_Voucher_Bank
                               join ledger in CSISContext.Fin_Ledger on bank.Led_Id equals ledger.Led_Id
                               join voucher in CSISContext.Fin_Voucher on bank.Voc_Id equals voucher.Voc_Id
-                              where voucher.Voc_Id == 110010121896
+                              where voucher.Voc_Id == vocId
                               && (voucher.Voc_Rpt_Mode == "AR" || voucher.Voc_Rpt_Mode == "CH")
+                              && ledger.BrCode == brCode 
                               && voucher.Voc_Delete == false
+                              && voucher.BrCode == brCode 
+                              && bank.BrCode == brCode 
                               && bank.Fvb_Delete == false  // Changed gvb_Delete to fvb_Delete assuming it was a typo
                               group bank by new
                               {
@@ -688,13 +691,13 @@ namespace Infin8.Coapp.Repository
                                               $"Rs. {g.Sum(x => x.Fvb_Amount):N2} " +
                                               "/- adjusted"
                               }).FirstAsync();
-                return data;
-
+                if (result != null) data = result.givenString;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine(ex.Message);
             }
+            return data;
         }
         #endregion 
 

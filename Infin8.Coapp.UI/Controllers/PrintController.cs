@@ -175,7 +175,7 @@ namespace Infin8.Coapp.API.Controllers
                     dr["IntCalcDetails"] = "Interest Calculated upto " + intCalcDate.Value.ToString("dd-MM-yyyy");
                 else
                     dr["IntCalcDetails"] = "";
-                string _adjString = await _reportHandler.GetChequeDetailsForReceipt(rptObject.vocId);
+                string _adjString = await _reportHandler.GetChequeDetailsForReceipt(rptObject.vocId,rptObject.brCode!);
 
                 if (_adjString != null)
                 {

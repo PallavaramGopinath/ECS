@@ -62,6 +62,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             bool result = false;
             DtoVoucher? voucherData = new();
+            List<DtoVoucherTrn > dtoVoucherTrns = new List<DtoVoucherTrn>();
             int cashOrAdj = 0;
             string brCode = "";
             string Status = "";
@@ -85,6 +86,20 @@ namespace Infin8.Coapp.BusinessLogic
                     return voucherData!;
                 }
                 voucherData.brCode = transactions!.Select(x => x.BrCode).FirstOrDefault();
+                
+                foreach(var trn in transactions )
+                {
+                    DtoVoucherTrn vTrn = new()
+                    {
+                        Voc_Trn_Type = trn.Cash_Or_Adjustment,
+                        Led_Id = trn.Ledger_Id,
+                        Voc_Rpt = trn.Receipt_Amount,
+                        Voc_Pmt = trn.Payment_Amount
+                    };
+                    dtoVoucherTrns.Add(vTrn);
+                }
+                voucherData.Transactions.Clear();
+                voucherData.Transactions = dtoVoucherTrns;
                 cashOrAdj = transactions.Select(x => x.Cash_Or_Adjustment).First();
                 brCode = transactions.Select(x => x.BrCode!).First();
                 string type = transactions.Select(x => x.Type!).First();

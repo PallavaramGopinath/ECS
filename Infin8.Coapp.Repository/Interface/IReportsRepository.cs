@@ -28,7 +28,7 @@ namespace Infin8.Coapp.Repository
         Task<(List<rptReceiptMemberList> receiptData, DateTime? intCalcDate)> GetReceiptData(decimal vocId,string brCode);
         Task<(List<rptReceiptMemberList> receiptData, string chequeDetails)> GetReceiptGeneralData(decimal vocId, string brCode);
         Task<(List<rptPaymentVoucher> paymentData, string chequeDetails)> GetPaymentData(decimal vocId);
-        Task<string> GetChequeDetailsForReceipt(decimal vocId);
+        Task<string> GetChequeDetailsForReceipt(decimal vocId,string brCode);
         #endregion 
 
         #region Fixed Deposit
