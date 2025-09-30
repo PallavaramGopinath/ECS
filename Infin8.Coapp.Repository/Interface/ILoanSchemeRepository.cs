@@ -6,7 +6,7 @@ namespace Infin8.Coapp.Repository
     public interface ILoanSchemeRepository
     {
         List<DropdownItem> GetLoanSchemeItems(int loanType);
-        Task<List<DropdownItem>> GetLoanSchemeItemsAsync(int loanType);
+        Task<List<DropdownItem>> GetLoanSchemeItemsAsync(int loanType,string brCode);
         Task<List<DropdownItem>> GetLoanSchemesItemsByLoanTypeArrayAsync(int[] loanTypeList);
         bool AddLoanScheme(Loan_Schemes loanScheme);
         Task<bool> AddLoanSchemeAsync(Loan_Schemes loanScheme);
@@ -20,10 +20,10 @@ namespace Infin8.Coapp.Repository
         Task<List<DropdownItem>> GetInterestDemandFrequencyAsync();
         Task<List<DropdownItem>> GetInstalmentTypeAsync();
         Task<List<DropdownItem>> GetDisbursementTypeAsync();
-        Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId);
-        Task<Loan_Schemes> GetLoanSchemeByType(int loanType);
+        Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId,string brCode);
+        Task<Loan_Schemes> GetLoanSchemeByType(int loanType, string brCode);
         Task<List<Loan_Schemes>> GetLoanSchemeListByType(int loanType, string brCode);
-        Task<int> GetPeriodOfLoan(int schemeId);
+        Task<int> GetPeriodOfLoan(int schemeId,string brCode);
 
     }
 }

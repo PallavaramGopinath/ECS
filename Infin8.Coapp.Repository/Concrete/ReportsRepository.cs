@@ -27,13 +27,13 @@ namespace Infin8.Coapp.Repository
             //_httpClient = httpClient;
         }
 
-        public async Task<List<DropdownItem>> GetReportNameList(int grpId)
+        public async Task<List<DropdownItem>> GetReportNameList(int grpId,string brCode)
         {
             List<DropdownItem> reportList = new();
             try
             {
                 var result = await (from r in CSISContext.Reports_Master
-                                    where r.ReportGrp_Id == grpId && r.ReportDelete == false
+                                    where r.ReportGrp_Id == grpId && r.BrCode == brCode && r.ReportDelete == false
                                     select new DropdownItem
                                     {
                                         Value = r.Report_Id.ToString(),
@@ -41,8 +41,9 @@ namespace Infin8.Coapp.Repository
                                     }).ToListAsync();
                 if (result.Count > 0) reportList = result.ToList();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 reportList = new();
             }
             return reportList;
@@ -67,19 +68,20 @@ namespace Infin8.Coapp.Repository
         #endregion
 
         #region Status
-        public async Task<List<string>> GetStatusForMemberTransaction(decimal vocId)
+        public async Task<List<string>> GetStatusForMemberTransaction(decimal vocId,string brCode)
         {
             List<string> status = new();
             try
             {
                 var result = await  (from fvt in CSISContext.Fin_Voucher_Trn
-                              where fvt.Voc_Id == vocId && fvt.FinVocTr_Delete == false && fvt.Status!.Length > 0
+                              where fvt.Voc_Id == vocId && fvt.BrCode == brCode && fvt.FinVocTr_Delete == false && fvt.Status!.Length > 0
                               select fvt.Status).Distinct().ToListAsync();
                 if (result.Count > 0) status = result.ToList();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 status = new();
+                Console.WriteLine(ex.Message);
             }
             return status;
         }

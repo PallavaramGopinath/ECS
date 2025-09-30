@@ -38,12 +38,12 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
-        [Route("GetJLMaximumLimit/{asOnDate}")]
-        public async Task<ActionResult<double>> GetJLMaximumLimit(string asOnDate)
+        [Route("GetJLMaximumLimit/{asOnDate}/{brCode}")]
+        public async Task<ActionResult<double>> GetJLMaximumLimit(string asOnDate,string brCode)
         {
             DateTime.TryParse(asOnDate, out DateTime asOnDateParse);
             double maxLimit = 0;
-            var result = await _maximimumLimitHandler.GetJLMaximumLimitAsync(asOnDateParse);
+            var result = await _maximimumLimitHandler.GetJLMaximumLimitAsync(asOnDateParse, brCode);
             double.TryParse(result.ToString(), out maxLimit);
             return maxLimit;
         }

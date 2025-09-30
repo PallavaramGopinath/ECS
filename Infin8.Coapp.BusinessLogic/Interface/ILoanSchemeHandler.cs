@@ -6,7 +6,7 @@ namespace Infin8.Coapp.BusinessLogic
     public interface ILoanSchemeHandler
     {
         List<DropdownItem> GetLoanSchemeItems(int loanType);
-        Task<List<DropdownItem>> GetLoanSchemeItemsAsync(int loanType);
+        Task<List<DropdownItem>> GetLoanSchemeItemsAsync(int loanType,string brCode );
         Task<List<DropdownItem>> GetLoanSchemesItemsByLoanTypeArrayAsync(int[] loanTypeList);
         bool AddLoanScheme(Loan_Schemes loanScheme);
         Task<bool> AddLoanSchemeAsync(Loan_Schemes loanScheme);
@@ -20,9 +20,9 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<DropdownItem>> GetInterestDemandFrequencyAsync();
         Task<List<DropdownItem>> GetInstalmentTypeAsync();
         Task<List<DropdownItem>> GetDisbursementTypeAsync();
-        Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId);
-        Task<Loan_Schemes> GetLoanSchemeByType(int loanType);
-        Task<int> GetPeriodOfLoan(int schemeId);
+        Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId,string brCode);
+        Task<Loan_Schemes> GetLoanSchemeByType(int loanType, string brCode);
+        Task<int> GetPeriodOfLoan(int schemeId, string brCode);
         Task<List<Loan_Schemes>> GetLoanSchemeListByType(int loanType, string brCode);
     }
 }

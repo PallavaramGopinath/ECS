@@ -233,7 +233,7 @@ else
         try
         {
             List<DropdownItem> jlNoList = new List<DropdownItem>();
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/5");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/5/{brCode}");
             List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
             if (result != null && result.Count > 0)
             {

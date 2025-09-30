@@ -52,7 +52,7 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
-        public async Task<JewelLoanMarketRate> GetMarketRateAndAdoptedRateAsync()
+        public async Task<JewelLoanMarketRate> GetMarketRateAndAdoptedRateAsync(string brCode)
         {
             //double marketRate = 0;
             //double adoptedRate = 0;
@@ -62,7 +62,7 @@ namespace Infin8.Coapp.Repository
                 // Fetch the JL_Details record asynchronously
                 var jldetails = await CSISContext.JL_Details
                     .Where(j => j.JL_Id == CSISContext.JL_Details
-                        .Where(j => j.JL_Delete == false)
+                        .Where(j => j.JL_Delete == false && j.BrCode == brCode )
                         .Max(j => j.JL_Id))
                     .FirstOrDefaultAsync();
 

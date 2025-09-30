@@ -11,6 +11,6 @@ namespace Infin8.Coapp.Repository
     {
         Task<bool> AddJLEligibleAsync(JL_LoanEligible jLLoanEligible); 
         Task<bool> EditJLEligibleAsync(JL_LoanEligible jLLoanEligible);
-        Task<double> GetJLEligiblePercentageAsync();
+        Task<double> GetJLEligiblePercentageAsync(string brCode);
     }
 }

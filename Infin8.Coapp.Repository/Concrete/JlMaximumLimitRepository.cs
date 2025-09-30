@@ -66,14 +66,14 @@ namespace Infin8.Coapp.Repository
             return list;
         }
 
-        public async Task<double> GetJLMaximumLimitAsync(DateTime wef)
+        public async Task<double> GetJLMaximumLimitAsync(DateTime wef, string brCode)
         {
             double maximumLimit = 0;
             try
             {
                 double jlMaxLimit = await CSISContext.JL_Max_Limit
                 .Where(j => j.JL_Max_Id == CSISContext.JL_Max_Limit
-                    .Where(j => j.JL_Delete == false && j.WithEffectFrom <= wef)
+                    .Where(j => j.JL_Delete == false && j.WithEffectFrom <= wef && j.BrCode == brCode)
                     .Max(j => j.JL_Max_Id))
                 .Select(j => j.Max_Loan_Limit)
                 .FirstOrDefaultAsync();

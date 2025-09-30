@@ -206,9 +206,10 @@
     [Parameter] public DateTime TransactionDate { get; set; }
     [Parameter] public EventCallback<bool> OnJLRecoveryComponentClose { get; set; }
     [Parameter] public EventCallback<DtoJewelLoanRecovery> OnJLRecoveryInitiate { get; set; }
-    #endregion 
+    #endregion
 
     #region declarations
+    private string brCode = "11001";
     private DtoJewelLoanRecovery model = new DtoJewelLoanRecovery();
     private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
     private List<DtoJewelLoanBalance> JewelLoanBalanceFromDB = new List<DtoJewelLoanBalance>();
@@ -308,7 +309,7 @@
             List<DropdownItem> jlNoList = new List<DropdownItem>();
             /// first time not rendered but on refresh it is rendered
             // var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetJLNosByMemId/{model.Mem_Id}/2");
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/2");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/2/{brCode}");
             List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
             if (result != null && result.Count > 0)
             {

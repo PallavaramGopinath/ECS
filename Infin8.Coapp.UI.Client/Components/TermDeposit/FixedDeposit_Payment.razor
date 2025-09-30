@@ -744,7 +744,7 @@
             // Add other parameters with proper formatting
             // queryStringLoan.Append($"&toDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
             queryStringLoan.Append($"&toDate={Uri.EscapeDataString(intToDate.ToString("yyyy-MM-dd"))}");
-            var loanListTmp = await _httpClient.GetFromJsonAsync<List<DtoTermDepositLoan>>($"https://localhost:7073/api/Loan/GetTDLoanData?{queryStringLoan}");
+            var loanListTmp = await _httpClient.GetFromJsonAsync<List<DtoTermDepositLoan>>($"https://localhost:7073/api/Loan/GetTDLoanData?{queryStringLoan}&brCode={brCode}");
             if (loanListTmp != null) loanList = loanListTmp;
             paymentModel.Loan_On_FixedDeposits = new();
             paymentModel.Loan_On_FixedDeposits = loanList;

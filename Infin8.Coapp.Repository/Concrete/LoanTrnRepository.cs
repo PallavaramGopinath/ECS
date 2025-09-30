@@ -119,7 +119,7 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<double> GetJLExistingLoanOutstandingAsync(decimal memId)
+        public async Task<double> GetJLExistingLoanOutstandingAsync(decimal memId, string brCode)
         {
             double balance = 0;
             try
@@ -134,7 +134,9 @@ namespace Infin8.Coapp.Repository
                 .Where(x => x.Master.Mem_Id == memId &&
                             x.Master.IsAccountClosed == false &&
                             x.Master.Loan_Delete == false &&
+                            x.Master.BrCode == brCode &&
                             x.Trn.TrnTr_Delete == false &&
+                            x.Trn.BrCode == brCode &&
                             x.Master.Loan_Type == 2)
                 .GroupBy(x => new { x.Master.Mem_Id, x.Master.IsAccountClosed })
                 .Select(g => g.Sum(x => x.Trn.Disb_Amt) - g.Sum(x => x.Trn.PrlColl_Amt))
@@ -148,7 +150,7 @@ namespace Infin8.Coapp.Repository
             return balance;
         }
 
-        public async Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType)
+        public async Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType,string brCode)
         {
             List<DropdownItem> list = new List<DropdownItem>();
             try
@@ -163,6 +165,7 @@ namespace Infin8.Coapp.Repository
                 .Where(x => x.f.Mem_Id == memId &&
                             x.g.TrnTr_Delete == false &&
                             x.f.Loan_Delete == false &&
+                            x.f.BrCode == brCode &&
                             x.f.Loan_Type == loanType)
                 .GroupBy(x => new { x.f.Loan_Id, x.f.Loan_No })
                 .Where(g => g.Sum(x => x.g.Disb_Amt) - g.Sum(x => x.g.PrlColl_Amt) > 0 ||
@@ -2376,13 +2379,13 @@ namespace Infin8.Coapp.Repository
         }
         #endregion 
         #region term deposit loans
-        public async Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds)
+        public async Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds, string brCode)
         {
             List<decimal> loanIds = new List<decimal>();
             try
             {
                 var list = await (from lien in CSISContext.Lien_Trn
-                                  where lien.LienTr_Delete == false && tdIds.Contains(lien.TD_Id)
+                                  where lien.LienTr_Delete == false && lien.BrCode==brCode  && tdIds.Contains(lien.TD_Id)
                                   select lien.Loan_Id)
                    .Distinct()
                    .ToListAsync();
@@ -2395,11 +2398,12 @@ namespace Infin8.Coapp.Repository
             return loanIds;
         }
 
-        public async Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds)
+        public async Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds, string brCode)
         {
             List<TDLoanData> loanList = new List<TDLoanData>();
             try
             {
+                #region old linq
                 //var query  =
                 //    await  (from  lien in CSISContext.Lien_Trn
                 //    join loan in CSISContext.Loan_Master on lien.Loan_Id equals loan.Loan_Id
@@ -2431,6 +2435,8 @@ namespace Infin8.Coapp.Repository
                 //        Interest_Calculated = intCalcAmt,
                 //        Interest_Applied_Date = g.Max(x => x.IntCalc_Date),
                 //    }).ToListAsync();
+                #endregion 
+
                 var query =
                    await  (from lien in CSISContext.Lien_Trn 
                      join loan in CSISContext.Loan_Master on lien.Loan_Id equals loan.Loan_Id
@@ -2439,6 +2445,9 @@ namespace Infin8.Coapp.Repository
                            && lien.LienTr_Delete == false
                            && loan.Loan_Delete == false
                            && trn.TrnTr_Delete == false
+                           && lien.BrCode == brCode 
+                           && loan.BrCode == brCode 
+                           && trn.BrCode == brCode 
                      select new
                      {
                          lien.Loan_Id,
@@ -2472,20 +2481,20 @@ namespace Infin8.Coapp.Repository
                     }).ToListAsync();
                 if (query != null && query.Count > 0) loanList = query.ToList();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine(ex.Message);
             }
             return loanList;
         }
 
-        public async Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList)
+        public async Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList,string brCode)
         {
             List<DtoTermDepositLoan> loanList = new List<DtoTermDepositLoan>();
             try
             {
                 var query = await (from lien in CSISContext.Lien_Trn
-                                   where tdIdList.Contains(lien.TD_Id)
+                                   where lien.BrCode == brCode && tdIdList.Contains(lien.TD_Id)
                                    join loan in CSISContext.Loan_Master on lien.Loan_Id equals loan.Loan_Id
                                    join trn in CSISContext.Loan_Trn on loan.Loan_Id equals trn.Loan_Id
                                    group new { lien, loan, trn } by new
@@ -2698,6 +2707,10 @@ namespace Infin8.Coapp.Repository
             return MaxSlNo;
         }
 
-        
+        public Task<List<LoanDetailsVM>> GetLoanDetailsList2ByLoanIdsAsync(decimal[] loanIds, string brCode)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }

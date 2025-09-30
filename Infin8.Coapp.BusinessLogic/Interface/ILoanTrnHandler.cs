@@ -14,8 +14,8 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> AddLoanTrn(Loan_Trn loanTrn);
         Task<bool> EditLoanTrnListAsync(List<Loan_Trn> loanTrnList);
         Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(int schemeId);
-        Task<double> GetJLExistingLoanOutstandingAsync(decimal memId);
-        Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType);
+        Task<double> GetJLExistingLoanOutstandingAsync(decimal memId,string brCode);
+        Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType, string brCode);
         Task<List<DropdownItem>> GetLoanNosByMemIdAndLoanTypeAsync(decimal memId, int loanType);
         Task<List<JewelLoanBalance>> GetJewelLoanNoBalanceAsync(decimal[] loanIdList, DateTime endDate,string brCode);
 
@@ -33,10 +33,10 @@ namespace Infin8.Coapp.BusinessLogic
         #endregion
 
         #region td loan
-        Task<List<LoanDetailsVM>> GetTDLoanDetailsByTDIdsAsync(decimal[] TDNos, DateTime toDate);
-        Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds);
-        Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds);
-        Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList,DateTime toDate);
+        Task<List<LoanDetailsVM>> GetTDLoanDetailsByTDIdsAsync(decimal[] TDNos, DateTime toDate,string brCode);
+        //Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds,string brCode);
+        Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds ,string brCode);
+        Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList,DateTime toDate,string brCode);
         Task<List<DtoTermDepositLoanBalance>> GetTDLoanBalanceByTDIds(List<decimal> loanIdList, DateTime toDate, string brCode);
         #endregion 
     }

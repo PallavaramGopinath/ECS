@@ -27,9 +27,9 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.SBCAMaster.EditSBCAMasterAsync(sbcaMaster);
         }
 
-        public async Task<List<DropdownItem>> GetSBCANosByMemIdAsync(decimal memId)
+        public async Task<List<DropdownItem>> GetSBCANosByMemIdAsync(decimal memId,  string brCode)
         {
-            return await _unitOfWork.SBCAMaster.GetSBCANosByMemIdAsync(memId);
+            return await _unitOfWork.SBCAMaster.GetSBCANosByMemIdAsync(memId,brCode);
         }
     }
 }

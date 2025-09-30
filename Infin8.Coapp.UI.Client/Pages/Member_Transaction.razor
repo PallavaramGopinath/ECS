@@ -619,7 +619,7 @@
         {
             if (transaction.Account_Id == 18)
             {
-                var sbAccountNos = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/SBAccount/GetSBAccountNoByMemId/{transaction.Member_Id}");
+                var sbAccountNos = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/SBAccount/GetSBAccountNoByMemId/{transaction.Member_Id}/{brCode}");
                 if (sbAccountNos != null && sbAccountNos.Count > 0)
                 {
                     await JSRuntime.InvokeVoidAsync("alert", "Member already has a SB Account");

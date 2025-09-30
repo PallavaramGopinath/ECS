@@ -17,9 +17,9 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<List<DropdownItem>> GetReportNameList(int grpId)
+        public async Task<List<DropdownItem>> GetReportNameList(int grpId,string brCode)
         {
-            return await _unitOfWork.ReportsMaster.GetReportNameList(grpId);
+            return await _unitOfWork.ReportsMaster.GetReportNameList(grpId, brCode);
         }
 
         #region Report name and id
@@ -38,9 +38,9 @@ namespace Infin8.Coapp.BusinessLogic
         #endregion
 
         #region status
-        public async Task<List<string>> GetStatusForMemberTransaction(decimal vocId)
+        public async Task<List<string>> GetStatusForMemberTransaction(decimal vocId,string brCode)
         {
-            return  await _unitOfWork.ReportsMaster.GetStatusForMemberTransaction(vocId);
+            return  await _unitOfWork.ReportsMaster.GetStatusForMemberTransaction(vocId,brCode);
         }
         #endregion 
 

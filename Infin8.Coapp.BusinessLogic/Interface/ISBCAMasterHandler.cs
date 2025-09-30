@@ -12,6 +12,6 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<(bool result, decimal accId, string accNo)> AddSBCAMasterAsync(SBCA_Master sbcaMaster);
         Task<bool> EditSBCAMasterAsync(SBCA_Master sbcaMaster);
-        Task<List<DropdownItem>> GetSBCANosByMemIdAsync(decimal memId);
+        Task<List<DropdownItem>> GetSBCANosByMemIdAsync(decimal memId,string brCode);
     }
 }

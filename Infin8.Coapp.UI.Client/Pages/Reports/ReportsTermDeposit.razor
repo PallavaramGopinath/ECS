@@ -239,7 +239,7 @@ else
         {
             try
             {
-                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/4");
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/4/{rptObject.BrCode}");
                 if (result!.Count > 0)
                 {
                     reportList = result.ToList();

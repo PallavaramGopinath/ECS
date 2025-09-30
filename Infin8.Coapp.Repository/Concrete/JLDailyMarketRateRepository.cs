@@ -52,19 +52,19 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<double> GetMarketRate()
+        public async Task<double> GetMarketRate(string brCode)
         {
             double marketRate = 0;
             try
             {
                 // 1. Find the maximum jl_Id among non-deleted records
                 var maxId = CSISContext.JL_DailyMarketRate
-                                   .Where(jl => jl.MarketRate_Delete == false) // Corresponds to WHERE JL_Delete = 0
+                                   .Where(jl => jl.MarketRate_Delete == false && jl.BrCode == brCode ) // Corresponds to WHERE JL_Delete = 0
                                    .Max(jl => jl.MarketRate_Id);          // Corresponds to max(jl_Id)
 
                 // 2. Find the single record with that jl_Id
                 marketRate = await  CSISContext.JL_DailyMarketRate
-                                    .Where(jl => jl.MarketRate_Id == maxId)
+                                    .Where(jl => jl.MarketRate_Id == maxId && jl.BrCode == brCode )
                                     .Select(jl => jl.MarketRate)
                                     .FirstOrDefaultAsync(); // Corresponds to SELECT * ... WHERE JL_Id = ... .FirstOrDefault()
             }

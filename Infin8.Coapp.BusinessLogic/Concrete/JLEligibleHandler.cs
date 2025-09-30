@@ -50,9 +50,9 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<double> GetJLEligiblePercentageAsync()
+        public async Task<double> GetJLEligiblePercentageAsync(string brCode)
         {
-            return await _unitOfWork.JLLoanEligible.GetJLEligiblePercentageAsync();
+            return await _unitOfWork.JLLoanEligible.GetJLEligiblePercentageAsync(brCode);
         }
     }
 }

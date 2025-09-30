@@ -11,6 +11,6 @@ namespace Infin8.Coapp.Repository
     {
         Task<bool> AddDailyMarketRateAsync(JL_DailyMarketRate jLDailyMarketRate);
         Task<bool> EditDailyMarketRateAsync(JL_DailyMarketRate jLDailyMarketRate);
-        Task<double> GetMarketRate();
+        Task<double> GetMarketRate(string brCode);
     }
 }

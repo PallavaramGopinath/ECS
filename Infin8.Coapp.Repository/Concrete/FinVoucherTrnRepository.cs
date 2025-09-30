@@ -326,7 +326,7 @@ namespace Infin8.Coapp.Repository
             return dtoVoucher;
         }
 
-        public async Task<DtoVoucher> GetTransactionByNo(string rptNo, string pmtNo, decimal yrId)
+        public async Task<DtoVoucher> GetTransactionByNo(string rptNo, string pmtNo, decimal yrId,string brCode)
         {
             DtoVoucher dtoVoucher = new();
             decimal vocId = 0;
@@ -335,7 +335,7 @@ namespace Infin8.Coapp.Repository
                 if (rptNo.Length > 0)
                 {
                     var vocModal = await CSISContext.Fin_Voucher
-                    .Where(v => v.Voc_Rpt_No == rptNo && v.Yr_Id == yrId  && !v.Voc_Delete)
+                    .Where(v => v.Voc_Rpt_No == rptNo && v.Yr_Id == yrId && v.BrCode == brCode   && !v.Voc_Delete)
                     .Select(v => new DtoVoucher // Project into your ViewModel
                     {
                         // Master Details
@@ -352,7 +352,7 @@ namespace Infin8.Coapp.Repository
                 if (pmtNo.Length > 0)
                 {
                     var vocModal = await CSISContext.Fin_Voucher
-                    .Where(v => v.Voc_Pmt_No == pmtNo && v.Yr_Id == yrId && !v.Voc_Delete)
+                    .Where(v => v.Voc_Pmt_No == pmtNo && v.Yr_Id == yrId && v.BrCode == brCode  && !v.Voc_Delete)
                     .Select(v => new DtoVoucher // Project into your ViewModel
                     {
                         // Master Details
@@ -371,7 +371,10 @@ namespace Infin8.Coapp.Repository
 
                 var trans = await (from trn in CSISContext.Fin_Voucher_Trn
                                    join ledger in CSISContext.Fin_Ledger on trn.Led_Id equals ledger.Led_Id
-                                   where trn.Led_Id != cashLedId && trn.Voc_Id == vocId && trn.FinVocTr_Delete == false
+                                   where trn.Led_Id != cashLedId && trn.Voc_Id == vocId 
+                                   && trn.BrCode == brCode 
+                                   && trn.FinVocTr_Delete == false
+                                   && ledger.BrCode == brCode 
                                    orderby trn.Voc_Trn_Id
                                    select new DtoVoucherTrn
                                    {
@@ -387,9 +390,10 @@ namespace Infin8.Coapp.Repository
                     dtoVoucher.Transactions = trans;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 dtoVoucher = new();
+                Console.Write(ex.Message);
             }
             return dtoVoucher;
         }

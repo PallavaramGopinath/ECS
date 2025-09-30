@@ -10,7 +10,7 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface IReportsHandler
     {
-        Task<List<DropdownItem>> GetReportNameList(int grpId);
+        Task<List<DropdownItem>> GetReportNameList(int grpId,string brCode);
 
         #region Report name and id
         Task<int> GetReportId(string reportName);
@@ -19,7 +19,7 @@ namespace Infin8.Coapp.BusinessLogic
         #endregion
 
         #region status
-        Task<List<string>> GetStatusForMemberTransaction(decimal vocId);
+        Task<List<string>> GetStatusForMemberTransaction(decimal vocId,string brCode);
         #endregion
 
         #region Receipt

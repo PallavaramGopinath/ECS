@@ -298,6 +298,7 @@
     #endregion
 
     #region declaration
+    private string brCode = "11001";
     private DtoTermDepositFixedDepositLoan loanModel = new();
     private bool memberDataLoaded = false;
     private bool fdNosLoaded = false;
@@ -360,7 +361,7 @@
     private async Task LoadFdNumbersAsync()
     {
         loanModel.FD_Nos = new List<DtoTermDepositFixedDepositNos>(); // Clear previous
-        var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosByMemId/{loanModel.Mem_Id}/F/11001");
+        var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosByMemId/{loanModel.Mem_Id}/F/{brCode}");
         if (fdNosTmp != null && fdNosTmp.Count > 0)
         {
             foreach (var fd in fdNosTmp)
@@ -421,7 +422,7 @@
                 if (i < loanModel.Selected_FD_Ids.Count - 1)
                     queryString2.Append("&tdIds=");
             }
-            var existingLoan = await _httpClient.GetFromJsonAsync<List<TDLoanData>>($"https://localhost:7073/api/Loan/GetTDLoanBalance?{queryString2}");
+            var existingLoan = await _httpClient.GetFromJsonAsync<List<TDLoanData>>($"https://localhost:7073/api/Loan/GetTDLoanBalance?{queryString2}&brCode={brCode}");
             if (existingLoan != null && existingLoan.Count > 0) 
             {
                 loanModel.Existing_Loan_Datas = new ();

@@ -16,6 +16,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<double> GetLedgerBalanceByLedIdAsync(decimal ledId,  decimal yearId, string brCode);
         Task<DtoVoucher> GetTransactionById(decimal vocId, string brCode);
         Task<DtoVoucher> GetTransactionByIds(decimal vocId, decimal yrId, string brCode);
-        Task<DtoVoucher> GetTransactionByNo(string rptNo, string pmtNo, decimal yrId);
+        Task<DtoVoucher> GetTransactionByNo(string rptNo, string pmtNo, decimal yrId,string brCode);
     }
 }

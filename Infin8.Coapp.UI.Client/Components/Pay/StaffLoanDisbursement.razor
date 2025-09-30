@@ -220,7 +220,7 @@ else
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/5");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/5/{brCode}");
             if (result != null && result.Any())
             {
                 loanSchemes = result.ToList();
@@ -241,7 +241,7 @@ else
         {
             if (model.Scheme_Id > 0)
             {
-                var result = await _httpClient.GetFromJsonAsync<Loan_Schemes>($"https://localhost:7073/api/Loan/GetLoanScheme/{model.Scheme_Id}");
+                var result = await _httpClient.GetFromJsonAsync<Loan_Schemes>($"https://localhost:7073/api/Loan/GetLoanScheme/{model.Scheme_Id}/{brCode}");
                 if (result != null && result.Scheme_Id > 0)
                 {
                     schemes = result;

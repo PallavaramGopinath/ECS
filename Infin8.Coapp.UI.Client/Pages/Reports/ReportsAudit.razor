@@ -192,7 +192,7 @@ else
                 fnlList.AddRange(fnlListResult);
 
 
-                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/8");
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/8/{rptObject.BrCode}");
                 if (result!.Count > 0)
                 {
                     reportList = result.ToList();

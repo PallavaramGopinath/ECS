@@ -51,7 +51,7 @@ namespace Infin8.Coapp.Repository
             List<DropdownItem > items = new List<DropdownItem>();
             try
             {
-                var MemBankList = await CSISContext.Bank_Master.Where(b => b.Bank_Delete == false) // Filter where Bank_Delete is 0
+                var MemBankList = await CSISContext.Bank_Master.Where(b => b.Bank_Delete == false ) // Filter where Bank_Delete is 0
                 .Select(b => new DropdownItem
                 {
                     Value = b.Bank_ShortName, 

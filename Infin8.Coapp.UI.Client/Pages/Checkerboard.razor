@@ -697,7 +697,7 @@ else
         }
 
         List<string> statusList = new();
-        var statusResult = await _httpClient.GetFromJsonAsync<List<string>>($"https://localhost:7073/api/Print/GetStatus/{voucherData!.Voc_Id}");
+        var statusResult = await _httpClient.GetFromJsonAsync<List<string>>($"https://localhost:7073/api/Print/GetStatus/{voucherData!.Voc_Id}/{brCode}");
         if (statusResult!.Count > 0)
         {
             statusList = statusResult!.ToList();

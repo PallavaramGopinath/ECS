@@ -250,7 +250,7 @@
                         <button type="button" class="btn btn-secondary rounded-pill -3" @onclick="InitCamera">
                             <i class="oi oi-camera-slr"></i> Start Camera
                         </button>
-                        <button type="button" class="btn btn-info rounded-pill mb-3 ml-2" @onclick="CapturePhoto" style="margin-left: 10px;">
+                        <button type="button" class="btn btn-info rounded-pill ml-2" @onclick="CapturePhoto" style="margin-left: 10px;">
                             <i class="oi oi-aperture"></i> Capture
                         </button>
 
@@ -341,6 +341,7 @@
     #endregion
 
     #region declarations
+    private string brCode = "11001";
     private bool isValidSubmit = false;
     private DtoJewelLoanDisbursement loanDetails = new DtoJewelLoanDisbursement();
     private DtoJewelLoanOrnments newOrnament = new DtoJewelLoanOrnments();
@@ -381,7 +382,7 @@
         try
         {
             // List<DropdownItem> loanSchemes = new List<DropdownItem>();
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/2");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/2/{brCode}");
             if (result != null && result.Count > 0)
             {
                 loanSchemes = result.ToList();
@@ -440,31 +441,31 @@
             int period = 0;
             // Loan_Schemes? jlScheme = new Loan_Schemes();
             LoanROIAndPIVM? roi = new LoanROIAndPIVM();
-            var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate");
+            var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate/{brCode}");
             if (marketRate != null)
             {
                 loanDetails.Market_Rate = marketRate.Market_Rate;
                 loanDetails.Govt_Rate = marketRate.Market_Rate;
             }
-            eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage");
+            eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage/{brCode}");
             loanDetails.Percentage_Of_Eligibility_On_Market_Rate = eligiblePercentage;
 
             string formattedDate = loanDetails.Tranaction_Date.ToString("yyyy-MM-dd");
-            maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}");
+            maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}&brCode={brCode}");
             loanDetails.Maximum_Loan_Limit = maximumLimit;
 
-            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}");
+            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}/{brCode}");
 
             loanDetails.Period_Of_Loan = period;
 
             string wefFormatted = ((DateTime)loanDetails.Tranaction_Date).ToString("yyyy-MM-dd");
             string agency = "S";
-            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}");
+            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}&brCode={brCode}");
 
             loanDetails.Rate_Of_Interest = roi!.Roi;
             loanDetails.Penal_Rate = roi!.Pi;
 
-            jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}");
+            jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}/{brCode}");
 
             loanDetails.Existing_Loan_Outstanding = jlExistingLoanBalance;
 

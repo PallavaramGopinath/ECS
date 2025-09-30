@@ -768,7 +768,7 @@ else
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/6");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/6/{brCode}");
             if (result != null && result.Count > 0)
             {
                 loanSchemes = result.ToList();
@@ -834,22 +834,22 @@ else
             LoanROIAndPIVM? roi = new LoanROIAndPIVM();
             string wefFormatted = ((DateTime)loanDetails.Tranaction_Date).ToString("yyyy-MM-dd");
             string agency = "S";
-            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}");
+            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}&brCode={brCode}");
             period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}");
             if (loanDetails.Security_Type == 1)
             {
-                var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate");
+                var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate/{brCode}");
                 if (marketRate != null)
                 {
                     jlDisbursement.Market_Rate = marketRate.Market_Rate;
                     jlDisbursement.Govt_Rate = marketRate.Govt_Rate;
                 }
-                eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage");
+                eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage/{brCode}");
 
                 jlDisbursement.Percentage_Of_Eligibility_On_Market_Rate = eligiblePercentage;
 
                 string formattedDate = loanDetails.Tranaction_Date.ToString("yyyy-MM-dd");
-                maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}");
+                maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}&brCode={brCode}");
 
                 jlDisbursement.Maximum_Loan_Limit = maximumLimit;
 
@@ -861,7 +861,7 @@ else
                 jlDisbursement.Rate_Of_Interest = roi!.Roi;
                 jlDisbursement.Penal_Rate = roi!.Pi;
 
-                jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}");
+                jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}/{loanDetails.BrCode}");
 
                 jlDisbursement.Existing_Loan_Outstanding = jlExistingLoanBalance;
 

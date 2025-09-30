@@ -50,9 +50,9 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<double> GetJLMaximumLimitAsync(DateTime wef)
+        public async Task<double> GetJLMaximumLimitAsync(DateTime wef, string brCode)
         {
-            return await _unitOfWork.JLMaximumLimit.GetJLMaximumLimitAsync(wef);
+            return await _unitOfWork.JLMaximumLimit.GetJLMaximumLimitAsync(wef,brCode);
         }
 
         public async Task<List<JL_Max_Limit>> GetJLMaximumLimitListAsync()

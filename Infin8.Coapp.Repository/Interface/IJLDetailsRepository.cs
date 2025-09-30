@@ -12,6 +12,6 @@ namespace Infin8.Coapp.Repository
     {
         Task<bool> AddJLDetailsAsync(JL_Details jlDetails);
         Task<bool> EditJLDetailsAsync(JL_Details jlDetails);
-        Task<JewelLoanMarketRate> GetMarketRateAndAdoptedRateAsync();
+        Task<JewelLoanMarketRate> GetMarketRateAndAdoptedRateAsync(string brCode);
     }
 }

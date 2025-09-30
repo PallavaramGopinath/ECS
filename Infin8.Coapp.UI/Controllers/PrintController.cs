@@ -81,11 +81,11 @@ namespace Infin8.Coapp.API.Controllers
         #endregion 
 
         [HttpGet]
-        [Route("GetReportNameList/{grpId:int}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetReportNameList(int grpId)
+        [Route("GetReportNameList/{grpId:int}/{brCode}")]
+        public async Task<ActionResult<List<DropdownItem>>> GetReportNameList(int grpId, string brCode)
         {
             List<DropdownItem> rptList = new();
-            var response = await _reportHandler.GetReportNameList(grpId);
+            var response = await _reportHandler.GetReportNameList(grpId, brCode);
             if (response.Count > 0)
             {
                 rptList = response.ToList();
@@ -98,11 +98,11 @@ namespace Infin8.Coapp.API.Controllers
         }
         #region Status
         [HttpGet]
-        [Route("GetStatus/{vocId:decimal}")]
-        public async Task<ActionResult<List<string>>> GetStatusList(decimal vocId)
+        [Route("GetStatus/{vocId:decimal}/{brCode}")]
+        public async Task<ActionResult<List<string>>> GetStatusList(decimal vocId, string brCode)
         {
             List<string> statusList = new();
-            var result = await _reportHandler.GetStatusForMemberTransaction(vocId);
+            var result = await _reportHandler.GetStatusForMemberTransaction(vocId, brCode);
             if (result.Count > 0)
             {
                 statusList = result.ToList();

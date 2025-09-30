@@ -50,12 +50,12 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<double> GetMarketRate()
+        public async Task<double> GetMarketRate(string brCode)
         {
             double marketRate = 0;
             try
             {
-                marketRate  = await _unitOfWork.JLDailyMarketRate.GetMarketRate();
+                marketRate  = await _unitOfWork.JLDailyMarketRate.GetMarketRate(brCode);
                 
             }
             catch (Exception ex)

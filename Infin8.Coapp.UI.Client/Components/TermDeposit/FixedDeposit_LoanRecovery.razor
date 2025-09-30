@@ -183,6 +183,7 @@
     #endregion
 
     #region declarations
+    private string brCode = "11001";
     private DtoTermDepositLoanRecovery fdRecovery = new DtoTermDepositLoanRecovery();
     private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
     private bool isLoanBalanceLoaded = false;
@@ -208,7 +209,7 @@
         try
         {
             List<DropdownItem> lnNoList = new List<DropdownItem>();
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{fdRecovery.Mem_Id}/3");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{fdRecovery.Mem_Id}/3/{brCode}");
             List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
             if (result != null && result.Count > 0)
             {

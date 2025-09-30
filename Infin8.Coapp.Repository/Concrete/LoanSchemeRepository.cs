@@ -86,13 +86,15 @@ namespace Infin8.Coapp.Repository
             return items;
         }
 
-        public async Task<List<DropdownItem>> GetLoanSchemeItemsAsync(int loanType)
+        public async Task<List<DropdownItem>> GetLoanSchemeItemsAsync(int loanType,string brCode)
         {
             List<DropdownItem> items = new List<DropdownItem>();
             try
             {
                 var data = await (from r in CSISContext.Loan_Schemes
                                  where r.Loan_Type == loanType
+                                 && r.Scheme_Delete == false
+                                 && r.BrCode == brCode 
                                  select new DropdownItem
                                  {
                                      Value = r.Scheme_Id.ToString(),
@@ -252,12 +254,12 @@ namespace Infin8.Coapp.Repository
             return await Task.FromResult(list);
         }
 
-        public async Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId)
+        public async Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId,string brCode)
         {
             Loan_Schemes loanSchemes = new Loan_Schemes();
             try
             {
-                loanSchemes = await  CSISContext.Loan_Schemes.Where(x => x.Scheme_Id == schemeId && x.Scheme_Delete == false).FirstAsync();
+                loanSchemes = await  CSISContext.Loan_Schemes.Where(x => x.Scheme_Id == schemeId && x.BrCode == brCode && x.Scheme_Delete == false).FirstAsync();
             }
             catch (Exception ex)
             {
@@ -288,12 +290,12 @@ namespace Infin8.Coapp.Repository
             return list;
         }
 
-        public async Task<int> GetPeriodOfLoan(int schemeId)
+        public async Task<int> GetPeriodOfLoan(int schemeId,string brCode)
         {
             int period = 0;
             try
             {
-                period = await CSISContext.Loan_Schemes.Where(x=> x.Scheme_Id == schemeId).Select(x=> x.MaximumPrincipalPeriod).FirstOrDefaultAsync();
+                period = await CSISContext.Loan_Schemes.Where(x=> x.Scheme_Id == schemeId && x.BrCode == brCode).Select(x=> x.MaximumPrincipalPeriod).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -302,12 +304,12 @@ namespace Infin8.Coapp.Repository
             return period;
         }
 
-        public async Task<Loan_Schemes> GetLoanSchemeByType(int loanType)
+        public async Task<Loan_Schemes> GetLoanSchemeByType(int loanType, string brCode)
         {
             Loan_Schemes loanSchemes = new Loan_Schemes();
             try
             {
-                loanSchemes = await CSISContext.Loan_Schemes.Where(x => x.Loan_Type == loanType && x.Scheme_Delete == false).FirstAsync();
+                loanSchemes = await CSISContext.Loan_Schemes.Where(x => x.Loan_Type == loanType && x.BrCode == brCode  && x.Scheme_Delete == false).FirstAsync();
             }
             catch (Exception ex)
             {

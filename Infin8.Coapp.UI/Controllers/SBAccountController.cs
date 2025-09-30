@@ -37,11 +37,11 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
-        [Route("GetSBAccountNoByMemId/{memId:decimal}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetSBAccountNoByMemId(decimal memId)
+        [Route("GetSBAccountNoByMemId/{memId:decimal}/{brCode}")]
+        public async Task<ActionResult<List<DropdownItem>>> GetSBAccountNoByMemId(decimal memId,string brCode)
         {
             List<DropdownItem> sbAccountNos = new();
-            var result = await _sbcaMasterHandler.GetSBCANosByMemIdAsync(memId);
+            var result = await _sbcaMasterHandler.GetSBCANosByMemIdAsync(memId, brCode);
             if (result != null && result.Count >0)
             {
                 sbAccountNos = result.ToList();

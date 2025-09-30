@@ -10,7 +10,7 @@ namespace Infin8.Coapp.Repository
 {
     public  interface IReportsRepository
     {
-        Task<List<DropdownItem>> GetReportNameList(int grpId);
+        Task<List<DropdownItem>> GetReportNameList(int grpId,string brCode);
 
         #region Report name and id
         Task<Reports_Master> GetReportNameWithSignature(int reportId);
@@ -19,7 +19,7 @@ namespace Infin8.Coapp.Repository
         #endregion
 
         #region Status List
-        Task<List<string>> GetStatusForMemberTransaction(decimal vocId);
+        Task<List<string>> GetStatusForMemberTransaction(decimal vocId,string brCode);
         #endregion
 
         #region Receipt

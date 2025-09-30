@@ -135,7 +135,7 @@ else
         if (pmtNo.Length > 0)
         {
             rptNo = "";
-            var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByNo/{rptNo}/{pmtNo}/{yrId}");
+            var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByNo/{rptNo}/{pmtNo}/{yrId}/{brCode}");
         }
     }
 

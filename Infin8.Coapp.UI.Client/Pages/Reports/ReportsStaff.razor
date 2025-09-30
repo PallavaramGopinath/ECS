@@ -212,7 +212,7 @@ else
             {
                 rptObject.ToDate = DateTime.UtcNow;
                 rptObject.FromDate = new DateTime(2025, 4, 1);
-                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/6");
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/6/{rptObject.BrCode}");
                 if (result!.Count > 0)
                 {
                     reportList = result.ToList();

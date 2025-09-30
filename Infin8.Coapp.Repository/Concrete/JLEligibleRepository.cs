@@ -52,14 +52,14 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<double> GetJLEligiblePercentageAsync()
+        public async Task<double> GetJLEligiblePercentageAsync(string brCode)
         {
             double eligiblePercentage = 0;
             try
             {
                 var maxWef = await  CSISContext.JL_LoanEligible.MaxAsync(le => le.Wef);
                 var percentage = await  CSISContext.JL_LoanEligible
-                       .Where(le => le.Wef == maxWef)
+                       .Where(le => le.Wef == maxWef && le.BrCode == brCode )
                        .Select(le => le.EligiblePercentage)
                        .FirstOrDefaultAsync();
                 if(percentage >0) eligiblePercentage=percentage;

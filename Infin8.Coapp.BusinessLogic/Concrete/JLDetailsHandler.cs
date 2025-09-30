@@ -51,9 +51,9 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<JewelLoanMarketRate> GetMarketRateAndAdoptedRateAsync()
+        public async Task<JewelLoanMarketRate> GetMarketRateAndAdoptedRateAsync(string brCode)
         {
-            return await _unitOfWork.JLDetails.GetMarketRateAndAdoptedRateAsync();
+            return await _unitOfWork.JLDetails.GetMarketRateAndAdoptedRateAsync(brCode);
         }
     }
 }

@@ -11,6 +11,6 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<bool> AddJLLoanEligibleAsync(JL_LoanEligible jLLoanEligible);
         Task<bool> EditJLLoanEligibleAsync(JL_LoanEligible jLLoanEligible);
-        Task<double> GetJLEligiblePercentageAsync();
+        Task<double> GetJLEligiblePercentageAsync(string brCode);
     }
 }

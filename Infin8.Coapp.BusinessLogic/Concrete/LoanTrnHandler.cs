@@ -131,14 +131,14 @@ namespace Infin8.Coapp.BusinessLogic
             return jlBalanceList;   
         }
 
-        public async Task<double> GetJLExistingLoanOutstandingAsync(decimal memId)
+        public async Task<double> GetJLExistingLoanOutstandingAsync(decimal memId, string brCode)
         {
-            return await _unitOfWork.LoanTrn.GetJLExistingLoanOutstandingAsync(memId);
+            return await _unitOfWork.LoanTrn.GetJLExistingLoanOutstandingAsync(memId, brCode);
         }
 
-        public async Task<List<LoanDetailsVM>> GetLoanDetailsList2ByLoanIdsAsync(decimal[] loanIds)
+        public async Task<List<LoanDetailsVM>> GetLoanDetailsList2ByLoanIdsAsync(decimal[] loanIds,string brCode)
         {
-            return await _unitOfWork.LoanTrn.GetLoanDetailsList2ByLoanIdsAsync(loanIds);
+            return await _unitOfWork.LoanTrn.GetLoanDetailsList2ByLoanIdsAsync(loanIds, brCode);
         }
 
         public async Task<List<LoanDetailsHL>> GetLoanDetailsListByLoanIdsHSISAsync(decimal[] loanIds, DateTime trnDate, int intCalcType, int societyType)
@@ -151,9 +151,9 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanTrn.GetLoanHavingOSItemsBySchemeIdAsync(schemeId);
         }
 
-        public async Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType)
+        public async Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType, string brCode)
         {
-            return await _unitOfWork.LoanTrn.GetLoanNosAsync(memId, loanType);
+            return await _unitOfWork.LoanTrn.GetLoanNosAsync(memId, loanType,brCode );
         }
 
         public async Task<List<DropdownItem>> GetLoanNosByMemIdAndLoanTypeAsync(decimal memId, int loanType)
@@ -181,7 +181,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanTrn.GetStaffLoanDisbursement(vocId , brCode);
         }
         #region TD Loan
-        public async Task<List<LoanDetailsVM>> GetTDLoanDetailsByTDIdsAsync(decimal[] TDNos, DateTime toDate)
+        public async Task<List<LoanDetailsVM>> GetTDLoanDetailsByTDIdsAsync(decimal[] TDNos, DateTime toDate, string brCode)
         {
             DateTime IntCalcDate;
             DateTime IntToDate = toDate;
@@ -190,10 +190,10 @@ namespace Infin8.Coapp.BusinessLogic
             UtilityHandler utilityHandler = new UtilityHandler();
             try
             {
-                loanIdList = await _unitOfWork.LoanTrn.GetLoanIdListByTdIdListAsync(TDNos);
+                loanIdList = await _unitOfWork.LoanTrn.GetLoanIdListByTdIdListAsync(TDNos, brCode);
                 if (loanIdList.Count > 0)
                 {
-                    var loanList = await _unitOfWork.LoanTrn.GetLoanDetailsList2ByLoanIdsAsync(loanIdList.ToArray());
+                    var loanList = await _unitOfWork.LoanTrn.GetLoanDetailsList2ByLoanIdsAsync(loanIdList.ToArray(),brCode);
                     if (loanList != null && loanList.Count > 0) loanDetailsList = loanList;
                     if (loanDetailsList.Count > 0)
                     {
@@ -213,22 +213,22 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return loanDetailsList;
         }
-        public async Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds)
+        public async Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds,string brCode)
         {
-            return await _unitOfWork.LoanTrn.GetLoanIdListByTdIdListAsync(tdIds);
+            return await _unitOfWork.LoanTrn.GetLoanIdListByTdIdListAsync(tdIds,brCode);
         }
-        public async Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds)
+        public async Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds, string brCode)
         {
-            return await _unitOfWork.LoanTrn.GetTDLoanDetailsByTDIds(tdIds);
+            return await _unitOfWork.LoanTrn.GetTDLoanDetailsByTDIds(tdIds,brCode);
         }
-        public async Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList, DateTime toDate)
+        public async Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList, DateTime toDate, string brCode)
         {
             List<DtoTermDepositLoan> loanList = new List<DtoTermDepositLoan>();
             DateTime IntCalcDate;
             try
             {
                 UtilityHandler utilityHandler = new UtilityHandler();
-                var result = await  _unitOfWork.LoanTrn.GetTDLoanDataByTDIds(tdIdList);
+                var result = await  _unitOfWork.LoanTrn.GetTDLoanDataByTDIds(tdIdList,brCode);
                 if (result != null)
                 {
                     loanList = result.ToList();
@@ -257,11 +257,10 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanTrn.GetTDLoanBalanceByTDIds(loanIdList, toDate, brCode);
         }
 
-        
-
-
-
-
+        public Task<List<LoanDetailsVM>> GetLoanDetailsList2ByLoanIdsAsync(decimal[] loanIds)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
     }

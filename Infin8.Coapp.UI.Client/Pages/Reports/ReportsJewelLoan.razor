@@ -281,13 +281,13 @@ else
         {
             try
             {
-                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/13");
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/13/{rptJlObject.BrCode}");
                 if (result!.Count > 0)
                 {
                     reportList = result.ToList();
                     StateHasChanged();
                 }
-                var maxLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/ReportsJL/GetJLMaximumLimit/{rptJlObject.AsOnDate.ToString("yyyy-MM-dd")}");
+                var maxLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/ReportsJL/GetJLMaximumLimit/{rptJlObject.AsOnDate.ToString("yyyy-MM-dd")}/{rptJlObject.BrCode}");
                 rptJlObject.MaximumLimit = maxLimit;
 
                 // var ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/{rptJlObject.BrCode}");

@@ -273,7 +273,7 @@ namespace Infin8.Coapp.BusinessLogic
                             #region Loan on FD Receipt
                             if (fdRefund.Total_Loan_Interest_Receipt + fdRefund.Total_Loan_Principal_Receipt > 0)
                             {
-                                Loan_Schemes fdLoanScheme2 = await _unitOfWork.LoanScheme.GetLoanSchemeByType(3);
+                                Loan_Schemes fdLoanScheme2 = await _unitOfWork.LoanScheme.GetLoanSchemeByType(3,brCode);
                                 foreach (var loan in fdRefund.Loan_On_FixedDeposits!)
                                 {
                                     fdRefundLoan = Utility.GetModalObject.GetLoanTrnObject(loan.Loan_Id, 0, "R", fdRefund.Transaction_Date, null, null, 0, 0, 0, 0, null, 0, null, loan.Current_Interest, loan.IntCalc_Date, 0, 0, loan.Interest_Balance, loan.Principal_Balance, 0, 0, 0, null, 0, null, 0, null, 0, 0, 0, 0, false, false, vocId, Checked_By, yrId, 0, false, 0, 0, 0, 0, 0, brCode);
@@ -492,7 +492,7 @@ namespace Infin8.Coapp.BusinessLogic
                             Lien lien = new();
                             List<Lien_Trn> lienTrns = new();
                             Lien_Trn lienTrn = new();
-                            Loan_Schemes fdLoanScheme = await _unitOfWork.LoanScheme.GetLoanSchemeByType(3);
+                            Loan_Schemes fdLoanScheme = await _unitOfWork.LoanScheme.GetLoanSchemeByType(3, brCode);
                             faceValue = fdLoan.FD_Datas!.Select(x => x.FD_Amount).Sum();
                             drawingPower = fdLoan.FD_Datas!.Select(x => x.Drawing_Power).Sum();
                             //firstFDNo = fdLoan.FD_Datas!.Select(x => x.FD_No).FirstOrDefault() ?? "";
@@ -537,7 +537,7 @@ namespace Infin8.Coapp.BusinessLogic
                             Loan_Disb staffLoanDisb = new();
                             Loan_Inst staffLoanInst = new();
                             Loan_Roi staffLoanRoi = new();
-                            Loan_Schemes staffLoanScheme = await _unitOfWork.LoanScheme.GetLoanSchemesAsync(staffLoan.Scheme_Id);
+                            Loan_Schemes staffLoanScheme = await _unitOfWork.LoanScheme.GetLoanSchemesAsync(staffLoan.Scheme_Id,brCode);
                             staffLoanMaster = Utility.GetModalObject.GetLoanMasterObject(staffLoan.Scheme_Id, "", staffLoan.Employee_Id, 0, "", null, "", null, staffLoan.DisbursementAmount, (DateTime)staffLoan.Transaction_Date!, 5, 0, 0, 0, 0, staffLoan.Principal_Period, staffLoan.Interest_Period, staffLoan.InstalmentStart_Date, staffLoan.InstalmentStart_Date, 0, "", "", "", null, null, 0, staffLoan.Rate_Of_Interest, 0, (DateTime)staffLoan.Transaction_Date!, 0, false, false, false, vocId, Checked_By, yrId, 0, 0, brCode, 0, 0, 1);
                             (result, staffLoanId, staffLoanNo) = await _unitOfWork.LoanMaster.AddLoanMasterAsync(staffLoanMaster);
                             Narration = staffLoan.Employee_Name! + " Loan No " + staffLoanNo;
@@ -860,7 +860,7 @@ namespace Infin8.Coapp.BusinessLogic
                             DtoJewelLoanDisbursement dtoJLDisb = new();
                             dtoJLDisb = Utility.JsonbObject.ConvertFromJsonForJLDisbursement(trns.Related_Account_Data!);
                             Narration = dtoJLDisb.Member_No!.Trim() + " " + dtoJLDisb.Member_Name!.Trim();
-                            jlSchemes = await _unitOfWork.LoanScheme.GetLoanSchemesAsync(dtoJLDisb.Scheme_Id);
+                            jlSchemes = await _unitOfWork.LoanScheme.GetLoanSchemesAsync(dtoJLDisb.Scheme_Id, brCode);
 
                             jlMaster = Utility.GetModalObject.GetLoanMasterObject(dtoJLDisb.Scheme_Id, "", dtoJLDisb.Mem_Id, 0, "",
                                 dtoJLDisb.Tranaction_Date, "", null, dtoJLDisb.Loan_Amount, dtoJLDisb.Tranaction_Date, 2, 0, 0, 0, 0,
@@ -1332,7 +1332,7 @@ namespace Infin8.Coapp.BusinessLogic
             DtoJewelLoanDisbursement dtoJLMIDisb = new();
             dtoJLMIDisb = Utility.JsonbObject.ConvertFromJsonForJLDisbursement(trns.Related_Account_Data!);
             Narration = dtoJLMIDisb.Member_No!.Trim() + " " + dtoJLMIDisb.Member_Name!.Trim();
-            jlMISchemes = await _unitOfWork.LoanScheme.GetLoanSchemesAsync(dtoJLMIDisb.Scheme_Id);
+            jlMISchemes = await _unitOfWork.LoanScheme.GetLoanSchemesAsync(dtoJLMIDisb.Scheme_Id, brCode);
 
             jlMIMaster = Utility.GetModalObject.GetLoanMasterObject(dtoJLMIDisb.Scheme_Id, "", dtoJLMIDisb.Mem_Id, 0, "",
                 dtoJLMIDisb.Tranaction_Date, "", null, dtoJLMIDisb.Loan_Amount, dtoJLMIDisb.Tranaction_Date, loanType, 0, 0, 0, 0,
@@ -1468,7 +1468,7 @@ namespace Infin8.Coapp.BusinessLogic
             DtoLoanDisbursementLT DtoLtDisb = new();
             DtoLtDisb = Utility.JsonbObject.ConvertFromJsonForLTDisbursement(trns.Related_Account_Data!);
             Narration = DtoLtDisb.Member_No!.Trim() + " " + DtoLtDisb.Member_Name!.Trim();
-            Schemes = await _unitOfWork.LoanScheme.GetLoanSchemesAsync(DtoLtDisb.Scheme_Id);
+            Schemes = await _unitOfWork.LoanScheme.GetLoanSchemesAsync(DtoLtDisb.Scheme_Id, brCode);
 
             loanMaster = Utility.GetModalObject.GetLoanMasterObject(DtoLtDisb.Scheme_Id, "", DtoLtDisb.Mem_Id, 0, "",
                 DtoLtDisb.Tranaction_Date, "", null, DtoLtDisb.DisbursementAmount, DtoLtDisb.Tranaction_Date, 6, 0, 0, 0, 0,

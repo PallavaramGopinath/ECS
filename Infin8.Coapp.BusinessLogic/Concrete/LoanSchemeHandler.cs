@@ -15,9 +15,9 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return _unitOfWork.LoanScheme.GetLoanSchemeItems(loanType);
         }
-        public async Task<List<DropdownItem>> GetLoanSchemeItemsAsync(int loanType)
+        public async Task<List<DropdownItem>> GetLoanSchemeItemsAsync(int loanType, string brCode)
         {
-            return await _unitOfWork.LoanScheme.GetLoanSchemeItemsAsync(loanType);
+            return await _unitOfWork.LoanScheme.GetLoanSchemeItemsAsync(loanType,brCode );
         }
         public bool AddLoanScheme(Loan_Schemes loanScheme)
         {
@@ -87,9 +87,9 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanScheme.GetDisbursementTypeAsync();
         }
 
-        public async Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId)
+        public async Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId, string brCode)
         {
-            return await _unitOfWork.LoanScheme.GetLoanSchemesAsync(schemeId);
+            return await _unitOfWork.LoanScheme.GetLoanSchemesAsync(schemeId,brCode );
         }
 
         public async Task<List<DropdownItem>> GetLoanSchemesItemsByLoanTypeArrayAsync(int[] loanTypeList)
@@ -97,14 +97,14 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanScheme.GetLoanSchemesItemsByLoanTypeArrayAsync(loanTypeList);
         }
 
-        public async Task<int> GetPeriodOfLoan(int schemeId)
+        public async Task<int> GetPeriodOfLoan(int schemeId, string brCode)
         {
-           return await _unitOfWork.LoanScheme.GetPeriodOfLoan(schemeId);
+           return await _unitOfWork.LoanScheme.GetPeriodOfLoan(schemeId,brCode);
         }
 
-        public async Task<Loan_Schemes> GetLoanSchemeByType(int loanType)
+        public async Task<Loan_Schemes> GetLoanSchemeByType(int loanType, string brCode)
         {
-            return  await _unitOfWork.LoanScheme.GetLoanSchemeByType(loanType);
+            return  await _unitOfWork.LoanScheme.GetLoanSchemeByType(loanType, brCode);
         }
 
         public async Task<List<Loan_Schemes>> GetLoanSchemeListByType(int loanType, string brCode)

@@ -59,13 +59,13 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<List<DropdownItem>> GetSBCANosByMemIdAsync(decimal memId)
+        public async Task<List<DropdownItem>> GetSBCANosByMemIdAsync(decimal memId,string brCode)
         {
             List<DropdownItem> list = new List<DropdownItem>();
             try
             {
                 var sbAccountList = await CSISContext.SBCA_Master
-                .Where(acc => acc.Mem_Id == memId && acc.Acc_Delete == false)
+                .Where(acc => acc.Mem_Id == memId && acc.BrCode == brCode  && acc.Acc_Delete == false)
                 .Select(acc => new DropdownItem
                 {
                     Value = acc.Acc_Id.ToString(),

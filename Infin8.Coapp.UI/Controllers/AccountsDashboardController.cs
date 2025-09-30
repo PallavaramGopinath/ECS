@@ -30,10 +30,10 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpGet]
         [Route("GetTransactionByNo")]
-        public async Task<ActionResult<DtoVoucher>> GetTransactionByNo([FromQuery] string rptNo,[FromQuery] string pmtNo, [FromQuery] decimal yrId)
+        public async Task<ActionResult<DtoVoucher>> GetTransactionByNo([FromQuery] string rptNo,[FromQuery] string pmtNo, [FromQuery] decimal yrId, [FromQuery] string brCode)
         {
             DtoVoucher voc = new();
-            voc = await _finVoucherTrnHandler.GetTransactionByNo(rptNo,pmtNo, yrId);
+            voc = await _finVoucherTrnHandler.GetTransactionByNo(rptNo,pmtNo, yrId,brCode);
             if (voc == null)
             {
                 return NotFound();
@@ -43,10 +43,10 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpGet]
         [Route("GetTransactionByRptNo")]
-        public async Task<ActionResult<DtoVoucher>> GetTransactionByRptNo([FromQuery] string rptNo,  [FromQuery] decimal yrId)
+        public async Task<ActionResult<DtoVoucher>> GetTransactionByRptNo([FromQuery] string rptNo,  [FromQuery] decimal yrId, [FromQuery] string brCode)
         {
             DtoVoucher voc = new();
-            voc = await _finVoucherTrnHandler.GetTransactionByNo(rptNo, string.Empty , yrId);
+            voc = await _finVoucherTrnHandler.GetTransactionByNo(rptNo, string.Empty , yrId,brCode);
             if (voc == null)
             {
                 return NotFound();
@@ -55,10 +55,10 @@ namespace Infin8.Coapp.UI.Controllers
         }
         [HttpGet]
         [Route("GetTransactionByPmtNo")]
-        public async Task<ActionResult<DtoVoucher>> GetTransactionByPmtNo([FromQuery] string pmtNo, [FromQuery] decimal yrId)
+        public async Task<ActionResult<DtoVoucher>> GetTransactionByPmtNo([FromQuery] string pmtNo, [FromQuery] decimal yrId, [FromQuery] string brCode)
         {
             DtoVoucher voc = new();
-            voc = await _finVoucherTrnHandler.GetTransactionByNo(string.Empty , pmtNo, yrId);
+            voc = await _finVoucherTrnHandler.GetTransactionByNo(string.Empty , pmtNo, yrId,brCode);
             if (voc == null)
             {
                 return NotFound();

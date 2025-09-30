@@ -12,6 +12,6 @@ namespace Infin8.Coapp.Repository
         Task<bool> AddJLMaximumLimitAsync(JL_Max_Limit  jLMaxLimit);
         Task<bool> EditJLMaximumLimitAsync(JL_Max_Limit jLMaxLimit);
         Task<List<JL_Max_Limit>> GetJLMaximumLimitListAsync();
-        Task<double> GetJLMaximumLimitAsync(DateTime wef);
+        Task<double> GetJLMaximumLimitAsync(DateTime wef,string brCode);
     }
 }
