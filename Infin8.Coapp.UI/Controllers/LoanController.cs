@@ -209,16 +209,16 @@ namespace Infin8.Coapp.API.Controllers
         [Route("GetRateOfInterest")]
         public async Task<ActionResult<LoanROIAndPIVM>> GetLoanRateOfInterest([FromQuery] int schemeId, [FromQuery] string agency, [FromQuery] DateTime wef, [FromQuery] string brCode)
         {
-            LoanROIAndPIVM roi = new LoanROIAndPIVM();
-            try
-            {
-                roi = await _loanROITemplateHandler.GetLoanROIAndPIFromTemplateAsync(schemeId, agency, wef,brCode);
-            }
-            catch (Exception)
-            {
-                return NotFound();
-            }
-            return Ok(roi);
+        LoanROIAndPIVM roi = new LoanROIAndPIVM();
+        try
+        {
+            roi = await _loanROITemplateHandler.GetLoanROIAndPIFromTemplateAsync(schemeId, agency, wef,brCode);
+        }
+        catch (Exception)
+        {
+            return NotFound();
+        }
+        return Ok(roi);
         }
 
         [HttpGet]

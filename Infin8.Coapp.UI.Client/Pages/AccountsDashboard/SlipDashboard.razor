@@ -78,10 +78,10 @@ else
 
     private string rptNo = "";
     private string pmtNo = "";
-    private decimal yrId = 110010000023; // Example value, ensure this is set
+    private decimal yrId = 110010000024; // Example value, ensure this is set
     string brCode = "11001";
     private bool isLoading = true;
-    private DtoVoucher? voucherData;
+    private DtoVoucher? voucherData = new();
     private byte[] fileBytes;
     private string pdfDataUrl = string.Empty;
 
@@ -124,6 +124,7 @@ else
     // A single search handler that adapts based on the selected radio button
     private async Task handleSearch(string searchValue)
     {
+
         if (string.IsNullOrWhiteSpace(searchValue))
         {
             return;
@@ -131,6 +132,7 @@ else
 
         try
         {
+            if(voucherData!.brCode == null) voucherData!.brCode = brCode;
             string[] parts = searchValue.Split('/');
             string convertedString = "";
             if (parts.Length == 2)
@@ -150,7 +152,7 @@ else
                 pmtNo = ""; // Ensure payment number is empty
                 rptNo = convertedString;
                 // rptNo = searchValue.ToUpper();
-                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}");
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}&brCode={voucherData!.brCode}");
                 voucherData = result;
                 isLoading = false;
             }
@@ -159,7 +161,7 @@ else
                 rptNo = ""; // Ensure receipt number is 
                 pmtNo = convertedString;
                 // pmtNo = searchValue.ToUpper();
-                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByPmtNo?pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}");
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByPmtNo?pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}/{voucherData!.brCode}");
                 voucherData = result;
                 isLoading = false;
             }

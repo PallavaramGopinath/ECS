@@ -97,40 +97,66 @@ namespace Infin8.Coapp.Repository
             try
             {
                 var bankLedgerIds = CSISContext.Map_Banks.Select(b => b.Led_Id).ToList();
-
+                var cashId = CSISContext.Map_General.Where(x => x.BrCode == brCode).Select(x => x.Cash_Led_Id).FirstOrDefault();
                 #region Receipt items
-                var voc_rpt_sum = (from fv in CSISContext.Fin_Voucher
-                                   join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
-                                   // The join to Fin_Ledger is not necessary as it's not used for filtering or selection.
-                                   // It has been removed for optimization. See note below.
-                                   where fv.Voc_Id == vocId
-                                         && fv.Voc_Delete == false
-                                         && fvt.FinVocTr_Delete == false
-                                         && fv.BrCode == brCode 
-                                         && fvt.BrCode == brCode 
-                                         && !CSISContext.Map_General.Any(m => m.Cash_Led_Id == fvt.Led_Id)
-                                         && !bankLedgerIds.Contains(fvt.Led_Id) // Handles the NOT IN clause
-                                   select fvt.Voc_Rpt)
-                   .Sum();
+
+                //var voc_rpt_sum = (from fv in CSISContext.Fin_Voucher
+                //                   join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
+                //                   // The join to Fin_Ledger is not necessary as it's not used for filtering or selection.
+                //                   // It has been removed for optimization. See note below.
+                //                   where fv.Voc_Id == vocId
+                //                         && fv.Voc_Delete == false
+                //                         && fvt.FinVocTr_Delete == false
+                //                         && fv.BrCode == brCode 
+                //                         && fvt.BrCode == brCode 
+                //                         && !CSISContext.Map_General.Any(m => m.Cash_Led_Id == fvt.Led_Id)
+                //                         && !bankLedgerIds.Contains(fvt.Led_Id) // Handles the NOT IN clause
+                //                   select fvt.Voc_Rpt)
+                   //.Sum();
+
+                var voc_rpt_sum = (from v in CSISContext.Fin_Voucher
+                          join vt in CSISContext.Fin_Voucher_Trn on v.Voc_Id equals vt.Voc_Id
+                          join l in CSISContext.Fin_Ledger on vt.Led_Id equals l.Led_Id
+                          where v.Voc_Id == vocId
+                                && v.Voc_Delete == false
+                                && vt.FinVocTr_Delete == false
+                                && vt.Led_Id != cashId
+                                && !CSISContext.Map_Banks.Select(mb => mb.Led_Id).Contains(vt.Led_Id)
+                          select vt.Voc_Rpt).Sum();
+
                 if (voc_rpt_sum > 0)
                 {
                     isChequeOnlyReceipt = false;
                 }
-                var cheque_rpt_sum = (from fv in CSISContext.Fin_Voucher
-                                   join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
-                                   // The join to Fin_Ledger is not necessary as it's not used for filtering or selection.
-                                   // It has been removed for optimization. See note below.
-                                   where fv.Voc_Id == vocId
-                                         && fv.Voc_Delete == false
-                                         && fvt.FinVocTr_Delete == false
-                                         && fv.BrCode == brCode
-                                         && fvt.BrCode == brCode 
-                                         && !CSISContext.Map_General.Any(m => m.Cash_Led_Id == fvt.Led_Id)
-                                         && bankLedgerIds.Contains(fvt.Led_Id) // Handles the NOT IN clause
-                                   select fvt.Voc_Rpt)
-                   .Sum();
-                if (cheque_rpt_sum > 0)
-                    isChequeOnlyReceipt = true;
+                if (voc_rpt_sum > 0)
+                {
+                    //var cheque_rpt_sum = (from fv in CSISContext.Fin_Voucher
+                    //                      join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
+                    //                      // The join to Fin_Ledger is not necessary as it's not used for filtering or selection.
+                    //                      // It has been removed for optimization. See note below.
+                    //                      where fv.Voc_Id == vocId
+                    //                            && fv.Voc_Delete == false
+                    //                            && fvt.FinVocTr_Delete == false
+                    //                            && fv.BrCode == brCode
+                    //                            && fvt.BrCode == brCode
+                    //                            && !CSISContext.Map_General.Any(m => m.Cash_Led_Id == fvt.Led_Id)
+                    //                            && bankLedgerIds.Contains(fvt.Led_Id) // Handles the NOT IN clause
+                    //                      select fvt.Voc_Rpt)
+                    //   .Sum();
+
+                    var cheque_rpt_sum = (from v in CSISContext.Fin_Voucher
+                              join vt in CSISContext.Fin_Voucher_Trn on v.Voc_Id equals vt.Voc_Id
+                              join l in CSISContext.Fin_Ledger on vt.Led_Id equals l.Led_Id
+                              where v.Voc_Id == vocId
+                                    && v.Voc_Delete == false
+                                    && vt.FinVocTr_Delete == false
+                                    && vt.Led_Id != cashId
+                                    && CSISContext.Map_Banks.Select(mb => mb.Led_Id).Contains(vt.Led_Id)
+                              select vt.Voc_Rpt).Sum();
+
+                    if (cheque_rpt_sum > 0)
+                        isChequeOnlyReceipt = true;
+                }
 
                 if(isChequeOnlyReceipt == false)
                 {
@@ -149,32 +175,51 @@ namespace Infin8.Coapp.Repository
                                             Voc_Rpt = g.Sum(x => x.vocTrn.Voc_Rpt),
                                             Voc_Pmt = g.Sum(x => x.vocTrn.Voc_Pmt)
                                         }).ToListAsync();
-                    if(result.Count > 0) rptPmtList.AddRange(result);
+
+                    if (result.Count > 0) rptPmtList.AddRange(result);
                 }
                 if(isChequeOnlyReceipt == true)
                 {
-                    var result = await (from vocTrn in CSISContext.Fin_Voucher_Trn
-                                        join voc in CSISContext.Fin_Voucher on vocTrn.Voc_Id equals voc.Voc_Id
-                                        where vocTrn.Voc_Id == vocId &&
-                                              vocTrn.BrCode == brCode &&
-                                              voc.BrCode == brCode &&
-                                              CSISContext.Map_General.Any(m => m.Cash_Led_Id == vocTrn.Led_Id) &&
-                                              vocTrn.FinVocTr_Delete == false 
-                                        group new { voc, vocTrn } by new { voc.Voc_Type, vocTrn.Voc_Trn_Type } into g
-                                        select new rptReceiptAndPaymentAmount
-                                        {
-                                            Voc_Type = g.Key.Voc_Type,
-                                            Voc_Trn_Type = g.Key.Voc_Trn_Type,
-                                            Voc_Rpt = g.Sum(x => x.vocTrn.Voc_Rpt),
-                                            Voc_Pmt = g.Sum(x => x.vocTrn.Voc_Pmt)
-                                        }).ToListAsync();
+                    // First, get the relevant voucher transactions
+                    var voucherTransactions = await (from vt in CSISContext.Fin_Voucher_Trn
+                                                     join v in CSISContext.Fin_Voucher on vt.Voc_Id equals v.Voc_Id
+                                                     where vt.Voc_Id == vocId
+                                                           && vt.Led_Id != cashId
+                                                           && vt.FinVocTr_Delete == false
+                                                     select new { vt, v.Voc_Type })
+                                              .ToListAsync();
+
+                    // Get bank ledger IDs
+                    var bankLedIds = await CSISContext.Map_Banks
+                        .Select(mb => mb.Led_Id)
+                        .ToListAsync();
+
+                    // Filter and group in memory
+                    var result = voucherTransactions
+                        .Where(x => bankLedIds.Contains(x.vt.Led_Id))
+                        .GroupBy(x => new { x.Voc_Type, x.vt.Voc_Trn_Type })
+                        .Select(g => new
+                        {
+                            Key = g.Key,
+                            SumVocRpt = g.Sum(x => x.vt.Voc_Rpt)
+                        })
+                        .Where(x => x.SumVocRpt > 0)
+                        .Select(x => new rptReceiptAndPaymentAmount
+                        {
+                            Voc_Type = x.Key.Voc_Type,
+                            Voc_Trn_Type = x.Key.Voc_Trn_Type,
+                            Voc_Rpt = x.SumVocRpt,
+                            Voc_Pmt = 0.0
+                        })
+                        .ToList();
                     if (result.Count > 0) rptPmtList.AddRange(result);
                 }
                 #endregion 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 rptPmtList = new();
+                Console.WriteLine(ex.Message);
             }
             return rptPmtList;
         }

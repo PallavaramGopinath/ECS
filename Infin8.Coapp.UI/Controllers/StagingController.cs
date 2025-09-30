@@ -197,13 +197,13 @@ namespace Infin8.Coapp.UI.Controllers
             {
                 case "Member Transaction":
                 case "Staff Transaction":
-                    var response = await _transactionsHandler.SaveTransaction(stagingId, stagingMaster.Type!.Trim() == "Member Transaction" ? "MTRN" : "STRN", 110010000002, 110010000023);
+                    var response = await _transactionsHandler.SaveTransaction(stagingId, stagingMaster.Type!.Trim() == "Member Transaction" ? "MTRN" : "STRN", 110010000002, 110010000024);
                     if (response.Voc_Id >0) result = true; else result = false;
                     voucherData.Voc_Id = response.Voc_Id;
                     voucherData.brCode = response.brCode;
                     break;
                 case "Account Transaction":
-                    var accResponse = await _transactionsHandler.SaveAccountTransaction(stagingId, "ACTR", 110010000002, 110010000023);
+                    var accResponse = await _transactionsHandler.SaveAccountTransaction(stagingId, "ACTR", 110010000002, 110010000024);
                     if (accResponse.Voc_Id >0) result = true; else result = false;
                     voucherData.Voc_Id = accResponse.Voc_Id;
                     voucherData.brCode = accResponse.brCode;
