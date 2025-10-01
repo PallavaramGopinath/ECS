@@ -314,6 +314,8 @@ namespace Infin8.Coapp.BusinessLogic
                             {
                                 result = await _unitOfWork.TermDepositMaster.UpdateTermDepositMasterAsClosed(fd.FD_Id);
                             }
+                            /// insert fd loan receipt
+                            result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(fdRefundLoanList);
                             #endregion 
                             break;
                         case 9: /// FD Renewal

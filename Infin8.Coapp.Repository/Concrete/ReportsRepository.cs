@@ -716,7 +716,7 @@ namespace Infin8.Coapp.Repository
                 var result = await (from tdm in CSISContext.TermDeposit_Master
                                     join tdt in CSISContext.TermDeposit_Trn on tdm.TD_Id equals tdt.TD_Id
                                     join fv in CSISContext.Fin_Voucher on tdt.Voc_Id equals fv.Voc_Id
-                                    where tdt.Voc_Id == 110010122205 && (tdt.InterestPaidAmount > 0 || tdt.DepositPaidAmount > 0) && tdt.TD_Delete == false
+                                    where tdt.Voc_Id == vocId && (tdt.InterestPaidAmount > 0 || tdt.DepositPaidAmount > 0) && tdt.TD_Delete == false
                                     orderby tdm.TD_No
                                     select new rptFDPaymentList
                                     {
@@ -730,7 +730,7 @@ namespace Infin8.Coapp.Repository
                                         MaturityAmount = tdm.MaturityAmount,
                                         RateOfInterest = tdm.RateOfInterest,
                                         InterestAppliedDate = tdt.InterestAppliedDate,
-                                        DepositPaidAmount = tdt.DepositReceiptAmount,
+                                        DepositPaidAmount = tdt.DepositPaidAmount,
                                         InterestPaidAmount = tdt.InterestPaidAmount
                                     }).ToListAsync();
                 var result2 = await (from voucherTrn in CSISContext.Fin_Voucher_Trn

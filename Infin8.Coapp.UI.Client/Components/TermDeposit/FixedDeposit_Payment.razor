@@ -710,7 +710,7 @@
                             data.Total_Interest_Payable = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid + fd.FDIntCalculatedNow;
                         else
                         {
-                            data.Total_Interest_Payable = fd.FDIntCalculatedNow - fd.FDIntAlreadyPaid;
+                            data.Total_Interest_Payable = fd.FDIntAlreadyCalculated - fd.FDIntAlreadyPaid +  fd.FDIntCalculatedNow;
                         }
                         data.Current_Interest_Payment = 0;
                         data.Deposit_Refund = fd.FDAmountRefund;
