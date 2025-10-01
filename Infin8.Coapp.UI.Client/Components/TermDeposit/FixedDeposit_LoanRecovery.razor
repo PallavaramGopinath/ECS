@@ -280,7 +280,7 @@
             }
             // Add other parameters with proper formatting
             queryString.Append($"&toDate={Uri.EscapeDataString(fdRecovery.Transaction_Date.ToString("yyyy-MM-dd"))}");
-            queryString.Append("&brCode=11001");
+            queryString.Append($"&brCode={brCode}");
 
             // Make the API call with proper URL format
             var result = await _httpClient.GetFromJsonAsync<List<DtoTermDepositLoanBalance>>($"https://localhost:7073/api/Loan/GetTDLoanBalanceByLoanId?{queryString}");
@@ -448,6 +448,11 @@
         string accountName = "";
         try
         {
+            if(fdRecovery.Total_Collection ==0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Recovery amount is missing");
+                return;
+            };
             var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
@@ -503,7 +508,7 @@
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001",
+            BrCode = brCode,
             CashReceipt_Amount = cashReceipt ,
             CashPayment_Amount = cashPayment ,
             AdjustmentReceipt_Amount = adjReceipt ,

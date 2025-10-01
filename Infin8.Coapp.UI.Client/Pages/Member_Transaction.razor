@@ -2227,7 +2227,16 @@
             await JSRuntime.InvokeVoidAsync("alert", "Please add at least one account with amount");
             return;
         }
-
+        if(transaction.Cash_Adjustment == 2)
+        {
+            double receipt = transactionAccountsList.Sum(x => x.AdjustmentReceipt);
+            double payment = transactionAccountsList.Sum(x=> x.AdjustmentPaymnet);
+            if(receipt != payment )
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Adjustment receipt amount does not tally with adjustment payment amount");
+                return;
+            }
+        }
         // Save transaction logic here
         decimal stagingId = transactionAccountsList.FirstOrDefault()?.Staging_Id ?? 0;
         if (stagingId > 0)
