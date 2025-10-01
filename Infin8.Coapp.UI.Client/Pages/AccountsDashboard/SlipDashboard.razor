@@ -156,7 +156,7 @@ else
                 pmtNo = ""; // Ensure payment number is empty
                 rptNo = convertedString;
                 // rptNo = searchValue.ToUpper();
-                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}&brCode={voucherData!.brCode}");
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}&brCode={brCode}");
                 voucherData = result;
                 isLoading = false;
             }
@@ -165,7 +165,7 @@ else
                 rptNo = ""; // Ensure receipt number is
                 pmtNo = convertedString;
                 // pmtNo = searchValue.ToUpper();
-                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByPmtNo?pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}&brCode={voucherData!.brCode}");
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByPmtNo?pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}&brCode={brCode}");
                 voucherData = result;
                 isLoading = false;
             }

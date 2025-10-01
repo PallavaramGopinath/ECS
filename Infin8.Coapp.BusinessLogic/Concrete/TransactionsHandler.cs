@@ -466,6 +466,24 @@ namespace Infin8.Coapp.BusinessLogic
                                 Narration + " FD No " + newFDNoForRenewal, false, Checked_By, yrId, Status, "FD No: " + newFDNoForRenewal, 0, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
                             #endregion 
+
+                            #region Loan on FD Receipt
+                            if (fdRenewal.FixedDepositPayment.Total_Loan_Principal_Receipt + fdRenewal.FixedDepositPayment.Total_Loan_Interest_Receipt  > 0)
+                            {
+                                Loan_Schemes fdLoanScheme2 = await _unitOfWork.LoanScheme.GetLoanSchemeByType(3, brCode);
+                                
+                                if (fdRenewal.FixedDepositPayment.Total_Loan_Interest_Receipt > 0)
+                                {
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, fdLoanScheme2.IntLed_Id, fdRenewal.FixedDepositPayment.Total_Loan_Interest_Receipt, 0, 2, Narration + " Loan No : " + fdRenewal.FixedDepositPayment.Loan_On_FixedDeposits.Select(x => x.Loan_No).First(), false, Checked_By, yrId, Status, "Loan No :" + fdRenewal.FixedDepositPayment.Loan_On_FixedDeposits.Select(x => x.Loan_No).First(), fdRenewal.Mem_Id, brCode, 0, 0, 0);
+                                    finVoucherTrns.Add(vocTrn);
+                                }
+                                if (fdRenewal.FixedDepositPayment.Total_Loan_Principal_Receipt > 0)
+                                {
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, fdLoanScheme2.PrlLed_Id, fdRenewal.FixedDepositPayment.Total_Loan_Principal_Receipt, 0, 2, Narration + " Loan No : " + fdRenewal.FixedDepositPayment.Loan_On_FixedDeposits.Select(x => x.Loan_No).First(), false, Checked_By, yrId, Status, "Loan No :" + fdRenewal.FixedDepositPayment.Loan_On_FixedDeposits.Select(x => x.Loan_No).First(), fdRenewal.Mem_Id, brCode, 0, 0, 0);
+                                    finVoucherTrns.Add(vocTrn);
+                                }
+                            }
+                            #endregion
                             #region Save FD Renewal
                             result = await _unitOfWork.TermDepositMember.AddTermDepositMemberListAsync(fdRenewalMembers);
                             result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(fdRenewalTrnList);

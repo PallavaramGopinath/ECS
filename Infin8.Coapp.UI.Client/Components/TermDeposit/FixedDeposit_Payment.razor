@@ -626,7 +626,7 @@
             queryString.Append(paymentModel.Mem_Id);
             queryString.Append($"&tdSchemeType=F");
             queryString.Append($"&trnDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
-            queryString.Append("&brCode={brCode}");
+            queryString.Append($"&brCode={brCode}");
             var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosForRenewal?{queryString}");
             if (fdNosTmp != null && fdNosTmp.Count > 0)
             {

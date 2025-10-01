@@ -866,19 +866,22 @@
             _fixedDepositRenewal.FixedDepositPayment = FixedDepositPayment;
             _fixedDepositRenewal.FixedDepositCreate = _fixedDepositModel;
 
+
             if(CashOrAdjustment == 1)
             {
-                cashReceipt = _fixedDepositRenewal.FixedDepositCreate.Deposit_Amount
-                 - (FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable);
-                cashPayment = 0;
-                adjReceipt = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable;
-                adjPayment = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable;
+                double receiptAmt = _fixedDepositRenewal.FixedDepositCreate.Deposit_Amount + FixedDepositPayment!.Total_Loan_Principal_Receipt + FixedDepositPayment!.Total_Loan_Interest_Receipt;
+                double paymentAmt = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable;
+
+                cashReceipt = 0;
+                cashPayment = paymentAmt - receiptAmt;
+                adjReceipt = receiptAmt;
+                adjPayment = receiptAmt;
             }
             else
             {
                 cashReceipt = 0;
                 cashPayment = 0;
-                adjReceipt = _fixedDepositRenewal.FixedDepositCreate.Deposit_Amount;
+                adjReceipt = _fixedDepositRenewal.FixedDepositCreate.Deposit_Amount + FixedDepositPayment!.Total_Loan_Principal_Receipt + FixedDepositPayment!.Total_Loan_Interest_Receipt;
                 adjPayment = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable;
             }
 
@@ -891,8 +894,8 @@
                 Member_Id = MemberId,
                 Ledger_Id = 0,
                 Related_Account_Id = AccountId,
-                Receipt_Amount = _fixedDepositRenewal.FixedDepositCreate.Deposit_Amount,
-                Payment_Amount = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable,
+                Receipt_Amount = cashReceipt + adjReceipt ,
+                Payment_Amount = cashPayment + adjPayment ,
                 Module_Name = accountName,
                 Cash_Or_Adjustment = CashOrAdjustment,
                 Related_Account_Data = renewalFDJsonData,
