@@ -316,7 +316,7 @@
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Value>=First(Fields!MemberNo.Value, "Ds_Receipt") &amp; " " &amp; First(Fields!PerNo.Value, "Ds_Receipt")</Value>
+                                      <Value>=First(Fields!MemberNo.Value, "Ds_Receipt")</Value>
                                       <Style>
                                         <FontWeight>Bold</FontWeight>
                                       </Style>

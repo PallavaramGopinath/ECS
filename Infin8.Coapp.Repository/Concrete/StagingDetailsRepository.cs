@@ -283,14 +283,15 @@ namespace Infin8.Coapp.Repository
                                         IssueBankName = details.Issue_Bank_Name,
                                         Status = account.Acc_Status,
                                         CashReceipt = details.Cash_Or_Adjustment == 1 ? details.Receipt_Amount : 0,
-                                        CashPayment = details.Cash_Or_Adjustment == 1 ? details.Payment_Amount : 0
+                                        CashPayment = details.Cash_Or_Adjustment == 1 ? details.Payment_Amount : 0,
+                                        AdjustmentReceipt = details.Cash_Or_Adjustment == 2 ? details.Receipt_Amount : 0,
+                                        AdjustmentPaymnet = details.Cash_Or_Adjustment == 2 ? details.Payment_Amount : 0,
                                     }).ToListAsync();
                 if (result != null && result.Count > 0) accList = result.ToList();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                throw;
+                Console.WriteLine(ex.Message);
             }
             return accList;
         }

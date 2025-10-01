@@ -318,6 +318,7 @@
     private string componentName = "JewelLoanRecovery";
     private string stagingStatus = "I";
     private string brCode = "11001"; // Branch code, can be dynamic based on user selection or context
+    decimal createdBy = 110010000001;
     #region variable declarations
 
     private TransactionBy_Members transaction = new()
@@ -332,7 +333,8 @@
         Ledger_Id = 0,
         Father_Name = string.Empty,
         Member_Id = 0,
-        Yr_Id = 110010000024
+        Yr_Id = 110010000024,
+        Cheque_Date = DateTime.Today 
     };
 
     private MemberDetailsVM memberDetails = new();
@@ -474,7 +476,7 @@
                 }
 
                 // await UpdateJLRecoveryTransactionFromStaging("I");
-                await UpdateTransactionsFromStaging("I", "11001");
+                await UpdateTransactionsFromStaging("I", brCode);
 
                 if (transactionAccountsList.Count > 0)
                 {
@@ -561,6 +563,12 @@
 
     private async Task handlerSelectAccount2()
     {
+        if(transaction.Cash_Adjustment == 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please select Cash/Adjustment first");
+            transaction.Account_Id = 0;
+            return;
+        }
         if (transaction.Receipt_Payment == 1)
         {
             var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/R/M");
@@ -597,6 +605,19 @@
 
     private async Task handlerShowAccountModal()
     {
+        string errorMsg = string.Empty;
+        if(transaction.Cash_Adjustment == 0)         
+            errorMsg = "Please select Cash/Adjustment";
+        if (transaction.Receipt_Payment == 0)
+            errorMsg += (errorMsg.Length > 0 ? "\n" : "") + "Please select receipt/payment";
+        if(transaction.Account_Id == 0)
+            errorMsg += (errorMsg.Length > 0 ? "\n" : "") + "Please select account name";
+        if(errorMsg.Length >0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", errorMsg);
+            transaction.Account_Id = 0;
+            return;
+        }
         /// verify if the member has already transacted but not verified or rejected
         string accountName = accountItems.FirstOrDefault(a => a.Value == transaction.Account_Id.ToString())?.Text ?? string.Empty;
         try
@@ -914,15 +935,19 @@
             Module_Name = ledgerNameItems.Where(x => x.Value == transaction.Ledger_Id.ToString()).Select(x => x.Text).FirstOrDefault(),
             Cash_Or_Adjustment = transaction.Cash_Adjustment,
             Related_Account_Data = otherRelatedJsonData, /// chequeJsonData,
-            Created_By = 110010000001,
+            Created_By = createdBy,
             Created_Date = transaction.Transaction_Date,
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001",
+            BrCode = brCode,
             Cheque_No = otherRelatedData.Cheque_No,
             Cheque_Date = otherRelatedData.Cheque_Date,
-            Issue_Bank_Name = otherRelatedData.Issue_Bank_Name
+            Issue_Bank_Name = otherRelatedData.Issue_Bank_Name,
+            CashReceipt_Amount = transaction.Cash_Adjustment == 1 ? receipt : 0,
+            AdjustmentReceipt_Amount = transaction.Cash_Adjustment == 2 ? receipt : 0,
+            CashPayment_Amount = transaction.Cash_Adjustment == 1 ? payment : 0,
+            AdjustmentPayment_Amount = transaction.Cash_Adjustment == 2 ? payment : 0,
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
 
@@ -1368,13 +1393,13 @@
                     { "MemberName", transaction.Member_Name! },
                     { "TransactionDate", transaction.Transaction_Date },
                     { "OnJLDisbursementComponentClose", EventCallback.Factory.Create<bool>(this, CloseJLDisbursementComponent) }
-                    
+
                 };
                 isComponentLoaded = true;
                 StateHasChanged();
                 #endregion
                 break;
-               
+
                 #endregion
         }
     }
@@ -2182,6 +2207,8 @@
         isDdlCashAdjustmentDisable = false;
         isMemberNoDisable = false;
         transactionAccountsList.Clear();
+        isBankAccount = false;
+        isLedgerSection = false;
         // AddNewAccountRow();
     }
 
@@ -2416,9 +2443,9 @@
 
     private async Task UpdateJLRecoveryTransactionFromStaging(string stagingStatus)
     {
-        decimal createdBy = 110010000001;
+        // decimal createdBy = 110010000001;
         // string stagingStatus = "I";
-        string brCode = "11001";
+        // string brCode = "11001";
         List<AccountTransactionVM> trnList = new();
         try
         {
@@ -2561,7 +2588,7 @@
 
     private async Task FDPaymentInitiate(DtoTermDepositFixedDepositPayment fdPaymentInitiate)
     {
-        await UpdateTransactionsFromStaging("I", "11001");
+        await UpdateTransactionsFromStaging("I", brCode);
         isComponentLoaded = false;
         isLedgerSection = false;
         isTransactionSection = true;
@@ -2674,7 +2701,7 @@
 
     private async Task FDRefundInitiate(DtoTermDepositFixedDepositPayment fdPaymentInitiate)
     {
-        await UpdateTransactionsFromStaging("I", "11001");
+        await UpdateTransactionsFromStaging("I", brCode);
         isComponentLoaded = false;
         isLedgerSection = false;
         isTransactionSection = true;
@@ -2801,7 +2828,7 @@
     private async Task FDRenewalInitiate(DtoTermDepositFixedDepositRenewal initiate)
     {
 
-        await UpdateTransactionsFromStaging("I", "11001");
+        await UpdateTransactionsFromStaging("I", brCode);
         isComponentLoaded = false;
         isLedgerSection = false;
         isTransactionSection = true;
@@ -3319,7 +3346,7 @@
 
     private async Task GetIntiatedAccountsFromStaging(bool result)
     {
-        await UpdateTransactionsFromStaging("I", "11001");
+        await UpdateTransactionsFromStaging("I", brCode);
         isComponentLoaded = false;
         isLedgerSection = false;
         isTransactionSection = true;

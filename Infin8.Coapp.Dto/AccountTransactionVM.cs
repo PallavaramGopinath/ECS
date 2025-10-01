@@ -21,6 +21,8 @@
         public string? Member_Name { get; set; }
         public double CashReceipt { get; set; }
         public double CashPayment { get; set; }
+        public double AdjustmentReceipt { get; set; }
+        public double AdjustmentPaymnet { get; set; }
         public string? Narration { get; set; }
         //public int DMId { get; set; }
     }
