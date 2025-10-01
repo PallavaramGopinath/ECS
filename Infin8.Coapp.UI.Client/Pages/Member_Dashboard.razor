@@ -470,7 +470,7 @@
         var memAccounts = await _httpClient.GetFromJsonAsync<List<MemberDashBoardAccountsDto>>($"https://localhost:7073/api/Dashboard/get-member-dashboard-acoount/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
         if (memAccounts != null && memAccounts.Any())
         {
-            MemberAccounts = memAccounts;
+            MemberAccounts = memAccounts.OrderBy(x=> x.Trn_Type).ThenBy(x=> x.Led_Name).ToList();
             foreach (var account in memAccounts)
             {
                 switch (account.Trn_Type)
@@ -501,14 +501,14 @@
         var memLoans = await _httpClient.GetFromJsonAsync<List<MemberDashBoardLoans>>($"https://localhost:7073/api/Dashboard/get-member-dashboard-loans/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
         if (memLoans != null && memLoans.Any())
         {
-            MemberLoans = memLoans;
+            MemberLoans = memLoans.OrderBy(x=> x.Scheme_Id).ThenBy(x=> x.Loan_No).ToList();
             StateHasChanged();
         }
 
         var memTD = await _httpClient.GetFromJsonAsync<List<MemberDashBoardTD>>($"https://localhost:7073/api/Dashboard/get-member-dashboard-td/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
         if (memTD != null && memTD.Any())
         {
-            MemberTermDeposits = memTD;
+            MemberTermDeposits = memTD.OrderBy(x=> x.TDScheme_Id).ThenBy(x=>x.TD_No).ToList ();
             StateHasChanged();
         }
         isLoading = false;

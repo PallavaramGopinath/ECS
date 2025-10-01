@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System;
@@ -255,14 +256,15 @@ namespace Infin8.Coapp.Repository
         {
             List<rptReceiptMemberList> receiptData = new List<rptReceiptMemberList>();
             DateTime? intCalcDate = null;
-            //bool isChequeOnlyReceipt = false;
+            bool isChequeOnlyReceipt = false;
             DateTime? trnDate = null;
             double receiptAmount = 0;
             decimal cashLedger = 0;
             try
             {
                 /// get Cash ledger id
-                cashLedger = CSISContext.Map_General.Where(x => x.ID == 110010000001).Select(x => x.Cash_Led_Id).FirstOrDefault();
+                //cashLedger = CSISContext.Map_General.Where(x => x.ID == 110010000001).Select(x => x.Cash_Led_Id).FirstOrDefault();
+                cashLedger = CSISContext.Map_General.Where(x=> x.BrCode == brCode).Select(x => x.Cash_Led_Id).FirstOrDefault();
 
                 /// get cash receipt items
                 var notBankReceipt =  (from voucher in CSISContext.Fin_Voucher
@@ -284,7 +286,8 @@ namespace Infin8.Coapp.Repository
                 //    isChequeOnlyReceipt = false;
                 //}
 
-                /// get cheque receipt items
+                /// get cheque receipt items 
+                if (receiptAmount == 0) isChequeOnlyReceipt = false;
                 if (receiptAmount == 0)
                 {
                     var bankReceipt = (from voucher in CSISContext.Fin_Voucher
@@ -300,8 +303,8 @@ namespace Infin8.Coapp.Repository
                                        select voucherTrn.Voc_Rpt)
                 .Sum();
                     double.TryParse(bankReceipt.ToString(), out receiptAmount);
-                    //if (receiptAmount > 0)
-                    //    isChequeOnlyReceipt = true;
+                    if (receiptAmount > 0)
+                        isChequeOnlyReceipt = true;
                 }
 
                 if (receiptAmount > 0)
@@ -412,10 +415,9 @@ namespace Infin8.Coapp.Repository
                     intCalcDate = result;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                throw;
+                Console.WriteLine(ex.Message);
             }
             return (receiptData, intCalcDate);
         }
@@ -589,14 +591,15 @@ namespace Infin8.Coapp.Repository
             }
             return (receiptData, chequeDetails);
         }
-        public async Task<(List<rptPaymentVoucher> paymentData, string chequeDetails)> GetPaymentData(decimal vocId)
+        public async Task<(List<rptPaymentVoucher> paymentData, string chequeDetails)> GetPaymentData(decimal vocId , string brCode)
         {
             List<rptPaymentVoucher> paymentData = new List<rptPaymentVoucher>();
             string chequeDetails = "";
             List<rptChequeDetails> chequeList = new List<rptChequeDetails> ();
             try
             {
-                decimal cashLedger = CSISContext.Map_General.Where(x => x.ID == 1).Select(x => x.Cash_Led_Id).FirstOrDefault();
+                decimal cashLedger = CSISContext.Map_General.Where(x => x.BrCode == brCode ).Select(x => x.Cash_Led_Id).FirstOrDefault();
+
                 paymentData = await (from voucher in CSISContext.Fin_Voucher
                                  join member in CSISContext.mem_master on voucher.Mem_Id equals member.mem_id into memGroup
                                  from member in memGroup.DefaultIfEmpty() // LEFT JOIN
@@ -606,7 +609,8 @@ namespace Infin8.Coapp.Repository
                                  where voucherTrn.FinVocTr_Delete == false
                                  && voucherTrn.Led_Id != cashLedger
                                  && voucher.Voc_Id == vocId
-                                 group new { voucher, member, voucherTrn, ledger, ledgerGrp } by new
+                                 && voucher.BrCode == brCode
+                                     group new { voucher, member, voucherTrn, ledger, ledgerGrp } by new
                                  {
                                      voucher.Voc_Pmt_No,
                                      voucher.Voc_Date,
@@ -654,10 +658,10 @@ namespace Infin8.Coapp.Repository
                     chequeDetails += "Cheque No " + cheq.Fvb_Cheque_No + " Dated " + cheq.Fvb_Cheque_Date + " " + cheq.Fvb_Bank_Name + " ";
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                throw;
+                Console.WriteLine(ex.Message);
             }
             return (paymentData, chequeDetails);
         }

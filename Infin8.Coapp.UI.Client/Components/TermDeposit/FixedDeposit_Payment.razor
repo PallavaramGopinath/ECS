@@ -589,13 +589,13 @@
             paymentModel.FixedDeposit_Nos!.Clear();
             if (RequestType == "I" || RequestType == "P") /// for interest payment or refund
             {
-                var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosByMemId/{paymentModel.Mem_Id}/F/11001");
+                var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosByMemId/{paymentModel.Mem_Id}/F/{brCode}");
                 if (fdNosTmp != null) fdNos = fdNosTmp.ToList();
             }
             else
             {
                 string formatedDate = TransactionDate.ToString("yyyy-MM-dd");
-                var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosForRenewal/{paymentModel.Mem_Id}/F/{formatedDate}/11001");
+                var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosForRenewal/{paymentModel.Mem_Id}/F/{formatedDate}/{brCode}");
                 if (fdNosTmp != null) fdNos = fdNosTmp.ToList();
             }
             if (fdNos != null && fdNos.Count > 0)
@@ -626,7 +626,7 @@
             queryString.Append(paymentModel.Mem_Id);
             queryString.Append($"&tdSchemeType=F");
             queryString.Append($"&trnDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
-            queryString.Append("&brCode=11001");
+            queryString.Append("&brCode={brCode}");
             var fdNosTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetFDNosForRenewal?{queryString}");
             if (fdNosTmp != null && fdNosTmp.Count > 0)
             {
@@ -689,7 +689,7 @@
                 queryString.Append($"&toDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
                 queryString.Append($"&accountId=");
                 queryString.Append(accId);
-                queryString.Append("&brCode=11001");
+                queryString.Append("&brCode={brCode}");
 
                 var fdDataTmp = await _httpClient.GetFromJsonAsync<List<FDDetailsVM>>($"https://localhost:7073/api/TermDeposit/GetFDPayable?{queryString}");
                 if (fdDataTmp != null && fdDataTmp.Count > 0)
@@ -885,7 +885,7 @@
             adjReceipt += paymentModel.Total_Loan_Interest_Receipt + paymentModel.Total_Loan_Principal_Receipt;
 
             cashReceipt = 0;
-            cashPayment = paymentModel.Total_Deposit_Payable - adjReceipt;
+            cashPayment = paymentModel.Total_Deposit_Payable + paymentModel.Total_Interest_Payable - adjReceipt;
             adjPayment = adjReceipt;
         }
         else
@@ -912,7 +912,7 @@
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001",
+            BrCode = brCode,
             CashReceipt_Amount = cashReceipt,
             CashPayment_Amount = cashPayment,
             AdjustmentReceipt_Amount = adjReceipt,

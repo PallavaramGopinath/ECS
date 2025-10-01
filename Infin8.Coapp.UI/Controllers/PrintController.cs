@@ -158,46 +158,49 @@ namespace Infin8.Coapp.API.Controllers
                 var receiptData = await _reportHandler.GetReceiptData(rptObject.vocId, rptObject.brCode!);
                 rptList = receiptData.receiptData;
                 //receiptAmt = rptList.Sum(x => x.Voc_Rpt);
-                rsInWords  = _utilityHandler.RupeesInWords(rptObject.receiptAmt);
-                DateTime? intCalcDate = null;
-                intCalcDate = receiptData.intCalcDate;
-                DataTable dth = new DataTable();
-                dth.Columns.Add("RsInWords");
-                dth.Columns.Add("SocietyName");
-                dth.Columns.Add("ReportHeader");
-                dth.Columns.Add("IntCalcDetails");
-                dth.Columns.Add("AdjString");
-                DataRow dr = dth.NewRow();
-                dr["RsInWords"] = rsInWords;
-                dr["SocietyName"] = societyName;
-                dr["ReportHeader"] = receiptHeader;
-                if (intCalcDate != null)
-                    dr["IntCalcDetails"] = "Interest Calculated upto " + intCalcDate.Value.ToString("dd-MM-yyyy");
-                else
-                    dr["IntCalcDetails"] = "";
-                string _adjString = await _reportHandler.GetChequeDetailsForReceipt(rptObject.vocId,rptObject.brCode!);
+                if (rptList != null && rptList.Any())
+                {
+                    rsInWords = _utilityHandler.RupeesInWords(rptObject.receiptAmt);
+                    DateTime? intCalcDate = null;
+                    intCalcDate = receiptData.intCalcDate;
+                    DataTable dth = new DataTable();
+                    dth.Columns.Add("RsInWords");
+                    dth.Columns.Add("SocietyName");
+                    dth.Columns.Add("ReportHeader");
+                    dth.Columns.Add("IntCalcDetails");
+                    dth.Columns.Add("AdjString");
+                    DataRow dr = dth.NewRow();
+                    dr["RsInWords"] = rsInWords;
+                    dr["SocietyName"] = societyName;
+                    dr["ReportHeader"] = receiptHeader;
+                    if (intCalcDate != null)
+                        dr["IntCalcDetails"] = "Interest Calculated upto " + intCalcDate.Value.ToString("dd-MM-yyyy");
+                    else
+                        dr["IntCalcDetails"] = "";
+                    string _adjString = await _reportHandler.GetChequeDetailsForReceipt(rptObject.vocId, rptObject.brCode!);
 
-                if (_adjString != null)
-                {
-                    dr["AdjString"] = _adjString;
-                }
-                else
-                {
-                    dr["AdjString"] = "";
-                    /// if current inters date is null then get loan id and obtain last interest calculated date here.
-                }
-                dth.Rows.Add(dr);
-                var parameters = new[]
-                {
+                    if (_adjString != null)
+                    {
+                        dr["AdjString"] = _adjString;
+                    }
+                    else
+                    {
+                        dr["AdjString"] = "";
+                        /// if current inters date is null then get loan id and obtain last interest calculated date here.
+                    }
+                    dth.Rows.Add(dr);
+                    var parameters = new[]
+                    {
                         new ReportParameter("ParamFirstSignature", report.FirstSignature ) ,
                         new ReportParameter("ParamSecondSignature", report.SecondSignature ),
                         new ReportParameter("ParamThirdSignature", report.ThirdSignature )
                     };
 
-                localReport.DataSources.Add(new ReportDataSource("Ds_Receipt", rptList));
-                localReport.DataSources.Add(new ReportDataSource("Ds_Header", dth));
-                localReport.SetParameters(parameters);
-                pdfAsBytes = localReport.Render("PDF");
+                    localReport.DataSources.Add(new ReportDataSource("Ds_Receipt", rptList));
+                    localReport.DataSources.Add(new ReportDataSource("Ds_Header", dth));
+                    localReport.SetParameters(parameters);
+                    pdfAsBytes = localReport.Render("PDF");
+                }
             }
             catch (Exception)
             {
@@ -287,7 +290,7 @@ namespace Infin8.Coapp.API.Controllers
                     localReport.LoadReportDefinition(stream);
                 }
                 
-                var paymentData = await _reportHandler.GetPaymentData(rptObject.Voc_Id); /// .GetReceiptGeneralData(rptObject.vocId, rptObject.brCode!);
+                var paymentData = await _reportHandler.GetPaymentData(rptObject.Voc_Id,rptObject.BrCode! ); /// .GetReceiptGeneralData(rptObject.vocId, rptObject.brCode!);
                 voucherList = paymentData.paymentData;
                 chequeDetails = paymentData.chequeDetails;
                 double rs = voucherList.Sum(x => x.PaymentAmt);

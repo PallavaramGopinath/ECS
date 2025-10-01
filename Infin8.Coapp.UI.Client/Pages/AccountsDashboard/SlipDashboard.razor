@@ -60,7 +60,7 @@ else
 {
     <VoucherDisplay Voucher="voucherData" />
     <!--Print button-->
-    <button type="button" class="btn btn-primary mt-3" @onclick="()=>HandlePrint()">
+    <button type="button" class="btn btn-primary mt-3" @onclick="() => HandlePrint()">
         <i class="oi oi-print" aria-hidden="true"></i>
         Print
     </button>
@@ -95,7 +95,7 @@ else
     {
         if (firstRender)
         {
-            if(Voc_Id > 0)
+            if (Voc_Id > 0)
             {
                 var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByVocId/{Voc_Id}/{BrCode}");
                 voucherData = result;
@@ -132,7 +132,11 @@ else
 
         try
         {
-            if(voucherData!.brCode == null) voucherData!.brCode = brCode;
+            if (voucherData == null)
+            {
+                voucherData = new DtoVoucher();
+                if (voucherData!.brCode == null) voucherData!.brCode = brCode;
+            }
             string[] parts = searchValue.Split('/');
             string convertedString = "";
             if (parts.Length == 2)
@@ -158,10 +162,10 @@ else
             }
             else
             {
-                rptNo = ""; // Ensure receipt number is 
+                rptNo = ""; // Ensure receipt number is
                 pmtNo = convertedString;
                 // pmtNo = searchValue.ToUpper();
-                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByPmtNo?pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}/{voucherData!.brCode}");
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByPmtNo?pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}&brCode={voucherData!.brCode}");
                 voucherData = result;
                 isLoading = false;
             }
@@ -198,7 +202,7 @@ else
         try
         {
             var rptPmtResponse = await _httpClient.GetFromJsonAsync<List<rptReceiptAndPaymentAmount>>($"https://localhost:7073/api/Print/GetReceiptAndPaymentData/{voucherData!.Voc_Id}/{voucherData.brCode}");
-            if(rptPmtResponse!.Count >0)
+            if (rptPmtResponse!.Count > 0)
             {
                 rptPmtList = rptPmtResponse.ToList();
             }
@@ -227,11 +231,11 @@ else
             VocTrnType = voucherData.Transactions.Select(x => x.Voc_Trn_Type).FirstOrDefault()
         };
 
-        foreach(var receipt in rptPmtList )
+        foreach (var receipt in rptPmtList)
         {
-            if(receipt.Voc_Rpt >0)
+            if (receipt.Voc_Rpt > 0)
             {
-                if (receipt.Voc_Type == 5 ||  receipt.Voc_Type == 11 || receipt.Voc_Type == 14)    /// voc_Type 5 = member transaction,Voc_Type 11 = decreed loan issue)
+                if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 14)    /// voc_Type 5 = member transaction,Voc_Type 11 = decreed loan issue)
                 {
                     if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11)
                     {
@@ -249,7 +253,7 @@ else
 
             }
         }
-        foreach (var payment in rptPmtList )
+        foreach (var payment in rptPmtList)
         {
             if (payment.Voc_Pmt > 0)
             {
@@ -259,7 +263,7 @@ else
         }
         double pmtAmt = 0;
         pmtAmt = rptPmtList.Sum(x => x.Voc_Pmt);
-        if(pmtAmt >0)
+        if (pmtAmt > 0)
         {
             rptObject.ReportId = 89;
             await Print_Voucher(rptObject);
@@ -267,7 +271,7 @@ else
 
         List<string> statusList = new();
         var statusResult = await _httpClient.GetFromJsonAsync<List<string>>($"https://localhost:7073/api/Print/GetStatus/{voucherData!.Voc_Id}/{voucherData.brCode}");
-        if(statusResult!.Count >0)
+        if (statusResult!.Count > 0)
         {
             statusList = statusResult!.ToList();
         }
@@ -347,7 +351,7 @@ else
         //     // Log or show error
         //     Console.WriteLine($"Error: {response.StatusCode}");
         // }
-        // #endregion 
+        // #endregion
     }
 
     private async Task Print_Member_Receipt(rptReceiptObject rptObject)
@@ -488,7 +492,7 @@ else
             Console.WriteLine($"Error: {response.StatusCode}");
         }
     }
-    
+
     private async Task Print_JL_Ledger(rptReportObject rptObject)
     {
         var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"https://localhost:7073/api/Print/print-jl-ledger", rptObject);

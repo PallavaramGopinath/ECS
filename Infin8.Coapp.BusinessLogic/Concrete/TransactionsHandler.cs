@@ -482,7 +482,7 @@ namespace Infin8.Coapp.BusinessLogic
                             Fin_Voucher_Bank finVocBank = new();
                             DtoOtherRelatedData chequeData = new();
                             chequeData = Utility.JsonbObject.ConvertFromJsonForOtherRelatedData(trns.Related_Account_Data!);
-                            Narration = chequeData.Member_No!.Trim() + " " + chequeData.Member_Name!.Trim();
+                            Narration = chequeData.Member_No!.Trim() + " " + chequeData.Member_Name!.Trim() + " Cheque No " + chequeData.Cheque_No;
                             finVocBank = Utility.GetModalObject.GetFinVocBankObject(trns.Transacted_Date, chequeData.Member_Id, trns.Receipt_Amount > 0 ? "C" : "O", chequeData.Issue_Bank_Name!, vocId, trns.Ledger_Id, trns.Receipt_Amount > 0 ? trns.Receipt_Amount : trns.Payment_Amount, chequeData.Cheque_No!, chequeData.Cheque_Date!, null, 0, false, null, "", null, 0, Checked_By, yrId, false, brCode);
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);

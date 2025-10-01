@@ -61,9 +61,9 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsMaster.GetReceiptGeneralData(vocId,brCode);
         }
-        public  async Task<(List<rptPaymentVoucher> paymentData, string chequeDetails)> GetPaymentData(decimal vocId)
+        public  async Task<(List<rptPaymentVoucher> paymentData, string chequeDetails)> GetPaymentData(decimal vocId,string brCode)
         {
-            return await _unitOfWork.ReportsMaster.GetPaymentData(vocId);
+            return await _unitOfWork.ReportsMaster.GetPaymentData(vocId,brCode);
         }
         public async Task<string> GetChequeDetailsForReceipt(decimal vocId, string brCode)
         {
