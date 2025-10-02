@@ -151,8 +151,8 @@ namespace Infin8.Coapp.BusinessLogic
                 //}
 
 
-                if (receiptAmount > paymentAmount) vocAmt = receiptAmount;
-                if (paymentAmount > receiptAmount) vocAmt = paymentAmount;
+                if (receiptAmount >= paymentAmount) vocAmt = receiptAmount;
+                if (paymentAmount >= receiptAmount) vocAmt = paymentAmount;
                 IsChequeOnly = await _unitOfWork.TransactionsRepository.IsChequeOnly(stagingId);
                 rptPmtNo = _unitOfWork.TransactionsRepository.GetReceiptAndPaymentNo(cashReceipt, cashPayment, adjReceipt, adjPayment, IsChequeOnly, yrId);
                 if (rptPmtNo == null)
