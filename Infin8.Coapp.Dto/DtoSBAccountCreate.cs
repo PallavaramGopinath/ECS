@@ -17,9 +17,9 @@ namespace Infin8.Coapp.Dto
         public DateTime Transaction_Date { get; set; }
         public string? SBAccount_No { get; set; }
         public decimal Led_Id { get; set; }
-        public string BrCode { get; set; }
+        public string? BrCode { get; set; }
 
         [Required]
-        public double Receipt_Amount { get; set; }
+        public double Receipt_Amount { get; set; } = 0;
     }
 }

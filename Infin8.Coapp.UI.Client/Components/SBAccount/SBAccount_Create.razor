@@ -71,7 +71,7 @@
     [Parameter] public decimal MemberId { get; set; }
     [Parameter] public string? MemberNumber { get; set; }
     [Parameter] public string? MemberName { get; set; }
-    [Parameter] public DateTime Transactiondate { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
 
     [Parameter] public EventCallback<bool> OnSBCreateComponentClose { get; set; }
     [Parameter] public EventCallback<DtoSBAccountCreate> OnSBCreateInitiate { get; set; }
@@ -94,10 +94,11 @@
         sbAccountModel.Mem_Id = MemberId;
         sbAccountModel.Member_No = MemberNumber;
         sbAccountModel.Member_Name = MemberName;
-        sbAccountModel.Transaction_Date = Transactiondate;
+        sbAccountModel.Transaction_Date = TransactionDate;
         sbAccountModel.BrCode = "11001"; // Assuming a default branch code, can be parameterized if needed
         sbAccountModel.Led_Id = 0;
-        var result = await _httpClient.GetFromJsonAsync<SBCA_Schemes>($"https://localhost:7073/api/SBAccpimt/GetSBCAScheme/{11001}");
+        sbAccountModel.Receipt_Amount = 0;
+        var result = await _httpClient.GetFromJsonAsync<SBCA_Schemes>($"https://localhost:7073/api/SBAccount/GetSBCAScheme/{sbAccountModel.BrCode!}");
         if (result != null)
         {
             schemes = result;
@@ -114,6 +115,7 @@
     {
         sbAccountModel.Receipt_Amount = 0;
     }
+
     protected async Task ClosePage()
     {
         // Navigation.NavigateTo("/member-transactions"); // or any other route
@@ -175,11 +177,11 @@
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = newSBAccountJsonData,
             Created_By = 110010000001,
-            Created_Date = Transactiondate,
+            Created_Date = TransactionDate,
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001",
+            BrCode = sbAccountModel.BrCode ,
             CashReceipt_Amount = cashReceipt ,
             CashPayment_Amount = cashPayment ,
             AdjustmentReceipt_Amount = adjReceipt ,

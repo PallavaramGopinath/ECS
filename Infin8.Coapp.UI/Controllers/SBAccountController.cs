@@ -49,7 +49,8 @@ namespace Infin8.Coapp.UI.Controllers
             }
             else
             {
-                return NotFound();
+                sbAccountNos = new();
+                return Ok(sbAccountNos);
             }
         }   
 
