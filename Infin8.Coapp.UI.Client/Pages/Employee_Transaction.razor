@@ -325,7 +325,8 @@ else
         Cash_Adjustment = 0,
         Yr_Id = 110010000023,
         Created_By = 110010000001,
-        BrCode = "11001"
+        BrCode = "11001",
+        Cheque_Date = DateTime.Today 
     };
 
     DtoOtherRelatedData otherRelatedData = new();
@@ -361,7 +362,7 @@ else
         transaction.Employee_Id = emp.Mem_Id;
         transaction.Employee_Name = emp.MemberName;
         transaction.Employee_Designation = emp.Emp_Desgn;
-        await UpdateTransactionsFromStaging("I", "11001");
+        await UpdateTransactionsFromStaging("I", transaction.BrCode! );
         isEmployeeDisable = true;
     }
 
@@ -891,6 +892,11 @@ else
         if (!ValidateAddAccount()) return;
         string status = "";
         double receipt = 0, payment = 0;
+        if (transaction.Ledger_Id == 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Ledger Name not selected");
+            return;
+        }
         // string? ChequeNo = "", IssueBankName = "";
         // DateOnly? ChequeDate = null;
         // string chequeJsonData = "";
@@ -985,7 +991,7 @@ else
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001",
+            BrCode = transaction.BrCode ,
             Cheque_No = otherRelatedData.Cheque_No,
             Cheque_Date = otherRelatedData.Cheque_Date,
             Issue_Bank_Name = otherRelatedData.Issue_Bank_Name,
@@ -1003,7 +1009,7 @@ else
         transaction.Cheque_No = string.Empty;
         transaction.Cheque_Date = null;
         transaction.Issue_Bank = string.Empty;
-        await UpdateTransactionsFromStaging("I","11001");
+        await UpdateTransactionsFromStaging("I",transaction.BrCode);
     }
 
     private async Task RemoveAccountRow(AccountTransactionVM account)
@@ -1257,12 +1263,12 @@ else
                     case 37:    /// Jewel Loan disbursement
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName},{assemblyName}";
                         break;
-                    // case 39:    /// salary payment
-                    //     fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
-                    //     break;
-                    // case 40:    /// DA arrears
-                    //     fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
-                    //     break;
+                        // case 39:    /// salary payment
+                        //     fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
+                        //     break;
+                        // case 40:    /// DA arrears
+                        //     fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
+                        //     break;
                 }
                 Type? type = Type.GetType(fullyQualifiedName);
                 if (type == null)
@@ -1340,8 +1346,11 @@ else
             Cash_Adjustment = 1
         };
         isDdlCashAdjustmentDisable = false;
-        // isMemberNoDisable = false;
+        isEmployeeDisable = false;
         transactionAccountsList.Clear();
+        isBankAccount =false;
+        isLedgerSection = false;
+        isComponentLoaded = false;
     }
 
     private async Task UpdateTransactionsFromStaging(string stagingStatus, string brCode)
@@ -1351,10 +1360,12 @@ else
         {
             var trnFromStaging = await _httpClient.GetFromJsonAsync<List<AccountTransactionVM>>($"https://localhost:7073/api/Staging/GetInitiatedAccounts?createdDate={transaction.Transaction_Date:yyyy-MM-dd}&memId={transaction.Employee_Id}&stagingStatus={stagingStatus}&brCode={brCode}");
             transactionAccountsList = new();
-            if (trnFromStaging != null)
+            if (trnFromStaging != null && trnFromStaging .Any())
             {
                 trnList = trnFromStaging.ToList();
                 transactionAccountsList.AddRange(trnList);
+                transaction.Cash_Adjustment = trnList.Select(x => x.CashAdjId).FirstOrDefault();
+                isDdlCashAdjustmentDisable = true;
             }
         }
         catch (HttpRequestException ex)
@@ -1378,7 +1389,7 @@ else
 
     private async Task GetIntiatedAccountsFromStaging(bool result)
     {
-        await UpdateTransactionsFromStaging("I", "11001");
+        await UpdateTransactionsFromStaging("I", transaction.BrCode!);
         isComponentLoaded = false;
         isLedgerSection = false;
         isTransactionSection = true;

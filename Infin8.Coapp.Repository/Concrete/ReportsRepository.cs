@@ -129,6 +129,8 @@ namespace Infin8.Coapp.Repository
                 {
                     isChequeOnlyReceipt = false;
                 }
+                else
+                    isChequeOnlyReceipt = true;
                 if (voc_rpt_sum > 0)
                 {
                     //var cheque_rpt_sum = (from fv in CSISContext.Fin_Voucher
@@ -146,17 +148,17 @@ namespace Infin8.Coapp.Repository
                     //   .Sum();
 
                     var cheque_rpt_sum = (from v in CSISContext.Fin_Voucher
-                              join vt in CSISContext.Fin_Voucher_Trn on v.Voc_Id equals vt.Voc_Id
-                              join l in CSISContext.Fin_Ledger on vt.Led_Id equals l.Led_Id
-                              where v.Voc_Id == vocId
-                                    && v.Voc_Delete == false
-                                    && vt.FinVocTr_Delete == false
-                                    && vt.Led_Id != cashId
-                                    && CSISContext.Map_Banks.Select(mb => mb.Led_Id).Contains(vt.Led_Id)
-                              select vt.Voc_Rpt).Sum();
+                                          join vt in CSISContext.Fin_Voucher_Trn on v.Voc_Id equals vt.Voc_Id
+                                          join l in CSISContext.Fin_Ledger on vt.Led_Id equals l.Led_Id
+                                          where v.Voc_Id == vocId
+                                                && v.Voc_Delete == false
+                                                && vt.FinVocTr_Delete == false
+                                                && vt.Led_Id != cashId
+                                                && CSISContext.Map_Banks.Select(mb => mb.Led_Id).Contains(vt.Led_Id)
+                                          select vt.Voc_Rpt).Sum();
 
-                    if (cheque_rpt_sum > 0)
-                        isChequeOnlyReceipt = true;
+                    //if (cheque_rpt_sum > 0)
+                    //    isChequeOnlyReceipt = true;
                 }
 
                 if(isChequeOnlyReceipt == false)
@@ -214,6 +216,24 @@ namespace Infin8.Coapp.Repository
                         })
                         .ToList();
                     if (result.Count > 0) rptPmtList.AddRange(result);
+                    //var result2 = voucherTransactions
+                    //    .Where(x => bankLedIds.Contains(x.vt.Led_Id))
+                    //    .GroupBy(x => new { x.Voc_Type, x.vt.Voc_Trn_Type })
+                    //    .Select(g => new
+                    //    {
+                    //        Key = g.Key,
+                    //        SumVocPmt = g.Sum(x => x.vt.Voc_Pmt)
+                    //    })
+                    //    .Where(x => x.SumVocPmt > 0)
+                    //    .Select(x => new rptReceiptAndPaymentAmount
+                    //    {
+                    //        Voc_Type = x.Key.Voc_Type,
+                    //        Voc_Trn_Type = x.Key.Voc_Trn_Type,
+                    //        Voc_Pmt = x.SumVocPmt,
+                    //        Voc_Rpt = 0.0
+                    //    })
+                    //    .ToList();
+                    //if (result2.Count > 0) rptPmtList.AddRange(result2);
                 }
                 #endregion 
             }

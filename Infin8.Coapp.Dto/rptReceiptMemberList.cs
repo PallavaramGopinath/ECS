@@ -16,7 +16,6 @@
         public int Led_SlNo { get; set; }
         public string? Led_Desc { get; set; }
         public string?  ReceipentInVoucher { get; set; }
-
         public double Outstanding { get; set; }
         public double Balance { get; set; }
     }
