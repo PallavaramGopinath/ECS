@@ -310,6 +310,8 @@ else
             }
             try
             {
+                model.EmployeeList = new List<EmployeeMasterDto>();
+                model.EmployeeList = selectedEmployeeList;
                 var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/CalculateDAArrears", model);
                 if (response.IsSuccessStatusCode)
                 {

@@ -672,7 +672,6 @@ namespace Infin8.Coapp.BusinessLogic
             {
                 PayDAArrearsId = await _unitOfWork.PayInit.GetPaySlipForDAArrears(Arrears.DAFrom_Date, Arrears.DATo_Date, "D", Arrears.BrCode!);
 
-
                 if (PayDAArrearsId > 0)
                 {
                     foreach (var emp in Arrears.EmployeeList!)
@@ -814,6 +813,7 @@ namespace Infin8.Coapp.BusinessLogic
 
                     daArrearsList!.Add(arrear);
                 }
+
                 Arrears.DAArrearsList!.Clear();
                 Arrears.DAArrearsList.AddRange(daArrearsList!);
             }

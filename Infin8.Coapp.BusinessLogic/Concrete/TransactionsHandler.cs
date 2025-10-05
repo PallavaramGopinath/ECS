@@ -1342,6 +1342,7 @@ namespace Infin8.Coapp.BusinessLogic
             {
                 string er = ex.Message;
                 result = false;
+                voucherData = new();
                 _unitOfWork.RollBack();
             }
             return voucherData;

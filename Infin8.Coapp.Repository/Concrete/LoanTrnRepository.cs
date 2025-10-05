@@ -37,6 +37,7 @@ namespace Infin8.Coapp.Repository
                     loan.Trn_Id = maxId;
                     loan.Trn_SlNo = maxSlNo;
                     await AddAsync(loan);
+                    CSISContext.SaveChanges();
                 }
                 result = true;
             }
