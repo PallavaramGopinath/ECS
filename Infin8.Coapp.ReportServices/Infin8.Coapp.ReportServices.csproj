@@ -14,8 +14,6 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.ReportViewer.NETCore">
-      <HintPath>bin\Debug\net9.0\Microsoft.ReportViewer.NETCore.dll</HintPath>
-    </Reference>
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.26" />
   </ItemGroup>
 </Project>

@@ -1,13 +1,23 @@
-using Infin8.Coapp.UI.Client.Pages;
-using Infin8.Coapp.UI.Components;
-using Microsoft.AspNetCore.Hosting.StaticWebAssets;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Infin8.Coapp.BusinessLogic;
-using Infin8.Coapp.Repository;
-using Infin8.Coapp.Utility;
-using Microsoft.EntityFrameworkCore;
-using Infin8.Coapp.ReportServices.Interface;
+﻿using Infin8.Coapp.BusinessLogic;
+using Infin8.Coapp.Dto;
 using Infin8.Coapp.ReportServices.Concrete;
+using Infin8.Coapp.ReportServices.Interface;
+using Infin8.Coapp.Repository;
+using Infin8.Coapp.Repository.Entities;
+using Infin8.Coapp.UI.Client.Pages;
+using Infin8.Coapp.UI.Client.Providers;
+using Infin8.Coapp.UI.Components;
+using Infin8.Coapp.Utility;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.AspNetCore.Hosting.StaticWebAssets;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 /// server client time out end
@@ -18,10 +28,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 builder.Services.AddControllers();
 
-//builder.Services.AddScoped(http => new HttpClient
-//{
-//    BaseAddress = new Uri(builder.Configuration.GetSection("BaseUri").Value!),
-//});
+builder.Services.AddAntiforgery();
 
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -39,16 +46,52 @@ builder.Services.AddScoped(typeof(DbContext), typeof(CSISContext));
 
 builder.Services.AddDbContext<CSISContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("CSISDatabase")
-    //npgsqlOptions =>
-    //{
-    //    npgsqlOptions.CommandTimeout(300); // 5 minutes
-    //    npgsqlOptions.EnableRetryOnFailure(
-    //        maxRetryCount: 3,
-    //        maxRetryDelay: TimeSpan.FromSeconds(30),
-    //        errorCodesToAdd: null);
-    //}
 
     ));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazor", builder =>
+    {
+        builder.WithOrigins("https://localhost:7073") //
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+               .AllowCredentials();
+    });
+});
+
+
+// JWT
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+builder.Services
+    .AddAuthentication("CookiesJwt")
+    .AddJwtBearer("CookiesJwt", options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
+        };
+
+        // 👇 Read token from cookie
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                context.Token = context.Request.Cookies["auth-token"];
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 builder.Services.AddHttpContextAccessor();
@@ -61,7 +104,7 @@ builder.Services.AddSingleton<AppState>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDashboardMemberHandler, DashboardMemberHandler>();
 builder.Services.AddScoped<IGeneralHandler, GeneralHandler>();
-
+builder.Services.AddScoped<IAuthenticationHandler, JwtAuthenticationHandler>();
 
 #region accounts
 builder.Services.AddScoped<IAccountsHandler, AccountsHandler>();
@@ -139,7 +182,6 @@ builder.Services.AddScoped<IVerifyHandler, VerifyHandler>();
 builder.Services.AddScoped<IUtilityHandler, UtilityHandler>();
 builder.Services.AddScoped<ILoanSchemeHandler, LoanSchemeHandler>();
 
-builder.Services.AddScoped<IUserHandler, UserHandler>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
 builder.Services.AddScoped<ITransactionsHandler, TransactionsHandler>();
@@ -178,14 +220,6 @@ builder.Services.AddScoped <IUserHandler, UserHandler>();
 builder.Services.AddScoped<ICalendarHandler, CalendarHandler>();
 #endregion 
 
-//builder.Services.AddHttpClient().ConfigurePrimaryHttpMessageHandler(() =>
-//{
-//    var handler = new HttpClientHandler();
-//    handler.ServerCertificateCustomValidationCallback =
-//        (message, cert, chain, errors) => true;
-//    return handler;
-//});
-
 var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -199,10 +233,12 @@ else
     app.UseHsts();
 }
 
+
 app.UseHttpsRedirection();
 
 /// Use CORS policy
-app.UseCors("AllowBlazorFrontend");
+
+app.UseCors("AllowBlazor");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -218,8 +254,10 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(Infin8.Coapp.UI.Client._Imports).Assembly);
 
+app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 // Enable static file serving from wwwroot
 app.UseStaticFiles();

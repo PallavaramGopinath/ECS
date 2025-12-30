@@ -13,10 +13,10 @@ namespace Infin8.Coapp.Repository
     {
         Task<bool> AddUser(Users users);
         Task<bool> EditUser(Users users);
-        Users? GetUserByUsernameAsync(string username, string password);
+        Users? GetUserByUsername(string username);
+        string? GetUserRoles(decimal userId);
         //Task<AuthenticationResponse> AuthenticateAsync(string username, string password);
         void CreatePasswordHash(string password, out byte[] passwordHash,out byte[] passwordSalt);
         bool VerifyPassWord(string enteredPassword, byte[] storedHash, byte[] storedSalt);
-        
     }
 }

@@ -1,25 +1,29 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Models;
+using Infin8.Coapp.Repository.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Models;
 
 namespace Infin8.Coapp.Repository
 {
-    public partial class CSISContext :DbContext
+    public partial class CSISContext : DbContext
     {
         public CSISContext(DbContextOptions<CSISContext> options) :base(options)
         {
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
             AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
         }
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder builder)
         {
-            base.OnModelCreating(modelBuilder);
+            base.OnModelCreating(builder);
 
             if (Database.IsNpgsql()) // Check if the database is PostgreSQL
             {
-                modelBuilder.UseLowerCaseTableAndColumnNames();
+                builder.UseLowerCaseTableAndColumnNames();
             }
+            builder.Entity<Refresh_Token>().ToTable("refresh_tokens");
         }
 
         public virtual DbSet<Account_Transactions> Account_Transactions { get; set; }
@@ -155,7 +159,7 @@ namespace Infin8.Coapp.Repository
         #endregion 
 
         #region Refresh Token 
-        public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+        public virtual DbSet<Refresh_Token> RefreshTokens { get; set; }
         #endregion
 
         #region Staging

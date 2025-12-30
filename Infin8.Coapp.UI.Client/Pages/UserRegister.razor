@@ -6,6 +6,9 @@
 @* @inject IUserService UserService *@
 @inject AntiforgeryStateProvider AntiforgeryStateProvider
 @inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@rendermode InteractiveWebAssembly
+
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
@@ -33,10 +36,12 @@
                             </div>
                         }
 
-                        <EditForm Model="@registration" OnValidSubmit="@HandleValidSubmit" FormName="registrationForm">
+                        <EditForm Model="@registration" OnValidSubmit="@HandleValidSubmit"
+                                  OnInvalidSubmit="@HandleInvalidSubmit"
+                            FormName="registrationForm">
                             <DataAnnotationsValidator />
-                           <AntiforgeryToken />
-
+                          @*  <AntiforgeryToken /> *@
+                            <ValidationSummary />
                             <div class="form-group mb-3">
                                 <label for="username">Username</label>
                                 <InputText id="username" @bind-Value="registration.username" class="form-control" placeholder="Enter username" />
@@ -86,14 +91,30 @@
 
                             <div class="form-group mb-4">
                                 <label for="role">Role</label>
+                                <InputSelect id="role" @bind-Value="selectedRoles" class="form-control" multiple>
+                                    <option value="Maker">Maker</option>
+                                    <option value="Checker">Checker</option>
+                                    <option value="Admin">Admin</option>
+                                    <option value="SuperAdmin">SuperAdmin</option>
+                                </InputSelect>
+                                <small class="form-text text-muted">Select one or more roles in the system (hold Ctrl/Cmd to select multiple)</small>
+                                @if (!selectedRoles.Any())
+                                {
+                                    <div class="text-danger">At least one role must be selected.</div>
+                                }
+                            </div>
+
+                            @* <div class="form-group mb-4">
+                                <label for="role">Role</label>
                                 <InputSelect id="role" @bind-Value="registration.role" class="form-control">
                                     <option value="">Select Role</option>
-                                    <option value="User">User</option>
+                                    <option value="Maker">Maker</option>
+                                    <option value="Checker">Checker</option>
                                     <option value="Admin">Admin</option>
-                                    <option value="Manager">Manager</option>
+                                    <option value="SuperAdmin">SuperAdmin</option>
                                 </InputSelect>
                                 <small class="form-text text-muted">Select your role in the system</small>
-                            </div>
+                            </div> *@
 
                             @* <div class="form-check mb-3">
                                 <InputCheckbox id="termsCheck" @bind-Value="agreeToTerms" class="form-check-input" />
@@ -127,14 +148,31 @@
     private string errorMessage = string.Empty;
     private bool agreeToTerms = false;
     private bool showTermsError = false;
+    private string[] selectedRoles = new string[] { };
+
+    protected override Task OnInitializedAsync()
+    {
+        registration = new UserRegistration();
+        return base.OnInitializedAsync();
+    }
+
+    private void HandleInvalidSubmit()
+    {
+        Console.WriteLine("Form is invalid - check validation messages");
+        errorMessage = "Please fix the validation errors above.";
+        StateHasChanged();
+    }
 
     private async Task HandleValidSubmit()
     {
-        // if (!agreeToTerms)
-        // {
-        //     showTermsError = true;
-        //     return;
-        // }
+
+        if (!selectedRoles.Any())
+        {
+            errorMessage = "Please select at least one role.";
+            return;
+        }
+
+        registration.role = string.Join(",", selectedRoles);
 
         showTermsError = false;
         isLoading = true;
@@ -142,27 +180,55 @@
 
         try
         {
-            // TODO: Replace with your actual registration service call
-            // Example: var result = await UserService.RegisterUser(registration);
+            // First, get the anti-forgery token
+            var tokenResponse = await _httpClient.GetAsync("https://localhost:7073/api/Auth/get-antiforgery-token");
+            if (tokenResponse.IsSuccessStatusCode)
+            {
+                var tokenResult = await tokenResponse.Content.ReadFromJsonAsync<AntiforgeryTokenResponse>();
 
-            // Simulate API call with delay
-            await Task.Delay(1500);
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7073/api/Auth/Register")
+                    {
+                        Content = JsonContent.Create(registration)
+                    };
 
-            // Redirect to success page or login
-            // NavigationManager.NavigateTo("/registration-success");
+                // Add the anti-forgery token header
+                request.Headers.Add("X-CSRF-TOKEN", tokenResult?.token);
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    NavigationManager.NavigateTo("/registration-success");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Registration failed: {errorContent}";
+                }
+            }
+            else
+            {
+                errorMessage = "Failed to get security token";
+            }
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            errorMessage = $"An error occurred: {ex.Message}";
         }
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
     }
 
     private void ClearError()
     {
         errorMessage = string.Empty;
+    }
+
+    public class AntiforgeryTokenResponse
+    {
+        public string token { get; set; } = string.Empty;
     }
 }

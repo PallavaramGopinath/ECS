@@ -1,68 +1,19 @@
-﻿@page "/"
-@using Microsoft.AspNetCore.Components.Authorization
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
-
-<AuthorizeView>
-    <Authorized>
-        <h1>Welcome to Home Page</h1>
-        <p>Authenticated content</p>
-    </Authorized>
-    <NotAuthorized>
-        @if (!isRedirecting)
-        {
-            <p>Redirecting to login...</p>
-            Navigation.NavigateTo("/login", forceLoad: false);
-        }
-    </NotAuthorized>
-</AuthorizeView>
-
-@code {
-    private bool isRedirecting = false;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-
-            if (authState.User.Identity?.IsAuthenticated != true && !isRedirecting)
-            {
-                isRedirecting = true;
-
-                // Force full page load to ensure WASM loads properly
-                Navigation.NavigateTo("/login", forceLoad: true);
-                StateHasChanged();
-            }
-        }
-    }
-}
-
-@* @page "/"
-@using Infin8.Coapp.UI.Client.Providers
-@using Microsoft.AspNetCore.Components.Authorization
-@inject NavigationManager Navigation
-
-@code{
-    protected override async Task OnInitializedAsync()
-    {
-        Navigation.NavigateTo("/redirect-to-login", true);
-    }
-} *@
-
-@* @using Infin8.Coapp.Dto
+﻿@page "/main-dashboard"
+@* @inject HttpClient Http // Or a dedicated service to fetch data *@
+@using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
+@using Infin8.Coapp.UI.Client.Providers
 @using Infin8.Coapp.Utility
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveWebAssembly
+using Infin8.Coapp.Utility;
 
-
+@attribute [Authorize(Roles = "Admin, Maker, Checker")]
 
 <PageTitle>Member Dashboard</PageTitle>
 
@@ -147,6 +98,7 @@
                             <table class="table table-hover table-sm">
                                 <thead class="table-light">
                                     <tr>
+                                        @* <th>Suspense Type ID</th> *@
                                         <th>Suspense Ledger</th>
                                         <th class="text-end">Receipts</th>
                                         <th class="text-end">Payments</th>
@@ -157,6 +109,7 @@
                                     @foreach (var suspense in MemberSuspenseAccounts)
                                     {
                                         <tr>
+                                            @* <td>@suspense.Sus_Type</td> *@
                                             <td>@suspense.Sus_Name </td>
                                             <td class="text-end">@suspense.Rpt_Amt.ToString("C")</td>
                                             <td class="text-end">@suspense.Pmt_Amt.ToString("C")</td>
@@ -406,6 +359,7 @@
 </div>
 
 @code {
+
     private List<DashBoardMembers> Members { get; set; } = new();
     private List<DashBoardMemberSuspense> MemberSuspenseAccounts { get; set; } = new();
     private List<DashBoardLoanToMembers> Loans { get; set; } = new();
@@ -417,16 +371,16 @@
     private bool isLoading = true;
     private string? errorMessage;
 
-    private string userName ="Gopinath";
+    private string userName = "Gopinath";
     private string password = "aaa123";
     private AppState appState = new();
 
-  
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-
+        
         if (!user.Identity.IsAuthenticated)
         {
             // Not logged in — redirect to login page
@@ -526,7 +480,7 @@
     private async Task LoanUserCredentialAndAppSettings()
     {
         var response = await _httpClient.GetFromJsonAsync<AppState>($"https://localhost:7073/api/User/get-appstate/{userName}/{password}");
-        if (response !=null && response.SocietyType >0)
+        if (response != null && response.SocietyType > 0)
         {
             appState = response;
             StateHasChanged();
@@ -583,6 +537,6 @@
         public double PIColl_Amt { get; set; }
     }
 
-   
-} *@
+
+}
 

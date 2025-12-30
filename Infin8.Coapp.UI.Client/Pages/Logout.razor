@@ -1,0 +1,25 @@
+﻿@page "/logout"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using Infin8.Coapp.UI.Client.Providers
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
+@inject IHttpClientFactory HttpClientFactory
+
+<h3>Logging out…</h3>
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        await JS.InvokeVoidAsync("fetch", "api/Auth/logout", new
+        {
+            method = "POST",
+            credentials = "include" // Sends cookies
+        });
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

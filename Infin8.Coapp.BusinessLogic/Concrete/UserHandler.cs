@@ -4,6 +4,7 @@ using Infin8.Coapp.Repository;
 using Infin8.Coapp.Utility;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -57,13 +58,13 @@ namespace Infin8.Coapp.BusinessLogic
 
         public Users? GetUserByUsernameAsync(string username, string password)
         {
-            return _unitOfWork.UserRepository.GetUserByUsernameAsync(username, password);
+            return _unitOfWork.UserRepository.GetUserByUsername(username);
         }
         public async Task<AuthenticationResponse> AuthenticateAsync(string username, string password)
         {
             //var user = CSISContext.Users.Where(x => x.username == username).FirstOrDefault();
             Users? user = new Users();
-            user = _unitOfWork.UserRepository.GetUserByUsernameAsync(username, password);
+            user = _unitOfWork.UserRepository.GetUserByUsername(username);
             if (user == null || !_unitOfWork.UserRepository.VerifyPassWord(password, user.Password_Hash!, user.Password_Salt!))
             {
                 throw new UnauthorizedAccessException("Invalid credentials.");
@@ -71,13 +72,14 @@ namespace Infin8.Coapp.BusinessLogic
 
             var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username! , user.Role!);
             var refreshToken = _jwtService.GenerateRefreshToken();
+            var userRoles = (user.Role ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-            var refreshTokenEntity = new RefreshToken
+            var refreshTokenEntity = new Refresh_Token
             {
                 Token = refreshToken,
                 Expires = DateTime.UtcNow.AddDays(_jwtService.GetRefreshTokenExpireDays()),
                 Created = DateTime.UtcNow,
-                MemberId = user.Id
+                User_Id = user.Id
             };
 
             await _unitOfWork.RefreshTokenRepository.AddRefreshTokenAsync(refreshTokenEntity);
@@ -87,7 +89,14 @@ namespace Infin8.Coapp.BusinessLogic
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                ExpiresIn = 15 // Access token expiry in minutes
+                ExpiresIn = _jwtService.GetAccessTokenExpireMinutes(), // Access token expiry in minutes
+                AuthenticatedUserDetailsDto = new AuthenticatedUserDetailsDto
+                 {
+                     Id = user.Id,
+                     Username = user.Username,
+                     Email = user.Email,
+                     Roles = userRoles
+                 },
             };
         }
 

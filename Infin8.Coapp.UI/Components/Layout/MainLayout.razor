@@ -1,4 +1,6 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Authorization
 
 <div class="page">
     <div class="sidebar">
@@ -7,6 +9,26 @@
 
     <main>
         <div class="top-row px-4">
+             <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    @* <button class="nav-link btn btn-link logout-link w-100 text-start"
+                            @onclick="PerformLogout">
+                        <i class="fas fa-sign-out-alt me-1"></i> Logout
+                    </button> *@
+                        <NavLink class="nav-link logout-link" href="/logout" >
+                            <i class="fas fa-sign-in-alt me-1"></i> logout
+                        </NavLink>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link login-link" href="/login" Match="NavLinkMatch.Prefix">
+                        <i class="fas fa-sign-in-alt me-1"></i> Login
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
         </div>
 
@@ -21,3 +43,11 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code{
+    private async Task PerformLogout()
+    {
+        // This forces full reload → clears auth state immediately
+        Navigation.NavigateTo("/logout", forceLoad: false);
+    }
+}

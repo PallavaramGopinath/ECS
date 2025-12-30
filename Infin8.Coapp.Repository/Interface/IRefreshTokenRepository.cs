@@ -9,10 +9,10 @@ namespace Infin8.Coapp.Repository
 {
     public interface IRefreshTokenRepository
     {
-        Task<RefreshToken> GetByTokenAsync(string token);
-        Task AddRefreshTokenAsync(RefreshToken refreshToken);
-        void UpdateRefreshToken(RefreshToken refreshToken);
-        void RemoveRefreshToken(RefreshToken refreshToken);
+        Task<Refresh_Token> GetByTokenAsync(string token);
+        Task AddRefreshTokenAsync(Refresh_Token refreshToken);
+        void UpdateRefreshToken(Refresh_Token refreshToken);
+        void RemoveRefreshToken(Refresh_Token refreshToken);
     }
 
 }

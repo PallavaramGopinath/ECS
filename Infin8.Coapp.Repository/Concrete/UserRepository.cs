@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,7 +22,7 @@ namespace Infin8.Coapp.Repository
         public async Task<bool> AddUser(Users users)
         {
             bool result = false;
-            int maxId = 0;
+            decimal maxId = 0;
             try
             {
                 //maxId = await CSISContext.Users.MaxAsync(x => x.id);
@@ -70,10 +71,16 @@ namespace Infin8.Coapp.Repository
             return computedHash.SequenceEqual(storedHash); // Compare with stored hash
         }
 
-        public Users? GetUserByUsernameAsync(string username, string password)
+        public Users? GetUserByUsername(string username)
         {
             var user = CSISContext.Users.Where(x => x.Username == username).FirstOrDefault();
             return user;
+        }
+
+        public string GetUserRoles(decimal userId)
+        {
+            var user = CSISContext.Users.Where(x => x.Id == userId).FirstOrDefault();
+            return user.Role;
         }
     }
 }

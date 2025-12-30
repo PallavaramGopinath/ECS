@@ -11,7 +11,6 @@
 </div>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
 <div class="nav-scrollable bg-success" style="--bs-bg-opacity: .5;" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
         <div class="nav-item px-3">
@@ -258,6 +257,12 @@
             // Handle error (you might want to show a message to the user)
         }
     }
+
+    // private async Task PerformLogout()
+    // {
+    //     // This forces full reload → clears auth state immediately
+    //     Navigation.NavigateTo("/logout", forceLoad: false);
+    // }
 
     private void ToggleMenu(int menuId)
     {

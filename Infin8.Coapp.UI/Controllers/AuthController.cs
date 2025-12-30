@@ -1,84 +1,98 @@
 ﻿using Infin8.Coapp.BusinessLogic;
-using Microsoft.AspNetCore.Mvc;
-using Infin8.Coapp.Models;
-using Microsoft.AspNetCore.Authorization;
-using Infin8.Coapp.Utility;
 using Infin8.Coapp.Dto;
-using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
-using System.Drawing.Text;
-using System.Net;
+using Infin8.Coapp.Models;
+using Infin8.Coapp.Utility;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
+
 
 namespace Infin8.Coapp.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [IgnoreAntiforgeryToken]
     public class AuthController : ControllerBase
     {
         private readonly IAuthenticationHandler _authenticationHandler;
         private readonly IUserHandler _userHandler;
+        private readonly IAntiforgery _antiforgery;
+        //private readonly IHttpContextAccessor _httpContextAccessor;
+
         /// <summary>
         /// , IUserHandler userHandler
         /// </summary>
         /// <param name="authenticationHandler"></param>
-        public AuthController(IAuthenticationHandler authenticationHandler, IUserHandler userHandler)
+        public AuthController(IAuthenticationHandler authenticationHandler, 
+            IUserHandler userHandler, IAntiforgery antiforgery)
         {
             _authenticationHandler = authenticationHandler;
             _userHandler = userHandler;
-
+            _antiforgery = antiforgery;
+            //_httpContextAccessor = httpContextAccessor;
         }
 
-        //[HttpPost]
-        //[Route("/Register")]
-        //public async Task<IActionResult> UserRegister([FromBody] UserRegistration userRegistration)
-        //{
-        //    try
-        //    {
-        //        if (userRegistration == null)
-        //        {
-        //            return BadRequest(new { Message = "Invalid username format." });
-        //        }
+        [HttpGet("get-antiforgery-token")]
+        public IActionResult GetAntiforgeryToken()
+        {
+            var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+            return Ok(new { token = tokens.RequestToken });
+        }
 
-        //        byte[] passwordHash;
-        //        byte[] passwordSalt;
-        //        _userHandler.CreatePasswordHash(userRegistration.password!, out passwordHash, out passwordSalt);
-        //        Users user = new Users()
-        //        {
-        //            id = 0,
-        //            username = userRegistration.username!,
-        //            email = userRegistration.email,
-        //            first_name = userRegistration.first_name,
-        //            last_name = userRegistration.last_name,
-        //            password_hash = passwordHash,
-        //            password_salt = passwordSalt,
-        //            is_active = true,
-        //            is_account_closed = false,
-        //            account_closed_date = null,
-        //            last_login_date = null,
-        //            failed_login_attempts = 0,
-        //            is_locked = false,
-        //            account_locked_until = null,
-        //            created_at = DateTime.UtcNow,
-        //            updated_at = DateTime.UtcNow,
-        //            mobile_number = userRegistration.mobile_number,
-        //            reset_token = null,
-        //            reset_token_expires_at = null,
-        //            brcode = "11001",
-        //            role = userRegistration.role
-        //        };
-        //        var authResponse = await _userHandler.AddUser(user);
-        //        return Ok(authResponse);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new { Message = "An unexpected error occurred while registring user", Error = ex.Message });
-        //    }
-        //}
+        [HttpPost("Register")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> Register([FromBody] UserRegistration userRegistration)
+        {
+            try
+            {
+                if (userRegistration == null)
+                {
+                    return BadRequest(new { Message = "Invalid username format." });
+                }
+
+                byte[] passwordHash;
+                byte[] passwordSalt;
+                _userHandler.CreatePasswordHash(userRegistration.password!, out passwordHash, out passwordSalt);
+              
+                Users user = new Users()
+                {
+                    //Id = 11001001, No need to pass Id, it will be generated while adding from repository
+                    Username = userRegistration.username!,
+                    Email = userRegistration.email,
+                    First_Name = userRegistration.first_name,
+                    Last_Name = userRegistration.last_name,
+                    Password_Hash = passwordHash,
+                    Password_Salt = passwordSalt,
+                    Is_Active = true,
+                    Is_Account_Closed = false,
+                    Account_Closed_Date = null,
+                    Last_Login_Date = null,
+                    Failed_Login_Attempts = 0,
+                    Is_Locked = false,
+                    Account_Locked_Until = null,
+                    Created_At = DateTime.UtcNow,
+                    Updated_At = DateTime.UtcNow,
+                    Mobile_Number = userRegistration.mobile_number,
+                    Reset_Token = null,
+                    Reset_Token_Expires_At = null,
+                    BrCode = "11001",
+                    Role = userRegistration.role
+                };
+                var authResponse = await _userHandler.AddUser(user);
+                return Ok(authResponse);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "An unexpected error occurred while registring user", Error = ex.Message });
+            }
+        }
 
         [HttpPost("login")]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Login([FromBody] LoginModel loginModel)
         {
             try
@@ -103,12 +117,22 @@ namespace Infin8.Coapp.API.Controllers
                 var authResponse = await _authenticationHandler.AuthenticateAsync(loginModel.Username, loginModel.Password);
 
                 // Check if authentication was successful
-                if (authResponse == null || string.IsNullOrWhiteSpace(authResponse.AccessToken))
+                if (authResponse == null || string.IsNullOrWhiteSpace(authResponse.AccessToken)
+                    || string.IsNullOrWhiteSpace(authResponse.RefreshToken))
                 {
                     return Unauthorized(new { Message = "Invalid credentials." });
                 }
 
-                return Ok(authResponse);
+                Response.Cookies.Append("auth-token", authResponse.AccessToken, CookieOptions());
+                Response.Cookies.Append("refresh-token", authResponse.RefreshToken, CookieOptions());
+
+                return Ok(new
+                {
+                    authResponse.AuthenticatedUserDetailsDto.Id,
+                    authResponse.AuthenticatedUserDetailsDto.Username,
+                    authResponse.AuthenticatedUserDetailsDto.Email,
+                    authResponse.AuthenticatedUserDetailsDto.Roles
+                });
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -118,6 +142,23 @@ namespace Infin8.Coapp.API.Controllers
             {
                 return StatusCode(500, new { Message = "An unexpected error occurred.", Error = ex.Message });
             }
+        }
+
+        private static CookieOptions CookieOptions() => new()
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = "/"
+        };
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("auth-token", CookieOptions());
+            Response.Cookies.Delete("refresh-token", CookieOptions());
+            return Ok(new { Message = "Logged out successfully" });
+
         }
 
         [HttpPost("refresh-token")]
@@ -199,6 +240,18 @@ namespace Infin8.Coapp.API.Controllers
                 });
              }
             return Unauthorized();
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public IActionResult Me()
+        {
+            return Ok(new
+            {
+                UserId = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                Username = User.Identity?.Name,
+                Roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value)
+            });
         }
     }
 

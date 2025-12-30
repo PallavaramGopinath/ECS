@@ -2,9 +2,11 @@
 using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
 using Infin8.Coapp.Utility;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -25,24 +27,25 @@ namespace Infin8.Coapp.BusinessLogic
 
         public async Task<AuthenticationResponse> AuthenticateAsync(string username, string password)
         {
-            //var user = await _unitOfWork.Members.GetMemberDetailsByUsernameAsync(username);
-            Users user = new Users(); 
+            var user = _unitOfWork.UserRepository.GetUserByUsername(username);
 
-            if (user == null || !VerifyPassword(password, new byte[] { }, new byte[] { }))
+            if (user == null || !VerifyPassword(password, user.Password_Hash, user.Password_Salt))
             {
                 throw new UnauthorizedAccessException("Invalid credentials.");
             }
 
-            var accessToken = _jwtService.GenerateAccessToken(user.Id,"user.username", "user.role");
+            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username, user.Role);
             var refreshToken = _jwtService.GenerateRefreshToken();
 
+            var userRoles = (user.Role ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+
             // Save the refresh token to the database
-            var refreshTokenEntity = new RefreshToken
+            var refreshTokenEntity = new Refresh_Token
             {
                 Token = refreshToken,
                 Expires = DateTime.UtcNow.AddDays(_jwtService.GetRefreshTokenExpireDays()),
                 Created = DateTime.UtcNow,
-                MemberId = user.Id // Replace with the actual user ID
+                User_Id = user.Id // Replace with the actual user ID
             };
 
             await _unitOfWork.RefreshTokenRepository.AddRefreshTokenAsync(refreshTokenEntity);
@@ -53,10 +56,15 @@ namespace Infin8.Coapp.BusinessLogic
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                ExpiresIn = 15 // Access token expiry in minutes
+                ExpiresIn = 15, // Access token expiry in minutes
+                AuthenticatedUserDetailsDto = new AuthenticatedUserDetailsDto
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    Email = user.Email,
+                    Roles = userRoles
+                },
             };
-
-            throw new UnauthorizedAccessException("Invalid credentials.");
         }
 
         private bool VerifyPassword(string enteredPassword, byte[] storedHash, byte[] storedSalt)
@@ -70,16 +78,17 @@ namespace Infin8.Coapp.BusinessLogic
         public async Task<string> RefreshTokenAsync(string refreshToken)
         {
             var tokenEntity = await _unitOfWork.RefreshTokenRepository.GetByTokenAsync(refreshToken);
-            if (tokenEntity == null || tokenEntity.IsExpired)
+            if (tokenEntity == null || (DateTime.UtcNow >= tokenEntity.Expires))
             {
                 throw new UnauthorizedAccessException("Invalid or expired refresh token.");
             }
 
             // Generate a new access token
-            var member = await _unitOfWork.Members.GetMemberDetailsByMemIdAsync(tokenEntity.MemberId);
+            var member = await _unitOfWork.Members.GetMemberDetailsByMemIdAsync(tokenEntity.User_Id);
+            var roles = _unitOfWork.UserRepository.GetUserRoles(tokenEntity.User_Id);
             if(member == null || member.MemberName==null) throw new UnauthorizedAccessException("Invalid member.");
             // Pass proper role from DB or from the decision JSON file.
-            var accessToken = _jwtService.GenerateAccessToken(member.Mem_Id, member.MemberName , "user.Role"); 
+            var accessToken = _jwtService.GenerateAccessToken(member.Mem_Id, member.MemberName, roles); 
 
             // Optionally, generate a new refresh token and update the database
             var newRefreshToken = _jwtService.GenerateRefreshToken();
@@ -106,6 +115,5 @@ namespace Infin8.Coapp.BusinessLogic
 
             return true;
         }
-
     }
 }

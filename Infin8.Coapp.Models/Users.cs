@@ -3,11 +3,12 @@ namespace Infin8.Coapp.Models
 {
     using System.ComponentModel.DataAnnotations;
     using System.Diagnostics.Tracing;
+    using System.Numerics;
 
     public partial class Users
     {
         [Key]
-        public int Id { get; set; }
+        public decimal Id { get; set; }
         public string? Username { get; set; }
         public string? Email { get; set; }
         public byte[]? Password_Hash { get; set; }

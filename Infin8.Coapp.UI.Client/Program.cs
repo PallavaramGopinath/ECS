@@ -1,11 +1,25 @@
+using Infin8.Coapp.UI.Client.Providers;
 using Infin8.Coapp.Utility;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
-builder.Services.AddScoped(http => new HttpClient
+
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<AuthenticationStateProvider, CookieAuthStateProvider>();
+
+builder.Services.AddScoped(sp =>
 {
-    BaseAddress = new Uri("https://localhost:7073/"),
+    var handler = new HttpClientHandler();
+    return new HttpClient
+    {
+        BaseAddress = new Uri(builder.HostEnvironment.IsDevelopment()
+            ? "https://localhost:7073/"
+            : "https://yourdomain.com/")
+    };
 });
-builder.Services.AddSingleton<TransactionStateService>();
-builder.Services.AddSingleton<AppState>();
+
+builder.Services.AddScoped<TransactionStateService>();
+builder.Services.AddScoped<AppState>();
+
 await builder.Build().RunAsync();
