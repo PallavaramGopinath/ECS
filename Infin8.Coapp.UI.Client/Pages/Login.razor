@@ -59,10 +59,48 @@
 
                             <div class="form-group mb-3">
                                 <label for="password">Password</label>
-                                <InputText id="password" @bind-Value="loginModel.Password" class="form-control" type="password" placeholder="Enter password" />
-                                <ValidationMessage For="@(() => loginModel.Password)" class="text-danger" />
+                                <div class="input-group">
+                                    <InputText id="password" @bind-Value="loginModel.Password" class="form-control" type="@inputType" placeholder="Enter password" />
+                                    <button type="button"
+                                            class="btn btn-outline-secondary"
+                                            @onclick="TogglePassword">
+                                        <i class="@eyeIcon"></i>
+                                    </button>
+                                    <ValidationMessage For="@(() => loginModel.Password)" class="text-danger" />
+                                </div>
                             </div>
+                            @* <div class="form-group mb-3">
+                                <label>CAPTCHA: @captchaQuestion</label>
+                                <InputText @bind-Value="captchaUserAnswer" class="form-control" placeholder="Enter the answer" />
+                                @if (!string.IsNullOrEmpty(errorMessage) && errorMessage.Contains("CAPTCHA"))
+                                {
+                                    <span class="text-danger">@errorMessage</span>
+                                }
+                            </div> *@
+                            <div class="form-group mb-3">
+                                <label>Captcha</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input class="form-control text-center fw-bold"
+                                           style="width:140px; letter-spacing:3px;"
+                                           value="@CaptchaCode"
+                                           disabled />
 
+                                    <button type="button" class="btn btn-outline-secondary"
+                                            @onclick="GenerateCaptcha">
+                                        ↻
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <InputText class="form-control"
+                                           placeholder="Enter captcha"
+                                           @bind-Value="UserCaptchaInput"
+                                           @onblur="ValidateCapta" />
+                            </div>
+                            @if (!string.IsNullOrEmpty(captaErrorMessage))
+                            {
+                                <div class="alert alert-danger">@captaErrorMessage</div>
+                            }
                             <div class="form-check mb-3">
                                 <InputCheckbox id="rememberMe" @bind-Value="loginModel.RememberMe" class="form-check-input" />
                                 <label class="form-check-label" for="rememberMe">
@@ -96,6 +134,18 @@
 </div>
 
 @code {
+    private string password = "";
+    private string inputType = "password";
+    private bool isPasswordVisible = false;
+
+    private string captchaQuestion = string.Empty;
+    private int captchaAnswer = 0;
+    private string captchaUserAnswer = string.Empty;
+
+    private string CaptchaCode = string.Empty;
+    private string UserCaptchaInput = string.Empty;
+    private string captaErrorMessage = string.Empty;
+
     private LoginModel loginModel = new LoginModel();
     private bool isLoading = false;
     private string errorMessage = string.Empty;
@@ -107,15 +157,71 @@
     protected override Task OnInitializedAsync()
     {
         loginModel = new LoginModel();
+        GenerateCaptcha();
         return base.OnInitializedAsync();
     }
 
+    // Bootstrap Icons
+    private string eyeIcon => isPasswordVisible
+        ? "bi bi-eye-slash"
+        : "bi bi-eye";
+
+    private void TogglePassword()
+    {
+        isPasswordVisible = !isPasswordVisible;
+        inputType = isPasswordVisible ? "text" : "password";
+    }
+
+    private void GenerateCaptcha()
+    {
+
+        // var random = new Random();
+        // int num1 = random.Next(1, 10);
+        // int num2 = random.Next(1, 10);
+        // captchaAnswer = num1 + num2;
+        // captchaQuestion = $"{num1} + {num2} = ?";
+
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        var random = new Random();
+        CaptchaCode = new string(Enumerable.Range(0, 6)
+           .Select(_ => chars[random.Next(chars.Length)]).ToArray());
+        UserCaptchaInput = string.Empty;
+        errorMessage = string.Empty;
+    }
+
+    private void ValidateCapta()
+    {
+        if (!string.Equals(UserCaptchaInput, CaptchaCode, StringComparison.OrdinalIgnoreCase))
+        {
+            captaErrorMessage = "Invalid captcha. Please try again.";
+            return;
+        }
+        else
+        {
+            captaErrorMessage = string.Empty;
+        }
+    }
     private async Task HandleValidSubmit()
     {
         isLoading = true;
         errorMessage = string.Empty;
+        captaErrorMessage = string.Empty;
         successMessage = string.Empty;
-
+        // Validate CAPTCHA
+        // if (captchaUserAnswer != captchaAnswer.ToString())
+        // {
+        //     errorMessage = "CAPTCHA answer is incorrect. Please try again.";
+        //     // Generate a new CAPTCHA
+        //     GenerateCaptcha();
+        //     StateHasChanged();
+        //     return;
+        // }
+        if (!string.Equals(UserCaptchaInput, CaptchaCode, StringComparison.OrdinalIgnoreCase))
+        {
+            captaErrorMessage = "Invalid captcha. Please try again.";
+            GenerateCaptcha();
+            return;
+        }
         try
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7073/api/Auth/login")
@@ -129,7 +235,7 @@
             {
                 if (AuthProvider is CookieAuthStateProvider cookieProvider)
                 {
-                   await cookieProvider.NotifyUserAuthenticationAsync();
+                    await cookieProvider.NotifyUserAuthenticationAsync();
                 }
                 NavigationManager.NavigateTo("/main-dashboard");
             }
@@ -160,3 +266,33 @@
         successMessage = string.Empty;
     }
 }
+<style>
+    /* .password-input-container .input-group  {
+            width: 100% !important;
+        }
+
+        .password-input-container .input-group .form-control {
+            border-right: 0 !important;
+        }
+
+        .password-input-container .input-group .btn {
+            border-left: 0 !important;
+            background-color: transparent !important;
+        }
+
+        .password-input-container .input-group .btn:hover {
+            background-color: #e9ecef !important;
+        } */
+    .input-group {
+        display: flex;
+    }
+
+        .input-group .form-control {
+            flex: 1 1 auto;
+        }
+
+        .input-group .btn {
+            flex: 0 0 auto;
+        }
+
+</style>

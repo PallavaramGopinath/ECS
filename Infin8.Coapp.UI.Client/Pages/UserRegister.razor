@@ -38,9 +38,9 @@
 
                         <EditForm Model="@registration" OnValidSubmit="@HandleValidSubmit"
                                   OnInvalidSubmit="@HandleInvalidSubmit"
-                            FormName="registrationForm">
+                                  FormName="registrationForm">
                             <DataAnnotationsValidator />
-                          @*  <AntiforgeryToken /> *@
+                            @*  <AntiforgeryToken /> *@
                             <ValidationSummary />
                             <div class="form-group mb-3">
                                 <label for="username">Username</label>
@@ -55,12 +55,12 @@
                                 <ValidationMessage For="@(() => registration.email)" class="text-danger" />
                             </div>
 
-                            <div class="form-group mb-3">
+                            @* <div class="form-group mb-3">
                                 <label for="password">Password</label>
                                 <InputText id="password" @bind-Value="registration.password" class="form-control" type="password" placeholder="Enter password" />
                                 <ValidationMessage For="@(() => registration.password)" class="text-danger" />
                                 <small class="form-text text-muted">Use a strong password with letters, numbers, and symbols</small>
-                            </div>
+                            </div> *@
 
                             <div class="row mb-3">
                                 <div class="col-md-6">
@@ -82,7 +82,7 @@
                             <div class="form-group mb-3">
                                 <label for="mobileNumber">Mobile Number</label>
                                 <div class="input-group">
-                                    <span class="input-group-text">+1</span>
+                                    <span class="input-group-text">+91</span>
                                     <InputText id="mobileNumber" @bind-Value="registration.mobile_number" class="form-control" placeholder="Enter 10-digit number" />
                                 </div>
                                 <ValidationMessage For="@(() => registration.mobile_number)" class="text-danger" />
@@ -102,6 +102,35 @@
                                 {
                                     <div class="text-danger">At least one role must be selected.</div>
                                 }
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="password">Password</label>
+                                <div class="input-group">
+                                    <InputText id="password" @bind-Value="registration.password" class="form-control"
+                                               type=@inputType placeholder="Enter password" />
+                                    <button type="button"
+                                            class="btn btn-outline-secondary"
+                                            @onclick="TogglePassword">
+                                        <i class="@eyeIcon"></i>
+                                    </button>
+                                </div>
+                                <ValidationMessage For="@(() => registration.password)" class="text-danger" />
+                                <small class="form-text text-muted">Use a strong password with letters, numbers, and symbols</small>
+                            </div>
+                            <div class="form-group mb-3">
+                                <div class="input-group">
+                                    <label for="confirmPpassword">Re-Enter Password</label>
+                                    <InputText id="comfirmPassword" @bind-Value="ConfirmPassword" class="form-control"
+                                               type=@reInputType placeholder="Re-enter password"
+                                               @oninput="CheckPasswordsMatch" />
+                                    <button type="button"
+                                            class="btn btn-outline-secondary"
+                                            @onclick="ToggleReEnterPassword">
+                                        <i class="@eyeIcon"></i>
+                                    </button>
+                                </div>
+                                <span class="text-danger">@passwordMatchError</span>
+                                @* <small class="form-text text-muted">Use a strong password with letters, numbers, and symbols</small> *@
                             </div>
 
                             @* <div class="form-group mb-4">
@@ -143,6 +172,19 @@
 </div>
 
 @code {
+    ///  confirm password field
+    [Required(ErrorMessage = "Please confirm your password")]
+    [Compare(nameof(registration.password), ErrorMessage = "The password and confirmation password do not match.")]
+    public string? ConfirmPassword { get; set; }
+    private string passwordMatchError;
+    ///  Confirm password field
+
+    private string password = "";
+    private string inputType = "password";
+    private string reInputType = "password";
+    private bool isPasswordVisible = false;
+    private bool isReEnterPasswordVisible = false;
+
     private UserRegistration registration = new UserRegistration();
     private bool isLoading = false;
     private string errorMessage = string.Empty;
@@ -156,6 +198,30 @@
         return base.OnInitializedAsync();
     }
 
+    private void CheckPasswordsMatch()
+    {
+        if (registration.password != ConfirmPassword)
+            passwordMatchError = "Passwords do not match.";
+        else
+            passwordMatchError = string.Empty;
+    }
+
+    // Bootstrap Icons
+    private string eyeIcon => isPasswordVisible
+        ? "bi bi-eye-slash"
+        : "bi bi-eye";
+
+    private void TogglePassword()
+    {
+        isPasswordVisible = !isPasswordVisible;
+        inputType = isPasswordVisible ? "text" : "password";
+    }
+
+    private void ToggleReEnterPassword()
+    {
+        isReEnterPasswordVisible = !isReEnterPasswordVisible;
+        reInputType = isReEnterPasswordVisible ? "text" : "password";
+    }
     private void HandleInvalidSubmit()
     {
         Console.WriteLine("Form is invalid - check validation messages");
@@ -187,9 +253,9 @@
                 var tokenResult = await tokenResponse.Content.ReadFromJsonAsync<AntiforgeryTokenResponse>();
 
                 var request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7073/api/Auth/Register")
-                    {
-                        Content = JsonContent.Create(registration)
-                    };
+                {
+                    Content = JsonContent.Create(registration)
+                };
 
                 // Add the anti-forgery token header
                 request.Headers.Add("X-CSRF-TOKEN", tokenResult?.token);
@@ -232,3 +298,19 @@
         public string token { get; set; } = string.Empty;
     }
 }
+
+<style>
+
+    .input-group {
+        display: flex;
+    }
+
+        .input-group .form-control {
+            flex: 1 1 auto;
+        }
+
+        .input-group .btn {
+            flex: 0 0 auto;
+        }
+
+</style>

@@ -131,10 +131,10 @@
                   <Width>0.8125in</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>0.88542in</Width>
+                  <Width>1.2in</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>0.96875in</Width>
+                  <Width>0.86875in</Width>
                 </TablixColumn>
                 <TablixColumn>
                   <Width>0.82292in</Width>
@@ -143,10 +143,10 @@
                   <Width>0.77083in</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>0.9375in</Width>
+                  <Width>1.16457in</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>1in</Width>
+                  <Width>0.86667in</Width>
                 </TablixColumn>
                 <TablixColumn>
                   <Width>0.8125in</Width>
@@ -899,7 +899,6 @@
                             <PaddingBottom>2pt</PaddingBottom>
                           </Style>
                         </Textbox>
-                        <rd:Selected>true</rd:Selected>
                       </CellContents>
                     </TablixCell>
                     <TablixCell>
@@ -912,7 +911,9 @@
                               <TextRuns>
                                 <TextRun>
                                   <Value>=Fields!PmtLoan_No.Value</Value>
-                                  <Style />
+                                  <Style>
+                                    <FontSize>9pt</FontSize>
+                                  </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style />
@@ -1044,7 +1045,9 @@
                               <TextRuns>
                                 <TextRun>
                                   <Value>=Fields!RptLoan_No.Value</Value>
-                                  <Style />
+                                  <Style>
+                                    <FontSize>9pt</FontSize>
+                                  </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style />
@@ -1341,7 +1344,7 @@
             <Top>0.05556in</Top>
             <Left>0.07167in</Left>
             <Height>0.75in</Height>
-            <Width>11.57293in</Width>
+            <Width>11.88125in</Width>
             <Style>
               <Border>
                 <Style>None</Style>
@@ -1352,7 +1355,7 @@
         <Height>0.94792in</Height>
         <Style />
       </Body>
-      <Width>11.72792in</Width>
+      <Width>12.03625in</Width>
       <Page>
         <PageHeader>
           <Height>0.77083in</Height>
@@ -1380,7 +1383,7 @@
               <rd:DefaultName>paramSocietyName</rd:DefaultName>
               <Top>0.07167in</Top>
               <Height>0.25in</Height>
-              <Width>11.64459in</Width>
+              <Width>11.95292in</Width>
               <Style>
                 <Border>
                   <Style>None</Style>
@@ -1412,7 +1415,7 @@
               <rd:DefaultName>paramReportHeader</rd:DefaultName>
               <Top>0.43625in</Top>
               <Height>0.25in</Height>
-              <Width>11.64459in</Width>
+              <Width>11.95292in</Width>
               <ZIndex>1</ZIndex>
               <Style>
                 <Border>
@@ -1443,7 +1446,7 @@
                 <Paragraph>
                   <TextRuns>
                     <TextRun>
-                      <Value>=str(Globals!PageNumber) + "\" + str(Globals!TotalPages)</Value>
+                      <Value>=str(Globals!PageNumber) + "/" + str(Globals!TotalPages)</Value>
                       <Style />
                     </TextRun>
                   </TextRuns>
@@ -1454,9 +1457,9 @@
               </Paragraphs>
               <rd:DefaultName>Textbox42</rd:DefaultName>
               <Top>0.04167in</Top>
-              <Left>10.53in</Left>
+              <Left>10.755in</Left>
               <Height>0.25in</Height>
-              <Width>1.10417in</Width>
+              <Width>1.19792in</Width>
               <Style>
                 <Border>
                   <Style>None</Style>
