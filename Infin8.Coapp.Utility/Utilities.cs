@@ -26,7 +26,8 @@ namespace Infin8.Coapp.Utility
         public static bool IsValidPassword(string password)
         {
             if (string.IsNullOrWhiteSpace(password)) return false;
-            return PasswordRegex.IsMatch(password);
+            //return PasswordRegex.IsMatch(password);
+            return true;
         }
 
         public static int GetAgeBetweenTwoDates(DateTime birthDate, DateTime currentDate)
