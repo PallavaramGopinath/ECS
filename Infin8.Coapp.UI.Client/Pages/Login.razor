@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.WebAssembly.Http
+@using BlazorCaptcha
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
@@ -16,7 +17,7 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card shadow">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-secondary text-white">
                     <h3 class="mb-0">User Login</h3>
                 </div>
                 <div class="card-body">
@@ -81,7 +82,7 @@
                                 <label>Captcha</label>
                                 <div class="d-flex align-items-center gap-2">
                                     <input class="form-control text-center fw-bold"
-                                           style="width:140px; letter-spacing:3px;"
+                                           style="width:140px; letter-spacing:3px; font-size:1.5rem;"
                                            value="@CaptchaCode"
                                            disabled />
 
@@ -91,6 +92,7 @@
                                     </button>
                                 </div>
                             </div>
+                            @* <Captcha @bind-CaptchaWord="@Captcha" CharNumber="@CaptchaLetters" /> *@
                             <div class="mb-3">
                                 <InputText class="form-control"
                                            placeholder="Enter captcha"
@@ -146,6 +148,9 @@
     private string UserCaptchaInput = string.Empty;
     private string captaErrorMessage = string.Empty;
 
+    private string Captcha = string.Empty;
+    private int CaptchaLetters = 5;
+
     private LoginModel loginModel = new LoginModel();
     private bool isLoading = false;
     private string errorMessage = string.Empty;
@@ -185,6 +190,8 @@
         var random = new Random();
         CaptchaCode = new string(Enumerable.Range(0, 6)
            .Select(_ => chars[random.Next(chars.Length)]).ToArray());
+
+        Captcha = BlazorCaptcha.Commun.Tools.GetCaptchaWord(CaptchaLetters);
         UserCaptchaInput = string.Empty;
         errorMessage = string.Empty;
     }
@@ -201,6 +208,7 @@
             captaErrorMessage = string.Empty;
         }
     }
+
     private async Task HandleValidSubmit()
     {
         isLoading = true;
