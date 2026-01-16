@@ -26,7 +26,7 @@ namespace Infin8.Coapp.Repository
             try
             {
                 //maxId = await CSISContext.Users.MaxAsync(x => x.id);
-                maxId = await CSISContext.Users.AnyAsync() ? await CSISContext.Users.MaxAsync(x => x.Id) : 0;
+                maxId = await CSISContext.Users.AnyAsync() ? await CSISContext.Users.MaxAsync(x => x.Id) : 11010000000;
 
                 maxId++;
                 users.Id = maxId;

@@ -2,6 +2,7 @@
 namespace Infin8.Coapp.Models
 {
     using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
     using System.Diagnostics.Tracing;
     using System.Numerics;
 
@@ -11,8 +12,10 @@ namespace Infin8.Coapp.Models
         public decimal Id { get; set; }
         public string? Username { get; set; }
         public string? Email { get; set; }
-        public byte[]? Password_Hash { get; set; }
-        public byte[]? Password_Salt { get; set; }
+        [Column(TypeName = "bytea")]
+        public byte[] Password_Hash { get; set; }
+        [Column(TypeName = "bytea")]
+        public byte[] Password_Salt { get; set; }
         public string? First_Name { get; set; }
         public string? Last_Name { get; set; }
         public bool Is_Active { get; set; }
