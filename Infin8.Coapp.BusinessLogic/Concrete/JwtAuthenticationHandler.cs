@@ -62,7 +62,8 @@ namespace Infin8.Coapp.BusinessLogic
                     Id = user.Id,
                     Username = user.Username,
                     Email = user.Email,
-                    Roles = userRoles
+                    Roles = userRoles,
+                    BrCode = user.BrCode 
                 },
             };
         }

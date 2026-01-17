@@ -131,7 +131,8 @@ namespace Infin8.Coapp.API.Controllers
                     authResponse.AuthenticatedUserDetailsDto.Id,
                     authResponse.AuthenticatedUserDetailsDto.Username,
                     authResponse.AuthenticatedUserDetailsDto.Email,
-                    authResponse.AuthenticatedUserDetailsDto.Roles
+                    authResponse.AuthenticatedUserDetailsDto.Roles,
+                    authResponse.AuthenticatedUserDetailsDto.BrCode
                 });
             }
             catch (UnauthorizedAccessException ex)
