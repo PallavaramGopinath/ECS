@@ -56,7 +56,7 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetLoanScheme/{scheme_id:int}/{brCode}")]
-        public async Task<ActionResult<Loan_Schemes>> GetLoanScheme(int scheme_id,string brCode)
+        public async Task<ActionResult<Loan_Schemes>> GetLoanScheme(int scheme_id, string brCode)
         {
             Loan_Schemes scheme = new Loan_Schemes();
             try
@@ -98,7 +98,7 @@ namespace Infin8.Coapp.API.Controllers
         #region Jewel Loan
         [HttpGet]
         [Route("GetJLNosByMemId/{memId:decimal}/{loantype:int}/{brCode}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetJewelLoanNosByMemId(decimal memId, int loanType,string brCode)
+        public async Task<ActionResult<List<DropdownItem>>> GetJewelLoanNosByMemId(decimal memId, int loanType, string brCode)
         {
             List<DropdownItem> loanNoList = new List<DropdownItem>();
             var result = await _loanTrnHandler.GetLoanNosAsync(memId, loanType, brCode);
@@ -173,12 +173,12 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetJLPeriod/{schemeId:int}/{brCode}")]
-        public async Task<ActionResult<int>> GetJewelLoanPeriodOfLoan(int schemeId,string brCode)
+        public async Task<ActionResult<int>> GetJewelLoanPeriodOfLoan(int schemeId, string brCode)
         {
             int period = 0;
             try
             {
-                period = await _loanSchemeHandler.GetPeriodOfLoan(schemeId,brCode);
+                period = await _loanSchemeHandler.GetPeriodOfLoan(schemeId, brCode);
             }
             catch (Exception)
             {
@@ -189,7 +189,7 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetJLExistingLoanOutstandingByMemId/{memId:decimal}/{brCode}")]
-        public async Task<ActionResult<double>> GetJewelLoanExistingBalanceByMemId(decimal memId,string brCode)
+        public async Task<ActionResult<double>> GetJewelLoanExistingBalanceByMemId(decimal memId, string brCode)
         {
             double loanBalance = 0;
             try
@@ -209,16 +209,25 @@ namespace Infin8.Coapp.API.Controllers
         [Route("GetRateOfInterest")]
         public async Task<ActionResult<LoanROIAndPIVM>> GetLoanRateOfInterest([FromQuery] int schemeId, [FromQuery] string agency, [FromQuery] DateTime wef, [FromQuery] string brCode)
         {
-        LoanROIAndPIVM roi = new LoanROIAndPIVM();
-        try
-        {
-            roi = await _loanROITemplateHandler.GetLoanROIAndPIFromTemplateAsync(schemeId, agency, wef,brCode);
-        }
-        catch (Exception)
-        {
-            return NotFound();
-        }
-        return Ok(roi);
+            LoanROIAndPIVM roi = new LoanROIAndPIVM();
+            try
+            {
+                var roitmp = await _loanROITemplateHandler.GetLoanROIAndPIFromTemplateAsync(schemeId, agency, wef, brCode);
+                if (roitmp != null)
+                {
+                    roi = roitmp;
+                }
+                else
+                {
+                    roi.Roi = 0;
+                    roi.Pi = 0;
+                }
+            }
+            catch (Exception)
+            {
+                return NotFound();
+            }
+            return Ok(roi);
         }
 
         [HttpGet]
@@ -247,7 +256,7 @@ namespace Infin8.Coapp.API.Controllers
             List<LoanDetailsVM> loanDetails = new List<LoanDetailsVM>();
             try
             {
-                loanDetails = await _loanTrnHandler.GetTDLoanDetailsByTDIdsAsync(TDNos, toDate,brCode );
+                loanDetails = await _loanTrnHandler.GetTDLoanDetailsByTDIdsAsync(TDNos, toDate, brCode);
                 return Ok(loanDetails);
             }
             catch (Exception)
@@ -263,7 +272,7 @@ namespace Infin8.Coapp.API.Controllers
             List<TDLoanData> loanList = new List<TDLoanData>();
             try
             {
-                loanList = await _loanTrnHandler.GetTDLoanDetailsByTDIds(tdIds,brCode);
+                loanList = await _loanTrnHandler.GetTDLoanDetailsByTDIds(tdIds, brCode);
                 return Ok(loanList);
             }
             catch (Exception)
@@ -279,7 +288,7 @@ namespace Infin8.Coapp.API.Controllers
             List<DtoTermDepositLoan> loanList = new List<DtoTermDepositLoan>();
             try
             {
-                loanList = await _loanTrnHandler.GetTDLoanDataByTDIds(tdIds, toDate,brCode);
+                loanList = await _loanTrnHandler.GetTDLoanDataByTDIds(tdIds, toDate, brCode);
                 return Ok(loanList);
             }
             catch (Exception)
@@ -351,11 +360,11 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetStaffLoanDisbursementData/{vocId:decimal}/{brCode}")]
-        public async Task<ActionResult <DtoLoanDisbursementStaff>> GetStaffLoanDisbursementData(decimal vocId, string brCode)
+        public async Task<ActionResult<DtoLoanDisbursementStaff>> GetStaffLoanDisbursementData(decimal vocId, string brCode)
         {
             DtoLoanDisbursementStaff staffLoan = new();
             var result = await _loanTrnHandler.GetStaffLoanDisbursement(vocId, brCode);
-            if (result != null && result.Scheme_Id  > 0)
+            if (result != null && result.Scheme_Id > 0)
             {
                 staffLoan = result;
                 return Ok(staffLoan);

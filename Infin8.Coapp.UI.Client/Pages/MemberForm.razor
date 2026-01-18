@@ -2,6 +2,7 @@
 @using Infin8.Coapp.Dto
 @rendermode InteractiveAuto
 @inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
 <div class="container-fluid p-4">
     <EditForm Model="@member" method="post" OnValidSubmit="@HandleValidSubmit" FormName="member-create">
         <DataAnnotationsValidator />
@@ -449,7 +450,8 @@
 @statusMessage
 @code {
     private bool isSucceeded = false;
-    private string statusMessage = "Initial value";
+    // private string statusMessage = "Initial value";
+    private string statusMessage = "";
 
     private MemberRegistration member = new();
 
@@ -584,7 +586,8 @@
         var response = await _httpClient.PostAsJsonAsync<MemberRegistration>("https://localhost:7073/api/Member", member);
         if (response.IsSuccessStatusCode)
         {
-            statusMessage = "success";
+            // statusMessage = "success";
+            await JSRuntime.InvokeVoidAsync("alert", "Member registed successfully!");
             sameAsPresent = false;
             member = new();
 
@@ -596,7 +599,8 @@
         }
         else
         {
-            statusMessage = $"Request failed with status code: {response.StatusCode}";
+            // statusMessage = $"Request failed with status code: {response.StatusCode}";
+            await JSRuntime.InvokeVoidAsync("alert", $"Request failed with status code: {response.StatusCode}");
             isSucceeded = false;
         }
     }

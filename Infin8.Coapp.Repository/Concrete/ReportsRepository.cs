@@ -216,24 +216,25 @@ namespace Infin8.Coapp.Repository
                         })
                         .ToList();
                     if (result.Count > 0) rptPmtList.AddRange(result);
-                    //var result2 = voucherTransactions
-                    //    .Where(x => bankLedIds.Contains(x.vt.Led_Id))
-                    //    .GroupBy(x => new { x.Voc_Type, x.vt.Voc_Trn_Type })
-                    //    .Select(g => new
-                    //    {
-                    //        Key = g.Key,
-                    //        SumVocPmt = g.Sum(x => x.vt.Voc_Pmt)
-                    //    })
-                    //    .Where(x => x.SumVocPmt > 0)
-                    //    .Select(x => new rptReceiptAndPaymentAmount
-                    //    {
-                    //        Voc_Type = x.Key.Voc_Type,
-                    //        Voc_Trn_Type = x.Key.Voc_Trn_Type,
-                    //        Voc_Pmt = x.SumVocPmt,
-                    //        Voc_Rpt = 0.0
-                    //    })
-                    //    .ToList();
-                    //if (result2.Count > 0) rptPmtList.AddRange(result2);
+
+                    var result2 = voucherTransactions
+                        .Where(x => !bankLedIds.Contains(x.vt.Led_Id))
+                        .GroupBy(x => new { x.Voc_Type, x.vt.Voc_Trn_Type })
+                        .Select(g => new
+                        {
+                            Key = g.Key,
+                            SumVocPmt = g.Sum(x => x.vt.Voc_Pmt)
+                        })
+                        .Where(x => x.SumVocPmt > 0)
+                        .Select(x => new rptReceiptAndPaymentAmount
+                        {
+                            Voc_Type = x.Key.Voc_Type,
+                            Voc_Trn_Type = x.Key.Voc_Trn_Type,
+                            Voc_Pmt = x.SumVocPmt,
+                            Voc_Rpt = 0.0
+                        })
+                        .ToList();
+                    if (result2.Count > 0) rptPmtList.AddRange(result2);
                 }
                 #endregion 
             }

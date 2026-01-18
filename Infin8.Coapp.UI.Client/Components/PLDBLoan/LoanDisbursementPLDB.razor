@@ -231,12 +231,7 @@ else
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="InstalmentAmount">Instalment Amount</label>
-                                    <InputNumber id="InstalmentAmount" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.InstalmentAmount" />
-                                </div>
-                            </div>
+
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="RateOfInterest">Rate Of Interest</label>
@@ -249,7 +244,12 @@ else
                                     <InputNumber id="PenalRate" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.Penal_Rate" />
                                 </div>
                             </div>
-
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="InstalmentAmount">Instalment Amount</label>
+                                    <InputNumber id="InstalmentAmount" class="form-control" @bind-Value="loanDetails.LTLoanDisbursement!.InstalmentAmount" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -735,6 +735,8 @@ else
                 loanDetails.LTLoanDisbursement.FirstPrincipalDueDate = TransactionDate;
                 loanDetails.LTLoanDisbursement.MortgageBondDate = TransactionDate;
                 loanDetails.LTLoanDisbursement.MortgageBondRegistrationDate = TransactionDate;
+                loanDetails.LTLoanDisbursement.ResolutionDate = TransactionDate;
+                loanDetails.LTLoanDisbursement.InstalmentDay = 1;
                 loanDetails.JewelLoanDisbursement = new DtoJewelLoanDisbursement();
                 loanDetails.JewelLoanDisbursement!.Ornment_List = new List<DtoJewelLoanOrnments>();
                 loanDetails.JewelLoanDisbursement.FirstPrincipalDueDate = TransactionDate.AddMonths(6);
@@ -835,7 +837,11 @@ else
             string wefFormatted = ((DateTime)loanDetails.Tranaction_Date).ToString("yyyy-MM-dd");
             string agency = "S";
             roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}&brCode={brCode}");
-            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}");
+            if (roi!.Roi == 0 || roi.Pi == 0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Rate of interest for the selected scheme not available");
+            }
+            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}/{brCode}");
             if (loanDetails.Security_Type == 1)
             {
                 var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate/{brCode}");
@@ -867,7 +873,7 @@ else
 
                 loanDetails.JewelLoanDisbursement = jlDisbursement;
             }
-            else if(loanDetails.Security_Type == 2)
+            else if (loanDetails.Security_Type == 2)
             {
                 loanDetails.LTLoanDisbursement!.Rate_Of_Interest = roi!.Roi;
                 loanDetails.LTLoanDisbursement.Penal_Rate = roi.Pi;
@@ -921,7 +927,7 @@ else
         }
     }
 
-    private void FetchSecurityType()
+    private async Task FetchSecurityType()
     {
         if (loanDetails.Security_Type <= 0)
         {
@@ -954,7 +960,7 @@ else
                     // loanDetails.Penal_Rate = 3.0;
                     break;
             }
-
+            await FetchSchemeDetails();
             // Calculate due date
             // CalculateDueDate();
         }
@@ -983,7 +989,7 @@ else
             errormessage += "Period of loan missing";
         if (loanDetails.LTLoanDisbursement.Rate_Of_Interest == 0)
             errormessage += "Rate of interest is missing";
-        
+
         if (errormessage.Length > 0)
         {
             JSRuntime.InvokeVoidAsync("alert", errormessage);
@@ -1006,7 +1012,7 @@ else
             errormessage += "Period of loan missing";
         if (loanDetails.JewelLoanDisbursement.Rate_Of_Interest == 0)
             errormessage += "Rate of interest is missing";
-        
+
         if (errormessage.Length > 0)
         {
             JSRuntime.InvokeVoidAsync("alert", errormessage);
@@ -1644,7 +1650,7 @@ else
             loanDetails.LTLoanDisbursement.Created_By = loanDetails.Created_By;
             loanDetails.LTLoanDisbursement.BrCode = loanDetails.BrCode;
             loanDetails.LTLoanDisbursement.RepaymentSchedule = loanDetails.RepaymentSchedule;
-            
+
             relatedJsonData = ConvertToJsonJLForLT(loanDetails.LTLoanDisbursement!);
         }
         stagingDetails = new()

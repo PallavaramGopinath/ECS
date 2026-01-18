@@ -1498,6 +1498,7 @@ namespace Infin8.Coapp.BusinessLogic
             Loan_Master loanMaster = new();
             Loan_Trn loanTrn = new();
             Loan_Disb loanDisb = new();
+            Loan_Inst lnInstalment = new Loan_Inst();
             Loan_Roi loanRoi = new();
             Fin_Voucher_Trn vocTrn = new();
             Loan_Schemes Schemes = new();
@@ -1518,6 +1519,8 @@ namespace Infin8.Coapp.BusinessLogic
                 null, 0, null, 0, null, DtoLtDisb.Rate_Of_Interest, DtoLtDisb.Penal_Rate, 0, 0, false, false, vocId,
                 Checked_By, yrId, 1, false, DtoLtDisb.DisbursementAmount, 0, 0, 0, 0, brCode);
 
+            lnInstalment = Utility.GetModalObject.GetLoanInstalmentObject( loanId, DtoLtDisb.Tranaction_Date,
+                DtoLtDisb.InstalmentAmount, false,false,vocId, Checked_By , yrId, brCode );
 
             loanDisb = Utility.GetModalObject.GetLoanDisbursementObject(loanId, DtoLtDisb.Tranaction_Date, 1,
                 DtoLtDisb.DisbursementAmount, DtoLtDisb.Tranaction_Date, null, "", null, 0, null, "", null, false, 1, true, false,
@@ -1550,6 +1553,7 @@ namespace Infin8.Coapp.BusinessLogic
             
             result = await _unitOfWork.LoanTrn.AddLoanTrn(loanTrn);
             result = await _unitOfWork.LoanDisbursement.AddLoanDisbursementAsync(loanDisb);
+            result = await _unitOfWork.LoanInstalment.AddLoanInstalmentAsync(lnInstalment);
             result = await _unitOfWork.LoanROI.AddLoanROIAsync(loanRoi);
             result = await _unitOfWork.LoanRepaymentSchedule.AddLoanRepaymentScheduleAsync(scheduleList);
             result = await _unitOfWork.LoanMember.AddLoanMemberAsync(membersList);
