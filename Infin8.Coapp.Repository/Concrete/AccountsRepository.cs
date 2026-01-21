@@ -474,6 +474,104 @@ namespace Infin8.Coapp.Repository
             return ledgerOB;
         }
 
+        public async Task<double> GetCashBalanceAsOnDate( decimal yrId, DateTime asOnDate, string brCode)
+        {
+            double ledgerOB = 0;
+            double rptAmt = 0;
+            double pmtAmt = 0;
+            int fnlId = 0;
+            decimal cashLedId = 0;
+            LedgerBalanceModel ledObj = new LedgerBalanceModel();
+            LedgerReceiptAndPaymentsModel ledRptAndPmt = new LedgerReceiptAndPaymentsModel();
+            try
+            {
+                /// Get Cash Ledger Id
+                cashLedId = await CSISContext.Map_General.Select(x => x.Cash_Led_Id).FirstAsync();
+                /// Get OB and final Ledger Id
+                #region linq
+                var ledObjTmp = await (from trn in CSISContext.Fin_Ledger_Trn
+                                       join ledger in CSISContext.Fin_Ledger
+                                           on trn.Led_Id equals ledger.Led_Id
+                                       join grp in CSISContext.Fin_Ledger_Grp
+                                           on ledger.Grp_Id equals grp.Grp_Id
+                                       where trn.Yr_Id == yrId
+                                          && trn.LedgerTrn_Delete == false
+                                          && ledger.Led_Delete == false
+                                          && trn.Led_Id == cashLedId
+                                          && trn.BrCode == brCode
+                                          && ledger.BrCode == brCode
+                                          && trn.BrCode == brCode
+                                       select new LedgerBalanceModel
+                                       {
+                                           LedgerBalance = trn.OB_Amt,
+                                           FnlId = grp.Fnl_Id
+                                       }).FirstOrDefaultAsync();
+                if (ledObjTmp != null) ledObj = ledObjTmp;
+                #endregion 
+
+                if (ledObj != null)
+                {
+                    ledgerOB = Convert.ToDouble(ledObj.LedgerBalance);
+                    fnlId = Convert.ToInt16(ledObj.FnlId);
+                }
+                else
+                {
+                    ledgerOB = 0;
+                    fnlId = 0;
+                }
+                /// Get receipt and payment amount
+                #region linq
+                var ledRptAndPmtTmp = await (from voucher in CSISContext.Fin_Voucher
+                                             join voucherTr in CSISContext.Fin_Voucher_Trn
+                                                 on voucher.Voc_Id equals voucherTr.Voc_Id
+                                             where voucher.Yr_Id == yrId
+                                                && voucherTr.Led_Id == cashLedId
+                                                && voucherTr.FinVocTr_Delete == false
+                                                && voucher.Voc_Delete == false
+                                                && voucher.BrCode == brCode
+                                                && voucherTr.BrCode == brCode
+                                             select new { voucherTr.Voc_Rpt, voucherTr.Voc_Pmt })
+                  .GroupBy(x => 1) // Group by a constant for single-row aggregation
+                  .Select(g => new LedgerReceiptAndPaymentsModel
+                  {
+                      ReceiptAmount = g.Sum(x => x.Voc_Rpt),
+                      PaymentAmount = g.Sum(x => x.Voc_Pmt)
+                  })
+                  .FirstOrDefaultAsync();
+                if (ledRptAndPmtTmp != null) ledRptAndPmt = ledRptAndPmtTmp;
+                #endregion 
+
+                if (ledRptAndPmt != null)
+                {
+                    rptAmt = Convert.ToDouble(ledRptAndPmt.ReceiptAmount);
+                    pmtAmt = Convert.ToDouble(ledRptAndPmt.PaymentAmount);
+                }
+                /// calculate ledger balance
+                ledgerOB += rptAmt - pmtAmt;
+
+                var query = from master in CSISContext.Staging_Master
+                            join details in CSISContext.Staging_Details on master.Staging_Id equals details.Staging_Id
+                            where master.Created_Date == asOnDate && master.Staging_Status == "M"
+                            group details by 1 into g
+                            select new
+                            {
+                                Receipt = g.Sum(d => d.CashReceipt_Amount),
+                                Payment = g.Sum(d => d.CashPayment_Amount)
+                            };
+
+                var result = await query.FirstOrDefaultAsync();
+                if (result != null)
+                {
+                    ledgerOB += Convert.ToDouble(result.Receipt) - Convert.ToDouble(result.Payment);
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return ledgerOB;
+        }
+
         public async Task<DtoLedgerBalance> GetLedgerBalanceWithFnlId(decimal ledId, decimal yrId, DateTime upToDate, string brCode)
         {
             double ledgerOB = 0;

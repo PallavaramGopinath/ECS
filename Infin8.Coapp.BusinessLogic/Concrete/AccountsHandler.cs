@@ -51,6 +51,10 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.Accounts.GetLedgerBalanceWithFnlId(ledId, yrId, upToDate,brCode);
         }
 
+        public async Task<double> GetCashBalanceAsOnDate(decimal yrId, DateTime asOnDate, string brCode)
+        {
+            return await _unitOfWork.Accounts.GetCashBalanceAsOnDate(yrId,asOnDate , brCode);
+        }
         public string GetLedgerNameByLedId(decimal ledId)
         {
             return _unitOfWork.Accounts.GetLedgerNameByLedId(ledId);
@@ -102,5 +106,7 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+
+        
     }
 }

@@ -52,6 +52,23 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [Route("GetCashBalanceAsOnDate")]
+        public async Task<ActionResult<double>> GetCashBalanceAsOnDate( [FromQuery] decimal yrId, [FromQuery] DateTime asOnDate, [FromQuery] string brCode)
+        {
+            double ledBalance = 0;
+            try
+            {
+                ledBalance = await _accountsHandler.GetCashBalanceAsOnDate( yrId, asOnDate, brCode);
+            }
+            catch (Exception)
+            {
+                return NotFound();
+            }
+
+            return Ok(ledBalance);
+        }
+
+        [HttpGet]
         [Route("GetLedgerBalanceWithFnlId")]
         public async Task<ActionResult<DtoLedgerBalance>> GetLedgerBalanceWithFnlId([FromQuery] decimal ledId, [FromQuery] decimal yrId, [FromQuery] DateTime uptoDate, [FromQuery] string brCode)
         {

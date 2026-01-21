@@ -23,6 +23,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<double> GetPreviousPayment(decimal ledId, decimal yrId, DateTime dateUpto);
         Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate, string brCode);
         Task<DtoLedgerBalance> GetLedgerBalanceWithFnlId(decimal ledId, decimal yrId, DateTime upToDate, string brCode);
+        Task<double> GetCashBalanceAsOnDate(decimal yrId, DateTime asOnDate, string brCode);
         string GetLedgerNameByLedId(decimal ledId);
         Task<bool> UpdateLedgerBalance(decimal yrId, DateTime fromDate, DateTime toDate, string brCode);
 

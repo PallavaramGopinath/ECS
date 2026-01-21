@@ -24,8 +24,9 @@
         <div class="row mb-4">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0">Member Information</h5>
+                    <div class="card-header bg-secondary text-white d-flex flex-row justify-content-between">
+                        <div><h5 class="mb-0">Member Information</h5></div>
+                        <div class="fs-3 text"><p> Cash Balance :  @transaction.Cash_Led_Balance</p></div>
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
@@ -334,7 +335,8 @@
         Father_Name = string.Empty,
         Member_Id = 0,
         Yr_Id = 110010000024,
-        Cheque_Date = DateTime.Today 
+        Cheque_Date = DateTime.Today ,
+        Cash_Led_Balance = 0
     };
 
     private MemberDetailsVM memberDetails = new();
@@ -386,8 +388,12 @@
             if (transactionItems != null) AllAccountTransaction = transactionItems;
             // isFirstRender = true;
             _isDataLoaded = true;
+            string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
+            var cashBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Accounts/GetCashBalanceAsOnDate?yrId={transaction.Yr_Id}&asonDate={formatedDate}&brCode={brCode}");
+            transaction.Cash_Led_Balance = cashBalance;
+            StateHasChanged();
+            TransactionState.OnInitiate += GetIntiatedAccountsFromStaging;
         }
-        TransactionState.OnInitiate += GetIntiatedAccountsFromStaging;
     }
 
     #region event handlers
@@ -2197,13 +2203,19 @@
         ResetForm();
     }
 
-    private void ResetForm()
+    private async Task ResetForm()
     {
+        string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
+        var cashBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Accounts/GetCashBalanceAsOnDate?yrId={transaction.Yr_Id}&asonDate={formatedDate}&brCode={brCode}");
+        // transaction.Cash_Led_Balance = cashBalance;
+        StateHasChanged();
         transaction = new TransactionBy_Members
         {
             Transaction_Date = DateTime.Today,
             Receipt_Payment = 1,
-            Cash_Adjustment = 1
+            Cash_Adjustment = 1,
+            Yr_Id = 110010000024,
+            Cash_Led_Balance =cashBalance 
         };
         isDdlCashAdjustmentDisable = false;
         isMemberNoDisable = false;
@@ -2239,6 +2251,13 @@
                 return;
             }
         }
+        double cashReceipt= transactionAccountsList.Sum(x=> x.CashReceipt);
+        double cashPayment = transactionAccountsList.Sum(x=> x.CashPayment);
+        if(transaction.Cash_Led_Balance + cashReceipt - cashPayment <0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Cash payment excees the cash balance");
+            return;
+        }
         // Save transaction logic here
         decimal stagingId = transactionAccountsList.FirstOrDefault()?.Staging_Id ?? 0;
         if (stagingId > 0)
@@ -2246,7 +2265,7 @@
             var response = await _httpClient.PostAsJsonAsync<decimal>("https://localhost:7073/api/Staging/MakeStaging", stagingId);
             if (response.IsSuccessStatusCode)
             {
-                ResetForm();
+                await ResetForm();
                 StateHasChanged();
                 await JSRuntime.InvokeVoidAsync("alert", "Transaction made successfully!");
             }

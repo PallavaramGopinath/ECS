@@ -218,9 +218,10 @@
                         </div>
                     </div>
                     <div class="col-md-3">
+                        @* @bind-Value:after="ValidateLoanAmount" *@
                         <div class="form-group">
                             <label for="loanAmount">Loan Amount:</label>
-                            <InputNumber id="loanAmount" class="form-control" @bind-Value="loanDetails.Loan_Amount" @bind-Value:after="ValidateLoanAmount" />
+                            <InputNumber id="loanAmount" class="form-control" @bind-Value="loanDetails.Loan_Amount" @onblur="ValidateLoanAmount" />
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -558,7 +559,12 @@
 
     private void CalculateAppraisalFee()
     {
-        if (loanDetails.Loan_Amount <= 0) return;
+        if (loanDetails.Loan_Amount <= 0) 
+        {
+            loanDetails.AppraisalFee = 0;
+            loanDetails.BankCharges = 0;
+            return;
+        }
         DtoAppraisalFee fee = new DtoAppraisalFee();
         fee = AppraisalFee.GetAppraisalFee(loanDetails.Loan_Amount);
         loanDetails.AppraisalFee = fee.AppraisalFee;
@@ -619,6 +625,14 @@
             loanDetails.Loan_Amount = loanDetails.Jewels_Value;
         }
         CalculateAppraisalFee();
+        if(loanDetails.Loan_Amount + loanDetails.Existing_Loan_Outstanding  > loanDetails.Maximum_Loan_Limit )
+        {
+            errorMessage = $"Loan amount exceeds to the maximum limit of Rs. {loanDetails.Maximum_Loan_Limit:C2}";
+            showErrorMessage = true;
+            loanDetails.Loan_Amount = loanDetails.Maximum_Loan_Limit - loanDetails.Existing_Loan_Outstanding;
+            if (loanDetails.Loan_Amount < 0) loanDetails.Loan_Amount = 0;
+            CalculateAppraisalFee();
+        }
     }
 
     private async Task InitCamera_old()

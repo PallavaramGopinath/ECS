@@ -13,14 +13,12 @@
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
 @rendermode InteractiveWebAssembly
-
-
 <div class="container mt-5">
     <div class="row justify-content-center g-0">
         <div class="col-md-8 bg-image"
              style="background-image:url(@imagePath); height:520px;  background-size:cover;
-                background-position: center; background-repeat: no-repeat" >
-            <div class="card shadow mask" style="background-color: rgba(0, 0, 0, 0.3);">
+                background-position: center; background-repeat: no-repeat;">
+            <div class="card shadow mask" style="background-color:rgba(0, 0, 0, 0.3);">
                 <div class="card-header bg-secondary text-white">
                     <h3 class="mb-0">User Login</h3>
                 </div>
@@ -127,13 +125,15 @@
                             </div>
                         </EditForm> *@
                     }
+
                     <EditForm Model="@loginModel" OnValidSubmit="@HandleValidSubmit" FormName="loginForm">
                         <DataAnnotationsValidator />
                         <ValidationSummary />
 
                         <div class="form-group mb-3" style="width:300px;">
                             <label for="username">Username or Email</label>
-                            <InputText id="username" @bind-Value="loginModel.Username" class="form-control" placeholder="Enter username or email" />
+                            <InputText id="username" @bind-Value="loginModel.Username" class="form-control"
+                                       placeholder="Enter username or email" />
                             <ValidationMessage For="@(() => loginModel.Username)" class="text-danger" />
                         </div>
 
@@ -165,7 +165,7 @@
                                        value="@CaptchaCode"
                                        disabled />
 
-                                <button type="button" class="btn btn-outline-secondary" style="color:white;"
+                                <button type="button" class="btn btn-outline-secondary" 
                                         @onclick="GenerateCaptcha">
                                     ↻
                                 </button>
@@ -206,19 +206,22 @@
                 </div>
             </div>
         </div>
+
         @* <div class="col-md-6 ms-0">
             <div class="card shadow">
                 <div class="image-container"> 
-             <div class="container-fluid d-flex justify-content-start"> 
-                @* <img src="@imagePath" alt="login" height=520 width=100% />
-                </div>
+                 <div class="container-fluid d-flex justify-content-start"> 
+                     <img src="@imagePath" alt="login" height=520 width=100% />
+                 </div>
+             </div>
             </div>  
-        </div> *@
+        </div>  *@
+
     </div>
 </div>
 
 @code {
-    private string imagePath = "/uploads/app-images/login2.png";
+    private string imagePath = "/uploads/app-images/Login4.png";
     private string password = "";
     private string inputType = "password";
     private bool isPasswordVisible = false;
@@ -358,32 +361,16 @@
     }
 }
 <style>
-    /* .password-input-container .input-group  {
-            width: 100% !important;
-        }
-
-        .password-input-container .input-group .form-control {
-            border-right: 0 !important;
-        }
-
-        .password-input-container .input-group .btn {
-            border-left: 0 !important;
-            background-color: transparent !important;
-        }
-
-        .password-input-container .input-group .btn:hover {
-            background-color: #e9ecef !important;
-        } */
-    .input-group {
+   .input-group {
         display: flex;
     }
 
-        .input-group .form-control {
-            flex: 1 1 auto;
-        }
+    .input-group .form-control {
+        flex: 1 1 auto;
+    }
 
-        .input-group .btn {
-            flex: 0 0 auto;
-        }
+    .input-group .btn {
+        flex: 0 0 auto;
+    }
 
 </style>

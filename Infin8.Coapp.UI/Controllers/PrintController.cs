@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using Microsoft.Reporting.NETCore;
-using System.Diagnostics;
-using Infin8.Coapp.BusinessLogic;
+﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Reporting.NETCore;
 using System.Data;
+using System.Diagnostics;
+using System.Net;
+using System.Security;
+using System.Security.Permissions;
 
 namespace Infin8.Coapp.API.Controllers
 {
@@ -464,6 +466,10 @@ namespace Infin8.Coapp.API.Controllers
         [Route("print-jl-ledger")]
         public async Task<FileContentResult> Print_JL_Ledger([FromBody] rptReportObject rptObject)
         {
+            string imagePath = "";
+            string base64Image = "";
+            string imagePath2 = "";
+            string base64Image2 = "";
             Reports_Master report = new();
             byte[] pdfAsBytes = Array.Empty<byte>();
             List<rptJewelLoanLedger> loanList = new();
@@ -488,6 +494,36 @@ namespace Infin8.Coapp.API.Controllers
                 {
                     loanList = loanListData.ToList();
                 }
+                foreach( var loan in loanList)
+                {
+                    //imagePath = Path.Combine(_webHostEnvironment.WebRootPath, loan.JewelsImage!);
+                    //imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "jewels", "jewel_39df9efb-5ba0-49df-aca0-671e98222e46.jpg");
+                    // Split and remove empty entries
+                    // Output:
+                    // parts[0] = "uploads"
+                    // parts[1] = "jewels"
+                    // parts[2] = "jewel_39df9efb-5ba0-49df-aca0-671e98222e46.jpg"
+                    string[] parts = loan.JewelsImage!.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                    imagePath = Path.Combine(_webHostEnvironment.WebRootPath, parts[0], parts[1], parts[2]);
+                    if (imagePath.Length >0)
+                    {
+                        byte[] imageBytes = System.IO.File.ReadAllBytes(imagePath);
+                        base64Image = Convert.ToBase64String(imageBytes);
+                        loan.JewelsImage =  base64Image;
+                    }
+                    string[] parts2 = loan.MemberPhoto!.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                    imagePath2 = Path.Combine(_webHostEnvironment.WebRootPath, parts2[0], parts2[1], parts2[2]);
+                    if (imagePath2.Length > 0)
+                    {
+                        byte[] imageBytes2 = System.IO.File.ReadAllBytes(imagePath2);
+                        base64Image2 = Convert.ToBase64String(imageBytes2);
+                        //string fileExtension = Path.GetExtension(imagePath2).ToLower();
+                        //string mimeType = GetMimeType(fileExtension);
+                        //loan.MemberPhoto = $"data:{mimeType};base64,{base64Image}";
+                        loan.MemberPhoto = base64Image2;
+                    }
+
+                }
                 rsInWords = _utilityHandler.RupeesInWords(loanList.Select(x => x.San_Amt).FirstOrDefault());
 
                 var parameters = new[]
@@ -497,6 +533,7 @@ namespace Infin8.Coapp.API.Controllers
                     new ReportParameter("ParamFirstSignature", report.FirstSignature ) ,
                     new ReportParameter("ParamSecondSignature", report.SecondSignature ),
                     new ReportParameter("ParamThirdSignature", report.ThirdSignature )
+                    //new ReportParameter("ParamJewelImage", "data:image/jpeg;base64," + base64Image) // Add image parameter
                 };
 
                 localReport.DataSources.Add(new ReportDataSource("Ds_JLLedger", loanList));
@@ -509,7 +546,23 @@ namespace Infin8.Coapp.API.Controllers
             }
             return CreatePDFAsBytes(pdfAsBytes);
         }
-        
+
+        private string GetMimeType(string fileExtension)
+        {
+            return fileExtension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".bmp" => "image/bmp",
+                ".tiff" or ".tif" => "image/tiff",
+                ".svg" => "image/svg+xml",
+                ".webp" => "image/webp",
+                ".ico" => "image/x-icon",
+                _ => "image/jpeg" // default
+            };
+        }
+
         #endregion 
 
         #region Create PDF AS Bytes

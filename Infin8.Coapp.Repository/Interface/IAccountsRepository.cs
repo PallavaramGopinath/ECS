@@ -23,6 +23,7 @@ namespace Infin8.Coapp.Repository
         Task<double> GetPreviousPayment(decimal ledId, decimal yrId, DateTime dateUpto);
         Task<double> GetLedgerBalance(decimal ledId, decimal yrId, DateTime upToDate,string brCode);
         Task<DtoLedgerBalance> GetLedgerBalanceWithFnlId(decimal ledId, decimal yrId, DateTime upToDate, string brCode);
+        Task<double> GetCashBalanceAsOnDate(decimal yrId, DateTime asOnDate, string brCode);
         string GetLedgerNameByLedId(decimal ledId);
         Task<bool> UpdateLedgerBalance(decimal yrId, DateTime fromDate, DateTime toDate,string brCode);
         Task<Fin_Yr_Master> CreateNewFinancialYear(decimal existingYrId, DateTime fromDate, DateTime toDate, decimal created_By, string brCode);

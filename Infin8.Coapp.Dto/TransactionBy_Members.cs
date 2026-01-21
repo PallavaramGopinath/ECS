@@ -28,5 +28,6 @@ namespace Infin8.Coapp.Dto
         public decimal Yr_Id { get; set; }
         public int Fnl_Id { get; set; }
         public decimal Cash_Led_Id { get; set; }
+        public double Cash_Led_Balance { get; set; }
     }
 }

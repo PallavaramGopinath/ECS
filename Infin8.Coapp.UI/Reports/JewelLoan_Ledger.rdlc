@@ -1910,7 +1910,7 @@
           <Image Name="Image2">
             <Source>Database</Source>
             <Value>=First(Fields!JewelsImage.Value, "Ds_JLLedger")</Value>
-            <MIMEType>image/png</MIMEType>
+            <MIMEType>image/jpeg</MIMEType>
             <Sizing>Fit</Sizing>
             <Top>1.2827cm</Top>
             <Left>9.80152cm</Left>
