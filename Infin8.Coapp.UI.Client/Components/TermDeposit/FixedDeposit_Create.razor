@@ -233,7 +233,9 @@
                             <div class="col-md-3 mb-3">
                                 <div class="form-group">
                                     <label for="periodInMonths"> Period In Months: </label>
-                                    <InputNumber id="periodInMonths" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Period_In_Months" />
+                                    <InputNumber  id="periodInMonths" class="form-control shadow-none" 
+                                        @bind-Value="_fixedDepositModel.Period_In_Months"
+                                                 @onblur="GetROI" />
                                     <ValidationMessage For="@(() => _fixedDepositModel.Period_In_Months)" />
                                 </div>
                             </div>
@@ -244,7 +246,9 @@
                             <div class="col-md-3 mb-3">
                                 <div class="form-group">
                                     <label for="periodInDays"> Period In Days: </label>
-                                    <InputNumber id="periodInDays" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Period_In_Days" />
+                                    <InputNumber id="periodInDays" class="form-control shadow-none" 
+                                        @bind-Value="_fixedDepositModel.Period_In_Days"
+                                                 onblur="GetROI" />
                                     <ValidationMessage For="@(() => _fixedDepositModel.Period_In_Days)" />
                                 </div>
                             </div>
@@ -253,7 +257,20 @@
                         {
                             <div class="col-md-3 mb-3">
                                 <div class="form-group form-check mt-4">
-                                    <InputCheckbox id="isDiscountRate" class="form-check-input shadow-none" @bind-Value="_fixedDepositModel.Is_DiscountRate" />
+
+                                    @* @onchange="e=> GetMaturityAmount((bool)e.Value)" *@
+                                    <InputCheckbox id="isDiscountRate" class="form-check-input shadow-none"
+                                           @bind-Value="_fixedDepositModel.Is_DiscountRate"
+                                                   @bind-Value:after="() => GetMaturityAmount(_fixedDepositModel.Is_DiscountRate)" />
+                                    @* <input type="checkbox"
+                                           id="isDiscountRate"
+                                           class="form-check-input shadow-none"
+                                           checked="_fixedDepositModel.Is_DiscountRate"
+                                           @onchange="@( e=> GetMaturityAmount((bool)e.Value))" /> *@
+                                    @* <InputCheckbox id="isDiscountRate"
+                                                   class="form-check-input shadow-none"
+                                                   Value="_fixedDepositModel.Is_DiscountRate"
+                                                   ValueChanged="GetMaturityAmount" /> *@
                                     <label class="form-check-label" for="isDiscountRate">Discount Rate</label>
                                 </div>
                             </div>
@@ -287,7 +304,9 @@
                         <div class="col-md-2 mb-3">
                             <div class="form-group">
                                 <label for="rateOfInterest">Rate of Interest (%):</label>
-                                <InputNumber id="rateOfInterest" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Rate_Of_Interest" />
+                                <InputNumber id="rateOfInterest" class="form-control shadow-none" 
+                                    @bind-Value="_fixedDepositModel.Rate_Of_Interest"
+                                             @oninput="GetMaturityDateAndAmount" />
                                 <ValidationMessage For="@(() => _fixedDepositModel.Rate_Of_Interest)" />
                             </div>
                         </div>
@@ -594,9 +613,19 @@
             await JSRuntime.InvokeVoidAsync("alert", errorMessage); // Alert
             return;
         }
-        string formattedDate = _fixedDepositModel.Common.Value_Date.ToString("yyyy-MM-dd");
-        var roi = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/TermDeposit/GetTDROI?depositDate={formattedDate}&schemeId={_fixedDepositModel.Common.Tdscheme_Id}&prdInMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}&brCode=11001");
-        _fixedDepositModel.Rate_Of_Interest = Convert.ToDouble(roi);
+        try
+        {
+            string formattedDate = _fixedDepositModel.Common.Value_Date.ToString("yyyy-MM-dd");
+            var roi = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/TermDeposit/GetTDROI?depositDate={formattedDate}&schemeId={_fixedDepositModel.Common.Tdscheme_Id}&prdInMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}&brCode=11001");
+            _fixedDepositModel.Rate_Of_Interest = Convert.ToDouble(roi);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", ex.Message); // Alert
+            return;
+        }
+
     }
 
     private async Task GetMaturityDateAndAmount()
@@ -640,13 +669,58 @@
                 _fixedDepositModel.Common.Value_Date, _fixedDepositModel.Maturity_Date, _fixedDepositModel.Period_In_Months, 
                 _fixedDepositModel.Period_In_Days, _fixedDepositModel.Rate_Of_Interest, _fixedDepositModel.Interest_Payable_Frequency, 
                 _fixedDepositModel.Is_DiscountRate, _fixedDepositModel.compoundfrequency);
-
+        StateHasChanged();
         // string formattedDate = _fixedDepositModel.Common.Value_Date.ToString("yyyy-MM-dd");
         // string requestUri = $"https://localhost:7073/api/Utility/GetTDMaturityDate?TDDate={Convert.ToDateTime(formattedDate)}&NoOfMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}";
         // var maturityDate = await _httpClient.GetFromJsonAsync<DateTime>(requestUri);
         // _fixedDepositModel.Maturity_Date = maturityDate;
         // var maturityAmount = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Utility/GetFDMaturityAmount?Principal={_fixedDepositModel.Deposit_Amount}&FromDate={formattedDate}&ToDate={maturityDate}&PeriodInMonths={_fixedDepositModel.Period_In_Months}&PeriodInDays={_fixedDepositModel.Period_In_Days}&ROI={_fixedDepositModel.Rate_Of_Interest}&IntPayablePrd={_fixedDepositModel.Interest_Payable_Frequency}&IsDiscountRate={_fixedDepositModel.Is_DiscountRate}&CompoundFrequency={_fixedDepositModel.compoundfrequency}");
         // _fixedDepositModel.Maturity_Amount = maturityAmount;
+    }
+
+    private void GetMaturityAmount(bool isCheked)
+    {
+        string errorMessage = "";
+
+        if (_fixedDepositModel.Period_Type == "") errorMessage += "\n Period type not selected";
+        else
+        {
+            if (_fixedDepositModel.Period_Type == "Months")
+            {
+                if (_fixedDepositModel.Period_In_Months == 0) errorMessage += "\n Perion in months is missing";
+            }
+            else
+                if (_fixedDepositModel.Period_In_Days == 0) errorMessage += "\n Period in days is missing";
+        }
+        if (_fixedDepositModel.Interest_Payable_Frequency == 0)
+            errorMessage += "\n Interest payable frequency is not selected";
+        else
+        {
+            switch (_fixedDepositModel.Interest_Payable_Frequency)
+            {
+                case 6:
+                case 12:
+                case 13:
+                    if (_fixedDepositModel.compoundfrequency == 0) errorMessage = "Compound frequency  not selected";
+                    break;
+            }
+        }
+        _fixedDepositModel.Is_DiscountRate = isCheked;
+        if (_fixedDepositModel.Deposit_Amount == 0) errorMessage += "\n Deposit amount is missing";
+        if (_fixedDepositModel.Rate_Of_Interest == 0) errorMessage += "\n Rate of interest is missing";
+        if (errorMessage.Length > 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", errorMessage); // Alert
+            return;
+        }
+        // _fixedDepositModel.Maturity_Date = Utilities.GetTDMaturityDate(_fixedDepositModel.Common.Value_Date, _fixedDepositModel.Period_In_Months,
+        //         _fixedDepositModel.Period_In_Days);
+
+        _fixedDepositModel.Maturity_Amount = Utilities.GetFDMaturityAmount(_fixedDepositModel.Deposit_Amount,
+                _fixedDepositModel.Common.Value_Date, _fixedDepositModel.Maturity_Date, _fixedDepositModel.Period_In_Months,
+                _fixedDepositModel.Period_In_Days, _fixedDepositModel.Rate_Of_Interest, _fixedDepositModel.Interest_Payable_Frequency,
+                _fixedDepositModel.Is_DiscountRate, _fixedDepositModel.compoundfrequency);
+        StateHasChanged();
     }
 
     private void HandleValidSubmit()
@@ -712,31 +786,43 @@
         isddlPeriodDisabled = true;
     }
 
-    private void DdlInterestFrequencyChange()
+    private async Task DdlInterestFrequencyChange()
     {
-
-        switch (_fixedDepositModel.Interest_Payable_Frequency)
+        try
         {
-            case 1: /// monthly
-                isDiscountRate = true;
-                isCompound = false;
-                _fixedDepositModel.Period_In_Months = 12;
-                _fixedDepositModel.Period_Type = "Months";
-                isddlPeriodDisabled = true;
-                break;
-            case 3: /// quarterly
-            case 6: /// half yearly
-                isDiscountRate = false;
-                isCompound = false;
-                isddlPeriodDisabled = true;
-                break;
-            case 12:     /// annual
-            case 13:    /// on maturity
-                isCompound = true;
-                isDiscountRate = false;
-                isddlPeriodDisabled = false;
-                break;
+            _fixedDepositModel.Period_In_Months = 12;
+            switch (_fixedDepositModel.Interest_Payable_Frequency)
+            {
+                case 1: /// monthly
+                    isDiscountRate = true;
+                    isCompound = false;
+                    _fixedDepositModel.Period_In_Months = 12;
+                    _fixedDepositModel.Period_Type = "Months";
+                    isddlPeriodDisabled = true;
+                    break;
+                case 3: /// quarterly
+                case 6: /// half yearly
+                    isDiscountRate = false;
+                    isCompound = false;
+                    isddlPeriodDisabled = true;
+                    break;
+                case 12:     /// annual
+                case 13:    /// on maturity
+                    isCompound = true;
+                    isDiscountRate = false;
+                    isddlPeriodDisabled = false;
+                    break;
+            }
+            // GetROI().GetAwaiter().GetResult();
+            await GetROI();
+            await GetMaturityDateAndAmount();
         }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", ex.Message); // Alert
+            return;
+        }
+        
     }
 
     private bool IsFDNewValid()
