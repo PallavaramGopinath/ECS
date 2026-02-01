@@ -48,6 +48,38 @@ namespace Infin8.Coapp.Repository
             return currentYear;
         }
 
+        public async Task<DayBeginInfo> GetDayBeginInfo(string brCode)
+        {
+            DayBeginInfo dayBeginInfo = new DayBeginInfo();
+            try
+            {
+                var result = await CSISContext.Fin_Yr_Master
+                    .Where(x => x.BrCode == brCode && !x.Yr_closed)
+                    .FirstOrDefaultAsync();
+                var currentDate = await CSISContext.Business_Day
+                    .Where(c => c.Calendar_Status == "N" && c.BrCode == brCode)
+                    .OrderBy(c => c.Calendar_Id)
+                    .Select(c => c.Calendar_Date)
+                    .FirstOrDefaultAsync();
+                if (result != null)
+                {
+                    dayBeginInfo = new DayBeginInfo
+                    {
+                        YearId = result!.Yr_Id,
+                        YearBeginningDate = (DateTime)result.From_Date!,
+                        YearEndDate = (DateTime)result.To_Date!,
+                        CurrentDate = currentDate
+                    };
+                }
+            }
+            catch (Exception)
+            {
+                // Handle exception as needed
+                dayBeginInfo = new DayBeginInfo();
+            }
+            return dayBeginInfo;
+        }
+
         //public async Task<bool> EditFinYearMasterAsync(Fin_Yr_Master finYrMaster)
         //{
         //    bool result = false;

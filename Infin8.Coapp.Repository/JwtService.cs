@@ -27,7 +27,7 @@ namespace Infin8.Coapp.Utility
 
         public CookieOptions GetCookieDeleteOptions();
         public ClaimsPrincipal ValidateToken(string token);
-        public string GenerateAccessToken(decimal userId, string username, string roles);
+        public string GenerateAccessToken(decimal userId, string username, string roles, string brCode, decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate);
         public string GenerateRefreshToken();
     }
 
@@ -62,7 +62,7 @@ namespace Infin8.Coapp.Utility
             return _accessTokenExpireMinutes;
         }
 
-        public string GenerateAccessToken(decimal userId, string username, string roles)
+        public string GenerateAccessToken(decimal userId, string username, string roles,string brCode,decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -73,7 +73,12 @@ namespace Infin8.Coapp.Utility
                     new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                     new Claim(ClaimTypes.Name, username),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+                    new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+                    new Claim("BrCode", brCode), // Example of a custom claim)
+                    new Claim("YrId", yrId.ToString()),
+                    new Claim("YrBeginningDate", yrBeginningDate.ToString("o")),
+                    new Claim("YrEndDate", yrEndDate.ToString("o")),
+                    new Claim("CurrentDate", currentDate.ToString("o"))
                 };
 
             foreach (var role in userRoles)

@@ -379,7 +379,15 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        
+        var brCode = user.FindFirst("BrCode")?.Value.ToString();
+        var yrId = user.FindFirst("YrId")?.Value.ToString();
+        var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
+        var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
+        var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());   
+        // new Claim("YrId", yrId.ToString()),
+        // new Claim("YrBeginningDate", yrBeginningDate.ToString("o")),
+        // new Claim("YrEndDate", yrEndDate.ToString("o")),
+        // new Claim("CurrentDate", currentDate.ToString("o"))
         if (!user.Identity.IsAuthenticated)
         {
             // Not logged in — redirect to login page

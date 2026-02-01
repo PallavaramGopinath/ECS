@@ -27,7 +27,7 @@ namespace Infin8.Coapp.API.Controllers
         /// , IUserHandler userHandler
         /// </summary>
         /// <param name="authenticationHandler"></param>
-        public AuthController(IAuthenticationHandler authenticationHandler, 
+        public AuthController(IAuthenticationHandler authenticationHandler,
             IUserHandler userHandler, IAntiforgery antiforgery)
         {
             _authenticationHandler = authenticationHandler;
@@ -57,7 +57,7 @@ namespace Infin8.Coapp.API.Controllers
                 byte[] passwordHash;
                 byte[] passwordSalt;
                 _userHandler.CreatePasswordHash(userRegistration.password!, out passwordHash, out passwordSalt);
-              
+
                 Users user = new Users()
                 {
                     //Id = 11001001, No need to pass Id, it will be generated while adding from repository
@@ -219,7 +219,7 @@ namespace Infin8.Coapp.API.Controllers
         [Route("GetJWt")]
         public IActionResult Index([FromBody] LoginModel model)
         {
-            if(model.Username=="Admin" && model.Password == "aaa123")
+            if (model.Username == "Admin" && model.Password == "aaa123")
             {
                 var claim = new[]
                 {
@@ -230,16 +230,16 @@ namespace Infin8.Coapp.API.Controllers
                 var token = new JwtSecurityToken(
                     issuer: "https://localhost:7020",
                     audience: "https://localhost:7020",
-                    expires:DateTime.UtcNow.AddHours(1),
+                    expires: DateTime.UtcNow.AddHours(1),
                     //claims:claims,
-                    signingCredentials: new Microsoft.IdentityModel.Tokens.SigningCredentials(singningkey,SecurityAlgorithms.HmacSha256)
+                    signingCredentials: new Microsoft.IdentityModel.Tokens.SigningCredentials(singningkey, SecurityAlgorithms.HmacSha256)
                     );
                 return Ok(new
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(token),
                     expiration = token.ValidTo
                 });
-             }
+            }
             return Unauthorized();
         }
 
@@ -255,7 +255,6 @@ namespace Infin8.Coapp.API.Controllers
             });
         }
     }
-
     public class LoginModel
     {
         public string? Username { get; set; }

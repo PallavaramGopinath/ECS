@@ -15,6 +15,13 @@
 @inject HttpClient _httpClient
 @inject TransactionStateService TransactionState
 
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Maker")]
+
 <div class="container-fluid">
     <h3 class="mb-4">Member Transactions</h3>
     <EditForm Model="@transaction" method="post" OnValidSubmit="@HandleValidSubmit" FormName="member-transaction">
@@ -384,6 +391,24 @@
         // if (!isFirstRender)
         if (firstRender && !_isDataLoaded)
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var brCode = user.FindFirst("BrCode")?.Value.ToString();
+            var yrId = user.FindFirst("YrId")?.Value.ToString();
+            var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
+            var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
+            var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
+
+            transaction.Transaction_Date = currentDate ;
+            transaction.Yr_Id = Convert.ToDecimal(yrId);
+            if (!user.Identity!.IsAuthenticated)
+            {
+                // Not logged in — redirect to login page
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
+
+
             var transactionItems = await _httpClient.GetFromJsonAsync<List<DtoAccount_Transactions>>($"https://localhost:7073/api/Transaction/GetAllAccountNames");
             if (transactionItems != null) AllAccountTransaction = transactionItems;
             // isFirstRender = true;

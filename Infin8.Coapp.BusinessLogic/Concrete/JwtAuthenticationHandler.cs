@@ -28,13 +28,13 @@ namespace Infin8.Coapp.BusinessLogic
         public async Task<AuthenticationResponse> AuthenticateAsync(string username, string password)
         {
             var user = _unitOfWork.UserRepository.GetUserByUsername(username);
-
+            var daybeginInfo = await _unitOfWork.FinYearMaster.GetDayBeginInfo(user?.BrCode ?? "");
             if (user == null || !VerifyPassword(password, user.Password_Hash, user.Password_Salt))
             {
                 throw new UnauthorizedAccessException("Invalid credentials.");
             }
-
-            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username, user.Role);
+            
+            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username!, user.Role!,user.BrCode!,daybeginInfo.YearId,daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate  );
             var refreshToken = _jwtService.GenerateRefreshToken();
 
             var userRoles = (user.Role ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -83,13 +83,13 @@ namespace Infin8.Coapp.BusinessLogic
             {
                 throw new UnauthorizedAccessException("Invalid or expired refresh token.");
             }
-
             // Generate a new access token
             var member = await _unitOfWork.Members.GetMemberDetailsByMemIdAsync(tokenEntity.User_Id);
             var roles = _unitOfWork.UserRepository.GetUserRoles(tokenEntity.User_Id);
             if(member == null || member.MemberName==null) throw new UnauthorizedAccessException("Invalid member.");
+            var daybeginInfo = await _unitOfWork.FinYearMaster.GetDayBeginInfo(member.BrCode ?? "");
             // Pass proper role from DB or from the decision JSON file.
-            var accessToken = _jwtService.GenerateAccessToken(member.Mem_Id, member.MemberName, roles); 
+            var accessToken = _jwtService.GenerateAccessToken(member.Mem_Id, member.MemberName, roles!,member.BrCode!,daybeginInfo.YearId,daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate ); 
 
             // Optionally, generate a new refresh token and update the database
             var newRefreshToken = _jwtService.GenerateRefreshToken();

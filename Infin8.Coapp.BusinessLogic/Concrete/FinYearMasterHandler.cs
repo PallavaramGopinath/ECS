@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
 using System;
 using System.Collections.Generic;
@@ -11,9 +12,11 @@ namespace Infin8.Coapp.BusinessLogic
     public class FinYearMasterHandler : IFinYearMasterHandler
     {
         readonly IUnitOfWork _unitOfWork;
-        public FinYearMasterHandler(IUnitOfWork unitOfWork)
+        readonly ICalendarHandler _calendarHandler;
+        public FinYearMasterHandler(IUnitOfWork unitOfWork, ICalendarHandler calendarHandler)
         {
             _unitOfWork = unitOfWork;
+            _calendarHandler = calendarHandler;
         }
 
         public async Task<bool> AddFinYearMasterAsync(Fin_Yr_Master finYrMaster)
@@ -36,6 +39,26 @@ namespace Infin8.Coapp.BusinessLogic
         public async Task<Fin_Yr_Master> GetWorkingYear()
         {
             return await _unitOfWork.FinYearMaster.GetWorkingYear();
+        }
+
+        public async Task<DayBeginInfo> GetDayBeginInfo(string brCode)
+        {
+            DayBeginInfo dayBeginInfo = new DayBeginInfo();
+            DateTime currentDate = DateTime.Now;
+            try
+            {
+                dayBeginInfo = await  _unitOfWork.FinYearMaster.GetDayBeginInfo(brCode);
+                if (dayBeginInfo != null && dayBeginInfo.YearId > 0)
+                {
+                    currentDate = await _calendarHandler.GetCurrentDate(brCode);
+                    dayBeginInfo.CurrentDate = currentDate;
+                }
+            }
+            catch (Exception)
+            {
+                dayBeginInfo = new();
+            }
+            return dayBeginInfo!;
         }
     }
 }

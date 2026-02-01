@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +13,6 @@ namespace Infin8.Coapp.Repository
         Task<bool> AddFinYearMasterAsync(Fin_Yr_Master finYrMaster);
         //Task<bool> EditFinYearMasterAsync(Fin_Yr_Master finYrMaster);
         Task<Fin_Yr_Master> GetWorkingYear();
+        Task<DayBeginInfo> GetDayBeginInfo(string brCode);
     }
 }

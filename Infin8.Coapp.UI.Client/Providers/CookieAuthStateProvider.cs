@@ -28,10 +28,10 @@
                 var userInfo = await response.Content.ReadFromJsonAsync<UserInfo>();
 
                 var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, userInfo.Username),
-                new Claim(ClaimTypes.NameIdentifier, userInfo.UserId.ToString())
-            };
+                {
+                    new Claim(ClaimTypes.Name, userInfo!.Username),
+                    new Claim(ClaimTypes.NameIdentifier, userInfo.UserId.ToString())
+                };
 
                 foreach (var role in userInfo.Roles)
                     claims.Add(new Claim(ClaimTypes.Role, role));
