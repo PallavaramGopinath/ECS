@@ -16,9 +16,9 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<List<MenuMain>> GetMenuStructureAsync(string brCode)
+        public async Task<List<MenuMain>> GetMenuStructureAsync(string brCode, string role)
         {
-            return await _unitOfWork.MenuMain.GetMenuStructureAsync(brCode);
+            return await _unitOfWork.MenuMain.GetMenuStructureAsync(brCode,role);
         }
     }
 }

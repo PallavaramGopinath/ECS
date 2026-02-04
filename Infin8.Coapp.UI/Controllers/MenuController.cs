@@ -20,7 +20,7 @@ namespace Infin8.Coapp.UI.Controllers
         public async Task<ActionResult<List<MenuMain>>> GetMenuStructure(string brcode, string role)
         {
             List<MenuMain> menuStructure = new();
-            var result = await _menuMainHandler.GetMenuStructureAsync(brcode);
+            var result = await _menuMainHandler.GetMenuStructureAsync(brcode,role);
             if (result != null && result!.Any())
             {
                 menuStructure = result!.ToList();

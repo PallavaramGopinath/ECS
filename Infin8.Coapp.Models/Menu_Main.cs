@@ -12,5 +12,6 @@ namespace Infin8.Coapp.Models
         public string? BrCode { get; set; }
         public string? Voc_Status { get; set; }
         public string? Menu_Icon { get; set; }
+        public string Role { get; set; }
     }
 }

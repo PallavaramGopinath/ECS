@@ -9,6 +9,6 @@ namespace Infin8.Coapp.Repository
 {
     public  interface IMenuMainRepository
     {
-        Task<List<MenuMain>> GetMenuStructureAsync(string brCode);
+        Task<List<MenuMain>> GetMenuStructureAsync(string brCode,string role);
     }
 }

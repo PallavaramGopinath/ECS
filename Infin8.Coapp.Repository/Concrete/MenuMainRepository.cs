@@ -16,31 +16,43 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<List<MenuMain>> GetMenuStructureAsync(string brCode)
+        public async Task<List<MenuMain>> GetMenuStructureAsync(string brCode,string role)
         {
-            //string authorizedRole = "";
-            //string authorizedSearch = "";
-            //switch (authorizedRole)
+            //string roleSearch = "";
+            //switch (role)
             //{
-            //    case "Aadmin":
-            //        authorizedSearch = "'Admin','Maker','Checker','All'";
+            //    case "Admin":
+            //        roleSearch = "'Admin','Maker','Checker','All'";
             //        break;
             //    case "Maker":
-            //        authorizedSearch = "'Maker','All'";
+            //        roleSearch = "'Maker','All'";
             //        break;
             //    case "Checker":
-            //        authorizedSearch = "'Checker','All'";
+            //        roleSearch = "'Checker','All'";
             //        break;
             //    default:
-            //        authorizedSearch = "";
+            //        roleSearch = "";
             //        break;
             //}
+            // Define role hierarchy for each role
+            var roleHierarchy = new Dictionary<string, List<string>>
+            {
+                ["Admin"] = new List<string> { "Admin", "Maker", "Checker", "All" },
+                ["Maker"] = new List<string> { "Maker", "All" },
+                ["Checker"] = new List<string> { "Checker", "All" }
+            };
+
+            // Get roles for the current user
+            if (!roleHierarchy.TryGetValue(role, out var allowedRoles))
+            {
+                allowedRoles = new List<string>(); // Empty list for default/unknown roles
+            }
             var menuStructure = new List<MenuMain>();
             try
             {
                 var query =  from main in CSISContext.Menu_Main
-                            where !main.Menu_Delete && main.Voc_Status == "V"
-                            orderby main.Menu_Id
+                            where !main.Menu_Delete && main.Voc_Status == "V" && allowedRoles.Contains(main.Role) // Use Contains with list
+                             orderby main.Menu_Id
                             select new MenuMain
                             {
                                 MenuId = main.Menu_Id,

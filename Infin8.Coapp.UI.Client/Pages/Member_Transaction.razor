@@ -20,7 +20,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-@attribute [Authorize(Roles = "Maker")]
+@attribute [Authorize(Roles = "Admin,Maker")]
 
 <div class="container-fluid">
     <h3 class="mb-4">Member Transactions</h3>
