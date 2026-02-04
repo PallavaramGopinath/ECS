@@ -1,34 +1,53 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @using Microsoft.AspNetCore.Components.Authorization
-
+@using Microsoft.AspNetCore.Authorization
+@* @using Microsoft.AspNetCore.Components.Authorization *@
+@inject AuthenticationStateProvider AuthenticationStateProvider
 <div class="page">
     <div class="sidebar">
-        <NavMenu />
+        <NavMenu BrCode="@brCode" Role="@loginRole" />
     </div>
 
     <main>
         <div class="top-row px-4">
-             <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    @* <button class="nav-link btn btn-link logout-link w-100 text-start"
-                            @onclick="PerformLogout">
-                        <i class="fas fa-sign-out-alt me-1"></i> Logout
-                    </button> *@
-                        <NavLink class="nav-link logout-link" href="/logout" >
+            <AuthorizeView>
+                <Authorized>
+                    <div class="nav-item px-3 w-100">
+                        <div class="d-flex align-items-center w-100">
+                            <!-- User name and role at beginning -->
+                            <div class="text-nowrap">
+                                @loginName (@loginRole)
+                            </div>
+                            <!-- Dates in middle -->
+                            <div class="flex-grow-1 d-flex justify-content-center">
+                                <span class="text-nowrap">@yearFromDate.ToString("dd-MM-yyyy") - @yearToDate.ToString("dd-MM-yyyy")</span>
+                                
+                            </div>
+                            <!-- Logout near end, amount at last -->
+                            <div class="d-flex align-items-center text-nowrap">
+                                <NavLink vlass="nav-link logout-link me-2" href="/logout">
+                                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                                </NavLink>
+                                @* <span class="badge bg-primary fs-6">₹@totalAmount</span> *@
+                            </div>
+                        </div>
+                    </div>
+
+                    @* <div class="nav-item px-3">
+                        <NavLink class="nav-link logout-link" href="/logout">
                             <i class="fas fa-sign-in-alt me-1"></i> logout
                         </NavLink>
-                </div>
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link login-link" href="/login" Match="NavLinkMatch.Prefix">
-                        <i class="fas fa-sign-in-alt me-1"></i> Login
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
+                    </div> *@
+                </Authorized>
+                <NotAuthorized>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link login-link" href="/login" Match="NavLinkMatch.Prefix">
+                            <i class="fas fa-sign-in-alt me-1"></i> Login
+                        </NavLink>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
             @* <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a> *@
             <a href="https://infin8software.com" target="_blank">About</a>
         </div>
@@ -45,7 +64,34 @@
     <span class="dismiss">🗙</span>
 </div>
 
-@code{
+@code {
+    string loginName = string.Empty;
+    string loginRole = string.Empty;
+    string brCode = string.Empty;
+    DateTime yearFromDate = DateTime.Now;
+    DateTime yearToDate = DateTime.Now;
+    DateTime currentDate = DateTime.Now;
+
+    private Dictionary<string, object> parameters = new();
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userName = user.FindFirst("UserName")?.Value.ToString();
+        var userRoles = user.FindFirst("Roles")?.Value.ToString();
+        var BrCode = user.FindFirst("BrCode")?.Value.ToString();
+        var yrId = user.FindFirst("YrId")?.Value.ToString();
+        var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
+        var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
+        var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
+
+        loginName = userName ?? string.Empty;
+        loginRole = userRoles ?? string.Empty;
+        brCode = BrCode!;
+        yearFromDate = yrBeginningDate;
+        yearToDate = yrEndDate;
+        this.currentDate = currentDate;
+    }
     private async Task PerformLogout()
     {
         // This forces full reload → clears auth state immediately

@@ -2,7 +2,9 @@
 @implements IDisposable
 @inject HttpClient _httpClient
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
-
+@* @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider *@
 <div class="top-row ps-3 navbar navbar-dark bg-success">
     <div class="container-fluid d-flex justify-content-start">
         <img src="@imagePath" alt="Under Development" height=30 width=30 />
@@ -235,7 +237,12 @@
     private HashSet<int> _expandedMenus = new();
     private HashSet<int> _expandedSubMenus = new();
 
-    private string brCode = "11001";
+    #region parameters
+    [Parameter] public string? BrCode { get; set; }
+    [Parameter] public string? Role { get; set; }
+
+    #endregion 
+    // private string brCode = "11001";
     protected override async Task OnInitializedAsync()
     {
         await LoadMenu();
@@ -244,7 +251,16 @@
     {
         try
         {
-            var query = await _httpClient.GetFromJsonAsync<List<MenuMain>>($"https://localhost:7073/api/Menu/GetMenuStructure/{brCode}");
+            // var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            // var user = authState.User;
+            // var userName = user.FindFirst("UserName")?.Value.ToString();
+            // var userRoles = user.FindFirst("Roles")?.Value.ToString();
+            // var brCode = user.FindFirst("BrCode")?.Value.ToString();
+            // var yrId = user.FindFirst("YrId")?.Value.ToString();
+            // var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
+            // var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
+            // var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
+            var query = await _httpClient.GetFromJsonAsync<List<MenuMain>>($"https://localhost:7073/api/Menu/GetMenuStructure/{BrCode}/{Role}");
             if (query != null && query.Any())
             {
                 _menuStructure = query.ToList();

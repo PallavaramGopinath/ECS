@@ -78,7 +78,10 @@ namespace Infin8.Coapp.Utility
                     new Claim("YrId", yrId.ToString()),
                     new Claim("YrBeginningDate", yrBeginningDate.ToString("o")),
                     new Claim("YrEndDate", yrEndDate.ToString("o")),
-                    new Claim("CurrentDate", currentDate.ToString("o"))
+                    new Claim("CurrentDate", currentDate.ToString("o")),
+                    new Claim("Roles", roles!.ToString()),
+                    new Claim("UserName", username.ToString())
+
                 };
 
             foreach (var role in userRoles)

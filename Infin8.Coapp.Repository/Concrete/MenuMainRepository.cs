@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace Infin8.Coapp.Repository
 {
     public class MenuMainRepository : Repository<Menu_Main>, IMenuMainRepository
@@ -19,6 +18,23 @@ namespace Infin8.Coapp.Repository
 
         public async Task<List<MenuMain>> GetMenuStructureAsync(string brCode)
         {
+            //string authorizedRole = "";
+            //string authorizedSearch = "";
+            //switch (authorizedRole)
+            //{
+            //    case "Aadmin":
+            //        authorizedSearch = "'Admin','Maker','Checker','All'";
+            //        break;
+            //    case "Maker":
+            //        authorizedSearch = "'Maker','All'";
+            //        break;
+            //    case "Checker":
+            //        authorizedSearch = "'Checker','All'";
+            //        break;
+            //    default:
+            //        authorizedSearch = "";
+            //        break;
+            //}
             var menuStructure = new List<MenuMain>();
             try
             {

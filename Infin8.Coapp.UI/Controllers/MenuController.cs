@@ -16,8 +16,8 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
-        [Route("GetMenuStructure/{brCode}")]
-        public async Task<ActionResult<List<MenuMain>>> GetMenuStructure(string brcode)
+        [Route("GetMenuStructure/{brCode}/{role}")]
+        public async Task<ActionResult<List<MenuMain>>> GetMenuStructure(string brcode, string role)
         {
             List<MenuMain> menuStructure = new();
             var result = await _menuMainHandler.GetMenuStructureAsync(brcode);
