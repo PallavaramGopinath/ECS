@@ -1,11 +1,17 @@
 ﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Infin8.Coapp.UI.Client.Providers;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.JSInterop;
 using Microsoft.Reporting.Map.WebForms.BingMaps;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+
+using System.Security.Claims;
 
 namespace Infin8.Coapp.UI.Controllers
 {

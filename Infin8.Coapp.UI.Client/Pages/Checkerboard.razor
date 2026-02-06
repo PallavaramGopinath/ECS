@@ -9,9 +9,10 @@
 @using System.Reflection
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin,Checker")]
 
 <h3>Checker Dashboard</h3>
-
 <p>Review and approve pending transactions</p>
 
 <button type="button" class="btn btn-sm btn-outline-primary mb-3" @onclick="LoadChekerDashboardDataAsync">

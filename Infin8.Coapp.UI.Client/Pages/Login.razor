@@ -247,11 +247,16 @@
     [Inject] private HttpClient PublicHttpClient { get; set; } = default!;
     [Inject] private AuthenticationStateProvider AuthProvider { get; set; } = default!;
 
-    protected override Task OnInitializedAsync()
+    // protected override Task OnInitializedAsync()
+    protected override void OnAfterRender(bool firstRender)
     {
-        loginModel = new LoginModel();
-        GenerateCaptcha();
-        return base.OnInitializedAsync();
+        if (firstRender)
+        {
+            loginModel = new LoginModel();
+            GenerateCaptcha();
+            StateHasChanged();
+        }
+        // return base.OnInitializedAsync();
     }
 
     // Bootstrap Icons

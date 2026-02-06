@@ -80,7 +80,8 @@ namespace Infin8.Coapp.Utility
                     new Claim("YrEndDate", yrEndDate.ToString("o")),
                     new Claim("CurrentDate", currentDate.ToString("o")),
                     new Claim("Roles", roles!.ToString()),
-                    new Claim("UserName", username.ToString())
+                    new Claim("UserName", username.ToString()),
+                    new Claim("UserId", userId.ToString())
 
                 };
 

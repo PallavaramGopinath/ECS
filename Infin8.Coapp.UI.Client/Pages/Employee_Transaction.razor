@@ -13,7 +13,12 @@
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
 @inject TransactionStateService TransactionState
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
+@attribute [Authorize(Roles = "Admin,Maker")]
 <h5 class="mb-4">Employee Transactions</h5>
 @if (_isLoading)
 {
@@ -291,7 +296,7 @@ else
 
 @code {
     private bool _isLoading = true;
-    private bool isTrnDateDisable = false;
+    private bool isTrnDateDisable = true;
     private bool isDdlLedger = false;
     private bool isBankAccount = false;
     private bool isComponentLoaded = false;
@@ -339,6 +344,24 @@ else
         {
             try
             {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                var stateBrCode = user.FindFirst("BrCode")?.Value.ToString();
+                var yrId = user.FindFirst("YrId")?.Value.ToString();
+                var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                transaction.Transaction_Date = currentDate;
+                transaction.BrCode = stateBrCode!;
+                transaction.Transaction_Date = currentDate;
+                transaction.Cheque_Date = currentDate;
+                transaction.Yr_Id = Convert.ToDecimal(yrId);
+                if (!user.Identity!.IsAuthenticated)
+                {
+                    // Not logged in — redirect to login page
+                    Navigation.NavigateTo("/login", true);
+                    return;
+                }
                 var empResponse = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{transaction.BrCode}");
                 if (empResponse != null && empResponse.Any()) employeeList = empResponse.ToList();
                 _isLoading = false;

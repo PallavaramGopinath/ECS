@@ -347,7 +347,7 @@
     };
 
     private MemberDetailsVM memberDetails = new();
-    bool isTrnDateDisable = false;
+    bool isTrnDateDisable = true;
     bool isMemberNoDisable = false;
     bool isDdlCashAdjustmentDisable = false;
 
@@ -393,13 +393,14 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            var brCode = user.FindFirst("BrCode")?.Value.ToString();
+            var stateBrCode = user.FindFirst("BrCode")?.Value.ToString();
             var yrId = user.FindFirst("YrId")?.Value.ToString();
             var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
             var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
             var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
-
+            brCode = stateBrCode!;
             transaction.Transaction_Date = currentDate ;
+            transaction.Cheque_Date = currentDate;
             transaction.Yr_Id = Convert.ToDecimal(yrId);
             if (!user.Identity!.IsAuthenticated)
             {
@@ -407,8 +408,6 @@
                 Navigation.NavigateTo("/login", true);
                 return;
             }
-
-
             var transactionItems = await _httpClient.GetFromJsonAsync<List<DtoAccount_Transactions>>($"https://localhost:7073/api/Transaction/GetAllAccountNames");
             if (transactionItems != null) AllAccountTransaction = transactionItems;
             // isFirstRender = true;

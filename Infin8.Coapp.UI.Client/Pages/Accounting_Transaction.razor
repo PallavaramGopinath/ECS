@@ -8,8 +8,15 @@
 @using System.Text.Json 
 @using System.Text.Json.Serialization
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @* @inject TransactionStateService TransactionState *@
 @* @inject AppState appState; *@
+
+@attribute [Authorize(Roles = "Admin,Maker")]
 <h3>Accounting Transaction</h3>
 
 @if (_isLoading)
@@ -33,7 +40,7 @@ else
                 <div class="col-md-4">
                     <div class="form-group">
                         <label for="TrnDate">Date:</label>
-                        <InputDate id="TrnDate" class="form-control" @bind-Value="transaction.Transaction_Date" />
+                        <InputDate id="TrnDate" class="form-control" disabled="true" @bind-Value="transaction.Transaction_Date" />
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -282,6 +289,24 @@ else
                 // appState.Yr_Id = 110010000023;
                 // appState.Yr_FromDate = new DateTime(2025, 04, 1);
                 // appState.Yr_ToDate = new DateTime(2026, 3, 31);
+
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                var stateBrCode = user.FindFirst("BrCode")?.Value.ToString();
+                var yrId = user.FindFirst("YrId")?.Value.ToString();
+                var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                brCode = stateBrCode!;
+                transaction.Transaction_Date = currentDate ;
+                transaction.Cheque_Date = currentDate;
+                transaction.Yr_Id = Convert.ToDecimal(yrId);
+            if (!user.Identity!.IsAuthenticated)
+            {
+                // Not logged in — redirect to login page
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
                 var ledgerTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/11001");
                 // Initialize the list with default option first
                 ledgerNameItems = new List<DropdownItem>

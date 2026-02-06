@@ -18,7 +18,7 @@ namespace Infin8.Coapp.Dto
         public string? Issue_Bank { get; set; }
         public double Ledger_Balance { get; set; }
         public double Ledger_Entry { get; set; }
-        public double Yr_Id { get; set; }
+        public decimal Yr_Id { get; set; }
         public int Fnl_Id { get; set; }
         public decimal Cash_Led_Id { get; set; }
         public string? Narration { get; set; }
