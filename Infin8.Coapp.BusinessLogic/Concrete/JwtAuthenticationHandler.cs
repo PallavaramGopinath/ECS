@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -115,6 +116,12 @@ namespace Infin8.Coapp.BusinessLogic
             await _unitOfWork.CompleteAsync();
 
             return true;
+        }
+
+        public (bool isValid, ClaimsPrincipal? claims) ValidateToken(string token)
+        {
+            var claimsPrincipal = _jwtService.ValidateToken(token);
+            return (claimsPrincipal != null, claimsPrincipal);
         }
     }
 }
