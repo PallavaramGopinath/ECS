@@ -1,6 +1,9 @@
 ﻿namespace Infin8.Coapp.UI.Client.Providers
 {
+    using Infin8.Coapp.Dto;
+    using Infin8.Coapp.Models;
     using Microsoft.AspNetCore.Components.Authorization;
+    using System.Data;
     using System.Net.Http.Json;
     using System.Security.Claims;
 
@@ -25,12 +28,17 @@
                     return Anonymous();
                 }
 
-                var userInfo = await response.Content.ReadFromJsonAsync<UserInfo>();
+                var userInfo = await response.Content.ReadFromJsonAsync<UserInfoDto>();
 
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, userInfo!.Username),
-                    new Claim(ClaimTypes.NameIdentifier, userInfo.UserId.ToString())
+                    new Claim(ClaimTypes.NameIdentifier, userInfo.UserId.ToString()),
+                    new Claim("BrCode", userInfo.BrCode! ), // Example of a custom claim)
+                    new Claim("YrId", userInfo.YrId!.ToString()),
+                    new Claim("YrBeginningDate", userInfo.YrBeginningDate!),
+                    new Claim("YrEndDate", userInfo.YrEndDate!),
+                    new Claim("CurrentDate", userInfo.CurrentDate!)
                 };
 
                 foreach (var role in userInfo.Roles)
@@ -62,10 +70,15 @@
         }
     }
 
-    public class UserInfo
-    {
-        public decimal UserId { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public List<string> Roles { get; set; } = new List<string>();
-    }
+    //public class UserInfoDto
+    //{
+    //    public decimal UserId { get; set; }
+    //    public string Username { get; set; } = string.Empty;
+    //    public List<string> Roles { get; set; } = new List<string>();
+    //    public string BrCode { get; set; }
+    //    public string YrId { get; set; }
+    //    public string YrBeginningDate { get; set; }
+    //    public string YrEndDate { get; set; }
+    //    public string CurrentDate { get; set; }
+    //}
 }

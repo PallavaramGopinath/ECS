@@ -1,19 +1,25 @@
 ﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.ReportingServices.ReportProcessing.ReportObjectModel;
+using System.IdentityModel.Claims;
 
 namespace Infin8.Coapp.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    //[Authorize(Roles ="Admin,Maker,Checker")]
+    [Authorize]
     public class TransactionController : ControllerBase
     {
         readonly ITransactionsHandler _transactionHandler;
         private readonly IWebHostEnvironment _environment;
         private readonly IStagingDetailsHandler _stagingDetailsHandler;
-
-        public TransactionController(ITransactionsHandler transactionsHandler, IWebHostEnvironment environment, IStagingDetailsHandler stagingDetailsHandler)
+        public TransactionController(ITransactionsHandler transactionsHandler, IWebHostEnvironment environment, 
+                IStagingDetailsHandler stagingDetailsHandler)
         {
             _transactionHandler = transactionsHandler;
             _environment = environment;
@@ -23,6 +29,7 @@ namespace Infin8.Coapp.API.Controllers
         [Route("GetAccountNames/{accountStatus}/{accountBelongTo}")]
         public async Task<ActionResult<List<DropdownItem>>> GetTransactionAccounts(string accountStatus, string accountBelongTo)
         {
+            //var brCode = User.FindFirst("BrCode")?.Value.ToString();
             List<DropdownItem> accounts = new List<DropdownItem>();
             accounts = await _transactionHandler.GetTransactionAccounts(accountStatus, accountBelongTo);
             if (accounts == null)

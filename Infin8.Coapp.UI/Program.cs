@@ -67,6 +67,7 @@ builder.Services
     .AddAuthentication("CookiesJwt")
     .AddJwtBearer("CookiesJwt", options =>
     {
+        //options.Audience = "";
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -76,7 +77,9 @@ builder.Services
             ValidIssuer = jwtSettings["Issuer"],
             ValidAudience = jwtSettings["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
+            Encoding.UTF8.GetBytes(jwtSettings["Key"]!)),
+            
+
         };
 
         // 👇 Read token from cookie
@@ -86,7 +89,7 @@ builder.Services
             {
                 context.Token = context.Request.Cookies["auth-token"];
                 return Task.CompletedTask;
-            }
+            },
         };
     });
 

@@ -80,6 +80,7 @@ namespace Infin8.Coapp.Utility
                     new Claim("YrEndDate", yrEndDate.ToString("o")),
                     new Claim("CurrentDate", currentDate.ToString("o")),
                     new Claim("Roles", roles!.ToString()),
+
                     new Claim("UserName", username.ToString()),
                     new Claim("UserId", userId.ToString())
 
@@ -142,7 +143,7 @@ namespace Infin8.Coapp.Utility
             return new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = false,
                 SameSite = SameSiteMode.Strict,
                 Path = "/",
                 Expires = DateTimeOffset.UtcNow.AddHours(_cookieExpireHour) // or whatever

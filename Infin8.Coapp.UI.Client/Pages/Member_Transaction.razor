@@ -10,7 +10,8 @@
 @using System.Text.Json.Serialization
 @using Infin8.Coapp.Utility
 @using System.Reflection
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: true)) *@
+@rendermode InteractiveWebAssembly 
 @* @rendermode InteractiveAuto *@
 @inject HttpClient _httpClient
 @inject TransactionStateService TransactionState

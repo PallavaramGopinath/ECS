@@ -247,11 +247,16 @@ namespace Infin8.Coapp.API.Controllers
         [HttpGet("me")]
         public IActionResult Me()
         {
-            return Ok(new
+            return Ok(new UserInfoDto
             {
-                UserId = User.FindFirstValue(ClaimTypes.NameIdentifier),
-                Username = User.Identity?.Name,
-                Roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value)
+                UserId = Convert.ToDecimal ( User.FindFirstValue(ClaimTypes.NameIdentifier)),
+                Username = User.Identity?.Name!,
+                Roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList (),
+                BrCode = User.FindFirst("BrCode")?.Value,
+                YrId = User.FindFirst("YrId")?.Value,
+                YrBeginningDate = User.FindFirst("YrBeginningDate")?.Value,
+                YrEndDate = User.FindFirst("YrEndDate")?.Value,
+                CurrentDate = User.FindFirst("CurrentDate")?.Value
             });
         }
     }
