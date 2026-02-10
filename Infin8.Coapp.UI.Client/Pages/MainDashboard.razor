@@ -377,18 +377,28 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        var brCode = user.FindFirst("BrCode")?.Value.ToString();
-        var yrId = user.FindFirst("YrId")?.Value.ToString();
-        var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
-        var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
-        var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());   
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        var brCode = userInfoDto.BrCode;
+        var yrId = userInfoDto.YrId;
+        var yrBeginningDate = userInfoDto.YrBeginningDate;
+        var yrEndDate = userInfoDto.YrEndDate;
+        var currentDate = userInfoDto.CurrentDate;
+    
+        await LoadDashboardDataAsync();
+        // var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        // var user = authState.User;
+        // var brCode = user.FindFirst("BrCode")?.Value.ToString();
+        // var yrId = user.FindFirst("YrId")?.Value.ToString();
+        // var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
+        // var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
+        // var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());   
+
         // new Claim("YrId", yrId.ToString()),
         // new Claim("YrBeginningDate", yrBeginningDate.ToString("o")),
         // new Claim("YrEndDate", yrEndDate.ToString("o")),
         // new Claim("CurrentDate", currentDate.ToString("o"))
-        if (!user.Identity.IsAuthenticated)
+        // if (!user.Identity.IsAuthenticated)
+        if(userInfoDto.IsAuthenticated == false)
         {
             // Not logged in — redirect to login page
             Navigation.NavigateTo("/login", true);
@@ -465,7 +475,7 @@
             CollectionForTheYear = new List<DashBoardLoanCollection>
             {
                 new DashBoardLoanCollection { Scheme_Id = 1, Scheme_Name = "Jewel Loan", PrlColl_Amt = 85000000, IntColl_Amt = 18065000, IODColl_Amt = 0, PIColl_Amt = 500500 },
-                 new DashBoardLoanCollection { Scheme_Id = 1, Scheme_Name = "Fixed Deposit Loan", PrlColl_Amt = 525000, IntColl_Amt = 0, IODColl_Amt = 0, PIColl_Amt = 0 },
+                new DashBoardLoanCollection { Scheme_Id = 1, Scheme_Name = "Fixed Deposit Loan", PrlColl_Amt = 525000, IntColl_Amt = 0, IODColl_Amt = 0, PIColl_Amt = 0 },
                 new DashBoardLoanCollection { Scheme_Id = 1, Scheme_Name = "Staff Vehicle Loan", PrlColl_Amt = 27000, IntColl_Amt = 0, IODColl_Amt = 0, PIColl_Amt = 0 },
                 new DashBoardLoanCollection { Scheme_Id = 1, Scheme_Name = "Staff Festival Advance", PrlColl_Amt = 150000, IntColl_Amt = 0, IODColl_Amt = 0, PIColl_Amt = 0 }
             };
@@ -543,7 +553,5 @@
         public double IODColl_Amt { get; set; }
         public double PIColl_Amt { get; set; }
     }
-
-
 }
 

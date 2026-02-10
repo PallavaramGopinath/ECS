@@ -14,5 +14,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<string> RefreshTokenAsync(string refreshToken);
         Task<bool> RevokeTokenAsync(string token);
         (bool isValid, ClaimsPrincipal? claims) ValidateToken(string token);
+        //UserInfoDto GetUserInfoDto();
     }
 }

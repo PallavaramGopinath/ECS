@@ -1,9 +1,11 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -15,7 +17,7 @@ namespace Infin8.Coapp.Utility
         // Regular Expression: Allows letters, numbers, ".", "_", and "-"
         private static readonly Regex UsernameRegex = new(@"^[a-zA-Z0-9._-]{5,30}$", RegexOptions.Compiled);
         // Regular Expression: Enforces strong password rules
-        private static readonly Regex PasswordRegex = new(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,64}$", RegexOptions.Compiled); 
+        private static readonly Regex PasswordRegex = new(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,64}$", RegexOptions.Compiled);
 
         public static bool IsValidUsername(string username)
         {
@@ -254,7 +256,7 @@ namespace Infin8.Coapp.Utility
                     MaturityAmount = 0;
                     break;
             }
-            return MaturityAmount + Principal ;
+            return MaturityAmount + Principal;
         }
 
         public static double GetRDMaturityAmount(double RDAmount, int Prd, double ROI, bool ApplyQuarterlyCompound)
@@ -612,7 +614,7 @@ namespace Infin8.Coapp.Utility
             return date.Month == 12 && date.Day == 31;
         }
 
-        public static DtoPaySlip  Calculate_LOP_HP(DtoPaySlip paySlip)
+        public static DtoPaySlip Calculate_LOP_HP(DtoPaySlip paySlip)
         {
             double bp = 0;
             double allowanceAmt = 0;
@@ -631,7 +633,7 @@ namespace Infin8.Coapp.Utility
 
                 if (lopDays > 0)
                 {
-                    foreach (var list in paySlip.ComponentAssignments!.Where(x=> x.Component_Type == 1))
+                    foreach (var list in paySlip.ComponentAssignments!.Where(x => x.Component_Type == 1))
                     {
                         allowanceAmt = list.Current_Value;
                         allowanceAmt = allowanceAmt / noOfDays * lopDays;
@@ -640,7 +642,7 @@ namespace Infin8.Coapp.Utility
                     }
                 }
                 mlDays = paySlip.MedicalLeave;
-                if(mlDays >0)
+                if (mlDays > 0)
                 {
                     var mlComponent = paySlip.ComponentAssignments!.FirstOrDefault(x => x.Component_Code == "DA");
                     hp = bp * noOfDays / mlDays;
@@ -649,7 +651,7 @@ namespace Infin8.Coapp.Utility
                 }
                 grossPay = paySlip.ComponentAssignments!.Where(x => x.Component_Type == 1).Sum(x => x.Current_Value);
                 totalDeductions = paySlip.ComponentAssignments!.Where(x => x.Component_Type == 2).Sum(x => x.Current_Value);
-                loanDeductions = paySlip.LoanList!.Sum(x=> x.PrlDemand + x.PrlOD + x.IntDemand);
+                loanDeductions = paySlip.LoanList!.Sum(x => x.PrlDemand + x.PrlOD + x.IntDemand);
                 suspensAccountDeductions = paySlip.SuspeneDueToList!.Sum(x => x.Pmt - x.Rpt);
                 totalDeductions += loanDeductions + suspensAccountDeductions;
                 paySlip.GrossPay = grossPay;
@@ -658,12 +660,12 @@ namespace Infin8.Coapp.Utility
             }
             catch (Exception ex)
             {
-                Console.WriteLine (ex.Message, "error in calculating Lop/half pay");
+                Console.WriteLine(ex.Message, "error in calculating Lop/half pay");
             }
             return paySlip;
         }
 
-        public static List<DtoLoanRepaymentSchedule> PrepareLoanRepaymentSchedule(DateTime fromDate,  double prlAmt, double roi, int prd, int gracePeriod, double instAmt, int instType, int demandFrequency,
+        public static List<DtoLoanRepaymentSchedule> PrepareLoanRepaymentSchedule(DateTime fromDate, double prlAmt, double roi, int prd, int gracePeriod, double instAmt, int instType, int demandFrequency,
             DateTime firstIntDueDate, DateTime firstPrlDueDate)
         {
             List<DtoLoanRepaymentSchedule> scheduleList = new();
@@ -673,12 +675,12 @@ namespace Infin8.Coapp.Utility
             {
                 gracePeriod = Utilities.GetNoOfCompletedMonthsBetweenTwoDates(firstIntDueDate, firstPrlDueDate);
                 //dgvSchedule.Rows.Clear();
-                double loanOs = 0, nonODPrl = 0, prlDem = 0, intCalc = 0,  totIntCalc = 0, totPrlDem = 0, totAmt = 0;
+                double loanOs = 0, nonODPrl = 0, prlDem = 0, intCalc = 0, totIntCalc = 0, totPrlDem = 0, totAmt = 0;
 
                 nonODPrl = prlAmt;
                 loanOs = prlAmt;
                 if (gracePeriod > 0)
-                   
+
                 {
                     for (int i = 1; i <= gracePeriod; i += demandFrequency)
                     {
@@ -697,7 +699,7 @@ namespace Infin8.Coapp.Utility
                     }
                 }
                 duedate = firstPrlDueDate.Date;
-                
+
                 for (int i = 1; i <= prd; i += demandFrequency)
                 {
                     schedule = new();
@@ -748,7 +750,7 @@ namespace Infin8.Coapp.Utility
             }
             catch (Exception ex)
             {
-                Console.WriteLine (ex.Message + "\n error in prepare schedule", "error");
+                Console.WriteLine(ex.Message + "\n error in prepare schedule", "error");
             }
             return scheduleList;
         }
@@ -758,6 +760,83 @@ namespace Infin8.Coapp.Utility
             int noOfCompletedMonths = 0;
             noOfCompletedMonths = (endDate.Year - startDate.Year) * 12 + endDate.Month - startDate.Month - (endDate.Day < startDate.Day ? 1 : 0);
             return noOfCompletedMonths;
+        }
+
+        public static async Task<UserInfoDto> GetUserInfoDtoFromASP(AuthenticationStateProvider authenticationStateProvider)
+        {
+            UserInfoDto userInfo = new UserInfoDto();
+            try
+            {
+                var authStateTask = await authenticationStateProvider.GetAuthenticationStateAsync();
+                //authStateTask.Wait();
+                //var user = authStateTask.Result.User;
+                var user = authStateTask.User;
+                if (user.Identity != null && user.Identity.IsAuthenticated)
+                {
+                    //var userIdClaim = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+                    //var usernameClaim = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+                    //var brCodeClaim = user.Claims.FirstOrDefault(c => c.Type == "BrCode");
+                    //var yrIdClaim = user.Claims.FirstOrDefault(c => c.Type == "YrId");
+                    //var yrBeginningDateClaim = user.Claims.FirstOrDefault(c => c.Type == "YrBeginningDate");
+                    //var yrEndDateClaim = user.Claims.FirstOrDefault(c => c.Type == "YrEndDate");
+                    //var currentDateClaim = user.Claims.FirstOrDefault(c => c.Type == "CurrentDate");
+                    //var roles = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+                    //var isAuthenticated = user.Identity.IsAuthenticated;
+
+                    //var brCodeClaim = user.FindFirst("BrCode")?.Value.ToString();
+                    //var yrIdClaim = user.FindFirst("YrId")?.Value.ToString();
+                    //var yrBeginningDateClaim = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                    //var yrEndDateClaim = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                    //var currentDateClaim = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                    //var roles = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+                    //var isAuthenticated = user.Identity.IsAuthenticated;
+
+                    var allClaims = user.Claims.ToDictionary(c => c.Type, c => c.Value, StringComparer.OrdinalIgnoreCase);
+                    var userIdClaim = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+                    var usernameClaim = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+                    var brCodeClaim = allClaims.GetValueOrDefault("BrCode", "");
+                    var yrIdClaim = allClaims.GetValueOrDefault("YrId", "");
+                    var yrBeginningDateClaim = allClaims.GetValueOrDefault("YrBeginningDate", "");
+                    var yrEndDateClaim = allClaims.GetValueOrDefault("YrEndDate", "");
+                    var currentDateClaim = allClaims.GetValueOrDefault("CurrentDate", "");
+                    var roles = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+                    var isAuthenticated = user.Identity.IsAuthenticated;
+
+                    //return new UserInfoDto
+                    userInfo = new UserInfoDto
+                    {
+                        UserId = userIdClaim != null ? decimal.Parse(userIdClaim.Value) : 0,
+                        Username = usernameClaim?.Value ?? string.Empty,
+                        BrCode = brCodeClaim,
+                        YrId = yrIdClaim != null ? decimal.Parse(yrIdClaim) : 0,
+                        YrBeginningDate = Convert.ToDateTime(yrBeginningDateClaim),
+                        YrEndDate = Convert.ToDateTime(yrEndDateClaim),
+                        CurrentDate = Convert.ToDateTime(currentDateClaim),
+                        Roles = roles,
+                        IsAuthenticated = isAuthenticated
+                    };
+                }
+                else
+                {
+                    //return new UserInfoDto
+                    userInfo = new UserInfoDto
+                    {
+                        UserId = 0,
+                        Username = string.Empty,
+                        BrCode = string.Empty,
+                        YrId = 0,
+                        Roles = new List<string>()
+                        //YrBeginningDate = string.Empty,
+                        //YrEndDate = string.Empty,
+                        //CurrentDate = string.Empty,
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                string errorMessage = ex.Message + " Something went wrong! An error occurred while retrieving user information from authentication state.";
+            }
+            return userInfo;
         }
     }
 }

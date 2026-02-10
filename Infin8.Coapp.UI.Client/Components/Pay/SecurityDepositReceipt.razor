@@ -1,15 +1,18 @@
-﻿@page "/security-deposit-receipt"
+﻿@* @page "/security-deposit-receipt" *@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using Infin8.Coapp.Utility
 @using System.Net
+@using Microsoft.AspNetCore.Components.Authorization
 
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 
 @inject TransactionStateService TransactionState
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveWebAssembly
 
 @if (_isLoading)
 {
@@ -32,7 +35,7 @@ else
             </div>
         </div>
         <div class="card-body">
-            <div class="row g-3">
+            <div class="row g-3 mt-2">
                 <div class="col-md-2">
                     <div class="text-center p-2 bg-success text-white rounded">
                         <div class="fw-bold">@model.Employee_Name</div>
@@ -190,13 +193,23 @@ else
         {
             try
             {
-                model.BrCode = brCode;
+                // model.BrCode = brCode;
+                // model.Transaction_Date = TransactionDate;
+                // model.Employee_Id = Employee_Id;
+                // model.Employee_Name = Employee_Name;
+                // model.Designation = Designation;
+                // model.Created_By = Created_By;
+                // model.YrId = Yr_Id;
+
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                model.BrCode = userInfoDto.BrCode!;
                 model.Transaction_Date = TransactionDate;
                 model.Employee_Id = Employee_Id;
                 model.Employee_Name = Employee_Name;
                 model.Designation = Designation;
                 model.Created_By = Created_By;
-                model.YrId = Yr_Id;
+                model.YrId = userInfoDto.YrId;
+
 
                 // DtoSecurityDepositCreate empData = new()
                 // {
@@ -210,7 +223,7 @@ else
 
                 await GetSecurityBalance();
                 await GetEmployeeData();
-                securityDepositData.Yr_Id = Yr_Id;
+                securityDepositData.Yr_Id = userInfoDto.YrId;
                 model.SecurityDeposit = securityDepositData;
                 _isLoading = false;
                 // await Task.Delay(100);

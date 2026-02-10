@@ -7,8 +7,8 @@
 @inject HttpClient _httpClient
 @using System.Text.Json 
 @using System.Text.Json.Serialization
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
-
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
+@rendermode InteractiveWebAssembly 
 @inject NavigationManager Navigation
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -99,70 +99,64 @@ else
                     </div>
                 </div>
 
-                <!-- If bank ledger display bank details -->
-
-                @if (isBankAccount)
-                {
-                    <div class="card mt-4 mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">Bank Account Details</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="checkNo">Cheque No:</label>
-                                        <InputText id="checkNo" class="form-control" @bind-Value="transaction.Cheque_No" />
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="chequeDate">Cheque Date:</label>
-                                        <InputDate id="chequeDate" class="form-control" @bind-Value="transaction.Cheque_Date" />
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="issueBank">Issue Bank:</label>
-                                        <InputText id="issueBank" class="form-control" @bind-Value="transaction.Issue_Bank" />
-                                    </div>
-                                </div>
-
-                            </div>
-
-                        </div>
-                    </div>
-                }
-
-
                 <!-- Ledger balance and entry -->
-
-                <div class="col-md-1">
+                <div class="col-md-2">
                     <div class="form-group">
                         <label for="ledgerBalance">Ledger Balance</label>
                         <InputNumber id="ledgerBalance" class="form-control" disabled ="true" @bind-Value="transaction.Ledger_Balance"/>
                     </div>
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-2">
                     <div class="form-group">
                         <label for="ledgerEntry">Enter Amount</label>
                         <InputNumber id="lederEntry" class="form-control" @bind-Value="transaction.Ledger_Entry"/>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-group">
                         <label for="narration">Narration</label>
                         <InputText id="lederEntry" class="form-control" @bind-Value="transaction.Narration"/>
                     </div>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-1 d-flex align-items-end">
                     <button type="button" class="btn btn-sm btn-secondary" @onclick="AddAccount">
-                        <i class="oi oi-plus"></i> Add Account
+                        <i class="oi oi-plus"></i> Add
                     </button>
                 </div>
-               
             </div>
         </div>
+        <!-- If bank ledger display bank details -->
+        @if (isBankAccount)
+        {
+            <div class="card mt-4 mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Bank Account Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="checkNo">Cheque No:</label>
+                                <InputText id="checkNo" class="form-control" @bind-Value="transaction.Cheque_No" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="chequeDate">Cheque Date:</label>
+                                <InputDate id="chequeDate" class="form-control" @bind-Value="transaction.Cheque_Date" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="issueBank">Issue Bank:</label>
+                                <InputText id="issueBank" class="form-control" @bind-Value="transaction.Issue_Bank" />
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
 
     </div>
 
@@ -290,24 +284,32 @@ else
                 // appState.Yr_FromDate = new DateTime(2025, 04, 1);
                 // appState.Yr_ToDate = new DateTime(2026, 3, 31);
 
-                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
-                var stateBrCode = user.FindFirst("BrCode")?.Value.ToString();
-                var yrId = user.FindFirst("YrId")?.Value.ToString();
-                var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
-                var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
-                var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
-                brCode = stateBrCode!;
-                transaction.Transaction_Date = currentDate ;
-                transaction.Cheque_Date = currentDate;
-                transaction.Yr_Id = Convert.ToDecimal(yrId);
-            if (!user.Identity!.IsAuthenticated)
-            {
-                // Not logged in — redirect to login page
-                Navigation.NavigateTo("/login", true);
-                return;
-            }
-                var ledgerTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/11001");
+                // var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                // var user = authState.User;
+                // var stateBrCode = user.FindFirst("BrCode")?.Value.ToString();
+                // var yrId = user.FindFirst("YrId")?.Value.ToString();
+                // var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                // var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                // var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
+                // brCode = stateBrCode!;
+                // transaction.Transaction_Date = currentDate ;
+                // transaction.Cheque_Date = currentDate;
+                // transaction.Yr_Id = Convert.ToDecimal(yrId);
+
+                var userInfoDto = await  Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                brCode = userInfoDto.BrCode!;
+                transaction.Transaction_Date = userInfoDto.CurrentDate;
+                transaction.Cheque_Date = userInfoDto.CurrentDate;
+                transaction.Yr_Id = userInfoDto.YrId;
+                transaction.User_Id = userInfoDto.UserId;
+                // if (!user.Identity!.IsAuthenticated)
+                if(userInfoDto.IsAuthenticated ==false)
+                {
+                    // Not logged in — redirect to login page
+                    Navigation.NavigateTo("/login", true);
+                    return;
+                }
+                var ledgerTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/{brCode}");
                 // Initialize the list with default option first
                 ledgerNameItems = new List<DropdownItem>
                 {
@@ -471,7 +473,7 @@ else
             }
             AccountTransactionVM account = new()
             {
-                Created_By = userId,
+                Created_By = transaction.User_Id ,
                 Created_Date = transaction.Transaction_Date ,
                 LedId = transaction.Ledger_Id ,
                 AccountId = 0,
@@ -528,6 +530,7 @@ else
         transaction.Issue_Bank = "";
         transaction.Narration = "";
         isBankAccount = false;
+        isDdlCashAdjustmentDisable = false;
         // transaction.Yr_Id = 110010000023;
         transactionAccountsList = new();
     }
@@ -567,7 +570,7 @@ else
                     Module_Name = "Account Transaction",
                     Cash_Or_Adjustment = transaction.Cash_Adjustment,
                     Related_Account_Data = accRelatedData,
-                    Created_By = userId,
+                    Created_By = transaction.User_Id ,
                     Created_Date = transaction.Transaction_Date,
                     Checked_By =0,
                     Checked_Date = null,

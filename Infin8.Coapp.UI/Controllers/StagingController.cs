@@ -22,15 +22,14 @@ namespace Infin8.Coapp.UI.Controllers
         readonly IStagingMasterHandler _stagingMasterHandler;
         readonly IStagingDetailsHandler _stagingDetailsHandler;
         readonly ITransactionsHandler _transactionsHandler;
-        readonly JwtAuthenticationHandler _jwtAuthenticationHandler;
+        
         public StagingController(IStagingMasterHandler stagingMasterHandler, IStagingDetailsHandler stagingDetailsHandler,
-            ITransactionsHandler transactionsHandler, JwtAuthenticationHandler jwtAuthenticationHandler)
+            ITransactionsHandler transactionsHandler)
         {
             //_stagingMasterHandler = stagingMasterHandler;
             _stagingDetailsHandler = stagingDetailsHandler;
             _transactionsHandler = transactionsHandler;
             _stagingMasterHandler = stagingMasterHandler;
-            _jwtAuthenticationHandler = jwtAuthenticationHandler;
         }
 
         [HttpPost]
@@ -186,18 +185,18 @@ namespace Infin8.Coapp.UI.Controllers
         public async Task<ActionResult<DtoVoucher>> ApproveStaging([FromBody] decimal stagingId)
         {
 
-           var token = HttpContext.Request.Cookies.TryGetValue("auth-token", out var jwtToken) ? jwtToken : null;
-           var (isValid, Principle) = _jwtAuthenticationHandler.ValidateToken(token);
+           //var token = HttpContext.Request.Cookies.TryGetValue("auth-token", out var jwtToken) ? jwtToken : null;
+           //var (isValid, Principle) = _jwtAuthenticationHandler.ValidateToken(token);
 
-            if (!isValid || Principle == null)
-            {
-                return Unauthorized("Invalid or missing token");
-            }
-            var userIdClaim = Principle.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-            {
-                return Unauthorized("User ID claim not found in token");
-            }
+           // if (!isValid || Principle == null)
+           // {
+           //     return Unauthorized("Invalid or missing token");
+           // }
+           // var userIdClaim = Principle.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+           // if (userIdClaim == null)
+           // {
+           //     return Unauthorized("User ID claim not found in token");
+           // }
             DtoVoucher voucherData = new();
             bool result = false;
             decimal vocId = 0;

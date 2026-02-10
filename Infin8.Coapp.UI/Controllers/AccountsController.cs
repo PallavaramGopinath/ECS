@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
+using Infin8.Coapp.UI.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;

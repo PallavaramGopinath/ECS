@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Infin8.Coapp.Utility
 {
+    using Infin8.Coapp.Dto;
     using Infin8.Coapp.Models;
     using Infin8.Coapp.Repository.Entities;
     using Microsoft.AspNetCore.Http;
@@ -29,6 +30,7 @@ namespace Infin8.Coapp.Utility
         public ClaimsPrincipal ValidateToken(string token);
         public string GenerateAccessToken(decimal userId, string username, string roles, string brCode, decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate);
         public string GenerateRefreshToken();
+        //public UserInfoDto GetUserInfoDto();
     }
 
     public class JwtService: IJwtService
@@ -161,5 +163,22 @@ namespace Infin8.Coapp.Utility
                 Expires = DateTimeOffset.UtcNow.AddHours(-_cookieExpireHour)
             };
         }
+
+        //public UserInfoDto GetUserInfoDto()
+        //{
+        //    var identity = (ClaimsPrincipal)Thread.CurrentPrincipal!;
+        //    var userInfo = new UserInfoDto
+        //    {
+        //        Username = identity!.Claims.FirstOrDefault(c => c.Type == "UserName")?.Value!,
+        //        UserId = decimal.Parse(identity.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value ?? "0"),
+        //        BrCode = identity.Claims.FirstOrDefault(c => c.Type == "BrCode")?.Value,
+        //        YrId = identity.Claims.FirstOrDefault(c => c.Type == "YrId")?.Value,
+        //        YrBeginningDate = identity.Claims.FirstOrDefault(c => c.Type == "YrBeginningDate")?.Value,
+        //        YrEndDate = identity.Claims.FirstOrDefault(c => c.Type == "YrEndDate")?.Value,
+        //        CurrentDate = identity.Claims.FirstOrDefault(c => c.Type == "CurrentDate")?.Value,
+        //        Roles = identity.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList()
+        //    };
+        //    return userInfo;
+        //}
     }
 }

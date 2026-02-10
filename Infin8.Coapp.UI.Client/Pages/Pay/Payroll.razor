@@ -2,9 +2,16 @@
 @using System.ComponentModel.DataAnnotations
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
+@rendermode InteractiveWebAssembly 
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 <PageTitle>Payroll Management System</PageTitle>
 
@@ -33,7 +40,6 @@
 else
 {
     <div class="container-fluid p-4">
-        
 
         <!-- Display employees list to generate, view, print -->
         @if (employeeLastPayInfos != null && employeeLastPayInfos.Any())
@@ -1007,7 +1013,10 @@ else
         {
             try
             {
-
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                BrCode = userInfoDto.BrCode!; // Example branch code
+                Usr_Id = userInfoDto.UserId;
+                Yr_Id = userInfoDto.YrId;
                 await GetEmployeesLastPayInfo();
                 _isLoading = false;
                 StateHasChanged();
@@ -1024,6 +1033,7 @@ else
 
     private async Task LoadSampleData()
     {
+        #region commented area
         // Sample data for demonstration
         // payslips = new List<DtoPaySlip>
         // {
@@ -1094,6 +1104,8 @@ else
         //         }
         //     }
         // };
+        #endregion 
+
         await Task.CompletedTask;
     }
 

@@ -9,7 +9,11 @@
 @using System.Reflection
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
+@using Infin8.Coapp.Utility
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 @attribute [Authorize(Roles = "Admin,Checker")]
 
 <h3>Checker Dashboard</h3>
@@ -235,6 +239,12 @@ else
     {
         if (firstRender)
         {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode!;
+            Transaction_Date = userInfoDto.CurrentDate;
+            // model.Created_By = userInfoDto.UserId;
+            // model.YrId = userInfoDto.YrId;
+
             await LoadChekerDashboardDataAsync();
         }
     }

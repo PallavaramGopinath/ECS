@@ -2,10 +2,17 @@
 
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
+@inject TransactionStateService TransactionState
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveWebAssembly
 
+@attribute [Authorize(Roles = "Admin")]
 @if (model != null)
 {
     <div class="container-fluid">
@@ -25,6 +32,14 @@
     <div class="card">
         <div class="card-header">
             <h5>@model.ProcessDate.ToString("dd-MM-yyyy")</h5>
+            <div class="row mt-1 h3">
+                <div class="col-md-6">
+                    New Financial Year From Date : <strong>@model.FromDate.ToString("dd-MM-yyyy")</strong>
+                </div>
+                <div class="col-md-3">
+                    To Date : <strong>@model.ToDate.ToString("dd-MM-yyyy")</strong>
+                </div>
+            </div>
         </div>
         <div class="card-body">
             <div class="d-flex justify-content-between mt-4 mb-4">
@@ -77,29 +92,36 @@
     private string errorMessage = "";
     private DtoDayProcess model = new()
     {
-        ProcessDate = new DateTime(2025, 3, 31),
-        FromDate = new DateTime(2024, 4, 1),
-        ToDate = new DateTime(2025, 3, 31),
-        Created_By = 110010000002,
-        YrId = 110010000023,
-        BrCode = "11001",
+        // ProcessDate = new DateTime(2025, 3, 31),
+        // Created_By = 110010000002,
+        // YrId = 110010000023,
+        // BrCode = "11001",
         Message = string.Empty
+        // FromDate = new DateTime(2024, 4, 1),
+        // ToDate = new DateTime(2025, 3, 31)
     };
-    
-    // protected override async Task OnAfterRenderAsync(bool firstRender)
-    // {
-    //     if (firstRender)
-    //     {
-    //         try
-    //         {
 
-    //         }
-    //         catch (Exception ex)
-    //         {
-    //             Console.WriteLine(ex.Message);
-    //         }
-    //     }
-    // }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                model.BrCode = userInfoDto.BrCode!;
+                model.ProcessDate = userInfoDto.CurrentDate;
+                model.Created_By = userInfoDto.UserId;
+                model.YrId = userInfoDto.YrId;
+                model.FromDate = userInfoDto.YrBeginningDate.AddYears(1);
+                model.ToDate = userInfoDto.YrEndDate.AddYears(1);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
 
     private async Task HandleValidSubmit()
     {

@@ -1,4 +1,4 @@
-﻿@page "/jewel-loan-recovery"
+﻿@* @page "/jewel-loan-recovery" *@
 @using System.ComponentModel.DataAnnotations
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
@@ -6,7 +6,8 @@
 @using System.Text.Json.Serialization
 @using Infin8.Coapp.Utility
 @using System.Net
-@rendermode InteractiveAuto
+@* @rendermode InteractiveAuto *@
+@rendermode InteractiveWebAssembly
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject TransactionStateService TransactionState

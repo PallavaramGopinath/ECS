@@ -1,11 +1,12 @@
 ﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Infin8.Coapp.UI.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ReportingServices.ReportProcessing.ReportObjectModel;
-using System.IdentityModel.Claims;
+using System.Security.Claims;
 
 namespace Infin8.Coapp.API.Controllers
 {
@@ -18,19 +19,21 @@ namespace Infin8.Coapp.API.Controllers
         readonly ITransactionsHandler _transactionHandler;
         private readonly IWebHostEnvironment _environment;
         private readonly IStagingDetailsHandler _stagingDetailsHandler;
-        public TransactionController(ITransactionsHandler transactionsHandler, IWebHostEnvironment environment, 
+        //UserInfoDto userInfoDto = new UserInfoDto();
+        public TransactionController(ITransactionsHandler transactionsHandler, IWebHostEnvironment environment,
                 IStagingDetailsHandler stagingDetailsHandler)
         {
             _transactionHandler = transactionsHandler;
             _environment = environment;
             _stagingDetailsHandler = stagingDetailsHandler;
+            //userInfoDto = this.GetUserInfoDto();
         }
         [HttpGet]
         [Route("GetAccountNames/{accountStatus}/{accountBelongTo}")]
         public async Task<ActionResult<List<DropdownItem>>> GetTransactionAccounts(string accountStatus, string accountBelongTo)
         {
-            //var brCode = User.FindFirst("BrCode")?.Value.ToString();
             List<DropdownItem> accounts = new List<DropdownItem>();
+            
             accounts = await _transactionHandler.GetTransactionAccounts(accountStatus, accountBelongTo);
             if (accounts == null)
             {
@@ -43,6 +46,7 @@ namespace Infin8.Coapp.API.Controllers
         [Route("GetAllAccountNames")]
         public async Task<ActionResult<List<DtoAccount_Transactions>>> GetAllTransactionAccounts()
         {
+            var userInfoDto = this.GetUserInfoDto();
             List<DtoAccount_Transactions> dtoAccounts = new List<DtoAccount_Transactions>();
             dtoAccounts = await _transactionHandler.GetAllAccountsTransactions();
             if (dtoAccounts == null)
@@ -191,4 +195,6 @@ namespace Infin8.Coapp.API.Controllers
             }
         }
     }
+
+    
 }

@@ -12,7 +12,6 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace Infin8.Coapp.BusinessLogic
 {
     public class JwtAuthenticationHandler : IAuthenticationHandler
@@ -123,5 +122,10 @@ namespace Infin8.Coapp.BusinessLogic
             var claimsPrincipal = _jwtService.ValidateToken(token);
             return (claimsPrincipal != null, claimsPrincipal);
         }
+
+        //public UserInfoDto GetUserInfoDto()
+        //{
+        //    return _jwtService.GetUserInfoDto();
+        //}
     }
 }

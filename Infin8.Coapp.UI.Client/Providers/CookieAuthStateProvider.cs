@@ -36,9 +36,10 @@
                     new Claim(ClaimTypes.NameIdentifier, userInfo.UserId.ToString()),
                     new Claim("BrCode", userInfo.BrCode! ), // Example of a custom claim)
                     new Claim("YrId", userInfo.YrId!.ToString()),
-                    new Claim("YrBeginningDate", userInfo.YrBeginningDate!),
-                    new Claim("YrEndDate", userInfo.YrEndDate!),
-                    new Claim("CurrentDate", userInfo.CurrentDate!)
+                    new Claim("YrBeginningDate", userInfo.YrBeginningDate!.ToString()),
+                    new Claim("YrEndDate", userInfo.YrEndDate!.ToString ()),
+                    new Claim("CurrentDate", userInfo.CurrentDate!.ToString ()),
+                    new Claim("IsAuthenticated", userInfo.IsAuthenticated.ToString())
                 };
 
                 foreach (var role in userInfo.Roles)

@@ -2,9 +2,17 @@
 @using System.ComponentModel.DataAnnotations
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
+@inject TransactionStateService TransactionState
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveWebAssembly
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 <div class="container-fluid">
     <div class="row">
@@ -205,13 +213,13 @@ else
 @code {
     private bool _isLoading = true;
     private bool _isError = false;
-    private bool _isTrnDateDisable = false;
+    private bool _isTrnDateDisable = true;
     private bool _isCalculating = false;
     private bool _isGenerating = false;
     private string? errorMessage = string.Empty;
-    private string BrCode = "11001";
-    private decimal Usr_Id = 110010000001;
-    private decimal Yr_Id = 110010000023;
+    // private string BrCode = "11001";
+    // private decimal Usr_Id = 110010000001;
+    // private decimal Yr_Id = 110010000023;
     List<PaySlipDAArrearsVM> daArrearsList = new();
     List<EmployeeMasterDto> employeeList = new();
     List<EmployeeMasterDto> selectedEmployeeList = new();
@@ -223,7 +231,13 @@ else
         {
             try
             {
-                var mem = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{BrCode}");
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                model.BrCode = userInfoDto.BrCode!;
+                model.Transaction_Date = userInfoDto.CurrentDate ;
+                model.Created_By = userInfoDto.UserId;
+                model.YrId = userInfoDto.YrId;
+
+                var mem = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{model.BrCode}");
                 if (mem != null && mem.Any())
                 {
                     employeeList = mem.ToList();
@@ -235,13 +249,9 @@ else
                 {
                     model.EmployeeList.AddRange(employeeList);
                 }
-                model.Transaction_Date = DateTime.Now;
                 model.DATo_Date = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
                 model.DAFrom_Date = model.DATo_Date.AddMonths(-1);
                 model.DATo_Date = model.DATo_Date.AddDays(-1);
-                model.BrCode = BrCode;
-                model.Created_By = Usr_Id;
-                model.YrId = Yr_Id;
                 _isLoading = false;
                 StateHasChanged();
             }
@@ -290,12 +300,12 @@ else
             string fromDateToString = model.DAFrom_Date.ToString("yyyy-MM-dd");
             string toDateToString = model.DATo_Date.ToString("yyyy-MM-dd");
             string description = "D";
-            payId = await _httpClient.GetFromJsonAsync<decimal>($"https://localhost:7073/api/Pay/GetPayIdForDAArrears/{fromDateToString}/{toDateToString}/{description}/{BrCode}");
+            payId = await _httpClient.GetFromJsonAsync<decimal>($"https://localhost:7073/api/Pay/GetPayIdForDAArrears/{fromDateToString}/{toDateToString}/{description}/{model.BrCode}");
             if (payId > 0)
             {
                 foreach (var emp in selectedEmployeeList!)
                 {
-                    var result = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Pay/IsPaySlipGenerated/{payId}/{emp.Mem_Id}/{BrCode}");
+                    var result = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Pay/IsPaySlipGenerated/{payId}/{emp.Mem_Id}/{model.BrCode}");
                     if (result)
                     {
                         errorMessage += " DA Arrears already generated for the employee " + emp.MemberName + " ";

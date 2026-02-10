@@ -12,9 +12,10 @@ namespace Infin8.Coapp.Dto
         public string Username { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = new List<string>();
         public string? BrCode { get; set; }
-        public string? YrId { get; set; }
-        public string? YrBeginningDate { get; set; }
-        public string? YrEndDate { get; set; }
-        public string? CurrentDate { get; set; }
+        public decimal YrId { get; set; }
+        public DateTime YrBeginningDate { get; set; }
+        public DateTime YrEndDate { get; set; }
+        public DateTime  CurrentDate { get; set; }
+        public bool IsAuthenticated { get; set; }
     }
 }

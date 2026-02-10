@@ -22,5 +22,6 @@ namespace Infin8.Coapp.Dto
         public int Fnl_Id { get; set; }
         public decimal Cash_Led_Id { get; set; }
         public string? Narration { get; set; }
+        public decimal User_Id { get; set; }
     }
 }

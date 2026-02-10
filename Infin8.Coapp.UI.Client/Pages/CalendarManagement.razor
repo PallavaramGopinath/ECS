@@ -1,10 +1,20 @@
 ﻿@page "/calendar"
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.UI.Client.Components.ModalDialog
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @* @inject CalendarService CalendarService *@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
-<h3>Banking Calendar Management</h3>
+@inject TransactionStateService TransactionState
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveWebAssembly
+
+@attribute [Authorize(Roles = "Admin")]
+
+
+<h3>Calendar Management</h3>
 
 <EditForm Model="@currentCalendar" OnValidSubmit="@SaveCalendar" FormName="create- calendar">
     <DataAnnotationsValidator/>
@@ -126,15 +136,20 @@
     private Modal dayModal;
     private string modalTitle = "Add Day";
     private string financialYear = $"{DateTime.Now.Year}-{DateTime.Now.Year + 1}";
-    
+
     protected override async Task OnInitializedAsync()
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Load current calendar (you might have logic to determine which calendar to load)
-        // currentCalendar = await CalendarService.GetActiveCalendarAsync();
-        if (currentCalendar != null)
-        {
-            // calendarDays = await CalendarService.GetCalendarDaysAsync(currentCalendar.CalendarId);
-        }
+        // if (firstRender)
+        // {
+            // Load current calendar (you might have logic to determine which calendar to load)
+            // currentCalendar = await CalendarService.GetActiveCalendarAsync();
+
+            if (currentCalendar != null)
+            {
+                // calendarDays = await CalendarService.GetCalendarDaysAsync(currentCalendar.CalendarId);
+            }
+        // }
     }
     
     private async Task SaveCalendar()

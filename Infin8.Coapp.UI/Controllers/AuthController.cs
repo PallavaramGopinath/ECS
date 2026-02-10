@@ -1,6 +1,7 @@
 ﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Infin8.Coapp.UI.Controllers;
 using Infin8.Coapp.Utility;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
@@ -33,7 +34,6 @@ namespace Infin8.Coapp.API.Controllers
             _authenticationHandler = authenticationHandler;
             _userHandler = userHandler;
             _antiforgery = antiforgery;
-            //_httpContextAccessor = httpContextAccessor;
         }
 
         [HttpGet("get-antiforgery-token")]
@@ -247,17 +247,18 @@ namespace Infin8.Coapp.API.Controllers
         [HttpGet("me")]
         public IActionResult Me()
         {
-            return Ok(new UserInfoDto
-            {
-                UserId = Convert.ToDecimal ( User.FindFirstValue(ClaimTypes.NameIdentifier)),
-                Username = User.Identity?.Name!,
-                Roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList (),
-                BrCode = User.FindFirst("BrCode")?.Value,
-                YrId = User.FindFirst("YrId")?.Value,
-                YrBeginningDate = User.FindFirst("YrBeginningDate")?.Value,
-                YrEndDate = User.FindFirst("YrEndDate")?.Value,
-                CurrentDate = User.FindFirst("CurrentDate")?.Value
-            });
+            return Ok(this.GetUserInfoDto());
+            //return Ok(new UserInfoDto
+            //{
+            //    UserId = Convert.ToDecimal ( User.FindFirstValue(ClaimTypes.NameIdentifier)),
+            //    Username = User.Identity?.Name!,
+            //    Roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList (),
+            //    BrCode = User.FindFirst("BrCode")?.Value,
+            //    YrId = User.FindFirst("YrId")?.Value,
+            //    YrBeginningDate = User.FindFirst("YrBeginningDate")?.Value,
+            //    YrEndDate = User.FindFirst("YrEndDate")?.Value,
+            //    CurrentDate = User.FindFirst("CurrentDate")?.Value
+            //});
         }
     }
     public class LoginModel
