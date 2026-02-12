@@ -1,4 +1,4 @@
-﻿@page "/fixed-deposit-loan"
+﻿@* @page "/fixed-deposit-loan" *@
 @using System.ComponentModel.DataAnnotations
 @using System.Linq
 @using Infin8.Coapp.Dto
@@ -8,11 +8,17 @@
 @using System.Text.Json.Serialization
 @using System.Net
 
-@rendermode InteractiveAuto
+@* @rendermode InteractiveAuto *@
 @inject HttpClient _httpClient
 @inject TransactionStateService TransactionState
 
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 @* <PageTitle>Fixed Deposit Loan Application</PageTitle> *@
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 <h3 class="mb-0">Fixed Deposit Loan</h3>
 <hr class="mt-0" />
@@ -85,7 +91,8 @@
         </div>
         <div class="card-body">
             <div class="col-md-3 mt-3 d-flex align-items-end">
-                <button class="btn btn-secondary rounded-pill mb-3" @onclick="LoadFdNumbersAsync" disabled="@(loanModel.Mem_Id <= 0)">
+                @* disabled="@(loanModel.Mem_Id == 0)" *@
+                <button class="btn btn-secondary rounded-pill mb-3" @onclick="LoadFdNumbersAsync" >
                     <i class="oi oi-list-rich"></i> Get Fixed Deposit No(s)
                 </button>
             </div>
@@ -299,6 +306,7 @@
 
     #region declaration
     private string brCode = "11001";
+    decimal createdBy = 0;
     private DtoTermDepositFixedDepositLoan loanModel = new();
     private bool memberDataLoaded = false;
     private bool fdNosLoaded = false;
@@ -309,7 +317,8 @@
     private Staging_Details stagingDetails = new();
     #endregion
 
-    protected override void OnInitialized()
+    // protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Initialize model if needed, e.g., from query parameters
         // loanModel ??= new();
@@ -319,12 +328,19 @@
         // loanModel.Member_Name = "Saroja.K";
         // loanModel.Transaction_Date = DateTime.Now;
         // MemberId = 110010008478;
-        loanModel.AccountId = AccountId;
-        loanModel.CashOrAdjustment = CashOrAdjustment;
-        loanModel.Mem_Id = MemberId;
-        loanModel.Member_No = MemberNumber;
-        loanModel.Member_Name = MemberName;
-        loanModel.Transaction_Date = Transactiondate;
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode!;
+            createdBy = userInfoDto.UserId;
+
+            loanModel.AccountId = AccountId;
+            loanModel.CashOrAdjustment = CashOrAdjustment;
+            loanModel.Mem_Id = MemberId;
+            loanModel.Member_No = MemberNumber;
+            loanModel.Member_Name = MemberName;
+            loanModel.Transaction_Date = Transactiondate;
+        }
     }
 
     private async Task FetchMemberDataAsync()
@@ -411,7 +427,7 @@
                 loanModel.FD_Datas = new List<FDDataForLoan>();
                 loanModel.FD_Datas = fddata.ToList();
             }
-            double eligiblepercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/TermDeposit/GetTDLoanEligiblePercentage/1/11001");
+            double eligiblepercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/TermDeposit/GetTDLoanEligiblePercentage/1/{brCode}");
             loanModel.Loan_Eligible_Percentage = eligiblepercentage;
             // Build query parameters properly
             var queryString2 = new System.Text.StringBuilder("tdIds=");
@@ -612,7 +628,7 @@
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = fdLoanJsonData,
-            Created_By = 110010000001,
+            Created_By = createdBy,
             Created_Date = loanModel.Transaction_Date,
             Checked_By = 0,
             Checked_Date = null,

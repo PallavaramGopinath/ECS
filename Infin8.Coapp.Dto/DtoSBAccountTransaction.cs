@@ -21,5 +21,6 @@ namespace Infin8.Coapp.Dto
         public double Receipt_Amount { get; set; }
         public double Payment_Amount { get; set; }
         public string? BrCode { get; set; }
+        public int ReceiptOrPayment { get; set; }
     }
 }

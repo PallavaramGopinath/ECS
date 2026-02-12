@@ -1801,8 +1801,8 @@
           </Textbox>
           <Image Name="Image1">
             <Source>Database</Source>
-            <Value>=First(Fields!MemberPhoto.Value, "Ds_JLLedger")</Value>
-            <MIMEType>image/jpeg</MIMEType>
+            <Value>=First(Fields!PhotoImage.Value, "Ds_JLLedger")</Value>
+            <MIMEType>image/png</MIMEType>
             <Sizing>Fit</Sizing>
             <Top>1.34083cm</Top>
             <Left>6.20276cm</Left>

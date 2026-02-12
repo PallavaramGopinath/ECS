@@ -1,5 +1,7 @@
-﻿@page "/jewel-loan-disbursement"
+﻿@* @page "/jewel-loan-disbursement" *@
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Text.Json
 @using System.Text.Json.Serialization;
@@ -7,11 +9,14 @@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Utility
 @using System.Net
-@rendermode InteractiveAuto
+@* @rendermode InteractiveAuto *@
+@rendermode InteractiveWebAssembly
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject TransactionStateService TransactionState
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
+@attribute [Authorize(Roles = "Admin, Maker")]
 <div class="mt-4">
     <h3 class="mb-2">Jewel Loan Disbursement</h3>
     <hr class="mt-0" />
@@ -343,6 +348,7 @@
 
     #region declarations
     private string brCode = "11001";
+    private decimal createdBy = 0;
     private bool isValidSubmit = false;
     private DtoJewelLoanDisbursement loanDetails = new DtoJewelLoanDisbursement();
     private DtoJewelLoanOrnments newOrnament = new DtoJewelLoanOrnments();
@@ -364,6 +370,11 @@
         // loanDetails.Member_Name = "Suresh R"; // This would come from your service
         //                                       // Initialize the date to current date
         // loanDetails.Tranaction_Date = DateTime.Now;
+
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        brCode = userInfoDto.BrCode!;
+        createdBy = userInfoDto.UserId;
+
         loanDetails = new();
         loanDetails.AccountId = AccountId;
         loanDetails.CashOrAdjustment = CashOrAdjustment;
@@ -983,12 +994,12 @@
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = jewelLoanJsonData,
-            Created_By = 110010000001,
+            Created_By = createdBy,
             Created_Date =  TransactionDate,
             Checked_By =0,
             Checked_Date = null,
             Staging_Status ="I",
-            BrCode = "11001",
+            BrCode = brCode,
             CashReceipt_Amount = cashReceiptAmount ,
             CashPayment_Amount = cashPaymentAmount ,
             AdjustmentReceipt_Amount = adjustmentReceiptAmount ,

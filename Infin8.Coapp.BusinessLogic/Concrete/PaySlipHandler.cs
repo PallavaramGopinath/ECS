@@ -678,7 +678,7 @@ namespace Infin8.Coapp.BusinessLogic
                     {
                         if (await _unitOfWork.PaySlip.IsPaySlipGenerated(PayDAArrearsId, emp.Mem_Id, Arrears.BrCode!))
                         {
-                            daArrearsList = null;
+                            daArrearsList = new();
                             errorMessage += "Already DA arreas made for " + emp.MemberName + " ";
                         }
                     }
@@ -702,7 +702,7 @@ namespace Infin8.Coapp.BusinessLogic
                         PayId = await GetPaySlipId(tmpFromDate.Month, tmpFromDate.Year, "P", Arrears.BrCode!);
                         if (errorMessage.Length > 0)
                         {
-                            daArrearsList = null;
+                            //daArrearsList = new();
                             Arrears.IsError = true;
                             Arrears.ErrorMessage = errorMessage;
                             return Arrears;
@@ -710,7 +710,7 @@ namespace Infin8.Coapp.BusinessLogic
                         Pay_Slip paySlip = await _unitOfWork.PaySlip.GetPaySlipByMemId(PayId, emp.Mem_Id, Arrears.BrCode!);
                         if (paySlip != null && paySlip.Mem_Id == 0)
                         {
-                            daArrearsList = null;
+                            //daArrearsList = new();
                             Arrears.IsError = true;
                             Arrears.ErrorMessage = "Pay Slip for the month of " + tmpFromDate.Month + " " + tmpFromDate.Year + " not available";
                             return Arrears;
@@ -722,7 +722,7 @@ namespace Infin8.Coapp.BusinessLogic
                         Pay_Att payAtt = await _unitOfWork.PayAttance.GetPayAttanceByEmpId(emp.Mem_Id, PayId, Arrears.BrCode!);
                         if (payAtt == null && payAtt!.Mem_Id == 0)
                         {
-                            daArrearsList = null;
+                            //daArrearsList = new();
                             Arrears.IsError = true;
                             Arrears.ErrorMessage = "Attance for the employee for the month of " + tmpFromDate.Month + " " + tmpFromDate.Year + " not available";
                             return Arrears;
@@ -771,7 +771,7 @@ namespace Infin8.Coapp.BusinessLogic
                         NoOfDays = Utilities.GetNoOfDaysInAMonth(tmpFromDate.Month, tmpFromDate.Year);
                         if (NoOfDays == 0)
                         {
-                            daArrearsList = null;
+                            daArrearsList = new();
                             Arrears.IsError = true;
                             Arrears.ErrorMessage = "Error in obtain no.of days in the month " + tmpFromDate.Month + " " + tmpFromDate.Year;
                             return Arrears;
@@ -809,9 +809,10 @@ namespace Infin8.Coapp.BusinessLogic
                         arrear.DAArrears = DAArrearsTotal;
                         arrear.PF = PFDeductions;
                         tmpFromDate = Utilities.AddMonths(tmpFromDate, 1);
+                        daArrearsList!.Add(arrear);
                     } while (tmpFromDate <= Arrears.DATo_Date);
 
-                    daArrearsList!.Add(arrear);
+                    //daArrearsList!.Add(arrear);
                 }
 
                 Arrears.DAArrearsList!.Clear();

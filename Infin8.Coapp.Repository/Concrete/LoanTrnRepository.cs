@@ -2659,9 +2659,9 @@ namespace Infin8.Coapp.Repository
                                            on lien.TD_Id equals td.TD_Id
                                            where loanIdList.Contains(lien.Loan_Id)
                                            select td.MaturityDate).Max();
-                    if (toDate > maxMaturityDate)
-                    {
-                        toDate = maxMaturityDate;
+                    //if (toDate > maxMaturityDate)
+                    //{
+                    //    toDate = maxMaturityDate;
                         if (toDate > maxMaturityDate) toDate = maxMaturityDate;
                         loanList = result.ToList();
                         foreach (var loan in loanList)
@@ -2678,7 +2678,7 @@ namespace Infin8.Coapp.Repository
                             loan.IntCalc_Date = IntCalcDate;
                             loan.Interest_Applied_Date = toDate ;
                         }
-                    }
+                    //}
                 }
             }
             catch (Exception ex)

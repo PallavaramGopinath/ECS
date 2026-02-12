@@ -1,4 +1,4 @@
-﻿@page "/bonus-payment"
+﻿@* @page "/bonus-payment" *@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @using System.Text.Json
@@ -10,6 +10,14 @@
 @inject IJSRuntime JSRuntime
 
 @inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
 @if (_isLoading)
 {
     <!-- Show a centered spinner while data is loading -->
@@ -154,9 +162,9 @@ else
 
     #region variables
     private string NameOfPayment = "";
-    private string brCode = "11001";
-    private decimal Yr_Id = 110010000023;
-    private decimal Created_By = 110010000001;
+    // private string brCode = "11001";
+    // private decimal Yr_Id = 110010000023;
+    // private decimal Created_By = 110010000001;
     private bool _isLoading = true;
     private bool _isError = false;
     private string errorMessage = string.Empty;
@@ -164,32 +172,38 @@ else
     private Staging_Details stagingDetails = new();
     #endregion
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
-        {
+        // if (firstRender)
+        // {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                // brCode = userInfoDto.BrCode!;
+                // Created_By = userInfoDto.UserId;
+
                 if (Component_Id == 1) NameOfPayment = "Ex-gratia"; else NameOfPayment = "Bonus";
-                model.BrCode = brCode;
+                // model.BrCode = brCode;
                 model.Transaction_Date = TransactionDate;
                 model.Employee_Id = Employee_Id;
                 model.Employee_Name = Employee_Name;
                 model.Designation = Designation;
-                model.Created_By = Created_By;
-                model.YrId = Yr_Id;
+                model.Created_By = userInfoDto.UserId;
+                model.YrId = userInfoDto.YrId;
+                model.BrCode = userInfoDto.BrCode!;
 
                 model.Component_List = new List<DtoBonusPaymentData>();
                 var empResponse = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{model.BrCode}");
                 if (empResponse != null && empResponse.Any()) employeeList = empResponse.ToList();
                 _isLoading = false;
-                StateHasChanged();
+                // StateHasChanged();
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }
-        }
+        // }
     }
 
     private void handlerSelectEmployee()
@@ -304,7 +318,7 @@ else
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001",
+            BrCode = model.BrCode ,
             CashReceipt_Amount = 0,
             AdjustmentReceipt_Amount = 0,
             CashPayment_Amount = CashOrAdjustment == 1 ? model.TotalPayment_Amount : 0,

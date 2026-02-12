@@ -19,7 +19,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-@attribute [Authorize(Roles = "Admin,Maker")]
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 <h5 class="mb-4">Employee Transactions</h5>
 @if (_isLoading)
 {
@@ -86,7 +86,8 @@ else
                                     <div class="form-group">
                                         <label>Transaction Type</label>
                                         <InputSelect class="form-select shadow-none" @bind-Value="transaction.Receipt_Payment"
-                                                     @bind-Value:after="DdlReceiptPaymentChange">
+                                                     @bind-Value:after="DdlReceiptPaymentChange"
+                                                     @onblur="DdlReceiptPaymentChange">
                                             <option value="0">Select Transaction Type</option>
                                             <option value="1">Receipt</option>
                                             <option value="2">Payment</option>
@@ -99,7 +100,8 @@ else
                                     <div class="form-group">
                                         <label>Select Account</label>
                                         <InputSelect class="form-select shadow-none" @bind-Value="transaction.Account_Id"
-                                                     @bind-Value:after="handlerShowAccountModal">
+                                                     @bind-Value:after="handlerShowAccountModal"
+                                                     @onblur="handlerShowAccountModal">
                                             <option value="0">--Select Account Name--</option>
                                             @foreach (var account in accountItems)
                                             {
@@ -332,7 +334,7 @@ else
         Yr_Id = 110010000023,
         Created_By = 110010000001,
         BrCode = "11001",
-        Cheque_Date = DateTime.Today 
+        Cheque_Date = DateTime.Today
     };
 
     DtoOtherRelatedData otherRelatedData = new();
@@ -366,7 +368,7 @@ else
                 transaction.Created_By = userInfoDto.UserId;
 
                 // if (!user.Identity!.IsAuthenticated)
-                if(userInfoDto.IsAuthenticated == false)
+                if (userInfoDto.IsAuthenticated == false)
                 {
                     // Not logged in — redirect to login page
                     Navigation.NavigateTo("/login", true);
@@ -395,7 +397,7 @@ else
         transaction.Employee_Id = emp.Mem_Id;
         transaction.Employee_Name = emp.MemberName;
         transaction.Employee_Designation = emp.Emp_Desgn;
-        await UpdateTransactionsFromStaging("I", transaction.BrCode! );
+        await UpdateTransactionsFromStaging("I", transaction.BrCode!);
         isEmployeeDisable = true;
     }
 
@@ -406,6 +408,7 @@ else
 
     private async Task DdlReceiptPaymentChange()
     {
+        isComponentLoaded = false;
         if (transaction.Receipt_Payment == 1)
         {
             var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/R/S");
@@ -437,7 +440,8 @@ else
         {
             Console.WriteLine(ex.Message);
         }
-
+        isLedgerSection = false;
+        isComponentLoaded = false;
         ledgerNameItems = await GetLedgerNameList();
         StateHasChanged();
         await GetComponentName(transaction.Account_Id);
@@ -1024,14 +1028,14 @@ else
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = transaction.BrCode ,
+            BrCode = transaction.BrCode,
             Cheque_No = otherRelatedData.Cheque_No,
             Cheque_Date = otherRelatedData.Cheque_Date,
             Issue_Bank_Name = otherRelatedData.Issue_Bank_Name,
-            CashReceipt_Amount = transaction.Cash_Adjustment ==1 ? receipt :0,
-            AdjustmentReceipt_Amount = transaction.Cash_Adjustment == 2 ? receipt :0,
-            CashPayment_Amount = transaction.Cash_Adjustment == 1 ? payment :0,
-            AdjustmentPayment_Amount = transaction.Cash_Adjustment == 2 ? payment :0
+            CashReceipt_Amount = transaction.Cash_Adjustment == 1 ? receipt : 0,
+            AdjustmentReceipt_Amount = transaction.Cash_Adjustment == 2 ? receipt : 0,
+            CashPayment_Amount = transaction.Cash_Adjustment == 1 ? payment : 0,
+            AdjustmentPayment_Amount = transaction.Cash_Adjustment == 2 ? payment : 0
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
 
@@ -1042,7 +1046,7 @@ else
         transaction.Cheque_No = string.Empty;
         transaction.Cheque_Date = null;
         transaction.Issue_Bank = string.Empty;
-        await UpdateTransactionsFromStaging("I",transaction.BrCode);
+        await UpdateTransactionsFromStaging("I", transaction.BrCode);
     }
 
     private async Task RemoveAccountRow(AccountTransactionVM account)
@@ -1381,7 +1385,7 @@ else
         isDdlCashAdjustmentDisable = false;
         isEmployeeDisable = false;
         transactionAccountsList.Clear();
-        isBankAccount =false;
+        isBankAccount = false;
         isLedgerSection = false;
         isComponentLoaded = false;
     }
@@ -1393,7 +1397,7 @@ else
         {
             var trnFromStaging = await _httpClient.GetFromJsonAsync<List<AccountTransactionVM>>($"https://localhost:7073/api/Staging/GetInitiatedAccounts?createdDate={transaction.Transaction_Date:yyyy-MM-dd}&memId={transaction.Employee_Id}&stagingStatus={stagingStatus}&brCode={brCode}");
             transactionAccountsList = new();
-            if (trnFromStaging != null && trnFromStaging .Any())
+            if (trnFromStaging != null && trnFromStaging.Any())
             {
                 trnList = trnFromStaging.ToList();
                 transactionAccountsList.AddRange(trnList);

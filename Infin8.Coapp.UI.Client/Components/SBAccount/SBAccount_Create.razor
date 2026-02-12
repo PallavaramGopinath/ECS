@@ -1,15 +1,21 @@
-﻿@page "/sbAccount-create"
+﻿@* @page "/sbAccount-create" *@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @using Infin8.Coapp.Utility
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using System.Net
-@rendermode InteractiveAuto
+@* @rendermode InteractiveAuto *@
 @inject HttpClient _httpClient
 @inject NavigationManager Navigation
 @inject TransactionStateService TransactionState
 
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 @* container-sm *@
 <div class="mt-4">
@@ -78,6 +84,7 @@
     #endregion
 
     #region declarations
+    decimal createdBy = 0;
     private DtoSBAccountCreate sbAccountModel = new DtoSBAccountCreate();
     private Staging_Details stagingDetails = new();
     // private decimal ledId = 0, intLedId = 0;
@@ -87,27 +94,33 @@
     /// <summary>
     /// Member No: 1100110009991
     /// </summary>
-    protected override async Task OnInitializedAsync()
+    // protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        sbAccountModel.AccountId = AccountId;
-        sbAccountModel.CashOrAdjustment = CashOrAdjustment;
-        sbAccountModel.Mem_Id = MemberId;
-        sbAccountModel.Member_No = MemberNumber;
-        sbAccountModel.Member_Name = MemberName;
-        sbAccountModel.Transaction_Date = TransactionDate;
-        sbAccountModel.BrCode = "11001"; // Assuming a default branch code, can be parameterized if needed
-        sbAccountModel.Led_Id = 0;
-        sbAccountModel.Receipt_Amount = 0;
-        var result = await _httpClient.GetFromJsonAsync<SBCA_Schemes>($"https://localhost:7073/api/SBAccount/GetSBCAScheme/{sbAccountModel.BrCode!}");
-        if (result != null)
+        if (firstRender)
         {
-            schemes = result;
-            sbAccountModel.Led_Id = schemes.SBCA_Led_Id;
-        }
-        else
-        {
-            // Handle the case where no scheme is found
-            Console.WriteLine("No scheme found for the given branch code.");
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+            sbAccountModel.AccountId = AccountId;
+            sbAccountModel.CashOrAdjustment = CashOrAdjustment;
+            sbAccountModel.Mem_Id = MemberId;
+            sbAccountModel.Member_No = MemberNumber;
+            sbAccountModel.Member_Name = MemberName;
+            sbAccountModel.Transaction_Date = TransactionDate;
+            sbAccountModel.BrCode = userInfoDto.BrCode!; // Assuming a default branch code, can be parameterized if needed
+            sbAccountModel.Led_Id = 0;
+            sbAccountModel.Receipt_Amount = 0;
+            var result = await _httpClient.GetFromJsonAsync<SBCA_Schemes>($"https://localhost:7073/api/SBAccount/GetSBCAScheme/{sbAccountModel.BrCode!}");
+            if (result != null)
+            {
+                schemes = result;
+                sbAccountModel.Led_Id = schemes.SBCA_Led_Id;
+            }
+            else
+            {
+                // Handle the case where no scheme is found
+                Console.WriteLine("No scheme found for the given branch code.");
+            }
         }
     }
 
@@ -176,7 +189,7 @@
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = newSBAccountJsonData,
-            Created_By = 110010000001,
+            Created_By = createdBy,
             Created_Date = TransactionDate,
             Checked_By = 0,
             Checked_Date = null,

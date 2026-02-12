@@ -11,17 +11,18 @@
 @using Infin8.Coapp.Utility
 @using System.Reflection
 @* @rendermode @(new InteractiveServerRenderMode(prerender: true)) *@
-@rendermode InteractiveWebAssembly 
+
 @* @rendermode InteractiveAuto *@
 @inject HttpClient _httpClient
 @inject TransactionStateService TransactionState
-
 @inject NavigationManager Navigation
+
+@rendermode InteractiveWebAssembly
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-@attribute [Authorize(Roles = "Admin,Maker")]
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 <div class="container-fluid">
     <h3 class="mb-4">Member Transactions</h3>
@@ -101,11 +102,19 @@
                                 <div class="form-group">
                                     <label>Transaction Type</label>
                                     <InputSelect class="form-select shadow-none" @bind-Value="transaction.Receipt_Payment"
-                                                 @bind-Value:after="handlerSelectAccount2">
+                                                 @bind-Value:after="handlerSelectAccount2"
+                                                 @onblur="handlerSelectAccount2">
                                         <option value="0">Select Transaction Type</option>
                                         <option value="1">Receipt</option>
                                         <option value="2">Payment</option>
                                     </InputSelect>
+                                    @* <InputSelect class="form-select shadow-none"
+                                                 @bind-Value="transaction.Receipt_Payment"
+                                                 @onblur="handlerSelectAccount2">
+                                        <option value="0">Select Transaction Type</option>
+                                        <option value="1">Receipt</option>
+                                        <option value="2">Payment</option>
+                                    </InputSelect> *@
                                     <ValidationMessage For="@(() => transaction.Receipt_Payment)" />
                                 </div>
                             </div>
@@ -113,7 +122,8 @@
                                 <div class="form-group">
                                     <label>Select Account</label>
                                     <InputSelect class="form-select shadow-none" @bind-Value="transaction.Account_Id"
-                                                 @bind-Value:after="handlerShowAccountModal">
+                                                 @bind-Value:after="handlerShowAccountModal"
+                                                 @onblur="handlerShowAccountModal">
                                         <option value="0">--Select Account Name--</option>
                                         @foreach (var account in accountItems)
                                         {
@@ -343,7 +353,7 @@
         Father_Name = string.Empty,
         Member_Id = 0,
         Yr_Id = 110010000024,
-        Cheque_Date = DateTime.Today ,
+        Cheque_Date = DateTime.Today,
         Cash_Led_Balance = 0
     };
 
@@ -404,11 +414,11 @@
             // transaction.Cheque_Date = currentDate;
             // transaction.Yr_Id = Convert.ToDecimal(yrId);
 
-            var userInfoDto = await  Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
             brCode = userInfoDto.BrCode!;
-            transaction.Transaction_Date =  userInfoDto.CurrentDate;
+            transaction.Transaction_Date = userInfoDto.CurrentDate;
             transaction.Cheque_Date = userInfoDto.CurrentDate;
-            transaction.Yr_Id = userInfoDto.YrId ;
+            transaction.Yr_Id = userInfoDto.YrId;
             createdBy = userInfoDto.UserId;
             // if (! user.Identity!.IsAuthenticated)
             if (userInfoDto.IsAuthenticated == false)
@@ -438,6 +448,7 @@
     private void DdlCashReceiptChange()
     {
         isDdlCashAdjustmentDisable = true;
+
     }
 
     private void SelectMember(TransactionBy_Members member)
@@ -602,7 +613,9 @@
 
     private async Task handlerSelectAccount2()
     {
-        if(transaction.Cash_Adjustment == 0)
+        isComponentLoaded = false;
+        // StateHasChanged();
+        if (transaction.Cash_Adjustment == 0)
         {
             await JSRuntime.InvokeVoidAsync("alert", "Please select Cash/Adjustment first");
             transaction.Account_Id = 0;
@@ -645,16 +658,19 @@
     private async Task handlerShowAccountModal()
     {
         string errorMsg = string.Empty;
-        if(transaction.Cash_Adjustment == 0)         
+        isComponentLoaded = false;
+        if (transaction.Cash_Adjustment == 0)
             errorMsg = "Please select Cash/Adjustment";
         if (transaction.Receipt_Payment == 0)
             errorMsg += (errorMsg.Length > 0 ? "\n" : "") + "Please select receipt/payment";
-        if(transaction.Account_Id == 0)
+        if (transaction.Account_Id == 0)
             errorMsg += (errorMsg.Length > 0 ? "\n" : "") + "Please select account name";
-        if(errorMsg.Length >0)
+        if (errorMsg.Length > 0)
         {
             await JSRuntime.InvokeVoidAsync("alert", errorMsg);
             transaction.Account_Id = 0;
+            isComponentLoaded = false;
+            StateHasChanged();
             return;
         }
         /// verify if the member has already transacted but not verified or rejected
@@ -666,6 +682,8 @@
             {
                 await JSRuntime.InvokeVoidAsync("alert", "Transaction already exists but not either approved or rejected of the account " + accountName + " for this member for this date");
                 transaction.Account_Id = 0;
+                isComponentLoaded = false;
+                StateHasChanged();
                 return;
             }
         }
@@ -684,6 +702,8 @@
                 {
                     await JSRuntime.InvokeVoidAsync("alert", "Member already has a SB Account");
                     transaction.Account_Id = 0;
+                    isComponentLoaded = false;
+                    StateHasChanged();
                     return;
                 }
             }
@@ -696,6 +716,8 @@
                 {
                     await JSRuntime.InvokeVoidAsync("alert", "Member had loan on the seleced Fixed deposit");
                     transaction.Account_Id = 0;
+                    isComponentLoaded = false;
+                    StateHasChanged();
                     return;
                 }
             }
@@ -901,7 +923,7 @@
         // string? ChequeNo = "", IssueBankName = "";
         // DateOnly? ChequeDate = null;
         // string chequeJsonData = "";
-        if(transaction.Ledger_Id == 0)
+        if (transaction.Ledger_Id == 0)
         {
             await JSRuntime.InvokeVoidAsync("alert", "Ledger Name not selected");
             return;
@@ -2248,7 +2270,7 @@
             Receipt_Payment = 1,
             Cash_Adjustment = 1,
             Yr_Id = 110010000024,
-            Cash_Led_Balance =cashBalance 
+            Cash_Led_Balance = cashBalance
         };
         isDdlCashAdjustmentDisable = false;
         isMemberNoDisable = false;
@@ -2274,19 +2296,19 @@
             await JSRuntime.InvokeVoidAsync("alert", "Please add at least one account with amount");
             return;
         }
-        if(transaction.Cash_Adjustment == 2)
+        if (transaction.Cash_Adjustment == 2)
         {
             double receipt = transactionAccountsList.Sum(x => x.AdjustmentReceipt);
-            double payment = transactionAccountsList.Sum(x=> x.AdjustmentPaymnet);
-            if(receipt != payment )
+            double payment = transactionAccountsList.Sum(x => x.AdjustmentPaymnet);
+            if (receipt != payment)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "Adjustment receipt amount does not tally with adjustment payment amount");
                 return;
             }
         }
-        double cashReceipt= transactionAccountsList.Sum(x=> x.CashReceipt);
-        double cashPayment = transactionAccountsList.Sum(x=> x.CashPayment);
-        if(transaction.Cash_Led_Balance + cashReceipt - cashPayment <0)
+        double cashReceipt = transactionAccountsList.Sum(x => x.CashReceipt);
+        double cashPayment = transactionAccountsList.Sum(x => x.CashPayment);
+        if (transaction.Cash_Led_Balance + cashReceipt - cashPayment < 0)
         {
             await JSRuntime.InvokeVoidAsync("alert", "Cash payment excees the cash balance");
             return;
@@ -2435,7 +2457,7 @@
     }
     #endregion
 
-    #region Loan Disbursement 
+    #region Loan Disbursement
     private void ClosePLDBDisbursementComponent(bool closeSignalFromChild)
     {
         if (closeSignalFromChild)
@@ -2444,7 +2466,7 @@
             transaction.Account_Id = 0;
         }
     }
-    #endregion 
+    #endregion
 
     #region Jewel loan Recovery component items
     private void CloseJLRecoveryComponent(bool closeSignalFromChild)

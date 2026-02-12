@@ -1,5 +1,5 @@
-﻿@page "/sbAccount-transaction"
-@rendermode InteractiveAuto 
+﻿@* @page "/sbAccount-transaction" *@
+@* @rendermode InteractiveAuto  *@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @using Infin8.Coapp.Utility
@@ -9,6 +9,14 @@
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
 <div class="mt-4">
     <h4 class="mb-2">Savings Bank Account Transaction</h4>
     <hr class="mt-0" />
@@ -27,10 +35,10 @@
                                 <div class="form-group">
                                     <label for="Receipt_Amount">SB Account Number</label>
                                     <InputText TValue="double"
-                                    id="Receipt_Amount"
-                                    class="form-control shadow-none"
-                                    @bind-Value="sbAccountTransaction.SBAccount_No"
-                                    disabled="true" />
+                                               id="Receipt_Amount"
+                                               class="form-control shadow-none"
+                                               @bind-Value="sbAccountTransaction.SBAccount_No"
+                                               disabled="true" />
                                 </div>
                             </div>
 
@@ -38,10 +46,10 @@
                                 <div class="form-group">
                                     <label for="Receipt_Amount">Balance Amount</label>
                                     <InputNumber TValue="double"
-                                    id="Receipt_Amount"
-                                    class="form-control shadow-none"
-                                    @bind-Value="sbAccountTransaction.Balance_Amount"
-                                    disabled="true" />
+                                                 id="Receipt_Amount"
+                                                 class="form-control shadow-none"
+                                                 @bind-Value="sbAccountTransaction.Balance_Amount"
+                                                 disabled="true" />
                                 </div>
                             </div>
 
@@ -51,9 +59,9 @@
                                     <div class="form-group">
                                         <label for="Receipt_Amount">Receipt Amount</label>
                                         <InputNumber TValue="double"
-                                        id="Receipt_Amount"
-                                        class="form-control shadow-none"
-                                        @bind-Value="sbAccountTransaction.Receipt_Amount" />
+                                                     id="Receipt_Amount"
+                                                     class="form-control shadow-none"
+                                                     @bind-Value="sbAccountTransaction.Receipt_Amount" />
                                     </div>
                                 </div>
                             }
@@ -63,10 +71,10 @@
                                     <div class="form-group">
                                         <label for="Receipt_Amount">Payment Amount</label>
                                         <InputNumber TValue="double"
-                                        id="Receipt_Amount"
-                                        class="form-control shadow-none"
-                                        @bind-Value="sbAccountTransaction.Payment_Amount"
-                                        @bind-Value:after="Validate_Input" />
+                                                     id="Receipt_Amount"
+                                                     class="form-control shadow-none"
+                                                     @bind-Value="sbAccountTransaction.Payment_Amount"
+                                                     @bind-Value:after="Validate_Input" />
                                     </div>
                                 </div>
                             }
@@ -89,7 +97,7 @@
                             <!-- Right-aligned submit button -->
                             <button type="submit" class="btn btn-primary" @onclick="SBCreateInitiate">
                                 <i class="oi oi-check"></i>
-                                @initiateButtonText 
+                                @initiateButtonText
                             </button>
                         </div>
                     </div>
@@ -114,30 +122,40 @@
     #endregion
 
     #region declarations
+    decimal createdBy = 0; // This should ideally come from the authenticated user's context
     private DtoSBAccountTransaction sbAccountTransaction = new();
-    private string initiateButtonText="";
+    private string initiateButtonText = "";
     private Staging_Details stagingDetails = new();
     #endregion
 
     protected override async Task OnInitializedAsync()
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        sbAccountTransaction.AccountId = AccountId;
-        sbAccountTransaction.CashOrAdjustment = CashOrAdjustment;
-        sbAccountTransaction.Mem_Id = MemberId;
-        sbAccountTransaction.Member_No = MemberNumber;
-        sbAccountTransaction.Member_Name = MemberName;
-        sbAccountTransaction.Transaction_Date = Transactiondate;
-        sbAccountTransaction.BrCode = "11001"; // Assuming a default branch code, can be parameterized if needed
-        if (ReceiptOrPayment == 1) initiateButtonText = "Initiate Receipt";
-        else initiateButtonText = "Initiate Payment";
-        var result = await _httpClient.GetFromJsonAsync<DtoSBAccountBalanceWithIds>($"https://localhost:7073/api/SBAccount/GetSBAccountBalanceWithIds/{sbAccountTransaction.Mem_Id}/11001");
-        if (result != null)
-        {
-            sbAccountTransaction.Balance_Amount = result.Balance_Amount;
-            sbAccountTransaction.SBAccount_Id = result.Acc_Id;
-            sbAccountTransaction.SBLed_Id = result.SBCA_Led_Id;
-            sbAccountTransaction.SBAccount_No = result.Acc_No;
-        }
+        // if (firstRender)
+        // {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            createdBy = userInfoDto.UserId;
+
+            sbAccountTransaction.AccountId = AccountId;
+            sbAccountTransaction.CashOrAdjustment = CashOrAdjustment;
+            sbAccountTransaction.Mem_Id = MemberId;
+            sbAccountTransaction.Member_No = MemberNumber;
+            sbAccountTransaction.Member_Name = MemberName;
+            sbAccountTransaction.Transaction_Date = Transactiondate;
+            sbAccountTransaction.ReceiptOrPayment = ReceiptOrPayment;
+            sbAccountTransaction.BrCode = userInfoDto.BrCode!; // Assuming a default branch code, can be parameterized if needed
+            if (ReceiptOrPayment == 1) initiateButtonText = "Initiate Receipt";
+            else initiateButtonText = "Initiate Payment";
+            var result = await _httpClient.GetFromJsonAsync<DtoSBAccountBalanceWithIds>($"https://localhost:7073/api/SBAccount/GetSBAccountBalanceWithIds/{sbAccountTransaction.Mem_Id}/{sbAccountTransaction.BrCode}");
+            if (result != null)
+            {
+                sbAccountTransaction.Balance_Amount = result.Balance_Amount;
+                sbAccountTransaction.SBAccount_Id = result.Acc_Id;
+                sbAccountTransaction.SBLed_Id = result.SBCA_Led_Id;
+                sbAccountTransaction.SBAccount_No = result.Acc_No;
+            }
+            // StateHasChanged();
+        // }
     }
 
 
@@ -194,7 +212,7 @@
         }
         string newSBAccountJsonData = ConvertToJson(sbAccountTransaction);
         double cashRecipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
-        if(CashOrAdjustment ==1)
+        if (CashOrAdjustment == 1)
         {
             cashRecipt = sbAccountTransaction.Receipt_Amount;
             cashPayment = sbAccountTransaction.Payment_Amount;
@@ -220,23 +238,23 @@
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = newSBAccountJsonData,
-            Created_By = 110010000001,
+            Created_By = createdBy,
             Created_Date = Transactiondate,
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001",
-            CashReceipt_Amount = cashRecipt ,
-            CashPayment_Amount = cashPayment ,
-            AdjustmentReceipt_Amount = adjReceipt ,
-            AdjustmentPayment_Amount = adjPayment 
+            BrCode = sbAccountTransaction.BrCode ,
+            CashReceipt_Amount = cashRecipt,
+            CashPayment_Amount = cashPayment,
+            AdjustmentReceipt_Amount = adjReceipt,
+            AdjustmentPayment_Amount = adjPayment
         };
         var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
 
         // await OnSBTransactionInitiate.InvokeAsync(sbAccountTransaction);
     }
-    
+
     private string ConvertToJson(DtoSBAccountTransaction sbTransaction)
     {
         var options = new JsonSerializerOptions

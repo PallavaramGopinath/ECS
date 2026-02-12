@@ -6,12 +6,14 @@
 @using System.Text.Json.Serialization
 @using Infin8.Coapp.Utility
 @using System.Net
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @* @rendermode InteractiveAuto *@
 @rendermode InteractiveWebAssembly
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject TransactionStateService TransactionState
-
+@inject AuthenticationStateProvider AuthenticationStateProvider
 <div >
     <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
         <h3 class="mb-2">Jewel Loan Recovery</h3>
@@ -210,7 +212,8 @@
     #endregion
 
     #region declarations
-    private string brCode = "11001";
+    private string brCode = "";
+    decimal createdBy = 0;
     private DtoJewelLoanRecovery model = new DtoJewelLoanRecovery();
     private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
     private List<DtoJewelLoanBalance> JewelLoanBalanceFromDB = new List<DtoJewelLoanBalance>();
@@ -220,7 +223,8 @@
     private Staging_Details stagingDetails = new();
     #endregion 
 
-    protected override void OnInitialized()
+    // protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // base.OnInitialized();
         // model.Mem_Id = 110010008801;
@@ -230,18 +234,29 @@
         // model.Mem_Id = 110010005167;
         // model.Member_No = "1100110008915";
         // model.Member_Name = "Mohanambal.M"; // This would come from your service
-        model.AccountId = AccountId;
-        model.CashOrAdjustment = CashOrAdjustment;
-        model.Mem_Id = MemberId;
-        model.Member_No = MemberNumber;
-        model.Member_Name = MemberName;
-        model.Transaction_Date = TransactionDate;
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
 
-        model.JewelLoanNo_List = null;
-        model.JewelLoanBalance_List = null;
-        selectedLoans.Clear();
-        loanNumbersLoaded = false;
-        processingMessage = null;
+            brCode = userInfoDto.BrCode!;
+            createdBy = userInfoDto.UserId;
+
+            model.AccountId = AccountId;
+            model.CashOrAdjustment = CashOrAdjustment;
+            model.Mem_Id = MemberId;
+            model.Member_No = MemberNumber;
+            model.Member_Name = MemberName;
+            model.Transaction_Date = TransactionDate;
+
+            model.JewelLoanNo_List = null;
+            model.JewelLoanBalance_List = null;
+            selectedLoans.Clear();
+            loanNumbersLoaded = false;
+            processingMessage = null;
+
+            StateHasChanged();
+        }
+        
 
     }
 
@@ -386,7 +401,7 @@
             }
             // Add other parameters with proper formatting
             queryString.Append($"&endDate={Uri.EscapeDataString(model.Transaction_Date.ToString("yyyy-MM-dd"))}");
-            queryString.Append("&brCode=11001");
+            queryString.Append($"&brCode={brCode}");
 
             // Make the API call with proper URL format
             // var result = await _httpClient.GetFromJsonAsync<List<JewelLoanBalance>>($"api/Loan/GetJLBalance?{queryString}");
@@ -633,12 +648,12 @@
                 Module_Name = accountName,
                 Cash_Or_Adjustment = CashOrAdjustment,
                 Related_Account_Data = jewelRecoveryJsonData,
-                Created_By = 110010000001,
+                Created_By = createdBy,
                 Created_Date = TransactionDate,
                 Checked_By = 0,
                 Checked_Date = null,
                 Staging_Status ="I",
-                BrCode = "11001",
+                BrCode = brCode,
                 CashReceipt_Amount = CashOrAdjustment ==1 ? model.Recovery_Amount : 0,
                 AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? model.Recovery_Amount :0,
                 CashPayment_Amount =0,

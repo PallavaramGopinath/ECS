@@ -8,10 +8,16 @@
 @using System.Text.Json.Serialization
 @using System.Net
 @inject IJSRuntime JSRuntime
-@rendermode InteractiveAuto
+@* @rendermode InteractiveAuto *@
 @inject HttpClient _httpClient
 @inject NavigationManager Navigation
 @inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 <h3 class="mb-2">Create Fixed Deposit</h3>
 <hr class="mt-0" />
 <EditForm Model="@_fixedDepositModel" OnValidSubmit="@HandleValidSubmit">
@@ -31,7 +37,7 @@
                             <div class="form-group">
                                 <label for="Member_No_ToAdd">Member No:</label>
                                 <InputText id="Member_No_ToAdd" class="form-control shadow-none" @bind-Value="_fixedDepositModel.Common!.Member_No_ToAdd"
-                                @oninput="(e) => handleMemNo(e,_fixedDepositModel)">
+                                           @oninput="(e) => handleMemNo(e, _fixedDepositModel)">
                                 </InputText>
                             </div>
                         </div>
@@ -93,7 +99,7 @@
                                                     <td>@_fixedDepositModel.Members[i].Father_Name</td>
                                                     <td>@_fixedDepositModel.Members[i].Age</td>
                                                     <td>
-                                                        <button type="button" class="btn btn-danger btn-sm" @onclick="()=> RemoveMember(index)">
+                                                        <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveMember(index)">
                                                             <i class="oi oi-trash"></i>Remove
                                                         </button>
                                                     </td>
@@ -200,8 +206,8 @@
                             <div class="form-group">
                                 <label for="interestPayableFreq">Interest Payable Frequency:</label>
                                 <InputSelect id="interestPayableFreq" class="form-control shadow-none"
-                                @bind-Value="_fixedDepositModel.Interest_Payable_Frequency"
-                                @bind-Value:after="DdlInterestFrequencyChange">
+                                             @bind-Value="_fixedDepositModel.Interest_Payable_Frequency"
+                                             @bind-Value:after="DdlInterestFrequencyChange">
                                     <option value="0">--Select Frequency--</option>
                                     <option value="1">Monthly</option>
                                     <option value="3">Quarterly</option>
@@ -219,7 +225,7 @@
                             <div class="form-group">
                                 <label for="periodType">Period Type:</label>
                                 <InputSelect id="periodType" class="form-control shadow-none" disabled="@isddlPeriodDisabled"
-                                @bind-Value="_fixedDepositModel.Period_Type" @onchange="PeriodTypeChanged">
+                                             @bind-Value="_fixedDepositModel.Period_Type" @onchange="PeriodTypeChanged">
                                     <option value="">--Select Type--</option>
                                     <option value="Months">Months</option>
                                     <option value="Days">Days</option>
@@ -233,21 +239,21 @@
                             <div class="col-md-3 mb-3">
                                 <div class="form-group">
                                     <label for="periodInMonths"> Period In Months: </label>
-                                    <InputNumber  id="periodInMonths" class="form-control shadow-none" 
-                                        @bind-Value="_fixedDepositModel.Period_In_Months"
+                                    <InputNumber id="periodInMonths" class="form-control shadow-none"
+                                                 @bind-Value="_fixedDepositModel.Period_In_Months"
                                                  @onblur="GetROI" />
                                     <ValidationMessage For="@(() => _fixedDepositModel.Period_In_Months)" />
                                 </div>
                             </div>
                         }
                         else
-                        if (_fixedDepositModel.Period_Type == "Days")
+                                                if (_fixedDepositModel.Period_Type == "Days")
                         {
                             <div class="col-md-3 mb-3">
                                 <div class="form-group">
                                     <label for="periodInDays"> Period In Days: </label>
-                                    <InputNumber id="periodInDays" class="form-control shadow-none" 
-                                        @bind-Value="_fixedDepositModel.Period_In_Days"
+                                    <InputNumber id="periodInDays" class="form-control shadow-none"
+                                                 @bind-Value="_fixedDepositModel.Period_In_Days"
                                                  onblur="GetROI" />
                                     <ValidationMessage For="@(() => _fixedDepositModel.Period_In_Days)" />
                                 </div>
@@ -260,7 +266,7 @@
 
                                     @* @onchange="e=> GetMaturityAmount((bool)e.Value)" *@
                                     <InputCheckbox id="isDiscountRate" class="form-check-input shadow-none"
-                                           @bind-Value="_fixedDepositModel.Is_DiscountRate"
+                                                   @bind-Value="_fixedDepositModel.Is_DiscountRate"
                                                    @bind-Value:after="() => GetMaturityAmount(_fixedDepositModel.Is_DiscountRate)" />
                                     @* <input type="checkbox"
                                            id="isDiscountRate"
@@ -304,8 +310,8 @@
                         <div class="col-md-2 mb-3">
                             <div class="form-group">
                                 <label for="rateOfInterest">Rate of Interest (%):</label>
-                                <InputNumber id="rateOfInterest" class="form-control shadow-none" 
-                                    @bind-Value="_fixedDepositModel.Rate_Of_Interest"
+                                <InputNumber id="rateOfInterest" class="form-control shadow-none"
+                                             @bind-Value="_fixedDepositModel.Rate_Of_Interest"
                                              @oninput="GetMaturityDateAndAmount" />
                                 <ValidationMessage For="@(() => _fixedDepositModel.Rate_Of_Interest)" />
                             </div>
@@ -432,11 +438,13 @@
     [Parameter] public EventCallback<bool> OnFDNewComponentClose { get; set; }
     [Parameter] public EventCallback<DtoTermDepositFixedDepositCreation> OnFDNewInitiate { get; set; }
 
-    [Parameter] public EventCallback<DtoTermDepositFixedDepositRenewal> OnFDRenewalInitiate  { get; set; }
+    [Parameter] public EventCallback<DtoTermDepositFixedDepositRenewal> OnFDRenewalInitiate { get; set; }
 
     #endregion
 
     #region variables
+    string brCode = "";
+    decimal createdBy = 0;
     bool isDiscountRate = false;
     bool isCompound = false;
     bool isddlPeriodDisabled = false;
@@ -462,42 +470,52 @@
     ///  for renewal fd with loan outstanding 11001030010866
     /// </summary>
     /// <returns></returns>
-    protected override async Task OnInitializedAsync()
+    // protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        _fixedDepositRenewal.Transaction_Date = TransactionDate;
-        _fixedDepositModel.AccountId = AccountId;
-        _fixedDepositModel.CashorAdjustment = CashOrAdjustment;
-        _fixedDepositModel.Mem_Id = MemberId;
-        _fixedDepositModel.Member_No = MemberNumber;
-        _fixedDepositModel.Member_Name = MemberName;
-        _fixedDepositModel.Common = new DtoTermDepositCommon();
-        _fixedDepositModel.Members = new List<DtoTermDepositMember>();
-        _fixedDepositModel.Common.Account_Opendate = TransactionDate;
-        _fixedDepositModel.Common.Value_Date = TransactionDate;
-        _fixedDepositModel.Maturity_Date = TransactionDate.AddMonths(12);
-        var schemeListTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetTDScheme/F,C/11001");
-        if (schemeListTmp != null) schemeList = schemeListTmp.ToList();
-        // if (IsRenewal)
-        // {
-        if (DOB != null)
+        if (firstRender)
         {
-            Age = Utilities.GetAge((DateTime)DOB, TransactionDate);
-        }
-        _fixedDepositModel.Deposit_Amount = NewFDAmount;
-        var member = new DtoTermDepositMember
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+            brCode = userInfoDto.BrCode!;
+            createdBy = userInfoDto.UserId;
+
+            _fixedDepositRenewal.Transaction_Date = TransactionDate;
+            _fixedDepositModel.AccountId = AccountId;
+            _fixedDepositModel.CashorAdjustment = CashOrAdjustment;
+            _fixedDepositModel.Mem_Id = MemberId;
+            _fixedDepositModel.Member_No = MemberNumber;
+            _fixedDepositModel.Member_Name = MemberName;
+            _fixedDepositModel.Common = new DtoTermDepositCommon();
+            _fixedDepositModel.Members = new List<DtoTermDepositMember>();
+            _fixedDepositModel.Common.Account_Opendate = TransactionDate;
+            _fixedDepositModel.Common.Value_Date = TransactionDate;
+            _fixedDepositModel.Maturity_Date = TransactionDate.AddMonths(12);
+            var schemeListTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetTDScheme/F,C/{brCode}");
+            if (schemeListTmp != null) schemeList = schemeListTmp.ToList();
+            // if (IsRenewal)
+            // {
+            if (DOB != null)
+            {
+                Age = Utilities.GetAge((DateTime)DOB, TransactionDate);
+            }
+            _fixedDepositModel.Deposit_Amount = NewFDAmount;
+            var member = new DtoTermDepositMember
             {
                 Mem_Id = MemberId,
                 Member_No = MemberNumber,
                 Member_Name = MemberName,
                 Age = Age
             };
-        _fixedDepositModel.Members.Add(member);
-        _fixedDepositModel.Common.Tdh_Name = MemberNumber + " " + MemberName;
-        if (IsRenewal)
-            CreateButtonText = "Initiate Renewal of Fixed Deposit";
-        else
-            CreateButtonText = "Initiate New Fixed Deposit";
-        // }
+            _fixedDepositModel.Members.Add(member);
+            _fixedDepositModel.Common.Tdh_Name = MemberNumber + " " + MemberName;
+            if (IsRenewal)
+                CreateButtonText = "Initiate Renewal of Fixed Deposit";
+            else
+                CreateButtonText = "Initiate New Fixed Deposit";
+            // }
+            StateHasChanged();
+        }
     }
 
     #region api call
@@ -508,7 +526,7 @@
             fd.Common!.Member_No_ToAdd = e.Value?.ToString();
             if (!string.IsNullOrWhiteSpace(_fixedDepositModel.Common!.Member_No_ToAdd))
             {
-                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{fd.Common.Member_No_ToAdd}/11001");
+                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{fd.Common.Member_No_ToAdd}/{brCode}");
                 if (mem != null)
                 {
                     fd.Common.Mem_Id_ToAdd = mem.Mem_Id;
@@ -541,13 +559,13 @@
         DtoNominee nominee = new DtoNominee();
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<DtoNominee>($"https://localhost:7073/api/TermDeposit/GetNominee?memId={MemberId}&tdSchemeType=F&brCode=11001");
-            if(result !=null)
+            var result = await _httpClient.GetFromJsonAsync<DtoNominee>($"https://localhost:7073/api/TermDeposit/GetNominee?memId={MemberId}&tdSchemeType=F&brCode={brCode}");
+            if (result != null)
             {
-                _fixedDepositModel.Common.Nominee1Name = result.Nominee1Name ;
-                _fixedDepositModel.Common.Nominee1Age = result.Nominee1Age ;
-                _fixedDepositModel.Common.Nominee1Relationship = result.Nominee1Relationship ;
-                _fixedDepositModel.Common.Nominee2Name = result.Nominee2Name ;
+                _fixedDepositModel.Common.Nominee1Name = result.Nominee1Name;
+                _fixedDepositModel.Common.Nominee1Age = result.Nominee1Age;
+                _fixedDepositModel.Common.Nominee1Relationship = result.Nominee1Relationship;
+                _fixedDepositModel.Common.Nominee2Name = result.Nominee2Name;
                 _fixedDepositModel.Common.Nominee2Age = result.Nominee2Age;
                 _fixedDepositModel.Common.Nominee2Relationship = result.Nominee2Relationship;
             }
@@ -567,7 +585,7 @@
             await JSRuntime.InvokeVoidAsync("alert", "Scheme name not selected!"); // Alert
             return;
         }
-        var url = $"https://localhost:7073/api/NewAccountNo/NewTDNo/{_fixedDepositModel.Common.Tdscheme_Id}/11001";
+        var url = $"https://localhost:7073/api/NewAccountNo/NewTDNo/{_fixedDepositModel.Common.Tdscheme_Id}/{brCode}";
         Console.WriteLine($"Calling API: {url}"); // Debug URL
         using var response = await _httpClient.GetAsync(url);
         var jsonString = await response.Content.ReadAsStringAsync();
@@ -616,7 +634,7 @@
         try
         {
             string formattedDate = _fixedDepositModel.Common.Value_Date.ToString("yyyy-MM-dd");
-            var roi = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/TermDeposit/GetTDROI?depositDate={formattedDate}&schemeId={_fixedDepositModel.Common.Tdscheme_Id}&prdInMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}&brCode=11001");
+            var roi = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/TermDeposit/GetTDROI?depositDate={formattedDate}&schemeId={_fixedDepositModel.Common.Tdscheme_Id}&prdInMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}&brCode={brCode}");
             _fixedDepositModel.Rate_Of_Interest = Convert.ToDouble(roi);
             StateHasChanged();
         }
@@ -662,12 +680,12 @@
             await JSRuntime.InvokeVoidAsync("alert", errorMessage); // Alert
             return;
         }
-        _fixedDepositModel.Maturity_Date = Utilities.GetTDMaturityDate(_fixedDepositModel.Common.Value_Date, _fixedDepositModel.Period_In_Months, 
+        _fixedDepositModel.Maturity_Date = Utilities.GetTDMaturityDate(_fixedDepositModel.Common.Value_Date, _fixedDepositModel.Period_In_Months,
                 _fixedDepositModel.Period_In_Days);
 
-        _fixedDepositModel.Maturity_Amount = Utilities.GetFDMaturityAmount(_fixedDepositModel.Deposit_Amount, 
-                _fixedDepositModel.Common.Value_Date, _fixedDepositModel.Maturity_Date, _fixedDepositModel.Period_In_Months, 
-                _fixedDepositModel.Period_In_Days, _fixedDepositModel.Rate_Of_Interest, _fixedDepositModel.Interest_Payable_Frequency, 
+        _fixedDepositModel.Maturity_Amount = Utilities.GetFDMaturityAmount(_fixedDepositModel.Deposit_Amount,
+                _fixedDepositModel.Common.Value_Date, _fixedDepositModel.Maturity_Date, _fixedDepositModel.Period_In_Months,
+                _fixedDepositModel.Period_In_Days, _fixedDepositModel.Rate_Of_Interest, _fixedDepositModel.Interest_Payable_Frequency,
                 _fixedDepositModel.Is_DiscountRate, _fixedDepositModel.compoundfrequency);
         StateHasChanged();
         // string formattedDate = _fixedDepositModel.Common.Value_Date.ToString("yyyy-MM-dd");
@@ -749,12 +767,12 @@
 
         }
         var member = new DtoTermDepositMember
-            {
-                Mem_Id = _fixedDepositModel.Common.Mem_Id_ToAdd,
-                Member_Name = _fixedDepositModel.Common.Member_Name_ToAdd,
-                Father_Name = _fixedDepositModel.Common.Father_Name_ToAdd,
-                Age = _fixedDepositModel.Common.Age_ToAdd
-            };
+        {
+            Mem_Id = _fixedDepositModel.Common.Mem_Id_ToAdd,
+            Member_Name = _fixedDepositModel.Common.Member_Name_ToAdd,
+            Father_Name = _fixedDepositModel.Common.Father_Name_ToAdd,
+            Age = _fixedDepositModel.Common.Age_ToAdd
+        };
 
         _fixedDepositModel.Members.Add(member);
 
@@ -822,7 +840,7 @@
             await JSRuntime.InvokeVoidAsync("alert", ex.Message); // Alert
             return;
         }
-        
+
     }
 
     private bool IsFDNewValid()
@@ -891,11 +909,11 @@
         double cashReceipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
         if (!IsRenewal)
         {
-            if(CashOrAdjustment == 1)
+            if (CashOrAdjustment == 1)
             {
                 cashReceipt = _fixedDepositModel.Deposit_Amount;
                 cashPayment = 0;
-                adjReceipt =0;
+                adjReceipt = 0;
                 adjPayment = 0;
             }
             else
@@ -912,23 +930,23 @@
                 Id = 0,
                 Staging_Id = 0,
                 Member_Id = MemberId,
-                Ledger_Id =0,
+                Ledger_Id = 0,
                 Related_Account_Id = AccountId,
                 Receipt_Amount = _fixedDepositModel.Deposit_Amount,
-                Payment_Amount =0,
+                Payment_Amount = 0,
                 Module_Name = accountName,
                 Cash_Or_Adjustment = CashOrAdjustment,
                 Related_Account_Data = newFDJsonData,
-                Created_By =110010000001,
+                Created_By = createdBy,
                 Created_Date = TransactionDate,
                 Checked_By = 0,
                 Checked_Date = null,
                 Staging_Status = "I",
-                BrCode = "11001",
-                CashReceipt_Amount = cashReceipt  ,
-                CashPayment_Amount = cashPayment ,
-                AdjustmentReceipt_Amount = adjReceipt ,
-                AdjustmentPayment_Amount = adjPayment 
+                BrCode = brCode,
+                CashReceipt_Amount = cashReceipt,
+                CashPayment_Amount = cashPayment,
+                AdjustmentReceipt_Amount = adjReceipt,
+                AdjustmentPayment_Amount = adjPayment
             };
             var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
             await TransactionState.NotifyIntiate(true);
@@ -953,7 +971,7 @@
             _fixedDepositRenewal.FixedDepositCreate = _fixedDepositModel;
 
 
-            if(CashOrAdjustment == 1)
+            if (CashOrAdjustment == 1)
             {
                 double receiptAmt = _fixedDepositRenewal.FixedDepositCreate.Deposit_Amount + FixedDepositPayment!.Total_Loan_Principal_Receipt + FixedDepositPayment!.Total_Loan_Interest_Receipt;
                 double paymentAmt = FixedDepositPayment!.Total_Deposit_Payable + FixedDepositPayment.Total_Interest_Payable;
@@ -980,21 +998,21 @@
                 Member_Id = MemberId,
                 Ledger_Id = 0,
                 Related_Account_Id = AccountId,
-                Receipt_Amount = cashReceipt + adjReceipt ,
-                Payment_Amount = cashPayment + adjPayment ,
+                Receipt_Amount = cashReceipt + adjReceipt,
+                Payment_Amount = cashPayment + adjPayment,
                 Module_Name = accountName,
                 Cash_Or_Adjustment = CashOrAdjustment,
                 Related_Account_Data = renewalFDJsonData,
-                Created_By = 110010000001,
+                Created_By = createdBy,
                 Created_Date = TransactionDate,
                 Checked_By = 0,
                 Checked_Date = null,
                 Staging_Status = "I",
-                BrCode = "11001",
-                CashReceipt_Amount = cashReceipt ,
-                CashPayment_Amount = cashPayment ,
-                AdjustmentReceipt_Amount = adjReceipt ,
-                AdjustmentPayment_Amount = adjPayment 
+                BrCode = brCode,
+                CashReceipt_Amount = cashReceipt,
+                CashPayment_Amount = cashPayment,
+                AdjustmentReceipt_Amount = adjReceipt,
+                AdjustmentPayment_Amount = adjPayment
             };
             var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
             // await OnFDRenewalInitiate.InvokeAsync(_fixedDepositRenewal);
@@ -1003,59 +1021,59 @@
         }
     }
 
-    
+
     #endregion
 
     #region  Validation classes derived from your DTOs
     private FixedDepositCreateDto ConvertToDto(DtoTermDepositFixedDepositCreation model)
     {
         var dto = new FixedDepositCreateDto
+        {
+            Common = new TDCommonDto
             {
-                Common = new TDCommonDto
-                {
-                    Tdscheme_Id = model.Common!.Tdscheme_Id,
+                Tdscheme_Id = model.Common!.Tdscheme_Id,
 
-                    Mode_Of_Operation = model.Common.Mode_Of_Operation,
+                Mode_Of_Operation = model.Common.Mode_Of_Operation,
 
-                    Account_Opendate = model.Common.Account_Opendate,
+                Account_Opendate = model.Common.Account_Opendate,
 
-                    Value_Date = model.Common.Value_Date,
+                Value_Date = model.Common.Value_Date,
 
-                    Td_No = model.Common.Td_No,
+                Td_No = model.Common.Td_No,
 
-                    Tdh_Name = model.Common.Tdh_Name,
+                Tdh_Name = model.Common.Tdh_Name,
 
-                    Nominee1Name = model.Common.Nominee1Name,
+                Nominee1Name = model.Common.Nominee1Name,
 
-                    Nominee1Age = model.Common.Nominee1Age,
+                Nominee1Age = model.Common.Nominee1Age,
 
-                    Nominee1Relationship = model.Common.Nominee1Relationship,
+                Nominee1Relationship = model.Common.Nominee1Relationship,
 
-                    Nominee2Name = model.Common.Nominee2Name,
+                Nominee2Name = model.Common.Nominee2Name,
 
-                    Nominee2Age = model.Common.Nominee2Age,
+                Nominee2Age = model.Common.Nominee2Age,
 
-                    Nominee2Relationship = model.Common.Nominee2Relationship
-                },
+                Nominee2Relationship = model.Common.Nominee2Relationship
+            },
 
-                Deposit_Amount = model.Deposit_Amount,
+            Deposit_Amount = model.Deposit_Amount,
 
-                Interest_Payable_Frequency = model.Interest_Payable_Frequency,
+            Interest_Payable_Frequency = model.Interest_Payable_Frequency,
 
-                Period_Type = model.Period_Type,
+            Period_Type = model.Period_Type,
 
-                Is_DiscounRate = model.Is_DiscountRate,
+            Is_DiscounRate = model.Is_DiscountRate,
 
-                Period_In_Months = model.Period_In_Months,
+            Period_In_Months = model.Period_In_Months,
 
-                Period_In_Days = model.Period_In_Days,
+            Period_In_Days = model.Period_In_Days,
 
-                Rate_Of_Interest = model.Rate_Of_Interest,
+            Rate_Of_Interest = model.Rate_Of_Interest,
 
-                Maturity_Amount = model.Maturity_Amount,
+            Maturity_Amount = model.Maturity_Amount,
 
-                Maturity_Date = model.Maturity_Date
-            };
+            Maturity_Date = model.Maturity_Date
+        };
 
         dto.Members = model.Members.Select(m => new TDMembersDto { Mem_Id = m.Mem_Id, Member_Name = m.Member_Name, Father_Name = m.Father_Name, Age = m.Age }).ToList();
 

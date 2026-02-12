@@ -1,4 +1,4 @@
-﻿@page "/jewel-loan-disbursement-pldb"
+﻿@* @page "/jewel-loan-disbursement-pldb" *@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Text.Json
@@ -8,10 +8,14 @@
 @using Infin8.Coapp.Utility
 @using Infin8.Coapp.UI.Client.Components.JewelLoan
 @using System.Net
-@rendermode InteractiveAuto
+@* @rendermode InteractiveAuto *@
+@rendermode InteractiveWebAssembly
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject TransactionStateService TransactionState
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @if (_isLoading)
 {
@@ -718,6 +722,12 @@ else
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                brCode = userInfoDto.BrCode!;
+                Yr_Id = userInfoDto.YrId;
+                Created_By = userInfoDto.UserId;
+
+
                 loanDetails = new();
                 loanDetails.AccountId = AccountId;
                 loanDetails.CashOrAdjustment = CashOrAdjustment;

@@ -1,4 +1,4 @@
-﻿@page "/fixed-deposit-payment"
+﻿@* @page "/fixed-deposit-payment" *@
 @using System.ComponentModel.DataAnnotations
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
@@ -6,10 +6,18 @@
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using Infin8.Coapp.Utility
-@rendermode InteractiveAuto
+@* @rendermode InteractiveAuto *@
 @inject HttpClient _httpClient
 @inject NavigationManager Navigation
 @inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 <h3 class="mb-2">Fixed Deposit Payment</h3>
 <hr class="mt-0" />
@@ -127,14 +135,14 @@
                         {
                             <tr>
                                 <td disabled="@isRenewal">@fdData.FD_No</td>
-                                <td disabled="@isRenewal">@fdData.Previous_Interest_Calculated.ToString("C")</td>
-                                <td disabled="@isRenewal">@fdData.Previous_Interest_Paid.ToString("C")</td>
-                                <td disabled="@isRenewal">@fdData.Pending_Interest.ToString("C")</td>
-                                <td disabled="@isRenewal">@fdData.Current_Interest_Calculated.ToString("C")</td>
-                                <td disabled="@isRenewal">@fdData.Total_Interest_Payable.ToString("C")</td>
+                                <td disabled="@isRenewal">@fdData.Previous_Interest_Calculated.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td disabled="@isRenewal">@fdData.Previous_Interest_Paid.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td disabled="@isRenewal">@fdData.Pending_Interest.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td disabled="@isRenewal">@fdData.Current_Interest_Calculated.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td disabled="@isRenewal">@fdData.Total_Interest_Payable.ToString("C2", new CultureInfo("hi-IN"))</td>
                                 <td disabled="@isRenewal">@fdData.Current_Interest_Applied_Date </td>
-                                <td disabled="@isRenewal">@fdData.Deposit_Refund.ToString("C")</td>
-                                <td disabled="@isRenewal">@fdData.Total_Payable.ToString("C") </td>
+                                <td disabled="@isRenewal">@fdData.Deposit_Refund.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td disabled="@isRenewal">@fdData.Total_Payable.ToString("C2", new CultureInfo("hi-IN")) </td>
                                 <td disabled="@isRenewal">@fdData.Rate_Of_Interest %</td>
                                 <td disabled="@isRenewal">@fdData.Rate_Of_Interest_Applied %</td>
                                 <td class="text-center">
@@ -149,14 +157,14 @@
                         }
                         <tr class="table-info">
                             <td colspan="1" class="text-end fw-bold">Total:</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Previous_Interest_Calculated).ToString("C")</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Previous_Interest_Paid).ToString("C")</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Pending_Interest).ToString("C")</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Current_Interest_Calculated).ToString("C")</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Interest_Payable).ToString("C")</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Previous_Interest_Calculated).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Previous_Interest_Paid).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Pending_Interest).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Current_Interest_Calculated).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Interest_Payable).ToString("C2", new CultureInfo("hi-IN"))</td>
                             <td></td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Deposit_Refund).ToString("C")</td>
-                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Payable).ToString("C") </td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Deposit_Refund).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold" disabled="@isRenewal">@paymentModel.Fixed_Deposit_Datas.Sum(l => l.Total_Payable).ToString("C2", new CultureInfo("hi-IN")) </td>
                             <td colspan="3"></td>
                         </tr>
                     </tbody>
@@ -189,19 +197,19 @@
                         {
                             <tr>
                                 <td>@loan.Loan_No</td>
-                                <td>@loan.Loan_Amount.ToString("C")</td>
-                                <td>@loan.Interest_Balance.ToString("C")</td>
-                                <td>@loan.Principal_Balance.ToString("C")</td>
-                                <td>@loan.Total_Balance.ToString("C")</td>
+                                <td>@loan.Loan_Amount.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td>@loan.Interest_Balance.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td>@loan.Principal_Balance.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td>@loan.Total_Balance.ToString("C2", new CultureInfo("hi-IN"))</td>
                                 <td>@loan.Current_IntCalc_Date</td>
                             </tr>
                         }
                         <tr class="table-info">
                             <td colspan="1" class="text-end fw-bold">Total:</td>
-                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Loan_Amount).ToString("C")</td>
-                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Interest_Balance).ToString("C")</td>
-                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Principal_Balance).ToString("C")</td>
-                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Total_Balance).ToString("C")</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Loan_Amount).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Interest_Balance).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Principal_Balance).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold">@paymentModel.Loan_On_FixedDeposits.Sum(l => l.Total_Balance).ToString("C2", new CultureInfo("hi-IN"))</td>
                             <td></td>
                         </tr>
                     </tbody>
@@ -513,7 +521,7 @@
     private bool isFixedDepositLoaded = false;
     private bool isDisableFixedDepositNoButton = true;
     private string brCode = "11001";
-
+    decimal createdBy = 0;
     private Staging_Details stagingDetails = new();
     #endregion
     // Initialize the date to current date
@@ -525,22 +533,53 @@
     ///
     /// Interest payment mem no = 1100110009991
     /// interest payment if no = 11001030011682
-    protected override void OnInitialized()
+    // protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        isRenewal = false;
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode!;
+            createdBy = userInfoDto.UserId;
 
-        paymentModel.AccountId = AccountId;
-        paymentModel.CashOrAdjustment = CashOrAdjustment;
-        paymentModel.Mem_Id = MemberId;
-        paymentModel.Member_No = MemberNumber;
-        paymentModel.Member_Name = MemberName;
+            isRenewal = false;
 
-        paymentModel.Transaction_Date = TransactionDate;
-        paymentModel.PaymentStatus = RequestType;
-        paymentModel.FixedDeposit_Nos = new List<DtoTermDepositNo>();
-        paymentModel.Loan_On_FixedDeposits = new List<DtoTermDepositLoan>();
-        // if (RequestType == "R") isRenewal = true;
-        // if (RequestType == "R") paymentModel.PaymentStatus = "Q";
+            paymentModel = new DtoTermDepositFixedDepositPayment();
+
+            paymentModel.AccountId = AccountId;
+            paymentModel.CashOrAdjustment = CashOrAdjustment;
+            paymentModel.Mem_Id = MemberId;
+            paymentModel.Member_No = MemberNumber;
+            paymentModel.Member_Name = MemberName;
+
+            paymentModel.Transaction_Date = TransactionDate;
+            paymentModel.PaymentStatus = RequestType;
+            paymentModel.FixedDeposit_Nos = new List<DtoTermDepositNo>();
+            paymentModel.Loan_On_FixedDeposits = new List<DtoTermDepositLoan>();
+            paymentModel.Fixed_Deposit_Datas = new List<DtoTermDepositFixedDepositPayable>();
+            // if (RequestType == "R") isRenewal = true;
+            // if (RequestType == "R") paymentModel.PaymentStatus = "Q";
+            StateHasChanged();
+        }
+        if (RequestType != paymentModel.PaymentStatus )
+        {
+            isRenewal = false;
+            paymentModel = new DtoTermDepositFixedDepositPayment();
+            paymentModel.AccountId = AccountId;
+            paymentModel.CashOrAdjustment = CashOrAdjustment;
+            paymentModel.Mem_Id = MemberId;
+            paymentModel.Member_No = MemberNumber;
+            paymentModel.Member_Name = MemberName;
+
+            paymentModel.Transaction_Date = TransactionDate;
+            paymentModel.PaymentStatus = RequestType;
+            paymentModel.FixedDeposit_Nos = new List<DtoTermDepositNo>();
+            paymentModel.Loan_On_FixedDeposits = new List<DtoTermDepositLoan>();
+            paymentModel.Fixed_Deposit_Datas = new List<DtoTermDepositFixedDepositPayable>();
+            // if (RequestType == "R") isRenewal = true;
+            // if (RequestType == "R") paymentModel.PaymentStatus = "Q";
+            StateHasChanged();
+        }
     }
 
     private void ToggleLoanSelection(DtoTermDepositNo fd, bool isSelected)
@@ -638,6 +677,7 @@
                     paymentModel.FixedDeposit_Nos!.Add(fdNo);
                 }
             }
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -779,7 +819,7 @@
                 isRenewal = false;
             }
         }
-
+        StateHasChanged();
     }
 
     private void ProceedToRenewal()
@@ -907,7 +947,7 @@
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = fdPaymentJsonData,
-            Created_By = 110010000001,
+            Created_By = createdBy,
             Created_Date = TransactionDate,
             Checked_By = 0,
             Checked_Date = null,

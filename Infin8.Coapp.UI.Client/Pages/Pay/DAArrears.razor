@@ -326,9 +326,11 @@ else
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<DtoPayDAArrears>();
+
                     if (result != null && result.DAArrearsList!.Any())
                     {
-                        model = result;
+                        // model = result;
+                        model.DAArrearsList = result.DAArrearsList!.ToList();
                         _isError = false; // Clear any previous errors
                         // isPayDisplay = true; // Show the calculated pay
                         if (model.IsError == true)
@@ -340,7 +342,10 @@ else
                     }
                     else
                     {
-                        errorMessage = "Error in calculating payslip. Please check the details.";
+                        if (model != null && model.IsError == true)
+                            errorMessage = model.ErrorMessage;
+                        else
+                            errorMessage = "Error in calculating payslip. Please check the details.";
                         _isError = true;
                         // _isPaySlipModalError = true;
                         // isPayDisplay = false;
@@ -379,6 +384,7 @@ else
             Console.WriteLine(ex.Message);
             _isCalculating = false;
         }
+        
     }
 
     private async Task GenerateDAArrears()

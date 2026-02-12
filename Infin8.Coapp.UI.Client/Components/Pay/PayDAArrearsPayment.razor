@@ -1,4 +1,4 @@
-﻿@page "/da-arrears-payment"
+﻿@* @page "/da-arrears-payment" *@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @using System.Text.Json
@@ -8,9 +8,16 @@
 
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 
 @inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 @if (_isLoading)
 {
@@ -203,9 +210,9 @@ else
     #endregion
 
     #region variables
-    private string brCode = "11001";
-    private decimal Yr_Id = 110010000023;
-    private decimal Created_By = 110010000001;
+    // private string brCode = "11001";
+    // private decimal Yr_Id = 110010000023;
+    // private decimal Created_By = 110010000001;
     private bool _isLoading = true;
     private bool _isError = false;
     private string errorMessage = string.Empty;
@@ -217,9 +224,11 @@ else
         {
             try
             {
-                Payslip.BrCode = brCode;
-                Payslip.YrId = Yr_Id;
-                Payslip.Created_By  = Created_By;
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+                Payslip.BrCode = userInfoDto.BrCode !;
+                Payslip.YrId = userInfoDto.YrId;
+                Payslip.Created_By  = userInfoDto.UserId;
                 Payslip.Employee_Id = Employee_Id;
                 Payslip.Employee_Id_List = new List<Decimal>();
                 await GetDAArrearMonth();
@@ -273,8 +282,13 @@ else
                     decimal.TryParse(item.Value, out decimal empId);
                     Payslip.Employee_Id_List.AddRange(empId);
                 }
+                StateHasChanged();
             }
-            StateHasChanged();
+            else
+            {
+                _isError = true; 
+                errorMessage = "No pay month found for the employee.";
+            }
         }
         catch (Exception ex)
         {

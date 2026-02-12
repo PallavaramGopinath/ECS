@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Reporting.NETCore;
 using System.Data;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Net;
 using System.Security;
 using System.Security.Permissions;
@@ -517,10 +519,43 @@ namespace Infin8.Coapp.API.Controllers
                     {
                         byte[] imageBytes2 = System.IO.File.ReadAllBytes(imagePath2);
                         base64Image2 = Convert.ToBase64String(imageBytes2);
+                        //byte[] imageBytes3 = System.IO.File.ReadAllBytes(imagePath2);
+
                         //string fileExtension = Path.GetExtension(imagePath2).ToLower();
                         //string mimeType = GetMimeType(fileExtension);
                         //loan.MemberPhoto = $"data:{mimeType};base64,{base64Image}";
+
+                        //using (MemoryStream pngStream = new MemoryStream(imageBytes2))
+                        //using (MemoryStream jpegStream = new MemoryStream())
+                        //{
+                        //    using (Bitmap original = new Bitmap(pngStream))
+                        //    {
+                        //        // Create new bitmap with white background to handle transparency
+                        //        using (Bitmap newBitmap = new Bitmap(original.Width, original.Height))
+                        //        {
+                        //            using (Graphics g = Graphics.FromImage(newBitmap))
+                        //            {
+                        //                g.Clear(Color.White);
+                        //                g.DrawImage(original, 0, 0, original.Width, original.Height);
+                        //            }
+                        //            newBitmap.Save(jpegStream, ImageFormat.Jpeg);
+                        //        }
+                        //    }
+                        //    base64Image2 = Convert.ToBase64String(jpegStream.ToArray());
+                        //}
+
+                        // Convert PNG to JPEG for RDLC compatibility
+                        //using (MemoryStream pngStream = new MemoryStream(imageBytes2))
+                        //using (MemoryStream jpegStream = new MemoryStream())
+                        //{
+                        //    using (Image image = Image.FromStream(pngStream))
+                        //    {
+                        //        image.Save(jpegStream, ImageFormat.Jpeg);
+                        //    }
+                        //    base64Image2 =  Convert.ToBase64String(jpegStream.ToArray());
+                        //}
                         loan.MemberPhoto = base64Image2;
+                        //loan.MemberPhoto = imageBytes3;
                     }
 
                 }
