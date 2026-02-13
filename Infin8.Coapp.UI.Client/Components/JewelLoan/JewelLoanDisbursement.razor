@@ -1,7 +1,5 @@
 ﻿@* @page "/jewel-loan-disbursement" *@
 @using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Text.Json
 @using System.Text.Json.Serialization;
@@ -10,13 +8,19 @@
 @using Infin8.Coapp.Utility
 @using System.Net
 @* @rendermode InteractiveAuto *@
-@rendermode InteractiveWebAssembly
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject TransactionStateService TransactionState
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-@attribute [Authorize(Roles = "Admin, Maker")]
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
 <div class="mt-4">
     <h3 class="mb-2">Jewel Loan Disbursement</h3>
     <hr class="mt-0" />
@@ -347,8 +351,8 @@
     #endregion
 
     #region declarations
-    private string brCode = "11001";
-    private decimal createdBy = 0;
+    // private string brCode = "11001";
+    // private decimal createdBy = 0;
     private bool isValidSubmit = false;
     private DtoJewelLoanDisbursement loanDetails = new DtoJewelLoanDisbursement();
     private DtoJewelLoanOrnments newOrnament = new DtoJewelLoanOrnments();
@@ -372,10 +376,10 @@
         // loanDetails.Tranaction_Date = DateTime.Now;
 
         var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
-        brCode = userInfoDto.BrCode!;
-        createdBy = userInfoDto.UserId;
 
         loanDetails = new();
+        loanDetails.BrCode  = userInfoDto.BrCode!;
+        loanDetails.Created_By  = userInfoDto.UserId;
         loanDetails.AccountId = AccountId;
         loanDetails.CashOrAdjustment = CashOrAdjustment;
         loanDetails.Mem_Id = MemberId;
@@ -394,7 +398,7 @@
         try
         {
             // List<DropdownItem> loanSchemes = new List<DropdownItem>();
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/2/{brCode}");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/2/{loanDetails.BrCode}");
             if (result != null && result.Count > 0)
             {
                 loanSchemes = result.ToList();
@@ -453,31 +457,31 @@
             int period = 0;
             // Loan_Schemes? jlScheme = new Loan_Schemes();
             LoanROIAndPIVM? roi = new LoanROIAndPIVM();
-            var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate/{brCode}");
+            var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate/{loanDetails.BrCode}");
             if (marketRate != null)
             {
                 loanDetails.Market_Rate = marketRate.Market_Rate;
                 loanDetails.Govt_Rate = marketRate.Market_Rate;
             }
-            eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage/{brCode}");
+            eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage/{loanDetails.BrCode}");
             loanDetails.Percentage_Of_Eligibility_On_Market_Rate = eligiblePercentage;
 
             string formattedDate = loanDetails.Tranaction_Date.ToString("yyyy-MM-dd");
-            maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}&brCode={brCode}");
+            maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}&brCode={loanDetails.BrCode}");
             loanDetails.Maximum_Loan_Limit = maximumLimit;
 
-            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}/{brCode}");
+            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}/{loanDetails.BrCode}");
 
             loanDetails.Period_Of_Loan = period;
 
             string wefFormatted = ((DateTime)loanDetails.Tranaction_Date).ToString("yyyy-MM-dd");
             string agency = "S";
-            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}&brCode={brCode}");
+            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}&brCode={loanDetails.BrCode}");
 
             loanDetails.Rate_Of_Interest = roi!.Roi;
             loanDetails.Penal_Rate = roi!.Pi;
 
-            jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}/{brCode}");
+            jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}/{loanDetails.BrCode}");
 
             loanDetails.Existing_Loan_Outstanding = jlExistingLoanBalance;
 
@@ -994,12 +998,12 @@
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = jewelLoanJsonData,
-            Created_By = createdBy,
+            Created_By = loanDetails.Created_By ,
             Created_Date =  TransactionDate,
             Checked_By =0,
             Checked_Date = null,
             Staging_Status ="I",
-            BrCode = brCode,
+            BrCode = loanDetails.BrCode ,
             CashReceipt_Amount = cashReceiptAmount ,
             CashPayment_Amount = cashPaymentAmount ,
             AdjustmentReceipt_Amount = adjustmentReceiptAmount ,

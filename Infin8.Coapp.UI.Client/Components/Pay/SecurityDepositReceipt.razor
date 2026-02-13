@@ -14,6 +14,12 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveWebAssembly
 
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
 @if (_isLoading)
 {
     <!-- Show a centered spinner while data is loading -->
@@ -177,9 +183,9 @@ else
     #endregion
 
     #region variables
-    private string brCode = "11001";
-    private decimal Yr_Id = 110010000023;
-    private decimal Created_By = 110010000001;
+    // private string brCode = "11001";
+    // private decimal Yr_Id = 110010000023;
+    // private decimal Created_By = 110010000001;
     private bool _isLoading = true;
     private bool _isError = false;
     private string errorMessage = string.Empty;
@@ -203,13 +209,12 @@ else
 
                 var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
                 model.BrCode = userInfoDto.BrCode!;
+                model.Created_By = userInfoDto.UserId;
+                model.YrId = userInfoDto.YrId;
                 model.Transaction_Date = TransactionDate;
                 model.Employee_Id = Employee_Id;
                 model.Employee_Name = Employee_Name;
                 model.Designation = Designation;
-                model.Created_By = Created_By;
-                model.YrId = userInfoDto.YrId;
-
 
                 // DtoSecurityDepositCreate empData = new()
                 // {

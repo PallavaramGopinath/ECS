@@ -181,9 +181,9 @@ else
     #endregion
 
     #region variables
-    private string brCode = "11001";
-    private decimal Yr_Id = 110010000023;
-    private decimal Created_By = 110010000001;
+    // private string brCode = "11001";
+    // private decimal Yr_Id = 110010000023;
+    // private decimal Created_By = 110010000001;
     private bool _isLoading = true;
     private bool _isError = false;
     private string errorMessage = string.Empty;
@@ -202,9 +202,9 @@ else
                 model.Employee_Name = Employee_Name;
                 model.Designation = Designation;
                 model.Transaction_Date = TransactionDate;
-                model.BrCode = brCode;
-                model.YrId = Yr_Id;
-                model.Created_By = Created_By;
+                model.BrCode = userInfoDto.BrCode!;
+                model.YrId = userInfoDto.YrId;
+                model.Created_By = userInfoDto.UserId;
                 // string asOnDate = TransactionDate.ToString("yyyy-MM-dd");
                 // var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}");
                 // if (response != null && response.Employee_Id > 0)
@@ -227,7 +227,7 @@ else
         try
         {
             string asOnDate = TransactionDate.ToString("yyyy-MM-dd");
-            var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}");
+            var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}/{model.BrCode}");
             if (response != null && response.Employee_Id > 0)
             {
                 if (response._isError)
@@ -416,12 +416,12 @@ else
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = pfSubscriptionJsonData,
-            Created_By = 110010000001,
+            Created_By = model.Created_By ,
             Created_Date = TransactionDate,
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001",
+            BrCode = model.BrCode ,
             CashReceipt_Amount = CashOrAdjustment == 1 ? model.TotalReceived : 0,
             AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? model.TotalReceived : 0,
             CashPayment_Amount = CashOrAdjustment == 1 ? model.TotalWidhdrawn : 0,

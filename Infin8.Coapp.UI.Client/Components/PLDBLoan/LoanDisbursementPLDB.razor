@@ -17,6 +17,8 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
 @if (_isLoading)
 {
     <div class="text-center my-5">
@@ -695,9 +697,9 @@ else
     #region declarations
     private bool _isLoading = true;
     private bool isValidSubmit = false;
-    private string brCode = "11001";
-    private decimal Yr_Id = 110010000023;
-    private decimal Created_By = 110010000001;
+    // private string brCode = "11001";
+    // private decimal Yr_Id = 110010000023;
+    // private decimal Created_By = 110010000001;
     // private bool isJlOnMI =false;
     private DtoLoanDisbursementPLDB loanDetails = new DtoLoanDisbursementPLDB();
     private DtoJewelLoanOrnments newOrnament = new DtoJewelLoanOrnments();
@@ -723,21 +725,18 @@ else
             try
             {
                 var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
-                brCode = userInfoDto.BrCode!;
-                Yr_Id = userInfoDto.YrId;
-                Created_By = userInfoDto.UserId;
-
 
                 loanDetails = new();
+                loanDetails.BrCode  = userInfoDto.BrCode!;
+                loanDetails.Yr_Id = userInfoDto.YrId;
+                loanDetails.Created_By  = userInfoDto.UserId;
+                
                 loanDetails.AccountId = AccountId;
                 loanDetails.CashOrAdjustment = CashOrAdjustment;
                 loanDetails.Mem_Id = MemberId;
                 loanDetails.Member_No = MemberNumber;
                 loanDetails.Member_Name = MemberName;
                 loanDetails.Tranaction_Date = TransactionDate;
-                loanDetails.BrCode = brCode;
-                loanDetails.Yr_Id = Yr_Id;
-                loanDetails.Created_By = Created_By;
                 loanDetails.LTLoanDisbursement = new DtoLoanDisbursementLT();
                 loanDetails.LTLoanDisbursement.RepaymentSchedule = new List<DtoLoanRepaymentSchedule>();
                 loanDetails.LTLoanDisbursement.LoanMembersList = new List<DtoLoanMembers>();
@@ -780,7 +779,7 @@ else
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/6/{brCode}");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/6/{loanDetails.BrCode!}");
             if (result != null && result.Count > 0)
             {
                 loanSchemes = result.ToList();
@@ -846,26 +845,26 @@ else
             LoanROIAndPIVM? roi = new LoanROIAndPIVM();
             string wefFormatted = ((DateTime)loanDetails.Tranaction_Date).ToString("yyyy-MM-dd");
             string agency = "S";
-            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}&brCode={brCode}");
+            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}&brCode={loanDetails.BrCode!}");
             if (roi!.Roi == 0 || roi.Pi == 0)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "Rate of interest for the selected scheme not available");
             }
-            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}/{brCode}");
+            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}/{loanDetails.BrCode!}");
             if (loanDetails.Security_Type == 1)
             {
-                var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate/{brCode}");
+                var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate/{loanDetails.BrCode!}");
                 if (marketRate != null)
                 {
                     jlDisbursement.Market_Rate = marketRate.Market_Rate;
                     jlDisbursement.Govt_Rate = marketRate.Govt_Rate;
                 }
-                eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage/{brCode}");
+                eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage/{loanDetails.BrCode!}");
 
                 jlDisbursement.Percentage_Of_Eligibility_On_Market_Rate = eligiblePercentage;
 
                 string formattedDate = loanDetails.Tranaction_Date.ToString("yyyy-MM-dd");
-                maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}&brCode={brCode}");
+                maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}&brCode={loanDetails.BrCode!}");
 
                 jlDisbursement.Maximum_Loan_Limit = maximumLimit;
 

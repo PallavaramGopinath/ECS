@@ -39,5 +39,6 @@ namespace Infin8.Coapp.Dto
         public double AppraisalFee { get; set; }
         public double BankCharges { get; set; }
         public string? BrCode { get; set; }
+        public decimal Created_By { get; set; }
     }
 }

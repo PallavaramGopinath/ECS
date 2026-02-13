@@ -1,4 +1,4 @@
-﻿@page "/sls-payment"
+﻿@* @page "/sls-payment" *@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @using System.Text.Json
@@ -8,9 +8,16 @@
 
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 
 @inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 @if (_isLoading)
 {
@@ -183,9 +190,9 @@ else
     #region variables
     private DateTime fromDate = new DateTime(2024, 4, 1);
     private DateTime toDate = new DateTime(2025, 3, 31);
-    private string brCode = "11001";
-    private decimal Yr_Id = 110010000023;
-    private decimal Created_By = 110010000001;
+    // private string brCode = "11001";
+    // private decimal Yr_Id = 110010000023;
+    // private decimal Created_By = 110010000001;
     private bool _isLoading = true;
     private bool _isError = false;
     private string errorMessage = string.Empty;
@@ -198,13 +205,21 @@ else
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+                // fromDate = userInfoDto.YrBeginningDate;
+                // toDate = userInfoDto.YrEndDate;
+                model.BrCode = userInfoDto.BrCode;
+                model.Created_By = userInfoDto.UserId;
+                model.YrId = userInfoDto.YrId;
+               
                 model.Employee_Id = Employee_Id;
                 model.Employee_Name = Employee_Name;
                 model.Designation = Designation;
                 model.Transaction_Date = TransactionDate;
-                model.BrCode = brCode;
-                model.YrId = Yr_Id;
-                model.Created_By = Created_By;
+                // model.BrCode = brCode;
+                // model.YrId = Yr_Id;
+                // model.Created_By = Created_By;
                 model.Component_List = new List<DtoSLSComponent>();
                 await GetSLSData();
                 _isLoading = false;
@@ -253,14 +268,14 @@ else
         {
             string fromDateString = fromDate.ToString("yyyy-MM-dd");
             string toDateString = toDate.ToString("yyyy-MM-dd");
-            var isAlreadyPaid = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Pay/IsSLSPaid/{Employee_Id}/{fromDateString}/{toDateString}/{"S"}/{brCode}");
+            var isAlreadyPaid = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Pay/IsSLSPaid/{Employee_Id}/{fromDateString}/{toDateString}/{"S"}/{model.BrCode}");
             if (isAlreadyPaid)
             {
                 model._isError = true;
                 model.errorMessage = "SLS for the period from " + fromDate.ToString("dd-MM-yyyy") + " to " + toDate.ToString("dd-MM-yyyy") + " already paid";
                 return;
             }
-            var response = await _httpClient.GetFromJsonAsync<List<DtoSLSComponent>>($"https://localhost:7073/api/Pay/GetSLSData/{Employee_Id}/{brCode}");
+            var response = await _httpClient.GetFromJsonAsync<List<DtoSLSComponent>>($"https://localhost:7073/api/Pay/GetSLSData/{Employee_Id}/{model.BrCode}");
             if (response != null && response.Any())
             {
                 SLSList = new();
@@ -386,12 +401,12 @@ else
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = slsJsonData,
-            Created_By = 110010000001,
+            Created_By = model.Created_By ,
             Created_Date = TransactionDate,
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001",
+            BrCode = model.BrCode ,
             CashReceipt_Amount =  0,
             AdjustmentReceipt_Amount =  0,
             CashPayment_Amount = CashOrAdjustment == 1 ? model.SLSAmount : 0,

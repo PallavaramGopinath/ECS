@@ -1,4 +1,4 @@
-﻿@page "/staff-loan-disbursement"
+﻿@* @page "/staff-loan-disbursement" *@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @using System.Text.Json
@@ -10,6 +10,13 @@
 @inject IJSRuntime JSRuntime
 
 @inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 @if (_isLoading)
 {
@@ -179,9 +186,9 @@ else
     #endregion
 
     #region variables
-    private string brCode = "11001";
-    private decimal Yr_Id = 110010000023;
-    private decimal Created_By = 110010000001;
+    // private string brCode = "11001";
+    // private decimal Yr_Id = 110010000023;
+    // private decimal Created_By = 110010000001;
     private bool _isLoading = true;
     private bool _isError = false;
     private string errorMessage = string.Empty;
@@ -194,6 +201,11 @@ else
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                model.BrCode = userInfoDto.BrCode!;
+                model.YrId = userInfoDto.YrId;
+                model.Created_By = userInfoDto.UserId;
+
                 DateTime firstInstDate = Transaction_Date.AddMonths(1);
                 firstInstDate = new DateTime(firstInstDate.Year, firstInstDate.Month, 1);
                 model.Transaction_Date = Transaction_Date;
@@ -201,9 +213,9 @@ else
                 model.Employee_Id = Employee_Id;
                 model.Employee_Name = Employee_Name;
                 model.Designation = Designation;
-                model.Created_By = Created_By;
-                model.YrId = Yr_Id;
-                model.BrCode = brCode;
+                // model.Created_By = Created_By;
+                // model.YrId = Yr_Id;
+                // model.BrCode = brCode;
                 model.RepaymentSchedule = new List<Loan_Repayment_Schedule>();
                 await LoadLoanSchemes();
                 _isLoading = false;
@@ -220,7 +232,7 @@ else
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/5/{brCode}");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/5/{model.BrCode!}");
             if (result != null && result.Any())
             {
                 loanSchemes = result.ToList();
@@ -241,7 +253,7 @@ else
         {
             if (model.Scheme_Id > 0)
             {
-                var result = await _httpClient.GetFromJsonAsync<Loan_Schemes>($"https://localhost:7073/api/Loan/GetLoanScheme/{model.Scheme_Id}/{brCode}");
+                var result = await _httpClient.GetFromJsonAsync<Loan_Schemes>($"https://localhost:7073/api/Loan/GetLoanScheme/{model.Scheme_Id}/{model.BrCode!}");
                 if (result != null && result.Scheme_Id > 0)
                 {
                     schemes = result;

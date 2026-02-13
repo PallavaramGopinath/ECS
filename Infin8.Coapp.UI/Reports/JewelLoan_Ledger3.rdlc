@@ -89,8 +89,8 @@
           <DataField>PerNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="PhotoImage">
-          <DataField>PhotoImage</DataField>
+        <Field Name="MemberPhoto">
+          <DataField>MemberPhoto</DataField>
           <rd:TypeName>System.Byte[]</rd:TypeName>
         </Field>
         <Field Name="Pi">
@@ -1125,7 +1125,7 @@
           </Textbox>
           <Image Name="Image1">
             <Source>Database</Source>
-            <Value>=First(Fields!PhotoImage.Value, "Ds_JLLedger")</Value>
+            <Value>=First(Fields!MemberPhoto.Value, "Ds_JLLedger")</Value>
             <MIMEType>image/png</MIMEType>
             <Sizing>Fit</Sizing>
             <Top>0.38833cm</Top>

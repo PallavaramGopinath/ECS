@@ -1,4 +1,4 @@
-﻿@page "/payslip-payment"
+﻿@* @page "/payslip-payment" *@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @using System.Text.Json
@@ -8,9 +8,16 @@
 
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 
 @inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 <div class="container-fluid">
     <h3>Pay Slip Payment</h3>
@@ -171,7 +178,7 @@
     #endregion
 
     #region variables
-    private string brCode = "11001";
+    // private string brCode = "11001";
     private bool _isLoading = true;
     private bool isError = false;
     private string errorMessage = string.Empty;
@@ -184,10 +191,15 @@
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+                salaryPayment.BrCode  = userInfoDto.BrCode!;
+                salaryPayment.Created_By = userInfoDto.UserId;
+
                 salaryPayment.Employee_Id = Employee_Id;
-                var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPayment/P/{brCode}");
+                var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPayment/P/{salaryPayment.BrCode!}");
                 if (response != null && response.Any()) payIdList = response.ToList();
-                var response2 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPayment/A/{brCode}");
+                var response2 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPayment/A/{salaryPayment.BrCode!}");
                 if (response2 != null && response2.Any()) payIdList.AddRange(response2);
                 _isLoading = false;
                 StateHasChanged();
@@ -223,7 +235,7 @@
                 // if (response != null && response.Any()) empIdList = response.ToList();
 
                 // var response = await _httpClient.GetFromJsonAsync<DropdownItem>($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
-                var response = await _httpClient.GetAsync($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
+                var response = await _httpClient.GetAsync($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{salaryPayment.BrCode!}");
                 if (response.IsSuccessStatusCode)
                 {
                     var data = await response.Content.ReadFromJsonAsync<DropdownItem>();
@@ -290,7 +302,7 @@
         }
         // Build query string properly for multiple values
         var queryString = string.Join("&", empIds.Select(id => $"empIdList={id}"));
-        var url = $"https://localhost:7073/api/Pay/GetPaySlipForPayment?{queryString}&payId={salaryPayment.Pay_Id}&brCode={brCode}";
+        var url = $"https://localhost:7073/api/Pay/GetPaySlipForPayment?{queryString}&payId={salaryPayment.Pay_Id}&brCode={salaryPayment.BrCode}";
         var response = await _httpClient.GetFromJsonAsync<List<Pay_Slip>>(url);
         // var response = await _httpClient.GetFromJsonAsync<List<Pay_Slip>>($"https://localhost:7073/api/Pay/GetPaySlipForPayment/{Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
         if (response != null && response.Any())
@@ -364,12 +376,12 @@
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = salaryPaymentjsonData,
-            Created_By = 110010000001,
+            Created_By = salaryPayment.Created_By ,
             Created_Date = TransactionDate,
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = brCode,
+            BrCode = salaryPayment.BrCode,
             CashPayment_Amount = cashPaymentAmount ,
             CashReceipt_Amount = cashReceiptAmount  ,
             AdjustmentReceipt_Amount = adjustmentReceiptAmount ,

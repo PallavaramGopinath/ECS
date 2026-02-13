@@ -8,12 +8,16 @@
 @using System.Net
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
 @* @rendermode InteractiveAuto *@
 @rendermode InteractiveWebAssembly
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject TransactionStateService TransactionState
 @inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
 <div >
     <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
         <h3 class="mb-2">Jewel Loan Recovery</h3>
@@ -100,13 +104,13 @@
                                     <td>@loan.Loan_No</td>
                                     <td>@loan.Scheme_Name</td>
                                     <td>@loan.Status</td>
-                                    <td>@loan.Loan_Amount.ToString("C2")</td>
+                                    <td>@loan.Loan_Amount.ToString("C2", new CultureInfo("hi-IN"))</td>
                                     <td>@loan.Loan_Date.ToShortDateString()</td>
                                     <td>@loan.Due_Date.ToShortDateString()</td>
                                     <td>@loan.ROI% </td>
-                                    <td>@loan.Outstanding.ToString("C2")</td>
-                                    <td>@loan.Recovery_Amount.ToString("C2")</td>
-                                    <td>@loan.Calculated_Amount.ToString("C2") </td>
+                                    <td>@loan.Outstanding.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                    <td>@loan.Recovery_Amount.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                    <td>@loan.Calculated_Amount.ToString("C2", new CultureInfo("hi-IN")) </td>
                                     <td>@loan.Interest_Application_Date</td>
                                     @* <td>
                                         <input type="number" step="0.01" class="form-control"
@@ -122,9 +126,9 @@
                             }
                             <tr class="table-info">
                                 <td colspan="7" class="text-end fw-bold">Total:</td>
-                                <td class="fw-bold">@model.JewelLoanBalance_List.Sum(l => l.Outstanding).ToString("C2")</td>
-                                <td class="fw-bold">@model.JewelLoanBalance_List.Sum(l => l.Recovery_Amount).ToString("C2")</td>
-                                <td class="fw-bold">@model.JewelLoanBalance_List.Sum(l => l.Calculated_Amount).ToString("C2")</td>
+                                <td class="fw-bold">@model.JewelLoanBalance_List.Sum(l => l.Outstanding).ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td class="fw-bold">@model.JewelLoanBalance_List.Sum(l => l.Recovery_Amount).ToString("C2", new CultureInfo("hi-IN"))</td>
+                                <td class="fw-bold">@model.JewelLoanBalance_List.Sum(l => l.Calculated_Amount).ToString("C2", new CultureInfo("hi-IN"))</td>
                                 <td class="fw-bold"></td>
                             </tr>
                         </tbody>
@@ -212,8 +216,8 @@
     #endregion
 
     #region declarations
-    private string brCode = "";
-    decimal createdBy = 0;
+    // private string brCode = "";
+    // decimal createdBy = 0;
     private DtoJewelLoanRecovery model = new DtoJewelLoanRecovery();
     private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
     private List<DtoJewelLoanBalance> JewelLoanBalanceFromDB = new List<DtoJewelLoanBalance>();
@@ -238,8 +242,8 @@
         {
             var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
 
-            brCode = userInfoDto.BrCode!;
-            createdBy = userInfoDto.UserId;
+            model.BrCode = userInfoDto.BrCode!;
+            model.Created_By  = userInfoDto.UserId;
 
             model.AccountId = AccountId;
             model.CashOrAdjustment = CashOrAdjustment;
@@ -325,7 +329,7 @@
             List<DropdownItem> jlNoList = new List<DropdownItem>();
             /// first time not rendered but on refresh it is rendered
             // var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetJLNosByMemId/{model.Mem_Id}/2");
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/2/{brCode}");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/2/{model.BrCode }");
             List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
             if (result != null && result.Count > 0)
             {
@@ -401,7 +405,7 @@
             }
             // Add other parameters with proper formatting
             queryString.Append($"&endDate={Uri.EscapeDataString(model.Transaction_Date.ToString("yyyy-MM-dd"))}");
-            queryString.Append($"&brCode={brCode}");
+            queryString.Append($"&brCode={model.BrCode}");
 
             // Make the API call with proper URL format
             // var result = await _httpClient.GetFromJsonAsync<List<JewelLoanBalance>>($"api/Loan/GetJLBalance?{queryString}");
@@ -648,12 +652,12 @@
                 Module_Name = accountName,
                 Cash_Or_Adjustment = CashOrAdjustment,
                 Related_Account_Data = jewelRecoveryJsonData,
-                Created_By = createdBy,
+                Created_By = model.Created_By ,
                 Created_Date = TransactionDate,
                 Checked_By = 0,
                 Checked_Date = null,
                 Staging_Status ="I",
-                BrCode = brCode,
+                BrCode = model.BrCode ,
                 CashReceipt_Amount = CashOrAdjustment ==1 ? model.Recovery_Amount : 0,
                 AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? model.Recovery_Amount :0,
                 CashPayment_Amount =0,
