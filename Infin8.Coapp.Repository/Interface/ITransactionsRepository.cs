@@ -23,6 +23,7 @@ namespace Infin8.Coapp.Repository
         DtoTransactionRptPmtNos GetReceiptAndPaymentNo(double cashReceipt, double cashPayment, double adjReceipt, double adjPayment, bool IsChequeOnly, decimal yrId);
         Task<bool> IsChequeOnly(decimal stagingId);
         Task<string> GetTransactionStatusByAccId(int accId);
-        
+        Task<Dictionary<int, string>> GetTransactionStatusesByAccIds(List<int> accIds);
+
     }
 }

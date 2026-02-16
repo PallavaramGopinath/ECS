@@ -184,10 +184,14 @@ namespace Infin8.Coapp.BusinessLogic
                     finVoucherTrns.Add(vocTrn);
                 }
                 DtoOtherRelatedData otherRelatedData = new();
+                // Batch-fetch all transaction statuses upfront
+                var allAccIds = transactions.Select(t => t.Related_Account_Id).Distinct().ToList();
+                var statusLookup = await _unitOfWork.TransactionsRepository.GetTransactionStatusesByAccIds(allAccIds);
+
                 foreach (var trns in transactions)
                 {
                     trns.Checked_By = Checked_By;
-                    Status = await _unitOfWork.TransactionsRepository.GetTransactionStatusByAccId(trns.Related_Account_Id);
+                    Status = statusLookup.TryGetValue(trns.Related_Account_Id, out var s) ? s : "";
                     switch (trns.Related_Account_Id)
                     {
                         case 1: /// Loan recovery
@@ -1635,13 +1639,17 @@ namespace Infin8.Coapp.BusinessLogic
                     finVoucherTrns.Add(vocTrn);
                 }
 
+                // Batch-fetch all bank ledger IDs upfront
+                var allLedgerIds = transactions.Select(t => t.Ledger_Id).Distinct().ToList();
+                var bankLedgerIds = await _unitOfWork.Accounts.GetBankLedgerIds(allLedgerIds, brCode);
+
                 foreach (var trns in transactions)
                 {
                     relatedData = Utility.JsonbObject.ConvertFromJsonForAccountTransactionRelatedData(trns.Related_Account_Data!);
                     vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, relatedData.Narration!, false, Checked_By, yrId, Status, "", 0, brCode, 0, 0, 0);
                     finVoucherTrns.Add(vocTrn);
                     /// vefify ledger_id is bank account
-                    if (await _unitOfWork.Accounts.IsBankLedger(trns.Ledger_Id, brCode))
+                    if (bankLedgerIds.Contains(trns.Ledger_Id))
                     {
                         /// if bank account, then insert the bank transaction
                         Fin_Voucher_Bank bankTrn = new();

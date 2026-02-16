@@ -44,19 +44,38 @@ namespace Infin8.Coapp.Repository
         public async Task<bool> AddTermDepositTrnListAsync(List<TermDeposit_Trn> termDepositTrnList)
         {
             bool result = false;
-            int maxSlNo = 0;
             try
             {
-                decimal maxId = CSISContext.TermDeposit_Trn.Max(x => x.TDTrn_Id);
+                decimal maxId = await CSISContext.TermDeposit_Trn.MaxAsync(x => x.TDTrn_Id);
+
+                // Batch-fetch max SlNo per TD_Id in a single query
+                var distinctTdIds = termDepositTrnList.Select(x => x.TD_Id).Distinct().ToList();
+                var maxSlNos = await CSISContext.TermDeposit_Trn
+                    .Where(x => distinctTdIds.Contains(x.TD_Id))
+                    .GroupBy(x => x.TD_Id)
+                    .Select(g => new { TD_Id = g.Key, MaxSlNo = g.Max(x => x.Trn_SlNo) })
+                    .ToDictionaryAsync(x => x.TD_Id, x => x.MaxSlNo);
+
                 foreach (var td in termDepositTrnList)
                 {
                     maxId++;
-                    maxSlNo = Get_MaxTDTrnSlNo(td.TD_Id);
                     td.TDTrn_Id = maxId;
-                    td.Trn_SlNo = maxSlNo;
-                    await AddAsync(td);
-                    await CSISContext.SaveChangesAsync();
+
+                    // Get and increment SlNo from in-memory dictionary
+                    if (maxSlNos.TryGetValue(td.TD_Id, out int currentMax))
+                    {
+                        currentMax++;
+                        maxSlNos[td.TD_Id] = currentMax;
+                        td.Trn_SlNo = currentMax;
+                    }
+                    else
+                    {
+                        maxSlNos[td.TD_Id] = 1;
+                        td.Trn_SlNo = 1;
+                    }
                 }
+
+                await CSISContext.TermDeposit_Trn.AddRangeAsync(termDepositTrnList);
                 result = true;
             }
             catch (Exception ex)

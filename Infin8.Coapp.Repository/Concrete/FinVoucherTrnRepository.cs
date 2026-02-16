@@ -44,8 +44,8 @@ namespace Infin8.Coapp.Repository
                 {
                     maxId++;
                     finVoucherTrn.Voc_Trn_Id = maxId;
-                    await AddAsync(finVoucherTrn);
                 }
+                await CSISContext.Fin_Voucher_Trn.AddRangeAsync(finVoucherTrnList);
                 result = true;
             }
             catch (Exception ex)
