@@ -469,13 +469,17 @@ else
         {
             // vocId = await response.Content.ReadFromJsonAsync<decimal>();
             voucherData = await response.Content.ReadFromJsonAsync<DtoVoucher>();
-            /// print receipt and payment reports
-            await HandlePrint();
+            /// print receipt and payment reports + refresh dashboard concurrently
+            var printTask = HandlePrint();
+            var dashboardTask = _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>(
+                $"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+
+            await Task.WhenAll(printTask, dashboardTask);
 
             checkerDashboardList = new();
             try
             {
-                var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+                var query = await dashboardTask;
                 checkerDashboardList = query ?? new List<DtoCheckerDashboard>();
             }
             catch (HttpRequestException ex)
@@ -716,17 +720,20 @@ else
         {
             statusList = statusResult!.ToList();
         }
+
+        // Collect status-based print tasks to run in parallel
+        List<Task> statusPrintTasks = new();
         foreach (var status in statusList)
         {
             switch (status.Trim())
             {
                 case "FI":      /// FD Interest payment
                 case "FR":  /// FD Refund report id = 92
-                    await Print_FDPayment(rpt);
+                    statusPrintTasks.Add(Print_FDPayment(rpt));
                     break;
                 case "FDR":
                 case "FW":  /// FD Bond Report Id = 116
-                    await Print_FDBond(rpt);
+                    statusPrintTasks.Add(Print_FDBond(rpt));
                     break;
                 case "DVP": /// Dividend paid report id = 124
 
@@ -744,12 +751,9 @@ else
 
                     break;
                 case "JLI": /// Jewel Loan Disbursement (JL Ledger) report id = 136,136,153
-                    rptObject.ReportId = 135;
-                    await Print_JL_Ledger(rptObject);
-                    rptObject.ReportId = 136;
-                    await Print_JL_Ledger(rptObject);
-                    rptObject.ReportId = 153;
-                    await Print_JL_Ledger(rptObject);
+                    statusPrintTasks.Add(Print_JL_Ledger(new() { Voc_Id = rptObject.Voc_Id, BrCode = rptObject.BrCode, VocTrnType = rptObject.VocTrnType, ReportId = 135 }));
+                    statusPrintTasks.Add(Print_JL_Ledger(new() { Voc_Id = rptObject.Voc_Id, BrCode = rptObject.BrCode, VocTrnType = rptObject.VocTrnType, ReportId = 136 }));
+                    statusPrintTasks.Add(Print_JL_Ledger(new() { Voc_Id = rptObject.Voc_Id, BrCode = rptObject.BrCode, VocTrnType = rptObject.VocTrnType, ReportId = 153 }));
                     break;
                 case "BTOA": /// Transaction between Associate Members to A-Class Members report id = 145
 
@@ -758,14 +762,15 @@ else
 
                     break;
                 case "PLI":    /// PLDB Loan for MI for Jewels report id = 136,136
-                    rptObject.ReportId = 135;
-                    await Print_JL_Ledger(rptObject);
-                    rptObject.ReportId = 136;
-                    await Print_JL_Ledger(rptObject);
-                    rptObject.ReportId = 153;
-                    await Print_JL_Ledger(rptObject);
+                    statusPrintTasks.Add(Print_JL_Ledger(new() { Voc_Id = rptObject.Voc_Id, BrCode = rptObject.BrCode, VocTrnType = rptObject.VocTrnType, ReportId = 135 }));
+                    statusPrintTasks.Add(Print_JL_Ledger(new() { Voc_Id = rptObject.Voc_Id, BrCode = rptObject.BrCode, VocTrnType = rptObject.VocTrnType, ReportId = 136 }));
+                    statusPrintTasks.Add(Print_JL_Ledger(new() { Voc_Id = rptObject.Voc_Id, BrCode = rptObject.BrCode, VocTrnType = rptObject.VocTrnType, ReportId = 153 }));
                     break;
             }
+        }
+        if (statusPrintTasks.Count > 0)
+        {
+            await Task.WhenAll(statusPrintTasks);
         }
 
         // #region Member Receipt

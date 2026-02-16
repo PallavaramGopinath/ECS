@@ -101,7 +101,16 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        #endregion 
+        public async Task<HashSet<decimal>> GetBankLedgerIds(List<decimal> ledgerIds, string brCode)
+        {
+            var bankLedIds = await CSISContext.Map_Banks
+                .Where(x => ledgerIds.Contains(x.Led_Id) && x.BrCode == brCode)
+                .Select(x => x.Led_Id)
+                .ToListAsync();
+            return [.. bankLedIds];
+        }
+
+        #endregion
         public async Task<(double OBAmount, double CBAmount)> GetLedgerOBAndCBAmount(decimal ledId, decimal yrId, DateTime toDate, string brCode)
         {
             double OBAmount = 0;
