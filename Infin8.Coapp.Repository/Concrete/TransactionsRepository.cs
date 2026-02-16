@@ -348,6 +348,15 @@ namespace Infin8.Coapp.Repository
             status = await CSISContext.Account_Transactions.Where(x => x.Acc_Id == accId).Select(x => x.Acc_Status).FirstAsync();
             return status;
         }
-        
+
+        public async Task<Dictionary<int, string>> GetTransactionStatusesByAccIds(List<int> accIds)
+        {
+            var distinctIds = accIds.Distinct().ToList();
+            return await CSISContext.Account_Transactions
+                .Where(x => distinctIds.Contains(x.Acc_Id))
+                .Select(x => new { x.Acc_Id, x.Acc_Status })
+                .ToDictionaryAsync(x => x.Acc_Id, x => x.Acc_Status);
+        }
+
     }
 }

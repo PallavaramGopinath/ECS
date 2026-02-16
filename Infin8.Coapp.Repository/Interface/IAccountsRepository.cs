@@ -16,7 +16,8 @@ namespace Infin8.Coapp.Repository
         #region general
         Task<decimal> GetCashLedgerId(string brCode);
         Task<bool> IsBankLedger(decimal ledgerId, string brCode);
-        #endregion 
+        Task<HashSet<decimal>> GetBankLedgerIds(List<decimal> ledgerIds, string brCode);
+        #endregion
 
         Task<(double OBAmount, double CBAmount)> GetLedgerOBAndCBAmount(decimal ledId, decimal yrId, DateTime toDate,string brCode);
         Task<double> GetPreviousReceipt(decimal ledId, decimal yrId, DateTime dateUpto);
