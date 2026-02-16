@@ -160,20 +160,22 @@ else
 }
 
 
-@* @if (isError)
+@if (isSubmitted)
 {
-    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-        <strong>Error!</strong> @errorMessage
-        <button type="button" class="close" @onclick="() => isError = false">
+    <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+        <strong>Error!</strong> @submittedMessage
+        <button type="button" class="close" @onclick="() => isSubmitted = false">
             <span>&times;</span>
         </button>
     </div>
-} *@
+}
 
 
 @code {
     // private bool isError = false;
     // private string errorMessage = string.Empty;
+    private bool isSubmitted = false;
+    private string submittedMessage = string.Empty;
     private bool showModal = false;
     private Type? viewComponent;
     private bool _isLoading = true;
@@ -467,7 +469,9 @@ else
         var response = await _httpClient.PostAsJsonAsync("https://localhost:7073/api/Staging/ApproveStaging", stagingId);
         if (response.IsSuccessStatusCode)
         {
-            _ = JSRuntime.InvokeVoidAsync("alert", "Transaction approved successfully!");
+            isSubmitted = true;
+            submittedMessage = "Transaction approved successfully!";
+            // _ = JSRuntime.InvokeVoidAsync("alert", "Transaction approved successfully!");
             // vocId = await response.Content.ReadFromJsonAsync<decimal>();
             voucherData = await response.Content.ReadFromJsonAsync<DtoVoucher>();
             /// print receipt and payment reports + refresh dashboard concurrently
