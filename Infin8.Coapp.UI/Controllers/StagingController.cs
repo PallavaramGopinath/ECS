@@ -92,7 +92,7 @@ namespace Infin8.Coapp.UI.Controllers
 
             var query = await _stagingDetailsHandler.GetCheckerDashboard(transactionDate, stagingStatus, brCode);
             //return query?.Count > 0 ? Ok(query) : NotFound();
-            if (query != null && query.Any())
+            if (query != null)
             {
                 checkerDashboardList = query.ToList();
                 return Ok(checkerDashboardList);

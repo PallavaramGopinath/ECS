@@ -467,6 +467,7 @@ else
         var response = await _httpClient.PostAsJsonAsync("https://localhost:7073/api/Staging/ApproveStaging", stagingId);
         if (response.IsSuccessStatusCode)
         {
+            _ = JSRuntime.InvokeVoidAsync("alert", "Transaction approved successfully!");
             // vocId = await response.Content.ReadFromJsonAsync<decimal>();
             voucherData = await response.Content.ReadFromJsonAsync<DtoVoucher>();
             /// print receipt and payment reports
@@ -486,7 +487,7 @@ else
                 }
             }
             StateHasChanged();
-            await JSRuntime.InvokeVoidAsync("alert", "Transaction approved successfully!");
+            // await JSRuntime.InvokeVoidAsync("alert", "Transaction approved successfully!");
         }
         else
         {
