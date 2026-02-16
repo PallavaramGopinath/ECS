@@ -1,5 +1,5 @@
 ﻿@page "/checker-dashboard"
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 @* @rendermode InteractiveAuto *@
 @using Infin8.Coapp.Dto
 @using System.Net
@@ -10,8 +10,11 @@
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @using Infin8.Coapp.Utility
+
+@rendermode InteractiveWebAssembly
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @attribute [Authorize(Roles = "Admin,Checker")]
@@ -66,8 +69,8 @@ else
                         <td>@tx.Staging_Id</td>
                         <td>@tx.Type</td>
                         <td>@tx.Created_By_Name</td>
-                        <td>@tx.Receipt_Amount.ToString("C")</td>
-                        <td>@tx.Payment_Amount.ToString("C")</td>
+                        <td>@tx.Receipt_Amount.ToString("C2", new CultureInfo("hi-IN"))</td>
+                        <td>@tx.Payment_Amount.ToString("C2", new CultureInfo("hi-IN"))</td>
                         <td>
                             <button type="button" class="btn btn-sm btn-primary me-1" @onclick="() => ApproveTransactions(tx.Staging_Id)">
                                 <i class="oi oi-check"></i> Approve
@@ -113,8 +116,8 @@ else
                                     {
                                         <tr>
                                             <td>@account.AccountName</td>
-                                            <td>@account.ReceiptAmount</td>
-                                            <td>@account.PaymentAmount</td>
+                                            <td>@account.ReceiptAmount.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                            <td>@account.PaymentAmount.ToString("C2", new CultureInfo("hi-IN"))</td>
                                             <td>
                                                 <button type="button" class="btn btn-sm btn-primary" @onclick="() => ViewAccount(account)">
                                                     <i class="oi oi-eye"></i>
@@ -127,8 +130,8 @@ else
                                 <tfoot>
                                     <tr class="table-info">
                                         <th>Total</th>
-                                        <th>@transactionAccountsList.Sum(a => a.ReceiptAmount)</th>
-                                        <th>@transactionAccountsList.Sum(a => a.PaymentAmount)</th>
+                                        <th>@transactionAccountsList.Sum(a => a.ReceiptAmount).ToString("C2", new CultureInfo("hi-IN"))</th>
+                                        <th>@transactionAccountsList.Sum(a => a.PaymentAmount).ToString("C2", new CultureInfo("hi-IN"))</th>
                                         <th></th>
                                     </tr>
                                 </tfoot>
@@ -673,9 +676,9 @@ else
         {
             if (receipt.Voc_Rpt > 0)
             {
-                if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 14)    /// voc_Type 5 = member transaction,Voc_Type 11 = decreed loan issue)
+                if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 14 || receipt.Voc_Type == 50)    /// voc_Type 5 = member transaction,Voc_Type 11 = decreed loan issue)
                 {
-                    if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11)
+                    if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 50)
                     {
                         await Print_Member_Receipt(rpt);
                     }
@@ -754,8 +757,13 @@ else
                 case "DVPM":    /// bulk dividend payment HSIS report id = 146
 
                     break;
-                case "HLI":    /// PLDB Loan for MI for Jewels report id = 136,136
-
+                case "PLI":    /// PLDB Loan for MI for Jewels report id = 136,136
+                    rptObject.ReportId = 135;
+                    await Print_JL_Ledger(rptObject);
+                    rptObject.ReportId = 136;
+                    await Print_JL_Ledger(rptObject);
+                    rptObject.ReportId = 153;
+                    await Print_JL_Ledger(rptObject);
                     break;
             }
         }

@@ -17,6 +17,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
 @if (_isLoading)
 {
     <!-- Show a centered spinner while data is loading -->

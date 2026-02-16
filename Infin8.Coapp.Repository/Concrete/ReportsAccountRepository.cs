@@ -536,27 +536,55 @@ namespace Infin8.Coapp.Repository
                 #endregion
 
                 #region  linq
+                //List<rptFinReceiptAndCharges> RnCFromTo = await (
+                //    from fv in CSISContext.Fin_Voucher
+                //    join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
+                //    join led in CSISContext.Fin_Ledger on fvt.Led_Id equals led.Led_Id
+                //    where fv.Voc_Date.Date >= fromDate.Date
+                //       && fv.Voc_Date.Date <= toDate.Date
+                //       && fvt.FinVocTr_Delete == false
+                //       && fv.Voc_Delete == false
+                //       && fv.BrCode == brCode
+                //       && fvt.BrCode == brCode
+                //       && fvt.Led_Id != cashId
+                //       && fvt.Yr_Id == yrId
+                //       && fv.Yr_Id == yrId
+                //       && fv.Voc_Status == "V"
+                //       && fvt.Voc_Status == "V"
+                //    group fvt by fvt.Led_Id into g
+                //    select new rptFinReceiptAndCharges
+                //    {
+                //        Led_Id = g.Key,
+                //        Dur_Rpt = g.Sum(x => x.Voc_Rpt),
+                //        Dur_Pmt = g.Sum(x => x.Voc_Pmt)
+                //    }).ToListAsync();
                 List<rptFinReceiptAndCharges> RnCFromTo = await (
-                    from fv in CSISContext.Fin_Voucher
-                    join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
-                    where fv.Voc_Date.Date >= fromDate.Date
-                       && fv.Voc_Date.Date <= toDate.Date
-                       && fvt.FinVocTr_Delete == false
-                       && fv.Voc_Delete == false
-                       && fv.BrCode == brCode
-                       && fvt.BrCode == brCode
-                       && fvt.Led_Id != cashId
-                       && fvt.Yr_Id == yrId
-                       && fv.Yr_Id == yrId
-                       && fv.Voc_Status == "V"
-                       && fvt.Voc_Status == "V"
-                    group fvt by fvt.Led_Id into g
-                    select new rptFinReceiptAndCharges
-                    {
-                        Led_Id = g.Key,
-                        Dur_Rpt = g.Sum(x => x.Voc_Rpt),
-                        Dur_Pmt = g.Sum(x => x.Voc_Pmt)
-                    }).ToListAsync();
+                   from fv in CSISContext.Fin_Voucher
+                   join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
+                   join led in CSISContext.Fin_Ledger on fvt.Led_Id equals led.Led_Id
+                   where fv.Voc_Date.Date >= fromDate.Date
+                      && fv.Voc_Date.Date <= toDate.Date
+                      && fvt.FinVocTr_Delete == false
+                      && fv.Voc_Delete == false
+                      && fv.BrCode == brCode
+                      && fvt.BrCode == brCode
+                      && fvt.Led_Id != cashId
+                      && fvt.Yr_Id == yrId
+                      && fv.Yr_Id == yrId
+                      && fv.Voc_Status == "V"
+                      && fvt.Voc_Status == "V"
+                   group fvt by new
+                   {
+                       fvt.Led_Id,
+                       led.Led_Name
+                   } into g
+                   select new rptFinReceiptAndCharges
+                   {
+                       Led_Id = g.Key.Led_Id,
+                       Led_Name = g.Key.Led_Name,
+                       Dur_Rpt = g.Sum(x => x.Voc_Rpt),
+                       Dur_Pmt = g.Sum(x => x.Voc_Pmt)
+                   }).ToListAsync();
                 #endregion 
 
                 if (RnCFromTo != null)
@@ -583,6 +611,7 @@ namespace Infin8.Coapp.Repository
                 List<rptFinReceiptAndCharges> RnCBeg = await (
                     from fv in CSISContext.Fin_Voucher
                     join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
+                    join led in CSISContext.Fin_Ledger on fvt.Led_Id equals led.Led_Id
                     where fv.Voc_Date.Date < fromDate.Date
                        && fvt.FinVocTr_Delete == false
                        && fv.Voc_Delete == false
@@ -593,10 +622,15 @@ namespace Infin8.Coapp.Repository
                        && fv.Yr_Id == yrId
                        && fv.Voc_Status == "V"
                        && fvt.Voc_Status == "V"
-                    group fvt by fvt.Led_Id into g
+                    group fvt by new
+                    {
+                        fvt.Led_Id,
+                        led.Led_Name
+                    } into g
                     select new rptFinReceiptAndCharges
                     {
-                        Led_Id = g.Key,
+                        Led_Id = g.Key.Led_Id,
+                        Led_Name = g.Key.Led_Name,
                         Beg_Rpt = g.Sum(x => x.Voc_Rpt),
                         Beg_Pmt = g.Sum(x => x.Voc_Pmt)
                     }).ToListAsync();
@@ -607,6 +641,8 @@ namespace Infin8.Coapp.Repository
                     RnCList.AddRange(RnCBeg);
                 }
                 RnCList = (from x in RnCList
+                           join led in CSISContext.Fin_Ledger on x.Led_Id equals led.Led_Id
+                            where led.BrCode == brCode
                            group x by new
                            {
                                x.Led_Id,

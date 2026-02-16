@@ -1,8 +1,14 @@
 ﻿@page "/report-jewelloan"
 @using Infin8.Coapp.Dto
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @if (_isLoading)
 {
@@ -281,6 +287,13 @@ else
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                rptJlObject.BrCode = userInfoDto.BrCode;
+                rptJlObject.YrId = userInfoDto.YrId;
+                rptJlObject.FromDate = userInfoDto.YrBeginningDate;
+                rptJlObject.ToDate = userInfoDto.YrEndDate;
+                rptJlObject.AsOnDate = userInfoDto.CurrentDate;
+
                 var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/13/{rptJlObject.BrCode}");
                 if (result!.Count > 0)
                 {

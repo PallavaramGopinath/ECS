@@ -108,6 +108,7 @@
             sbAccountModel.Member_Name = MemberName;
             sbAccountModel.Transaction_Date = TransactionDate;
             sbAccountModel.BrCode = userInfoDto.BrCode!; // Assuming a default branch code, can be parameterized if needed
+            createdBy = userInfoDto.UserId;
             sbAccountModel.Led_Id = 0;
             sbAccountModel.Receipt_Amount = 0;
             var result = await _httpClient.GetFromJsonAsync<SBCA_Schemes>($"https://localhost:7073/api/SBAccount/GetSBCAScheme/{sbAccountModel.BrCode!}");

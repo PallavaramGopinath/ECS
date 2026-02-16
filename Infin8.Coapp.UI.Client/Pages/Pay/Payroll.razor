@@ -1017,9 +1017,10 @@ else
                 BrCode = userInfoDto.BrCode!; // Example branch code
                 Usr_Id = userInfoDto.UserId;
                 Yr_Id = userInfoDto.YrId;
-                await GetEmployeesLastPayInfo();
-                _isLoading = false;
-                StateHasChanged();
+                // await GetEmployeesLastPayInfo();
+                // _isLoading = false;
+                // StateHasChanged();
+
                 // await LoadSampleData();
                 // ApplyFilters();
                 // StateHasChanged();
@@ -1029,6 +1030,9 @@ else
                 Console.WriteLine($"Error during initialization: {ex.Message}");
             }
         }
+        await GetEmployeesLastPayInfo();
+        _isLoading = false;
+        StateHasChanged();
     }
 
     private async Task LoadSampleData()
@@ -1116,7 +1120,7 @@ else
         {
             employeeLastPayInfos = mem;
         }
-        StateHasChanged();
+        // StateHasChanged();
     }
 
     private void ApplyFilters()

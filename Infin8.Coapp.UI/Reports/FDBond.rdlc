@@ -1069,13 +1069,13 @@
                   <PaddingBottom>2pt</PaddingBottom>
                 </Style>
               </Textbox>
-              <Textbox Name="mobileNo">
+              <Textbox Name="MobileNo">
                 <KeepTogether>true</KeepTogether>
                 <Paragraphs>
                   <Paragraph>
                     <TextRuns>
                       <TextRun>
-                        <Value>=First(Fields!mobileNo.Value, "Ds_FDBond")</Value>
+                        <Value>=First(Fields!MobileNo.Value, "Ds_FDBond")</Value>
                         <Style>
                           <FontSize>9pt</FontSize>
                         </Style>
@@ -1084,7 +1084,7 @@
                     <Style />
                   </Paragraph>
                 </Paragraphs>
-                <rd:DefaultName>mobileNo</rd:DefaultName>
+                <rd:DefaultName>MobileNo</rd:DefaultName>
                 <Top>3.1cm</Top>
                 <Left>7.072cm</Left>
                 <Height>0.5cm</Height>

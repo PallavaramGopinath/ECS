@@ -1,8 +1,14 @@
 ﻿@page "/report-termdeposit"
 @using Infin8.Coapp.Dto
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @if (_isLoading)
 {
@@ -239,6 +245,13 @@ else
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                rptObject.BrCode = userInfoDto.BrCode;
+                rptObject.YrId = userInfoDto.YrId;
+                rptObject.FromDate = userInfoDto.YrBeginningDate;
+                rptObject.ToDate = userInfoDto.YrEndDate;
+                rptObject.AsOnDate = userInfoDto.CurrentDate;
+
                 var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/4/{rptObject.BrCode}");
                 if (result!.Count > 0)
                 {
@@ -467,6 +480,10 @@ else
                 case 148:   /// FD Refund between dates
                     rptObject.TDSchemeType = "F";
                     await Print_FD_Refund_DuringPeriod();
+                    break;
+                case 149:   /// FD Refund between dates
+                    rptObject.TDSchemeType = "F";
+                    await Print_TD_Received_DuringPeriod();
                     break;
             }
         }

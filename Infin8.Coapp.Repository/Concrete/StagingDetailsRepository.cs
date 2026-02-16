@@ -628,7 +628,7 @@ namespace Infin8.Coapp.Repository
                     {
                         item.Staging_Status = stagingStatus;
                         item.Checked_By = checkerBy;
-                        item.Checked_Date = DateTime.Now;
+                        item.Checked_Date = item.Created_Date;
                         item.Voc_Id = vocId;
                         CSISContext.Entry(item).State = EntityState.Modified;
                         //await EditAsync(item);

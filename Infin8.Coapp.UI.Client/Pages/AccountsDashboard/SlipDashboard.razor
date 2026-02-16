@@ -1,10 +1,17 @@
 ﻿@page "/slip"
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.UI.Client.Components.Voucher
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
 
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 <div class="card mt-4">
     <div class="card-header bg-secondary text-white">
@@ -97,9 +104,14 @@ else
         {
             if (Voc_Id > 0)
             {
-                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByVocId/{Voc_Id}/{BrCode}");
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                brCode = userInfoDto.BrCode!;
+                voucherData!.brCode = userInfoDto.BrCode;
+                yrId = userInfoDto.YrId;
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByVocId/{Voc_Id}/{voucherData!.brCode}");
                 voucherData = result;
-                voucherData!.brCode = BrCode;
+               
+                // voucherData!.brCode = BrCode;
                 isLoading = false;
                 StateHasChanged();
             }
@@ -235,9 +247,9 @@ else
         {
             if (receipt.Voc_Rpt > 0)
             {
-                if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 14)    /// voc_Type 5 = member transaction,Voc_Type 11 = decreed loan issue)
+                if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 14 || receipt.Voc_Type == 50)    /// voc_Type 5 = member transaction,Voc_Type 11 = decreed loan issue)
                 {
-                    if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11)
+                    if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 50)
                     {
                         await Print_Member_Receipt(rpt);
                     }

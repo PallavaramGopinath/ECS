@@ -307,29 +307,51 @@
             fdRecovery.Loan_Balance_List = new List<DtoTermDepositLoanBalance>();
             foreach (var loan in loanBalanceList)
             {
-                if (loan.Interest_Balance > 0 || loan.Current_Interest > 0)
+                if (loan.Interest_Balance > 0 || loan.Current_Interest > 0 || loan.Principal_Balance >0)
                 {
-                    fdRecovery.Loan_Balance_List.Add(new DtoTermDepositLoanBalance
-                        {
-                            Loan_Id = loan.Loan_Id,
-                            Loan_No = loan.Loan_No,
-                            Loan_Amount = loan.Loan_Amount,
-                            Loan_Date = loan.Loan_Date,
-                            Rate_Of_Interest = loan.Rate_Of_Interest,
-                            Due_Date = loan.Due_Date,
-                            IntCalc_Date = loan.IntCalc_Date,
-                            Principal_Balance = loan.Principal_Balance,
-                            Interest_Balance = loan.Interest_Balance,
-                            Current_Interest = loan.Current_Interest,
-                            Interest_Applied_Date = loan.Interest_Applied_Date,
-                            Interest_Outstanding = loan.Interest_Outstanding,
-                            Total_Balance = loan.Total_Balance,
-                            Interest_Collection = 0,
-                            Principal_Collection = 0,
-                            Total_Collection = 0,
-                            PrlLed_Id = loan.PrlLed_Id,
-                            IntLed_Id = loan.IntLed_Id  
-                        });
+                    DtoTermDepositLoanBalance bal = new()
+                    {
+                        Loan_Id = loan.Loan_Id,
+                        Loan_No = loan.Loan_No,
+                        Loan_Amount = loan.Loan_Amount,
+                        Loan_Date = loan.Loan_Date,
+                        Rate_Of_Interest = loan.Rate_Of_Interest,
+                        Due_Date = loan.Due_Date,
+                        IntCalc_Date = loan.IntCalc_Date,
+                        Principal_Balance = loan.Principal_Balance,
+                        Interest_Balance = loan.Interest_Balance,
+                        Current_Interest = loan.Current_Interest,
+                        Interest_Applied_Date = loan.Interest_Applied_Date,
+                        Interest_Outstanding = loan.Interest_Outstanding,
+                        Total_Balance = loan.Total_Balance,
+                        Interest_Collection = 0,
+                        Principal_Collection = 0,
+                        Total_Collection = 0,
+                        PrlLed_Id = loan.PrlLed_Id,
+                        IntLed_Id = loan.IntLed_Id
+                    };
+                    fdRecovery.Loan_Balance_List.Add(bal);
+                    // fdRecovery.Loan_Balance_List.Add(new DtoTermDepositLoanBalance
+                    //     {
+                    //         Loan_Id = loan.Loan_Id,
+                    //         Loan_No = loan.Loan_No,
+                    //         Loan_Amount = loan.Loan_Amount,
+                    //         Loan_Date = loan.Loan_Date,
+                    //         Rate_Of_Interest = loan.Rate_Of_Interest,
+                    //         Due_Date = loan.Due_Date,
+                    //         IntCalc_Date = loan.IntCalc_Date,
+                    //         Principal_Balance = loan.Principal_Balance,
+                    //         Interest_Balance = loan.Interest_Balance,
+                    //         Current_Interest = loan.Current_Interest,
+                    //         Interest_Applied_Date = loan.Interest_Applied_Date,
+                    //         Interest_Outstanding = loan.Interest_Outstanding,
+                    //         Total_Balance = loan.Total_Balance,
+                    //         Interest_Collection = 0,
+                    //         Principal_Collection = 0,
+                    //         Total_Collection = 0,
+                    //         PrlLed_Id = loan.PrlLed_Id,
+                    //         IntLed_Id = loan.IntLed_Id  
+                    //     });
                 }
             }
             fdRecovery.Total_Interest_Balance = fdRecovery.Loan_Balance_List.Sum(l => l.Interest_Outstanding);

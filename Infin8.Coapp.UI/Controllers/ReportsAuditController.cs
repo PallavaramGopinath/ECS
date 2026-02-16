@@ -32,7 +32,7 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpPost]
         [Route("print-audit-memtrn")]
-        public async Task<FileContentResult> Print_Audit_JewelLoan(rptReportAuditObject rptObject)
+        public async Task<FileContentResult> Print_Audit_MemTrn (rptReportAuditObject rptObject)
         {
             Reports_Master report = new Reports_Master();
             byte[] pdfAsBytes = Array.Empty<byte>();
@@ -97,9 +97,9 @@ namespace Infin8.Coapp.UI.Controllers
             return CreatePDFAsBytes(pdfAsBytes);
         }
 
-        [HttpPost]
+        [HttpPost] 
         [Route("print-audit-jewelloan")]
-        public async Task<FileContentResult> Print_Audit_MemTrn(rptReportAuditObject rptObject)
+        public async Task<FileContentResult> Print_Audit_JewelLoan(rptReportAuditObject rptObject)
         {
             Reports_Master report = new Reports_Master();
             byte[] pdfAsBytes = Array.Empty<byte>();
@@ -119,9 +119,11 @@ namespace Infin8.Coapp.UI.Controllers
                     localReport.LoadReportDefinition(stream);
                 }
 
-                reportHeader = "Jewel Loan outstanding Schedule from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
-
-                var jlListData = await _reportsFinalAccountHandler.GetLoanOutstandingForFA_HL(rptObject.FromDate, rptObject.ToDate, rptObject.LoanType, rptObject.BrCode);
+                if(rptObject.LoanType == 2)
+                    reportHeader = "Jewel Loan Outstanding Schedule from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+                else if(rptObject.LoanType == 3)
+                    reportHeader = "Fixed Deposit Loan Outstanding Schedule from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+                var jlListData = await _reportsFinalAccountHandler.GetLoanOutstandingForFA_HL(rptObject.FromDate, rptObject.ToDate, rptObject.LoanType, rptObject.BrCode!);
 
                 if (jlListData != null && jlListData.Any())
                 {

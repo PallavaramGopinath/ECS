@@ -223,6 +223,8 @@
 </div>
 
 @code {
+    private string baseUrl = "";
+
     private string imagePath = "/uploads/app-images/Login4.png";
     private string password = "";
     private string inputType = "password";
@@ -252,6 +254,7 @@
     {
         if (firstRender)
         {
+            baseUrl = _httpClient.BaseAddress!.ToString();
             loginModel = new LoginModel();
             GenerateCaptcha();
             StateHasChanged();
@@ -325,9 +328,10 @@
         }
         try
         {
-            var url = _httpClient.BaseAddress!.ToString();
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7073/api/Auth/login")
-            {
+            // var url = _httpClient.BaseAddress!.ToString();
+            // var request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7073/api/Auth/login")
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}api/Auth/login")
+        {
                 Content = JsonContent.Create(loginModel)
             };
             request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);

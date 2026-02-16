@@ -1,8 +1,14 @@
 ﻿@page "/report-audit"
 @using Infin8.Coapp.Dto
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @if (_isLoading)
 {
@@ -168,6 +174,14 @@ else
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                rptObject.BrCode = userInfoDto.BrCode;
+                rptObject.YrId = userInfoDto.YrId;
+                rptObject.FromDate = userInfoDto.YrBeginningDate;
+                rptObject.ToDate = userInfoDto.YrEndDate;
+                rptObject.AsOnDate = userInfoDto.CurrentDate;
+
+
                 List<DropdownItem> orderByResult = new()
                 {
                      new DropdownItem { Text = "Order by Mem No", Value = "1" },

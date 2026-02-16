@@ -625,6 +625,10 @@
         {
             List<DtoTermDepositNo> fdNosList = new List<DtoTermDepositNo>();
             List<DropdownItem> fdNos = new List<DropdownItem>();
+            List<DtoTermDepositFixedDepositPayable> fdPayableData = new();
+            List<DtoTermDepositLoan> loanOnFDs = new();
+            paymentModel.Fixed_Deposit_Datas = fdPayableData;
+            paymentModel.Loan_On_FixedDeposits = loanOnFDs;
             paymentModel.FixedDeposit_Nos!.Clear();
             if (RequestType == "I" || RequestType == "P") /// for interest payment or refund
             {
@@ -660,7 +664,13 @@
         try
         {
             List<DtoTermDepositNo> fdNosList = new List<DtoTermDepositNo>();
-            paymentModel.FixedDeposit_Nos!.Clear();
+            paymentModel.FixedDeposit_Nos = new List<DtoTermDepositNo>();
+            List<DtoTermDepositFixedDepositPayable> fdPayable = new();
+            paymentModel.Fixed_Deposit_Datas = fdPayable;
+            List<DtoTermDepositLoan> LoanBalanceForClosure = new();
+            paymentModel.Loan_On_FixedDeposits = LoanBalanceForClosure;
+            isDisableFixedDepositNoButton = false;
+            isRenewal = false;
             var queryString = new System.Text.StringBuilder("memId=");
             queryString.Append(paymentModel.Mem_Id);
             queryString.Append($"&tdSchemeType=F");
@@ -674,8 +684,10 @@
                     DtoTermDepositNo fdNo = new DtoTermDepositNo();
                     fdNo.TD_Id = Convert.ToDecimal(fd.Value);
                     fdNo.TD_No = fd.Text;
-                    paymentModel.FixedDeposit_Nos!.Add(fdNo);
+                    fdNosList.Add(fdNo);
+                    // paymentModel.FixedDeposit_Nos!.Add(fdNo);
                 }
+                paymentModel.FixedDeposit_Nos!.AddRange(fdNosList);
             }
             StateHasChanged();
         }

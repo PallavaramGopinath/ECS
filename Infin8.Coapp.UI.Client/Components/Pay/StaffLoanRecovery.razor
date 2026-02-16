@@ -1,15 +1,23 @@
-﻿@page "/staff-loan-recovery"
+﻿@* @page "/staff-loan-recovery" *@
 @using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using Infin8.Coapp.Utility
 @using System.Net
+@using System.Globalization
 
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 
 @inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 @if (_isLoading)
 {
@@ -98,21 +106,21 @@ else
                                                <td>@loan.Loan_No</td>
                                                <td>@loan.Scheme_Name</td>
                                                <td>@loan.Status</td>
-                                               <td>@loan.Loan_Amount.ToString("C2")</td>
+                                               <td>@loan.Loan_Amount.ToString("C2", new CultureInfo("hi-IN"))</td>
                                                <td>@loan.Loan_Date.ToShortDateString()</td>
                                                <td>@loan.Due_Date.ToShortDateString()</td>
                                                <td>@loan.ROI% </td>
-                                               <td>@loan.Outstanding.ToString("C2")</td>
-                                               <td>@loan.Recovery_Amount.ToString("C2")</td>
-                                               <td>@loan.Calculated_Amount.ToString("C2") </td>
+                                               <td>@loan.Outstanding.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                               <td>@loan.Recovery_Amount.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                               <td>@loan.Calculated_Amount.ToString("C2", new CultureInfo("hi-IN")) </td>
                                                <td>@loan.Interest_Application_Date</td>
                                            </tr>
                         }
                         <tr class="table-info">
                             <td colspan="7" class="text-end fw-bold">Total:</td>
-                            <td class="fw-bold">@model.LoanBalance_List.Sum(l => l.Outstanding).ToString("C2")</td>
-                            <td class="fw-bold">@model.LoanBalance_List.Sum(l => l.Recovery_Amount).ToString("C2")</td>
-                            <td class="fw-bold">@model.LoanBalance_List.Sum(l => l.Calculated_Amount).ToString("C2")</td>
+                            <td class="fw-bold">@model.LoanBalance_List.Sum(l => l.Outstanding).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold">@model.LoanBalance_List.Sum(l => l.Recovery_Amount).ToString("C2", new CultureInfo("hi-IN"))</td>
+                            <td class="fw-bold">@model.LoanBalance_List.Sum(l => l.Calculated_Amount).ToString("C2", new CultureInfo("hi-IN"))</td>
                             <td class="fw-bold"></td>
                         </tr>
                     </tbody>
@@ -208,6 +216,11 @@ else
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                brCode = userInfoDto.BrCode!;
+                Yr_Id = userInfoDto.YrId;
+                Created_By = userInfoDto.UserId;
+
                 model.AccountId = AccountId;
                 model.CashOrAdjustment = CashOrAdjustment;
                 model.Mem_Id = Employee_Id;
@@ -217,9 +230,8 @@ else
                 model.LoanBalance_List = null;
                 selectedLoans.Clear();
                 _isLoading = false;
-                await Task.Delay(100);
+                // await Task.Delay(100);
                 StateHasChanged();
-
             }
             catch (Exception ex)
             {
@@ -302,7 +314,7 @@ else
                     queryString.Append("&loanIdList=");
             }
             queryString.Append($"&endDate={Uri.EscapeDataString(model.Transaction_Date.ToString("yyyy-MM-dd"))}");
-            queryString.Append("&brCode=11001");
+            queryString.Append($"&brCode={brCode}");
             var result = await _httpClient.GetFromJsonAsync<List<PayLoanBalanceVM>>($"https://localhost:7073/api/Loan/GetPayLoanBalance?{queryString}");
             if (result != null && result.Count > 0) loanBalanceList = result.ToList();
             model.LoanBalance_List = new List<DtoLoanBalance>();
@@ -495,7 +507,7 @@ else
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
             Related_Account_Data = staffLoanRecoveryJsonData,
-            Created_By = 110010000001,
+            Created_By = Created_By ,
             Created_Date = model.Transaction_Date,
             Checked_By = 0,
             Checked_Date = null,

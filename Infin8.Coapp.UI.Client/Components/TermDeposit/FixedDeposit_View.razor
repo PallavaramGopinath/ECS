@@ -71,7 +71,7 @@
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Deposit Amount</label>
-                        <div class="form-control-plaintext">@fdModal.Deposit_Amount.ToString("C2")</div>
+                        <div class="form-control-plaintext">@fdModal.Deposit_Amount.ToString("C2", new CultureInfo("hi-IN"))</div>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Interest Payment Frequency</label>
@@ -108,7 +108,7 @@
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Maturity Amount</label>
-                        <div class="form-control-plaintext">@fdModal.Maturity_Amount.ToString("C2")</div>
+                        <div class="form-control-plaintext">@fdModal.Maturity_Amount.ToString("C2", new CultureInfo("hi-IN"))</div>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Maturity Date</label>
@@ -145,6 +145,8 @@
         </div>
     </div>
 }
+
+
 @code {
     [Parameter] public decimal stagingId { get; set; }
     [Parameter] public int relatedAccountId { get; set; }

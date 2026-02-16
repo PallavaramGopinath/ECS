@@ -362,6 +362,7 @@
 
     private void ToggleLoanSelection(DtoLoanNo loan, bool isSelected)
     {
+        // selectedLoans = new List<DtoLoanNo>();
         if (isSelected)
         {
             if (!selectedLoans.Any(l => l.Loan_Id == loan.Loan_Id))

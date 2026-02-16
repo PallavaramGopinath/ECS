@@ -15,6 +15,7 @@
 @rendermode InteractiveWebAssembly
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @* <PageTitle>Fixed Deposit Loan Application</PageTitle> *@
@@ -159,19 +160,19 @@
                                 {
                                     <tr>
                                         <td>@fdData.FD_No</td>
-                                        <td>@fdData.FD_Amount.ToString("C")</td>
+                                        <td>@fdData.FD_Amount.ToString("C2", new CultureInfo("hi-IN"))</td>
                                         <td>@fdData.Period_In_Months M @fdData.Period_In_Days D</td>
                                         <td>@fdData.Rate_Of_Interest%</td>
                                         <td>@fdData.Value_Date.ToString("yyyy-MM-dd")</td>
                                         <td>@fdData.Maturity_Date.ToString("yyyy-MM-dd")</td>
-                                        <td>@fdData.Drawing_Power.ToString("C")</td>
+                                        <td>@fdData.Drawing_Power.ToString("C2", new CultureInfo("hi-IN"))</td>
                                     </tr>
                                 }
                                 <tr class="table-info">
                                     <td class="fw-bold">Total</td>
-                                    <td class="fw-bold">@loanModel.FD_Datas.Sum(fd => fd.FD_Amount).ToString("C2")</td>
+                                    <td class="fw-bold">@loanModel.FD_Datas.Sum(fd => fd.FD_Amount).ToString("C2", new CultureInfo("hi-IN"))</td>
                                     <td colspan="4"></td>
-                                    <td class="fw-bold">@loanModel.FD_Datas.Sum(fd => fd.Drawing_Power).ToString("C2")</td>
+                                    <td class="fw-bold">@loanModel.FD_Datas.Sum(fd => fd.Drawing_Power).ToString("C2", new CultureInfo("hi-IN"))</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -198,10 +199,10 @@
                                         <tr>
                                             <td>@loan.Loan_No</td>
                                             <td>@loan.Loan_Date.ToString("yyyy-MM-dd")</td>
-                                            <td>@loan.Loan_Amount.ToString("C")</td>
-                                            <td>@loan.Loan_Outstanding.ToString("C")</td>
-                                            <td>@loan.Interest_Balance.ToString("C")</td>
-                                            <td>@loan.Total_Balance.ToString("C")</td>
+                                            <td>@loan.Loan_Amount.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                            <td>@loan.Loan_Outstanding.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                            <td>@loan.Interest_Balance.ToString("C2", new CultureInfo("hi-IN"))</td>
+                                            <td>@loan.Total_Balance.ToString("C", new CultureInfo("hi-IN"))</td>
                                         </tr>
                                     }
                                 </tbody>
@@ -216,12 +217,12 @@
                         <div class="col-md-12">
                             <div class="alert alert-success">
                                 <h5 class="alert-heading">Loan Eligibility Summary</h5>
-                                <p>Total Selected FD Amount: @loanModel.Total_FD_Amount.ToString("C")</p>
+                                <p>Total Selected FD Amount: @loanModel.Total_FD_Amount.ToString("C2", new CultureInfo("hi-IN"))</p>
                                 <p>Loan Eligible Percentage: @loanModel.Loan_Eligible_Percentage%</p>
-                                <p>Total Borrowing Power: @loanModel.Total_Borrowing_Power.ToString("C")</p>
-                                <p>Total Existing Loan Balance: @loanModel.Total_Existing_Loan_Amount.ToString("C")</p>
+                                <p>Total Borrowing Power: @loanModel.Total_Borrowing_Power.ToString("C2", new CultureInfo("hi-IN"))</p>
+                                <p>Total Existing Loan Balance: @loanModel.Total_Existing_Loan_Amount.ToString("C2", new CultureInfo("hi-IN"))</p>
                                 <hr>
-                                <p class="fw-bold">Eligible Loan Amount: @loanModel.Eligible_Loan_Amount.ToString("C")</p>
+                                <p class="fw-bold">Eligible Loan Amount: @loanModel.Eligible_Loan_Amount.ToString("C2", new CultureInfo("hi-IN"))</p>
                                 <p class="fw-bold">Calculated Loan Rate of Interest: @loanModel.Loan_Rate_Of_Interest%</p>
                             </div>
                         </div>
@@ -249,7 +250,7 @@
                         <ValidationMessage For="@(() => loanModel.Loan_Amount)" />
                         @if (loanModel.Loan_Amount > loanModel.Eligible_Loan_Amount)
                         {
-                            <div class="invalid-feedback d-block">Loan amount cannot exceed the eligible amount of @loanModel.Eligible_Loan_Amount.ToString("C").</div>
+                            <div class="invalid-feedback d-block">Loan amount cannot exceed the eligible amount of @loanModel.Eligible_Loan_Amount.ToString("C", new CultureInfo("hi-IN")).</div>
                         }
                     </div>
                     @* <div class="col-12">

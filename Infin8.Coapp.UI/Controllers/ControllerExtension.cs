@@ -11,10 +11,11 @@ namespace Infin8.Coapp.UI.Controllers
         public static UserInfoDto GetUserInfoDto(this ControllerBase controller)
         {
             var userInfoDto = new UserInfoDto();
+            
             //if (controller.User.Identity != null && controller.User.Identity.IsAuthenticated)
             if (controller.User != null)
             {
-                var claimsIdentity = controller.User.Identity as System.Security.Claims.ClaimsIdentity;
+                var claimsIdentity = controller.User.Identity as ClaimsIdentity;
                 if (claimsIdentity != null)
                 {
                     userInfoDto.UserId = decimal.Parse(claimsIdentity.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
@@ -24,7 +25,7 @@ namespace Infin8.Coapp.UI.Controllers
                     userInfoDto.YrBeginningDate = DateTime.Parse(claimsIdentity.FindFirst("YrBeginningDate")?.Value ?? DateTime.MinValue.ToString());
                     userInfoDto.YrEndDate = DateTime.Parse(claimsIdentity.FindFirst("YrEndDate")?.Value ?? DateTime.MinValue.ToString());
                     userInfoDto.CurrentDate = DateTime.Parse(claimsIdentity.FindFirst("CurrentDate")?.Value ?? DateTime.MinValue.ToString());
-                    userInfoDto.IsAuthenticated = controller.User.Identity.IsAuthenticated;
+                    userInfoDto.IsAuthenticated = controller.User.Identity!.IsAuthenticated;
                     foreach (var claim in claimsIdentity.Claims.Where(c => c.Type == ClaimTypes.Role))
                     {
                         userInfoDto.Roles.Add(claim.Value);

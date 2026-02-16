@@ -1376,10 +1376,12 @@ Fields!Fnl_Id.Value =0,Sum(Fields!Tot_Pmt_Amt.Value))</Value>
       </Body>
       <Width>7.5in</Width>
       <Page>
+        <PageHeight>8.27in</PageHeight>
+        <PageWidth>11.69in</PageWidth>
         <LeftMargin>1in</LeftMargin>
         <RightMargin>1in</RightMargin>
         <TopMargin>1in</TopMargin>
-        <BottomMargin>1in</BottomMargin>
+        <BottomMargin>0.75in</BottomMargin>
         <Style />
       </Page>
     </ReportSection>

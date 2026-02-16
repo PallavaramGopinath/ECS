@@ -13,6 +13,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 using System.Security.Claims;
 
+
 namespace Infin8.Coapp.UI.Controllers
 {
     [Route("api/[controller]")]
@@ -184,19 +185,22 @@ namespace Infin8.Coapp.UI.Controllers
         [Route("ApproveStaging")]
         public async Task<ActionResult<DtoVoucher>> ApproveStaging([FromBody] decimal stagingId)
         {
+            var userInfoDto = this.GetUserInfoDto();
+            var checkedBy = userInfoDto.UserId;
+            var yrId = userInfoDto.YrId;
+            
+            //var token = HttpContext.Request.Cookies.TryGetValue("auth-token", out var jwtToken) ? jwtToken : null;
+            //var (isValid, Principle) = _jwtAuthenticationHandler.ValidateToken(token);
 
-           //var token = HttpContext.Request.Cookies.TryGetValue("auth-token", out var jwtToken) ? jwtToken : null;
-           //var (isValid, Principle) = _jwtAuthenticationHandler.ValidateToken(token);
-
-           // if (!isValid || Principle == null)
-           // {
-           //     return Unauthorized("Invalid or missing token");
-           // }
-           // var userIdClaim = Principle.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-           // if (userIdClaim == null)
-           // {
-           //     return Unauthorized("User ID claim not found in token");
-           // }
+            // if (!isValid || Principle == null)
+            // {
+            //     return Unauthorized("Invalid or missing token");
+            // }
+            // var userIdClaim = Principle.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            // if (userIdClaim == null)
+            // {
+            //     return Unauthorized("User ID claim not found in token");
+            // }
             DtoVoucher voucherData = new();
             bool result = false;
             decimal vocId = 0;
@@ -217,14 +221,14 @@ namespace Infin8.Coapp.UI.Controllers
             {
                 case "Member Transaction":
                 case "Staff Transaction":
-                    var response = await _transactionsHandler.SaveTransaction(stagingId, stagingMaster.Type!.Trim() == "Member Transaction" ? "MTRN" : "STRN", 110010000002, 110010000024);
+                    var response = await _transactionsHandler.SaveTransaction(stagingId, stagingMaster.Type!.Trim() == "Member Transaction" ? "MTRN" : "STRN", checkedBy, yrId);
                     if (response.Voc_Id >0) result = true; else result = false;
                     voucherData.Voc_Id = response.Voc_Id;
                     voucherData.brCode = response.brCode;
                     voucherData.Transactions = response.Transactions;
                     break;
                 case "Account Transaction":
-                    var accResponse = await _transactionsHandler.SaveAccountTransaction(stagingId, "ACTR", 110010000002, 110010000024);
+                    var accResponse = await _transactionsHandler.SaveAccountTransaction(stagingId, "ACTR", checkedBy, yrId);
                     if (accResponse.Voc_Id >0) result = true; else result = false;
                     voucherData.Voc_Id = accResponse.Voc_Id;
                     voucherData.brCode = accResponse.brCode;
@@ -246,7 +250,10 @@ namespace Infin8.Coapp.UI.Controllers
         [Route("RejectStaging")]
         public async Task<ActionResult<bool>> RejectStaging([FromBody] decimal stagingId)
         {
-            var result = await _transactionsHandler.RejectTransaction(stagingId, 110010000002);
+            var userInfoDto = this.GetUserInfoDto();
+            var checkedBy = userInfoDto.UserId;
+            var yrId = userInfoDto.YrId;
+            var result = await _transactionsHandler.RejectTransaction(stagingId, checkedBy);
             if (result) return Ok(result);
             else return BadRequest("Failed to reject staging");
         }

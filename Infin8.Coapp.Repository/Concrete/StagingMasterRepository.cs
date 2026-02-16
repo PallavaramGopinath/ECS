@@ -174,7 +174,7 @@ namespace Infin8.Coapp.Repository
                     stagingMaster = query;
                     stagingMaster.Voc_Id = vocId;
                     stagingMaster.Checked_By = checkedBy;
-                    stagingMaster.Checked_Date = DateTime.Now;
+                    stagingMaster.Checked_Date = query.Created_Date;
                     stagingMaster.Staging_Status = stagingStatus; // Change status to "M" for submitted by maker
                     CSISContext.Entry(stagingMaster).State = EntityState.Modified;
                     //await EditAsync(stagingMaster);

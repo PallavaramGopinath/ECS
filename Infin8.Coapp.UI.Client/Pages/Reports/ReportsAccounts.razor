@@ -1,8 +1,14 @@
 ﻿@page "/report-accounts"
 @using Infin8.Coapp.Dto
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <!-- loading spinner -->
 @if (_isLoading)
@@ -186,8 +192,13 @@ else
         {
             try
             {
-                rptAccObject.ToDate = DateTime.UtcNow;
-                rptAccObject.FromDate = new DateTime(2025, 4, 1);
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+                rptAccObject.ToDate = userInfoDto.YrEndDate;
+                rptAccObject.FromDate = userInfoDto.YrBeginningDate;
+                rptAccObject.YrId = userInfoDto.YrId;
+                rptAccObject.BrCode = userInfoDto.BrCode;
+
                 var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/3/{rptAccObject.BrCode}");
                 if (result!.Count > 0)
                 {

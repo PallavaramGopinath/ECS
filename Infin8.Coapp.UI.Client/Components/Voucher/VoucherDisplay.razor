@@ -1,4 +1,5 @@
 ﻿@using Infin8.Coapp.Dto
+@using System.Globalization
 @* This component receives the voucher data as a parameter and displays it. *@
 
 @if (Voucher != null)
@@ -42,15 +43,15 @@
                         <tr>
                             <td>@trn.Led_Name</td>
                             <td>@(trn.Voc_Trn_Type == 1 ? "Cash" : "Adjustment")</td>
-                            <td>@(trn.Voc_Rpt.ToString("C2"))</td>
-                            <td>@(trn.Voc_Pmt.ToString("C2"))</td>
+                            <td>@(trn.Voc_Rpt.ToString("C2", new CultureInfo("hi-IN")))</td>
+                            <td>@(trn.Voc_Pmt.ToString("C2", new CultureInfo("hi-IN")))</td>
                             <td>@trn.Voc_Narr</td>
                         </tr>
                     }
                     <tr class="table-info">
                         <td colspan="2" class="text-end fw-bold">Total:</td>
-                        <td class="fw-bold">@Voucher.Transactions.Sum(l=> l.Voc_Rpt).ToString("C2")</td>
-                        <td class="fw-bold">@Voucher.Transactions.Sum(l => l.Voc_Pmt).ToString("C2")</td>
+                        <td class="fw-bold">@Voucher.Transactions.Sum(l => l.Voc_Rpt).ToString("C2", new CultureInfo("hi-IN"))</td>
+                        <td class="fw-bold">@Voucher.Transactions.Sum(l => l.Voc_Pmt).ToString("C2", new CultureInfo("hi-IN"))</td>
                         <td class="fw-bold"></td>
                     </tr>
                 </tbody>

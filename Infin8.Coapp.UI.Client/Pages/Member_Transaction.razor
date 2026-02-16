@@ -102,8 +102,7 @@
                                 <div class="form-group">
                                     <label>Transaction Type</label>
                                     <InputSelect class="form-select shadow-none" @bind-Value="transaction.Receipt_Payment"
-                                                 @bind-Value:after="handlerSelectAccount2"
-                                                 @onblur="handlerSelectAccount2">
+                                                 @bind-Value:after="handlerSelectAccount2">
                                         <option value="0">Select Transaction Type</option>
                                         <option value="1">Receipt</option>
                                         <option value="2">Payment</option>
@@ -122,8 +121,7 @@
                                 <div class="form-group">
                                     <label>Select Account</label>
                                     <InputSelect class="form-select shadow-none" @bind-Value="transaction.Account_Id"
-                                                 @bind-Value:after="handlerShowAccountModal"
-                                                 @onblur="handlerShowAccountModal">
+                                                 @bind-Value:after="handlerShowAccountModal">
                                         <option value="0">--Select Account Name--</option>
                                         @foreach (var account in accountItems)
                                         {
@@ -670,7 +668,7 @@
             await JSRuntime.InvokeVoidAsync("alert", errorMsg);
             transaction.Account_Id = 0;
             isComponentLoaded = false;
-            StateHasChanged();
+            // StateHasChanged();
             return;
         }
         /// verify if the member has already transacted but not verified or rejected
@@ -683,7 +681,7 @@
                 await JSRuntime.InvokeVoidAsync("alert", "Transaction already exists but not either approved or rejected of the account " + accountName + " for this member for this date");
                 transaction.Account_Id = 0;
                 isComponentLoaded = false;
-                StateHasChanged();
+                // StateHasChanged();
                 return;
             }
         }
@@ -703,7 +701,7 @@
                     await JSRuntime.InvokeVoidAsync("alert", "Member already has a SB Account");
                     transaction.Account_Id = 0;
                     isComponentLoaded = false;
-                    StateHasChanged();
+                    // StateHasChanged();
                     return;
                 }
             }
@@ -717,7 +715,7 @@
                     await JSRuntime.InvokeVoidAsync("alert", "Member had loan on the seleced Fixed deposit");
                     transaction.Account_Id = 0;
                     isComponentLoaded = false;
-                    StateHasChanged();
+                    // StateHasChanged();
                     return;
                 }
             }

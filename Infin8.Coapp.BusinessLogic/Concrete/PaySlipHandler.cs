@@ -809,10 +809,10 @@ namespace Infin8.Coapp.BusinessLogic
                         arrear.DAArrears = DAArrearsTotal;
                         arrear.PF = PFDeductions;
                         tmpFromDate = Utilities.AddMonths(tmpFromDate, 1);
-                        daArrearsList!.Add(arrear);
+                        //daArrearsList!.Add(arrear);
                     } while (tmpFromDate <= Arrears.DATo_Date);
 
-                    //daArrearsList!.Add(arrear);
+                    daArrearsList!.Add(arrear);
                 }
 
                 Arrears.DAArrearsList!.Clear();

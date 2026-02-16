@@ -14,6 +14,7 @@
 @rendermode InteractiveWebAssembly
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @attribute [Authorize(Roles = "Admin,Maker,Checker")]
@@ -113,7 +114,7 @@ else
             </div>
             <div class="card-footer">
                 <div class="p-3 bg-success bg-opacity-10 rounded">
-                    <h4 class="text-success mb-1">₹@model.TotalPayment_Amount.ToString("N2")</h4>
+                    <h4 class="text-success mb-1">₹@model.TotalPayment_Amount.ToString("C2", new CultureInfo("hi-IN"))</h4>
                     <small class="text-muted">Total @NameOfPayment Payment</small>
                 </div>
             </div>
@@ -177,32 +178,32 @@ else
     {
         // if (firstRender)
         // {
-            try
-            {
-                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
-                // brCode = userInfoDto.BrCode!;
-                // Created_By = userInfoDto.UserId;
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            // brCode = userInfoDto.BrCode!;
+            // Created_By = userInfoDto.UserId;
 
-                if (Component_Id == 1) NameOfPayment = "Ex-gratia"; else NameOfPayment = "Bonus";
-                // model.BrCode = brCode;
-                model.Transaction_Date = TransactionDate;
-                model.Employee_Id = Employee_Id;
-                model.Employee_Name = Employee_Name;
-                model.Designation = Designation;
-                model.Created_By = userInfoDto.UserId;
-                model.YrId = userInfoDto.YrId;
-                model.BrCode = userInfoDto.BrCode!;
+            if (Component_Id == 1) NameOfPayment = "Ex-gratia"; else NameOfPayment = "Bonus";
+            // model.BrCode = brCode;
+            model.Transaction_Date = TransactionDate;
+            model.Employee_Id = Employee_Id;
+            model.Employee_Name = Employee_Name;
+            model.Designation = Designation;
+            model.Created_By = userInfoDto.UserId;
+            model.YrId = userInfoDto.YrId;
+            model.BrCode = userInfoDto.BrCode!;
 
-                model.Component_List = new List<DtoBonusPaymentData>();
-                var empResponse = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{model.BrCode}");
-                if (empResponse != null && empResponse.Any()) employeeList = empResponse.ToList();
-                _isLoading = false;
-                // StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
+            model.Component_List = new List<DtoBonusPaymentData>();
+            var empResponse = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{model.BrCode}");
+            if (empResponse != null && empResponse.Any()) employeeList = empResponse.ToList();
+            _isLoading = false;
+            // StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
         // }
     }
 
@@ -299,7 +300,9 @@ else
             // Handle exception
             Console.WriteLine($"Error fetching account name: {ex.Message}");
         }
-
+        /// get payId
+        /// if payid =0 get new payid
+        
         string JsonData = ConvertToJson(model);
         stagingDetails = new()
         {

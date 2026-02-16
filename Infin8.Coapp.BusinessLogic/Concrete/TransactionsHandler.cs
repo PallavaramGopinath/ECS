@@ -802,11 +802,14 @@ namespace Infin8.Coapp.BusinessLogic
                                 vocTrn = new();
                                 vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, payTemplateEXgratia.ExGratia_Led_Id, 0, emp.PaymentAmount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, exgratia.YrId, Status, "", emp.Employee_Id, exgratia.BrCode!, 0, 0, 0);
                                 finVoucherTrns.Add(vocTrn);
+                                
                             }
                             foreach (var slip in paySlipExgratiaList)
                             {
+                                slip.Voc_Id = vocId;
                                 result = await _unitOfWork.PaySlip.AddPaySlipAsync(slip);
                             }
+                            
                             #endregion 
                             break;
                         case 34:    /// Bonus Payment
@@ -832,9 +835,11 @@ namespace Infin8.Coapp.BusinessLogic
                                 vocTrn = new();
                                 vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, payTemplateBonus.Bonus_Led_Id, 0, emp.PaymentAmount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, bonus.YrId, Status, "", emp.Employee_Id, bonus.BrCode!, 0, 0, 0);
                                 finVoucherTrns.Add(vocTrn);
+                                //var bonusResult = await _unitOfWork.PaySlip.UpdatePaySlipForPayment(emp.Employee_Id, payIdBonus, vocId, trns.Transacted_Date);
                             }
                             foreach (var slip in paySlipBonusList)
                             {
+                                slip.Voc_Id = vocId;
                                 result = await _unitOfWork.PaySlip.AddPaySlipAsync(slip);
                             }
                             #endregion 
@@ -1036,7 +1041,7 @@ namespace Infin8.Coapp.BusinessLogic
                                 //var loanListResponse = await _unitOfWork.PaySlipLoanTrn.GetPaySlipLoanTrnList(payId, emp, trns.BrCode!);
                                 var loanListResponse = await _unitOfWork.PaySlipLoanTrn.GetPaySlipLoanList(payId, emp, trns.BrCode!);
                                 if (loanListResponse != null && loanListResponse.Any()) payLoanList = loanListResponse.ToList();
-                                var payvocResult = await _unitOfWork.PaySlip.UpdatePaySlipForPayment(emp, payId, vocId, trns.Transacted_Date);
+                                var salaryResult = await _unitOfWork.PaySlip.UpdatePaySlipForPayment(emp, payId, vocId, trns.Transacted_Date);
 
                                 if (trns.Cash_Or_Adjustment == 1)  /// cash transaction
                                 {
@@ -1136,7 +1141,7 @@ namespace Infin8.Coapp.BusinessLogic
                                 pf = Utility.GetModalObject.GetEmpPFObject(0, emp, trns.Transacted_Date, slip.Pay_PF, 0, slip.Pay_PF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, null, false, false, null, vocId, trns.Checked_By, yrId, 0, "AR", trns.BrCode!);
                                 daPfList.Add(pf);
 
-                                var payvocResult = await _unitOfWork.PaySlip.UpdatePaySlipForPayment(emp, daPayId, vocId, trns.Transacted_Date);
+                                var daArrearsResult = await _unitOfWork.PaySlip.UpdatePaySlipForPayment(emp, daPayId, vocId, trns.Transacted_Date);
 
                                 if (trns.Cash_Or_Adjustment == 1)  /// cash transaction
                                 {
@@ -1186,10 +1191,11 @@ namespace Infin8.Coapp.BusinessLogic
                             if (slsPayment.SLSAmount > 0)
                             {
                                 vocTrn = new();
-                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, payTemplateSLS.Salary_Led_Id, 0, slsPayment.DAAmount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, slsPayment.YrId, Status, "", slsPayment.Employee_Id, slsPayment.BrCode!, 0, 0, 0);
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, payTemplateSLS.Salary_Led_Id, 0, slsPayment.SLSAmount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, slsPayment.YrId, Status, "", slsPayment.Employee_Id, slsPayment.BrCode!, 0, 0, 0);
                                 finVoucherTrns.Add(vocTrn);
                             }
                             result = await _unitOfWork.PaySlip.AddPaySlipAsync(paySlipSLS);
+                            var payvocResult = await _unitOfWork.PaySlip.UpdatePaySlipForPayment(slsPayment.Employee_Id, payInitResult!.Pay_Id, vocId, trns.Transacted_Date);
                             #endregion 
                             break;
                         case 42:    /// Staff security deposit receipt

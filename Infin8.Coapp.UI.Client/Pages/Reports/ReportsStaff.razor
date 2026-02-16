@@ -1,8 +1,14 @@
 ﻿@page "/report-staff"
 @using Infin8.Coapp.Dto
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <!-- loading spinner -->
 @if (_isLoading)
@@ -210,13 +216,19 @@ else
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                rptObject.BrCode = userInfoDto.BrCode;
+                rptObject.Yr_Id = userInfoDto.YrId;
+                rptObject.FromDate = userInfoDto.YrBeginningDate;
+                rptObject.ToDate = userInfoDto.YrEndDate;
+
                 rptObject.ToDate = DateTime.UtcNow;
                 rptObject.FromDate = new DateTime(2025, 4, 1);
                 var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/6/{rptObject.BrCode}");
                 if (result!.Count > 0)
                 {
                     reportList = result.ToList();
-                    StateHasChanged();
+                    // StateHasChanged();
                 }
                 // var ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/{rptObject.BrCode}");
                 // if (ledgers != null && ledgers.Any())
@@ -240,12 +252,12 @@ else
 
     private async Task GetEmployeesLastPayInfo()
     {
-        var mem = await _httpClient.GetFromJsonAsync<List<DtoEmployeeLastPayInfo>>($"https://localhost:7073/api/Pay/GetLastPayInfo");
+        var mem = await _httpClient.GetFromJsonAsync<List<DtoEmployeeLastPayInfo>>($"https://localhost:7073/api/Pay/GetLastPayInfo/{rptObject.BrCode}");
         if (mem != null && mem.Any())
         {
             employeeLastPayInfos = mem;
         }
-        StateHasChanged();
+        // StateHasChanged();
     }
 
     private async Task GetPayIdInfo()
@@ -255,7 +267,7 @@ else
         {
             payIdList = payIds;
         }
-        StateHasChanged();
+        // StateHasChanged();
     }
 
     private void handlerSelectRportName()
