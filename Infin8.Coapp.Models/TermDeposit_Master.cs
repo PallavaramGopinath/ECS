@@ -36,7 +36,7 @@ namespace Infin8.Coapp.Models
         public int Nominee2Age { get; set; }
         public string? Nominee2Relationship { get; set; }
         public bool LienMarked { get; set; }
-        public int Loan_Id { get; set; }
+        public decimal Loan_Id { get; set; }
         public bool TD_OE { get; set; }
         public bool TD_Delete { get; set; }
         public bool AccountClosed { get; set; }

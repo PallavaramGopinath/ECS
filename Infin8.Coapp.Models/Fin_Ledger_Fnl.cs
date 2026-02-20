@@ -8,6 +8,6 @@ namespace Infin8.Coapp.Models
         [Key]
         public int Fnl_Id { get; set; }
         public string? Fnl_Name { get; set; }
-        public int Usr_Id { get; set; }
+        public decimal Usr_Id { get; set; }
     }
 }
