@@ -64,7 +64,7 @@
         {
             if (stagingId > 0 && relatedAccountId > 0)
             {
-                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
                 details = query ?? new Staging_Details();
                 if (details != null)
                 {
@@ -99,7 +99,7 @@
     private async Task GetDAArrearsPaymentView(List<decimal> empIds, decimal payId, string brCode)
     {
         var queryString = string.Join("&", empIds.Select(id => $"empIdList={id}"));
-        var url = $"https://localhost:7073/api/Pay/GetPayDAArrearsView?{queryString}&payId={payId}&brCode={brCode}";
+        var url = $"api/Pay/GetPayDAArrearsView?{queryString}&payId={payId}&brCode={brCode}";
         var response = await _httpClient.GetFromJsonAsync<List<DtoPayDAArrearsView>>(url);
 
         if (response != null && response.Any())

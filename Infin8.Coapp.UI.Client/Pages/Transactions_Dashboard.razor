@@ -94,7 +94,7 @@ else
         //     }
         // };
         #endregion 
-        var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByVocId/{vocId}/{brCode}");
+        var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"api/AccountsDashboard/GetTransactionByVocId/{vocId}/{brCode}");
         if (result != null) voucherData = result;
 
         await Task.CompletedTask;
@@ -108,7 +108,7 @@ else
         }
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}");
+            var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}");
             if (!isDisposed)
             {
                 voucherData = result;
@@ -135,7 +135,7 @@ else
         if (pmtNo.Length > 0)
         {
             rptNo = "";
-            var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByNo/{rptNo}/{pmtNo}/{yrId}/{brCode}");
+            var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"api/AccountsDashboard/GetTransactionByNo/{rptNo}/{pmtNo}/{yrId}/{brCode}");
         }
     }
 

@@ -58,7 +58,7 @@
         {
             if (stagingId > 0)
             {
-                var query = await _httpClient.GetFromJsonAsync<List<DtoAccountTransactionRelatedData>>($"https://localhost:7073/api/Staging/GetStagingDetailsListById/{stagingId}");
+                var query = await _httpClient.GetFromJsonAsync<List<DtoAccountTransactionRelatedData>>($"api/Staging/GetStagingDetailsListById/{stagingId}");
                 if (query != null && query.Any())
                 {
                     details = query.ToList();

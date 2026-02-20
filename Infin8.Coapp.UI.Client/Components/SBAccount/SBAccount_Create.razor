@@ -111,7 +111,7 @@
             createdBy = userInfoDto.UserId;
             sbAccountModel.Led_Id = 0;
             sbAccountModel.Receipt_Amount = 0;
-            var result = await _httpClient.GetFromJsonAsync<SBCA_Schemes>($"https://localhost:7073/api/SBAccount/GetSBCAScheme/{sbAccountModel.BrCode!}");
+            var result = await _httpClient.GetFromJsonAsync<SBCA_Schemes>($"api/SBAccount/GetSBCAScheme/{sbAccountModel.BrCode!}");
             if (result != null)
             {
                 schemes = result;
@@ -141,7 +141,7 @@
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -201,7 +201,7 @@
             AdjustmentReceipt_Amount = adjReceipt ,
             AdjustmentPayment_Amount = adjPayment 
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
         // await OnSBCreateInitiate.InvokeAsync(sbAccountModel);
     }

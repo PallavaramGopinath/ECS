@@ -417,7 +417,7 @@
         {
             if (!string.IsNullOrWhiteSpace(member.MemberNo))
             {
-                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{member.MemberNo}/{brCode}");
+                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"api/Member/GetMemberDetails/{member.MemberNo}/{brCode}");
                 if (mem != null && mem.Mem_Id > 0)
                 {
                     memberDetails.Mem_Id = mem.Mem_Id;
@@ -460,14 +460,14 @@
         isLoading = true;
         string fromDateString = fromDate.ToString("yyyy-MM-dd");
         string toDateString = toDate.ToString("yyyy-MM-dd");
-        var memReponse = await _httpClient.GetFromJsonAsync<MemberDetailsVM2>($"https://localhost:7073/api/Dashboard/get-member-dashboard/{memberDetails.Mem_Id}/{memberDetails.BrCode}");
+        var memReponse = await _httpClient.GetFromJsonAsync<MemberDetailsVM2>($"api/Dashboard/get-member-dashboard/{memberDetails.Mem_Id}/{memberDetails.BrCode}");
         if (memReponse != null && memReponse.Mem_Id > 0)
         {
             Member = memReponse;
             StateHasChanged();
         }
 
-        var memAccounts = await _httpClient.GetFromJsonAsync<List<MemberDashBoardAccountsDto>>($"https://localhost:7073/api/Dashboard/get-member-dashboard-acoount/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
+        var memAccounts = await _httpClient.GetFromJsonAsync<List<MemberDashBoardAccountsDto>>($"api/Dashboard/get-member-dashboard-acoount/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
         if (memAccounts != null && memAccounts.Any())
         {
             MemberAccounts = memAccounts.OrderBy(x=> x.Trn_Type).ThenBy(x=> x.Led_Name).ToList();
@@ -498,14 +498,14 @@
             StateHasChanged();
         }
 
-        var memLoans = await _httpClient.GetFromJsonAsync<List<MemberDashBoardLoans>>($"https://localhost:7073/api/Dashboard/get-member-dashboard-loans/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
+        var memLoans = await _httpClient.GetFromJsonAsync<List<MemberDashBoardLoans>>($"api/Dashboard/get-member-dashboard-loans/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
         if (memLoans != null && memLoans.Any())
         {
             MemberLoans = memLoans.OrderBy(x=> x.Scheme_Id).ThenBy(x=> x.Loan_No).ToList();
             StateHasChanged();
         }
 
-        var memTD = await _httpClient.GetFromJsonAsync<List<MemberDashBoardTD>>($"https://localhost:7073/api/Dashboard/get-member-dashboard-td/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
+        var memTD = await _httpClient.GetFromJsonAsync<List<MemberDashBoardTD>>($"api/Dashboard/get-member-dashboard-td/{memberDetails.Mem_Id}/{fromDateString}/{toDateString}/{memberDetails.BrCode}");
         if (memTD != null && memTD.Any())
         {
             MemberTermDeposits = memTD.OrderBy(x=> x.TDScheme_Id).ThenBy(x=>x.TD_No).ToList ();
@@ -622,7 +622,7 @@
             var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
             if (isComponent(account.AccountId))
             {
-                var url = $"https://localhost:7073/api/Transaction/GetViewComponentName/{account.AccountId}";
+                var url = $"api/Transaction/GetViewComponentName/{account.AccountId}";
                 using var response = await _httpClient.GetAsync(url);
                 var jsonString = await response.Content.ReadAsStringAsync();
                 componentName = jsonString;
@@ -664,7 +664,7 @@
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
                         break;
                     case 48:    /// Loan disbursement PLDB
-                        var staging = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{account.Staging_Id}/{account.AccountId}");
+                        var staging = await _httpClient.GetFromJsonAsync<Staging_Details>($"api/Staging/GetStagingDetailsById/{account.Staging_Id}/{account.AccountId}");
                         if (staging != null && staging.Staging_Id > 0)
                         {
                             if (staging.Security_Type == 1)

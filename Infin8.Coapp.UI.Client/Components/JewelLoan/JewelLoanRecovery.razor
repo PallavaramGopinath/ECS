@@ -329,7 +329,7 @@
             List<DropdownItem> jlNoList = new List<DropdownItem>();
             /// first time not rendered but on refresh it is rendered
             // var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetJLNosByMemId/{model.Mem_Id}/2");
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/2/{model.BrCode }");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetJLNosByMemId/{model.Mem_Id}/2/{model.BrCode }");
             List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
             if (result != null && result.Count > 0)
             {
@@ -410,7 +410,7 @@
 
             // Make the API call with proper URL format
             // var result = await _httpClient.GetFromJsonAsync<List<JewelLoanBalance>>($"api/Loan/GetJLBalance?{queryString}");
-            var result = await _httpClient.GetFromJsonAsync<List<JewelLoanBalance>>($"https://localhost:7073/api/Loan/GetJLBalance?{queryString}");
+            var result = await _httpClient.GetFromJsonAsync<List<JewelLoanBalance>>($"api/Loan/GetJLBalance?{queryString}");
 
             if (result != null && result.Count > 0) loanBalanceList = result.ToList();
             model.JewelLoanBalance_List = new List<DtoJewelLoanBalance>();
@@ -618,7 +618,7 @@
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -664,7 +664,7 @@
                 CashPayment_Amount =0,
                 AdjustmentPayment_Amount = 0
             };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         await OnJLRecoveryInitiate.InvokeAsync(model);
     }
 

@@ -80,7 +80,7 @@ else
     {
         try
         {
-            var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+            var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
             // if (query != null && query.Count > 0)
             // {
             //     checkerDashboardList = query.ToList();

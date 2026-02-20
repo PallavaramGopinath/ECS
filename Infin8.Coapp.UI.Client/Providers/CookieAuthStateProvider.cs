@@ -21,7 +21,7 @@
         {
             try
             {
-                var response = await _http.GetAsync("https://localhost:7073/api/Auth/me");
+                var response = await _http.GetAsync("api/Auth/me");
 
                 if (!response.IsSuccessStatusCode)
                 {

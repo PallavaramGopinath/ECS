@@ -477,19 +477,19 @@
         member.isnewmember = true;
         member.isexistingmember = false;
         member.brcode = "11001";
-        var religion = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/6/11001/false");
+        var religion = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/6/11001/false");
         if (religion != null) religions = religion.ToList();
-        var community = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/1/11001/false");
+        var community = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/1/11001/false");
         if (community != null) communities = community.ToList();
-        var caste = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/4/11001/false");
+        var caste = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/4/11001/false");
         if (caste != null) castes = caste.ToList();
-        var occupation = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/5/11001/false");
+        var occupation = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/5/11001/false");
         if (occupation != null) occupations = occupation.ToList();
-        var area = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/Area/11001");
+        var area = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/Area/11001");
         if (area != null) areas = area.ToList();
-        var bank = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/BankItems");
+        var bank = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/BankItems");
         if (bank != null) banks = bank.ToList();
-        var constituency = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("https://localhost:7073/api/Reference/Constituencies");
+        var constituency = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/Constituencies");
         if (constituency != null) constituencies = constituency.ToList();
     }
 
@@ -499,7 +499,7 @@
         {
             string memberNo = "";
             int memType = member.membertype;
-            var url = $"https://localhost:7073/api/NewAccountNo/NewMemberNo/{memType}/11001";
+            var url = $"api/NewAccountNo/NewMemberNo/{memType}/11001";
             Console.WriteLine($"Calling API: {url}"); // Debug URL
             using var response = await _httpClient.GetAsync(url);
             var jsonString = await response.Content.ReadAsStringAsync();
@@ -583,7 +583,7 @@
 
     private async Task HandleValidSubmit()
     {
-        var response = await _httpClient.PostAsJsonAsync<MemberRegistration>("https://localhost:7073/api/Member", member);
+        var response = await _httpClient.PostAsJsonAsync<MemberRegistration>("api/Member", member);
         if (response.IsSuccessStatusCode)
         {
             // statusMessage = "success";

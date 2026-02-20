@@ -119,7 +119,7 @@
     {
         string fromDateString = From_Date.ToString("yyyy-MM-dd");
         string toDateString = To_Date.ToString("yyyy-MM-dd");
-        var response = await _httpClient.GetFromJsonAsync<List<MemberLedgerVM>>($"https://localhost:7073/api/Dashboard/dashboard-accounts-ledger/{Mem_Id}/{Trn_Type}/{fromDateString}/{toDateString}/{BrCode}");
+        var response = await _httpClient.GetFromJsonAsync<List<MemberLedgerVM>>($"api/Dashboard/dashboard-accounts-ledger/{Mem_Id}/{Trn_Type}/{fromDateString}/{toDateString}/{BrCode}");
         if (response != null && response.Any())
         {
             ledgerList = response.ToList();

@@ -425,12 +425,12 @@
                 Navigation.NavigateTo("/login", true);
                 return;
             }
-            var transactionItems = await _httpClient.GetFromJsonAsync<List<DtoAccount_Transactions>>($"https://localhost:7073/api/Transaction/GetAllAccountNames");
+            var transactionItems = await _httpClient.GetFromJsonAsync<List<DtoAccount_Transactions>>($"api/Transaction/GetAllAccountNames");
             if (transactionItems != null) AllAccountTransaction = transactionItems;
             // isFirstRender = true;
             _isDataLoaded = true;
             string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
-            var cashBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Accounts/GetCashBalanceAsOnDate?yrId={transaction.Yr_Id}&asonDate={formatedDate}&brCode={brCode}");
+            var cashBalance = await _httpClient.GetFromJsonAsync<double>($"api/Accounts/GetCashBalanceAsOnDate?yrId={transaction.Yr_Id}&asonDate={formatedDate}&brCode={brCode}");
             transaction.Cash_Led_Balance = cashBalance;
             StateHasChanged();
             TransactionState.OnInitiate += GetIntiatedAccountsFromStaging;
@@ -493,7 +493,7 @@
         {
             if (!string.IsNullOrWhiteSpace(transaction.Member_No))
             {
-                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{transaction.Member_No}/{brCode}");
+                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"api/Member/GetMemberDetails/{transaction.Member_No}/{brCode}");
                 if (mem != null && mem.Mem_Id > 0)
                 {
                     transaction.Member_Id = mem.Mem_Id;
@@ -597,12 +597,12 @@
     {
         if (transaction.Receipt_Payment == 1)
         {
-            var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/R/M");
+            var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAccountNames/R/M");
             if (receiptAccoutNames != null) accountItems = receiptAccoutNames.OrderBy(x => x.Text).ToList();
         }
         if (transaction.Receipt_Payment == 2)
         {
-            var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/P/M");
+            var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAccountNames/P/M");
             if (paymentAccountNames != null) accountItems = paymentAccountNames.OrderBy(x => x.Text).ToList(); ;
         }
         StateHasChanged();
@@ -621,12 +621,12 @@
         }
         if (transaction.Receipt_Payment == 1)
         {
-            var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/R/M");
+            var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAccountNames/R/M");
             if (receiptAccoutNames != null) accountItems = receiptAccoutNames;
         }
         if (transaction.Receipt_Payment == 2)
         {
-            var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/P/M");
+            var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAccountNames/P/M");
             if (paymentAccountNames != null) accountItems = paymentAccountNames;
         }
         StateHasChanged();
@@ -675,7 +675,7 @@
         string accountName = accountItems.FirstOrDefault(a => a.Value == transaction.Account_Id.ToString())?.Text ?? string.Empty;
         try
         {
-            var count = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Staging/VerifyTransactionExistsInStagingDetails/{transaction.Member_Id}/{transaction.Transaction_Date.ToString("yyyy-MM-dd")}/{transaction.Account_Id}");
+            var count = await _httpClient.GetFromJsonAsync<int>($"api/Staging/VerifyTransactionExistsInStagingDetails/{transaction.Member_Id}/{transaction.Transaction_Date.ToString("yyyy-MM-dd")}/{transaction.Account_Id}");
             if (count > 0)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "Transaction already exists but not either approved or rejected of the account " + accountName + " for this member for this date");
@@ -695,7 +695,7 @@
         {
             if (transaction.Account_Id == 18)
             {
-                var sbAccountNos = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/SBAccount/GetSBAccountNoByMemId/{transaction.Member_Id}/{brCode}");
+                var sbAccountNos = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/SBAccount/GetSBAccountNoByMemId/{transaction.Member_Id}/{brCode}");
                 if (sbAccountNos != null && sbAccountNos.Count > 0)
                 {
                     await JSRuntime.InvokeVoidAsync("alert", "Member already has a SB Account");
@@ -709,7 +709,7 @@
             {
                 string trnDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
                 /// 8= fd refund, 9= fd renewal 24=fd loan receipt
-                var result = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Staging/VerifyForFixedDepositLoanRecovery/{transaction.Account_Id}/{transaction.Member_Id}/{trnDate}");
+                var result = await _httpClient.GetFromJsonAsync<bool>($"api/Staging/VerifyForFixedDepositLoanRecovery/{transaction.Account_Id}/{transaction.Member_Id}/{trnDate}");
                 if (result == true)
                 {
                     await JSRuntime.InvokeVoidAsync("alert", "Member had loan on the seleced Fixed deposit");
@@ -1009,7 +1009,7 @@
             CashPayment_Amount = transaction.Cash_Adjustment == 1 ? payment : 0,
             AdjustmentPayment_Amount = transaction.Cash_Adjustment == 2 ? payment : 0,
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
 
         transaction.Ledger_Id = 0;
         transaction.Account_Id = 0;
@@ -1048,38 +1048,38 @@
         switch (transaction.Account_Id)
         {
             case 3: /// membser suspense creditor receipt/payment
-                var ledgerTmp1 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetSuspenseAccounts/2/{brCode}");
+                var ledgerTmp1 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetSuspenseAccounts/2/{brCode}");
                 if (ledgerTmp1 != null) ledgerList = ledgerTmp1.ToList();
                 StateHasChanged();
                 break;
             case 4: /// member suspense debtor receipt/payment
-                var ledgerTmp2 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetSuspenseAccounts/1/{brCode}");
+                var ledgerTmp2 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetSuspenseAccounts/1/{brCode}");
                 if (ledgerTmp2 != null) ledgerList = ledgerTmp2.ToList();
                 StateHasChanged();
                 break;
             case 5: /// member share capital receipt/payment
-                var ledgerTmp3 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetShareCapitalLedger/{brCode}");
+                var ledgerTmp3 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetShareCapitalLedger/{brCode}");
                 if (ledgerTmp3 != null) ledgerList = ledgerTmp3.ToList();
                 StateHasChanged();
                 break;
             case 11: /// bank name receipt/payment
-                var ledgerTmp4 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetBankLedgers/{brCode}");
+                var ledgerTmp4 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetBankLedgers/{brCode}");
                 if (ledgerTmp4 != null) ledgerList = ledgerTmp4.ToList();
 
                 isBankAccount = true;
                 StateHasChanged();
                 break;
             case 21: /// ledger entry receipt/payment
-                var ledgerTmp5 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetLedgersExceptBankLedger/{brCode}");
+                var ledgerTmp5 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetLedgersExceptBankLedger/{brCode}");
                 if (ledgerTmp5 != null) ledgerList = ledgerTmp5.ToList();
                 break;
             case 22:    /// Staff susepense Creditor receipt/payment
-                var ledgerTmp6 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetSuspenseAccounts/6/{brCode}");
+                var ledgerTmp6 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetSuspenseAccounts/6/{brCode}");
                 if (ledgerTmp6 != null) ledgerList = ledgerTmp6.ToList();
                 StateHasChanged();
                 break;
             case 23:    /// Staff suspense Debtor receipt/payment
-                var ledgerTmp7 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetSuspenseAccounts/5/{brCode}");
+                var ledgerTmp7 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetSuspenseAccounts/5/{brCode}");
                 if (ledgerTmp7 != null) ledgerList = ledgerTmp7.ToList();
                 StateHasChanged();
                 break;
@@ -1102,7 +1102,7 @@
         // parameters = new Dictionary<string, object> { { "Message", "Switched dynamically!" } };
         if (isComponent(Account_Id))
         {
-            var url = $"https://localhost:7073/api/Transaction/GetComponentName/{Account_Id}";
+            var url = $"api/Transaction/GetComponentName/{Account_Id}";
             using var response = await _httpClient.GetAsync(url);
             var jsonString = await response.Content.ReadAsStringAsync();
             componentName = jsonString;
@@ -1471,7 +1471,7 @@
         // parameters = new Dictionary<string, object> { { "Message", "Switched dynamically!" } };
         if (isComponent(account.AccountId))
         {
-            var url = $"https://localhost:7073/api/Transaction/GetViewComponentName/{account.AccountId}";
+            var url = $"api/Transaction/GetViewComponentName/{account.AccountId}";
             using var response = await _httpClient.GetAsync(url);
             var jsonString = await response.Content.ReadAsStringAsync();
             componentName = jsonString;
@@ -1791,7 +1791,7 @@
             var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
             if (isComponent(account.AccountId))
             {
-                var url = $"https://localhost:7073/api/Transaction/GetViewComponentName/{account.AccountId}";
+                var url = $"api/Transaction/GetViewComponentName/{account.AccountId}";
                 using var response = await _httpClient.GetAsync(url);
                 var jsonString = await response.Content.ReadAsStringAsync();
                 componentName = jsonString;
@@ -1856,7 +1856,7 @@
             case 5: /// Member share capital
             case 22: /// Staff suspense creditor
             case 23: /// staff suspense debtor
-                double ledgerBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Member/MemTrn/{transaction.Member_Id}/{transaction.Ledger_Id}/{brCode}");
+                double ledgerBalance = await _httpClient.GetFromJsonAsync<double>($"api/Member/MemTrn/{transaction.Member_Id}/{transaction.Ledger_Id}/{brCode}");
                 transaction.Ledger_Balance = ledgerBalance;
                 break;
             case 6: /// Deposit advance receipt
@@ -1866,9 +1866,9 @@
                 string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
                 try
                 {
-                    // var ledgerBalance21 = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Accounts/GetLedgerBalance?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={brCode}");
+                    // var ledgerBalance21 = await _httpClient.GetFromJsonAsync<double>($"api/Accounts/GetLedgerBalance?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={brCode}");
                     // transaction.Ledger_Balance = Convert.ToDouble(ledgerBalance21);
-                    var ledgerBalance21 = await _httpClient.GetFromJsonAsync<DtoLedgerBalance>($"https://localhost:7073/api/Accounts/GetLedgerBalanceWithFnlId?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={brCode}");
+                    var ledgerBalance21 = await _httpClient.GetFromJsonAsync<DtoLedgerBalance>($"api/Accounts/GetLedgerBalanceWithFnlId?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={brCode}");
                     if (ledgerBalance21 != null)
                     {
                         transaction.Ledger_Balance = ledgerBalance21!.Ledger_Balance;
@@ -1912,7 +1912,7 @@
         if (isComponent(account.AccountId))
         {
 
-            var url = $"https://localhost:7073/api/Transaction/GetViewComponentName/{account.AccountId}";
+            var url = $"api/Transaction/GetViewComponentName/{account.AccountId}";
             using var response = await _httpClient.GetAsync(url);
             var jsonString = await response.Content.ReadAsStringAsync();
             componentName = jsonString + "View";
@@ -2220,7 +2220,7 @@
         StateHasChanged();
         try
         {
-            var response = await _httpClient.DeleteAsync($"https://localhost:7073/api/Staging/DeleteStaging/{stagingId}/{relatedAccountId}");
+            var response = await _httpClient.DeleteAsync($"api/Staging/DeleteStaging/{stagingId}/{relatedAccountId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -2259,7 +2259,7 @@
     private async Task ResetForm()
     {
         string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
-        var cashBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Accounts/GetCashBalanceAsOnDate?yrId={transaction.Yr_Id}&asonDate={formatedDate}&brCode={brCode}");
+        var cashBalance = await _httpClient.GetFromJsonAsync<double>($"api/Accounts/GetCashBalanceAsOnDate?yrId={transaction.Yr_Id}&asonDate={formatedDate}&brCode={brCode}");
         // transaction.Cash_Led_Balance = cashBalance;
         StateHasChanged();
         transaction = new TransactionBy_Members
@@ -2315,7 +2315,7 @@
         decimal stagingId = transactionAccountsList.FirstOrDefault()?.Staging_Id ?? 0;
         if (stagingId > 0)
         {
-            var response = await _httpClient.PostAsJsonAsync<decimal>("https://localhost:7073/api/Staging/MakeStaging", stagingId);
+            var response = await _httpClient.PostAsJsonAsync<decimal>("api/Staging/MakeStaging", stagingId);
             if (response.IsSuccessStatusCode)
             {
                 await ResetForm();
@@ -2366,7 +2366,7 @@
         List<AccountsTransactionDetailsVM> accList = new();
         // decimal createdBy, DateTime createdDate, string stagingStatus, string brCode
         string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
-        var result = await _httpClient.GetFromJsonAsync<List<AccountsTransactionDetailsVM>>($"https://localhost:7073/api/Staging/GetInitiatedAccounts/{transaction.Member_Id}/{formatedDate}/'I'/{brCode}");
+        var result = await _httpClient.GetFromJsonAsync<List<AccountsTransactionDetailsVM>>($"api/Staging/GetInitiatedAccounts/{transaction.Member_Id}/{formatedDate}/'I'/{brCode}");
         if (result != null) accList = result.ToList();
         return accList;
     }
@@ -2532,7 +2532,7 @@
         List<AccountTransactionVM> trnList = new();
         try
         {
-            var trnFromStaging = await _httpClient.GetFromJsonAsync<List<AccountTransactionVM>>($"https://localhost:7073/api/Staging/GetInitiatedAccounts?createdDate={transaction.Transaction_Date:yyyy-MM-dd}&memId={transaction.Member_Id}&stagingStatus={stagingStatus}&brCode={brCode}");
+            var trnFromStaging = await _httpClient.GetFromJsonAsync<List<AccountTransactionVM>>($"api/Staging/GetInitiatedAccounts?createdDate={transaction.Transaction_Date:yyyy-MM-dd}&memId={transaction.Member_Id}&stagingStatus={stagingStatus}&brCode={brCode}");
             transactionAccountsList = new();
             if (trnFromStaging != null)
             {
@@ -3400,7 +3400,7 @@
         List<AccountTransactionVM> trnList = new();
         try
         {
-            var trnFromStaging = await _httpClient.GetFromJsonAsync<List<AccountTransactionVM>>($"https://localhost:7073/api/Staging/GetInitiatedAccounts?createdDate={transaction.Transaction_Date:yyyy-MM-dd}&memId={transaction.Member_Id}&stagingStatus={stagingStatus}&brCode={brCode}");
+            var trnFromStaging = await _httpClient.GetFromJsonAsync<List<AccountTransactionVM>>($"api/Staging/GetInitiatedAccounts?createdDate={transaction.Transaction_Date:yyyy-MM-dd}&memId={transaction.Member_Id}&stagingStatus={stagingStatus}&brCode={brCode}");
             transactionAccountsList = new();
             if (trnFromStaging != null)
             {

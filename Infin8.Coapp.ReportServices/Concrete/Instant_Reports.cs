@@ -23,7 +23,7 @@ namespace Infin8.Coapp.ReportServices.Concrete
         {
             byte[] fileBytes;
             //LocalReport localReport = new LocalReport();
-            var response = await  _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rptObject);
+            var response = await  _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt", rptObject); //Dont use http call, Instead call the method directly by  importing the class.
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();

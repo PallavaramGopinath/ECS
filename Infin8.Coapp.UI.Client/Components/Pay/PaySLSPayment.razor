@@ -268,14 +268,14 @@ else
         {
             string fromDateString = fromDate.ToString("yyyy-MM-dd");
             string toDateString = toDate.ToString("yyyy-MM-dd");
-            var isAlreadyPaid = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Pay/IsSLSPaid/{Employee_Id}/{fromDateString}/{toDateString}/{"S"}/{model.BrCode}");
+            var isAlreadyPaid = await _httpClient.GetFromJsonAsync<bool>($"api/Pay/IsSLSPaid/{Employee_Id}/{fromDateString}/{toDateString}/{"S"}/{model.BrCode}");
             if (isAlreadyPaid)
             {
                 model._isError = true;
                 model.errorMessage = "SLS for the period from " + fromDate.ToString("dd-MM-yyyy") + " to " + toDate.ToString("dd-MM-yyyy") + " already paid";
                 return;
             }
-            var response = await _httpClient.GetFromJsonAsync<List<DtoSLSComponent>>($"https://localhost:7073/api/Pay/GetSLSData/{Employee_Id}/{model.BrCode}");
+            var response = await _httpClient.GetFromJsonAsync<List<DtoSLSComponent>>($"api/Pay/GetSLSData/{Employee_Id}/{model.BrCode}");
             if (response != null && response.Any())
             {
                 SLSList = new();
@@ -366,7 +366,7 @@ else
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -412,7 +412,7 @@ else
             CashPayment_Amount = CashOrAdjustment == 1 ? model.SLSAmount : 0,
             AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.SLSAmount : 0
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnPFContributionComponentClose.InvokeAsync(model);
         await TransactionState.NotifyIntiate(true);
     }

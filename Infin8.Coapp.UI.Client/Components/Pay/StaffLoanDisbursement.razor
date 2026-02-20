@@ -232,7 +232,7 @@ else
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/5/{model.BrCode!}");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetLoanSchemes/5/{model.BrCode!}");
             if (result != null && result.Any())
             {
                 loanSchemes = result.ToList();
@@ -253,7 +253,7 @@ else
         {
             if (model.Scheme_Id > 0)
             {
-                var result = await _httpClient.GetFromJsonAsync<Loan_Schemes>($"https://localhost:7073/api/Loan/GetLoanScheme/{model.Scheme_Id}/{model.BrCode!}");
+                var result = await _httpClient.GetFromJsonAsync<Loan_Schemes>($"api/Loan/GetLoanScheme/{model.Scheme_Id}/{model.BrCode!}");
                 if (result != null && result.Scheme_Id > 0)
                 {
                     schemes = result;
@@ -284,7 +284,7 @@ else
             LoanROIAndPIVM? roi = new LoanROIAndPIVM();
             string wefFormatted = ((DateTime)model.Transaction_Date!).ToString("yyyy-MM-dd");
             string agency = "S";
-            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest/{model.Scheme_Id}/{agency}/{wefFormatted}/{model.BrCode!}");
+            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"api/Loan/GetRateOfInterest/{model.Scheme_Id}/{agency}/{wefFormatted}/{model.BrCode!}");
             model.Rate_Of_Interest = roi!.Roi;
         }
     }
@@ -334,7 +334,7 @@ else
         {
             if (model.Scheme_Id > 0)
             {
-                var result = await _httpClient.GetFromJsonAsync<string>($"https://localhost:7073/api/NewAccountNo/NewLoanNo/{model.Scheme_Id}/{model.BrCode!}");
+                var result = await _httpClient.GetFromJsonAsync<string>($"api/NewAccountNo/NewLoanNo/{model.Scheme_Id}/{model.BrCode!}");
                 if (result != null)
                 {
                     loanNo = result.ToString();
@@ -369,7 +369,7 @@ else
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -416,7 +416,7 @@ else
             CashPayment_Amount = CashOrAdjustment == 1 ? model.DisbursementAmount : 0,
             AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.DisbursementAmount : 0
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnPFContributionComponentClose.InvokeAsync(model);
         await TransactionState.NotifyIntiate(true);
     }

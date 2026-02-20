@@ -128,7 +128,7 @@
         _isProcessing = true;
         string fromDateToString = model.FromDate.ToString("yyyy-MM-dd");
         string toDateToString = model.ToDate.ToString("yyyy-MM-dd");
-        var response = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Accounts/create-year/{model.YrId}/{fromDateToString}/{toDateToString}/{model.Created_By}/{model.BrCode}");
+        var response = await _httpClient.GetFromJsonAsync<bool>($"api/Accounts/create-year/{model.YrId}/{fromDateToString}/{toDateToString}/{model.Created_By}/{model.BrCode}");
         if (response==true)
         {
             _isProcessed = true;

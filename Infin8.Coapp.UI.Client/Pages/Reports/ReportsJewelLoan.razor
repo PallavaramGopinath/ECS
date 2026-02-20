@@ -294,16 +294,16 @@ else
                 rptJlObject.ToDate = userInfoDto.YrEndDate;
                 rptJlObject.AsOnDate = userInfoDto.CurrentDate;
 
-                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/13/{rptJlObject.BrCode}");
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Print/GetReportNameList/13/{rptJlObject.BrCode}");
                 if (result!.Count > 0)
                 {
                     reportList = result.ToList();
                     StateHasChanged();
                 }
-                var maxLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/ReportsJL/GetJLMaximumLimit/{rptJlObject.AsOnDate.ToString("yyyy-MM-dd")}/{rptJlObject.BrCode}");
+                var maxLimit = await _httpClient.GetFromJsonAsync<double>($"api/ReportsJL/GetJLMaximumLimit/{rptJlObject.AsOnDate.ToString("yyyy-MM-dd")}/{rptJlObject.BrCode}");
                 rptJlObject.MaximumLimit = maxLimit;
 
-                // var ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/{rptJlObject.BrCode}");
+                // var ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAllLedgers/{rptJlObject.BrCode}");
                 // if (ledgers != null && ledgers.Any())
                 // {
                 //     loanList = ledgers.OrderBy(x => x.Text).ToList();
@@ -389,7 +389,7 @@ else
 
     private async Task HandleMemberNo()
     {
-        var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{rptJlObject.MemberNo}/{rptJlObject.BrCode}");
+        var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"api/Member/GetMemberDetails/{rptJlObject.MemberNo}/{rptJlObject.BrCode}");
         if (mem != null)
         {
             memDetails.Mem_Id = mem.Mem_Id;
@@ -411,7 +411,7 @@ else
     {
         rptJlObject.FromDateString = rptJlObject.FromDate.ToString("yyyy-MM-dd");
         rptJlObject.ToDateString = rptJlObject.ToDate.ToString("yyyy-MM-dd");
-        var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/ReportsJL/GetJLNos/{rptJlObject.MemId}/{rptJlObject.FromDateString}/{rptJlObject.ToDateString}/{rptJlObject.BrCode}");
+        var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/ReportsJL/GetJLNos/{rptJlObject.MemId}/{rptJlObject.FromDateString}/{rptJlObject.ToDateString}/{rptJlObject.BrCode}");
         if (result != null && result.Any())
         {
             loanList.Clear();
@@ -528,7 +528,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-verification", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"api/ReportsJL/print-jewelloan-verification", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -561,7 +561,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-stockregister", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"api/ReportsJL/print-jewelloan-stockregister", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -594,7 +594,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-outstanding", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"api/ReportsJL/print-jewelloan-outstanding", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -627,7 +627,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-overdue", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"api/ReportsJL/print-jewelloan-overdue", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -660,7 +660,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-aboveLimit", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"api/ReportsJL/print-jewelloan-aboveLimit", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -693,7 +693,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-issueRegister", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"api/ReportsJL/print-jewelloan-issueRegister", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -726,7 +726,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-redemption", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"api/ReportsJL/print-jewelloan-redemption", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -759,7 +759,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-claim", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"api/ReportsJL/print-jewelloan-claim", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -792,7 +792,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"https://localhost:7073/api/ReportsJL/print-jewelloan-ledger", rptJlObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportJewelObject>($"api/ReportsJL/print-jewelloan-ledger", rptJlObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();

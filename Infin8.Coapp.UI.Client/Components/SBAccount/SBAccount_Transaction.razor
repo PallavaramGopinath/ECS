@@ -146,7 +146,7 @@
             sbAccountTransaction.BrCode = userInfoDto.BrCode!; // Assuming a default branch code, can be parameterized if needed
             if (ReceiptOrPayment == 1) initiateButtonText = "Initiate Receipt";
             else initiateButtonText = "Initiate Payment";
-            var result = await _httpClient.GetFromJsonAsync<DtoSBAccountBalanceWithIds>($"https://localhost:7073/api/SBAccount/GetSBAccountBalanceWithIds/{sbAccountTransaction.Mem_Id}/{sbAccountTransaction.BrCode}");
+            var result = await _httpClient.GetFromJsonAsync<DtoSBAccountBalanceWithIds>($"api/SBAccount/GetSBAccountBalanceWithIds/{sbAccountTransaction.Mem_Id}/{sbAccountTransaction.BrCode}");
             if (result != null)
             {
                 sbAccountTransaction.Balance_Amount = result.Balance_Amount;
@@ -189,7 +189,7 @@
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -249,7 +249,7 @@
             AdjustmentReceipt_Amount = adjReceipt,
             AdjustmentPayment_Amount = adjPayment
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
 
         // await OnSBTransactionInitiate.InvokeAsync(sbAccountTransaction);

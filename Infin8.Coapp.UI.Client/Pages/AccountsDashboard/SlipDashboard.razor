@@ -108,7 +108,7 @@ else
                 brCode = userInfoDto.BrCode!;
                 voucherData!.brCode = userInfoDto.BrCode;
                 yrId = userInfoDto.YrId;
-                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByVocId/{Voc_Id}/{voucherData!.brCode}");
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"api/AccountsDashboard/GetTransactionByVocId/{Voc_Id}/{voucherData!.brCode}");
                 voucherData = result;
                
                 // voucherData!.brCode = BrCode;
@@ -168,7 +168,7 @@ else
                 pmtNo = ""; // Ensure payment number is empty
                 rptNo = convertedString;
                 // rptNo = searchValue.ToUpper();
-                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}&brCode={brCode}");
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"api/AccountsDashboard/GetTransactionByRptNo?rptNo={Uri.EscapeDataString(rptNo)}&yrId={yrId}&brCode={brCode}");
                 voucherData = result;
                 isLoading = false;
             }
@@ -177,7 +177,7 @@ else
                 rptNo = ""; // Ensure receipt number is
                 pmtNo = convertedString;
                 // pmtNo = searchValue.ToUpper();
-                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByPmtNo?pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}&brCode={brCode}");
+                var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"api/AccountsDashboard/GetTransactionByPmtNo?pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}&brCode={brCode}");
                 voucherData = result;
                 isLoading = false;
             }
@@ -192,8 +192,8 @@ else
         // try
         // {
         //     // The API call remains the same, as empty strings are passed for the unused parameter
-        //     var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByNo?rptNo={Uri.EscapeDataString(rptNo)}&pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}");
-        //     // var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"https://localhost:7073/api/AccountsDashboard/GetTransactionByNo/{rptNo}/{pmtNo}/{yrId}");
+        //     var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"api/AccountsDashboard/GetTransactionByNo?rptNo={Uri.EscapeDataString(rptNo)}&pmtNo={Uri.EscapeDataString(pmtNo)}&yrId={yrId}");
+        //     // var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"api/AccountsDashboard/GetTransactionByNo/{rptNo}/{pmtNo}/{yrId}");
         //     voucherData = result;
         //     isLoading = false;
         // }
@@ -213,7 +213,7 @@ else
         List<rptReceiptAndPaymentAmount> rptPmtList = new();
         try
         {
-            var rptPmtResponse = await _httpClient.GetFromJsonAsync<List<rptReceiptAndPaymentAmount>>($"https://localhost:7073/api/Print/GetReceiptAndPaymentData/{voucherData!.Voc_Id}/{voucherData.brCode}");
+            var rptPmtResponse = await _httpClient.GetFromJsonAsync<List<rptReceiptAndPaymentAmount>>($"api/Print/GetReceiptAndPaymentData/{voucherData!.Voc_Id}/{voucherData.brCode}");
             if (rptPmtResponse!.Count > 0)
             {
                 rptPmtList = rptPmtResponse.ToList();
@@ -282,7 +282,7 @@ else
         }
 
         List<string> statusList = new();
-        var statusResult = await _httpClient.GetFromJsonAsync<List<string>>($"https://localhost:7073/api/Print/GetStatus/{voucherData!.Voc_Id}/{voucherData.brCode}");
+        var statusResult = await _httpClient.GetFromJsonAsync<List<string>>($"api/Print/GetStatus/{voucherData!.Voc_Id}/{voucherData.brCode}");
         if (statusResult!.Count > 0)
         {
             statusList = statusResult!.ToList();
@@ -337,7 +337,7 @@ else
         }
 
         // #region Member Receipt
-        // var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rpt);
+        // var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt", rpt);
         // if (response.IsSuccessStatusCode)
         // {
         //     fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -370,7 +370,7 @@ else
 
     private async Task Print_Member_Receipt(rptReceiptObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -402,7 +402,7 @@ else
 
     private async Task Print_General_Receipt(rptReceiptObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt-general", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt-general", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -434,7 +434,7 @@ else
 
     private async Task Print_Voucher(rptReportObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"https://localhost:7073/api/Print/print-voucher", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"api/Print/print-voucher", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -459,7 +459,7 @@ else
 
     private async Task Print_FDPayment(rptReceiptObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-fdpayment", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-fdpayment", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -484,7 +484,7 @@ else
 
     private async Task Print_FDBond(rptReceiptObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-fdbond", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-fdbond", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -509,7 +509,7 @@ else
 
     private async Task Print_JL_Ledger(rptReportObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"https://localhost:7073/api/Print/print-jl-ledger", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"api/Print/print-jl-ledger", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();

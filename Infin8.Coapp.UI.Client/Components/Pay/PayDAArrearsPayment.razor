@@ -230,7 +230,7 @@ else
                 Payslip.Employee_Id = Employee_Id;
                 Payslip.Employee_Id_List = new List<Decimal>();
                 await GetDAArrearMonth();
-                // var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPaymentByEmpId/{Employee_Id}/D/{Payslip.BrCode}");
+                // var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Pay/GetPaySlipListForSalaryPaymentByEmpId/{Employee_Id}/D/{Payslip.BrCode}");
                 // if (response != null && response.Any())
                 // {
                 //     payIdList = response.ToList();
@@ -262,7 +262,7 @@ else
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPaymentByEmpId/{Employee_Id}/D/{Payslip.BrCode}");
+            var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Pay/GetPaySlipListForSalaryPaymentByEmpId/{Employee_Id}/D/{Payslip.BrCode}");
             if (response != null && response.Any())
             {
                 payIdList = response.ToList();
@@ -310,7 +310,7 @@ else
             {
                 _isError = false;
                 errorMessage = "";
-                var response = await _httpClient.GetFromJsonAsync<DropdownItem>($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{Employee_Id}/{Payslip.Pay_Id}/{Payslip.BrCode}");
+                var response = await _httpClient.GetFromJsonAsync<DropdownItem>($"api/Pay/GetEmployeeNameForSalaryPayment/{Employee_Id}/{Payslip.Pay_Id}/{Payslip.BrCode}");
                 if (response != null)
                 {
                     empIdList.Clear();
@@ -364,7 +364,7 @@ else
 
         // Build query string properly for multiple values
         var queryString = string.Join("&", empIds.Select(id => $"empIdList={id}"));
-        var url = $"https://localhost:7073/api/Pay/GetPaySlipForPayment?{queryString}&payId={Payslip.Pay_Id}&brCode={Payslip.BrCode}";
+        var url = $"api/Pay/GetPaySlipForPayment?{queryString}&payId={Payslip.Pay_Id}&brCode={Payslip.BrCode}";
         var response = await _httpClient.GetFromJsonAsync<List<Pay_Slip>>(url);
 
         if (response != null && response.Any())
@@ -386,7 +386,7 @@ else
         string accountName = "";
         try
         {
-            var responseForAccountName = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseForAccountName = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseForAccountName.IsSuccessStatusCode)
             {
@@ -456,7 +456,7 @@ else
             AdjustmentReceipt_Amount = adjustmentReceiptAmount,
             AdjustmentPayment_Amount = adjustmentPaymentAmount
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
     }
 

@@ -199,13 +199,13 @@ else
                 rptAccObject.YrId = userInfoDto.YrId;
                 rptAccObject.BrCode = userInfoDto.BrCode;
 
-                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/3/{rptAccObject.BrCode}");
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Print/GetReportNameList/3/{rptAccObject.BrCode}");
                 if (result!.Count > 0)
                 {
                     reportList = result.ToList();
                     StateHasChanged();
                 }
-                var ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/{rptAccObject.BrCode}");
+                var ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAllLedgers/{rptAccObject.BrCode}");
                 if (ledgers != null && ledgers.Any())
                 {
                     ledgerList = ledgers.OrderBy(x => x.Text).ToList();
@@ -353,7 +353,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-chitta", rptAccObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"api/ReportsAccount/print-chitta", rptAccObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -386,7 +386,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-daybook", rptAccObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"api/ReportsAccount/print-daybook", rptAccObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -437,7 +437,7 @@ else
             {
                 rptAccObject.LedgerList = new List<decimal>(); // Ensure the list is not null
             }
-            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-generalLedger", rptAccObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"api/ReportsAccount/print-generalLedger", rptAccObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -470,7 +470,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-receiptAndCharges", rptAccObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"api/ReportsAccount/print-receiptAndCharges", rptAccObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -504,7 +504,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-balanceSheet", rptAccObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"api/ReportsAccount/print-balanceSheet", rptAccObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -537,7 +537,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"https://localhost:7073/api/ReportsAccount/print-lossAndProfit", rptAccObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"api/ReportsAccount/print-lossAndProfit", rptAccObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();

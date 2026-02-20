@@ -245,7 +245,7 @@ else
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<EmployeeMasterDto>($"https://localhost:7073/api/Pay/GetEmployee/{model.Employee_Id}/{model.BrCode!}");
+            var result = await _httpClient.GetFromJsonAsync<EmployeeMasterDto>($"api/Pay/GetEmployee/{model.Employee_Id}/{model.BrCode!}");
             if (result != null && result.Mem_Id > 0)
             {
                 securityDepositData.Employee_Id = result.Mem_Id;
@@ -269,7 +269,7 @@ else
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<DtoSecurityDepositData>($"https://localhost:7073/api/TermDeposit/GetSecurityDepositData/{model.Employee_Id}/{model.BrCode!}");
+            var result = await _httpClient.GetFromJsonAsync<DtoSecurityDepositData>($"api/TermDeposit/GetSecurityDepositData/{model.Employee_Id}/{model.BrCode!}");
             if (result != null && result.Employee_Id > 0)
             {
                 securityDepositData = new();
@@ -304,7 +304,7 @@ else
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -350,7 +350,7 @@ else
             CashPayment_Amount = 0,
             AdjustmentPayment_Amount = 0
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         if (response.IsSuccessStatusCode)
         {
             await TransactionState.NotifyIntiate(true);

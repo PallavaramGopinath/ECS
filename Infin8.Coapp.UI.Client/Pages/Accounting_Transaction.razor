@@ -309,7 +309,7 @@ else
                     Navigation.NavigateTo("/login", true);
                     return;
                 }
-                var ledgerTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAllLedgers/{brCode}");
+                var ledgerTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAllLedgers/{brCode}");
                 // Initialize the list with default option first
                 ledgerNameItems = new List<DropdownItem>
                 {
@@ -353,12 +353,12 @@ else
     {
         if (transaction.Receipt_Payment == 1)
         {
-            var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/R/M");
+            var receiptAccoutNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAccountNames/R/M");
             // if (receiptAccoutNames != null) accountItems = receiptAccoutNames;
         }
         if (transaction.Receipt_Payment == 2)
         {
-            var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Transaction/GetAccountNames/P/M");
+            var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAccountNames/P/M");
             // if (paymentAccountNames != null) accountItems = paymentAccountNames;
         }
         StateHasChanged();
@@ -369,7 +369,7 @@ else
         string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
         try
         {
-            var ledgerBalance = await _httpClient.GetFromJsonAsync<DtoLedgerBalance>($"https://localhost:7073/api/Accounts/GetLedgerBalanceWithFnlId?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={brCode}");
+            var ledgerBalance = await _httpClient.GetFromJsonAsync<DtoLedgerBalance>($"api/Accounts/GetLedgerBalanceWithFnlId?ledId={transaction.Ledger_Id}&yrId={transaction.Yr_Id}&uptoDate={formatedDate}&brCode={brCode}");
             if (ledgerBalance != null)
             {
                 transaction.Ledger_Balance = ledgerBalance!.Ledger_Balance;
@@ -412,7 +412,7 @@ else
             }
             transaction.Ledger_Id = ledgerId;
             await GetLedgerBalance();
-            var result = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Accounts/IsBankLedger/{ledgerId}/{brCode}");
+            var result = await _httpClient.GetFromJsonAsync<bool>($"api/Accounts/IsBankLedger/{ledgerId}/{brCode}");
             if (result) 
             {
                 isBankAccount = true;
@@ -583,7 +583,7 @@ else
                 };
                 stagingDetails.Add(stagingDetail);
             }
-            var response = await _httpClient.PostAsJsonAsync("https://localhost:7073/api/Staging/AddStagingForAccounting", stagingDetails);
+            var response = await _httpClient.PostAsJsonAsync("api/Staging/AddStagingForAccounting", stagingDetails);
             if (response.IsSuccessStatusCode)
             {
                 // Handle success, e.g., show a success message or redirect

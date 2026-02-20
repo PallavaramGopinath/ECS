@@ -228,7 +228,7 @@
                 {
                     string fromDateString = From_Date.ToString("yyyy-MM-dd");
                     string toDateString = To_Date.ToString("yyyy-MM-dd");
-                    var empResponse = await _httpClient.GetFromJsonAsync<LoanLedgerVM>($"https://localhost:7073/api/Dashboard/dashboard-loan-ledger/{Loan_Id}/{fromDateString}/{toDateString}/{BrCode}");
+                    var empResponse = await _httpClient.GetFromJsonAsync<LoanLedgerVM>($"api/Dashboard/dashboard-loan-ledger/{Loan_Id}/{fromDateString}/{toDateString}/{BrCode}");
                     if (empResponse != null && empResponse.Header!.SchemeId > 0) model = empResponse;
                 }
                 StateHasChanged();

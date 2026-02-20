@@ -1115,7 +1115,7 @@ else
 
     private async Task GetEmployeesLastPayInfo()
     {
-        var mem = await _httpClient.GetFromJsonAsync<List<DtoEmployeeLastPayInfo>>($"https://localhost:7073/api/Pay/GetLastPayInfo/{BrCode}");
+        var mem = await _httpClient.GetFromJsonAsync<List<DtoEmployeeLastPayInfo>>($"api/Pay/GetLastPayInfo/{BrCode}");
         if (mem != null && mem.Any())
         {
             employeeLastPayInfos = mem;
@@ -1136,7 +1136,7 @@ else
     {
         try
         {
-            var response = await _httpClient.GetFromJsonAsync<DtoPaySlip>($"https://localhost:7073/api/Pay/GetPaySlipById/{employee.Pay_Id}/{employee.Employee_Id}/{BrCode}");
+            var response = await _httpClient.GetFromJsonAsync<DtoPaySlip>($"api/Pay/GetPaySlipById/{employee.Pay_Id}/{employee.Employee_Id}/{BrCode}");
             if (response != null)
             {
                 selectedPayslip = response;
@@ -1174,7 +1174,7 @@ else
 
             List<DtoPayComponentAssignments> componentAssignments = new();
 
-            var pay = await _httpClient.GetFromJsonAsync<List<DtoPayComponentAssignments>>($"https://localhost:7073/api/Pay/GetPayComponentAssignmentsByEmployeeId/{employee.Employee_Id}/{BrCode}");
+            var pay = await _httpClient.GetFromJsonAsync<List<DtoPayComponentAssignments>>($"api/Pay/GetPayComponentAssignmentsByEmployeeId/{employee.Employee_Id}/{BrCode}");
             if (pay != null && pay.Any())
             {
                 componentAssignments = pay;
@@ -1352,7 +1352,7 @@ else
             }
             try
             {
-                var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/CalculatePaySlip", payslip);
+                var response = await _httpClient.PostAsJsonAsync($"api/Pay/CalculatePaySlip", payslip);
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<DtoPaySlip>();
@@ -1424,7 +1424,7 @@ else
         try
         {
             _isGenerating = true;
-            var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/GeneratePaySlip", payslip);
+            var response = await _httpClient.PostAsJsonAsync($"api/Pay/GeneratePaySlip", payslip);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<DtoPaySlip>();
@@ -1520,7 +1520,7 @@ else
             rptObject.BrCode = BrCode;
             rptObject.ReportId = 67;
 
-            var response = await _httpClient.PostAsJsonAsync<rptReportEmployeeObject>($"https://localhost:7073/api/ReportsEmployee/Print_PayBillOfficeNote", rptObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportEmployeeObject>($"api/ReportsEmployee/Print_PayBillOfficeNote", rptObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -1556,7 +1556,7 @@ else
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/DeletePaySlip", payslip);
+                var response = await _httpClient.PostAsJsonAsync($"api/Pay/DeletePaySlip", payslip);
                 if (response.IsSuccessStatusCode)
                 {
                     payslips.Remove(payslip);

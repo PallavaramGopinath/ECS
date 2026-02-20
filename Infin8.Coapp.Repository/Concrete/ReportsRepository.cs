@@ -1013,7 +1013,7 @@ namespace Infin8.Coapp.Repository
         //public async Task Print_Member_Receipt(rptReceiptObject rptObject)
         //{
         //    byte[] fileBytes;
-        //    var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rptObject);
+        //    var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt", rptObject);
         //    if (response.IsSuccessStatusCode)
         //    {
         //        fileBytes = await response.Content.ReadAsByteArrayAsync();

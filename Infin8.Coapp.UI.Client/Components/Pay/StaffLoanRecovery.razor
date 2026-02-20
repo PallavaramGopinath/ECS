@@ -245,7 +245,7 @@ else
         try
         {
             List<DropdownItem> jlNoList = new List<DropdownItem>();
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetJLNosByMemId/{model.Mem_Id}/5/{brCode}");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetJLNosByMemId/{model.Mem_Id}/5/{brCode}");
             List<DtoLoanNo> loanNosList = new List<DtoLoanNo>();
             if (result != null && result.Count > 0)
             {
@@ -315,7 +315,7 @@ else
             }
             queryString.Append($"&endDate={Uri.EscapeDataString(model.Transaction_Date.ToString("yyyy-MM-dd"))}");
             queryString.Append($"&brCode={brCode}");
-            var result = await _httpClient.GetFromJsonAsync<List<PayLoanBalanceVM>>($"https://localhost:7073/api/Loan/GetPayLoanBalance?{queryString}");
+            var result = await _httpClient.GetFromJsonAsync<List<PayLoanBalanceVM>>($"api/Loan/GetPayLoanBalance?{queryString}");
             if (result != null && result.Count > 0) loanBalanceList = result.ToList();
             model.LoanBalance_List = new List<DtoLoanBalance>();
             foreach (var loan in loanBalanceList)
@@ -472,7 +472,7 @@ else
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -518,7 +518,7 @@ else
             CashPayment_Amount = 0,
             AdjustmentPayment_Amount = 0
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
     }
 

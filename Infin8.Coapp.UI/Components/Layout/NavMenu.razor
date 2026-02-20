@@ -1,7 +1,10 @@
-﻿@using Infin8.Coapp.Dto
+﻿@using Infin8.Coapp.BusinessLogic
+@using Infin8.Coapp.Dto
 @implements IDisposable
 @inject HttpClient _httpClient
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IMenuMainHandler MenuMainHandler
+@rendermode InteractiveServer
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
 @* @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider *@
@@ -260,7 +263,8 @@
             // var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
             // var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
             // var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
-            var query = await _httpClient.GetFromJsonAsync<List<MenuMain>>($"https://localhost:7073/api/Menu/GetMenuStructure/{BrCode}/{Role}");
+            //var query = await _httpClient.GetFromJsonAsync<List<MenuMain>>($"api/Menu/GetMenuStructure/{BrCode}/{Role}");
+            var query = await MenuMainHandler.GetMenuStructureAsync(BrCode ?? string.Empty, Role ?? string.Empty);
             if (query != null && query.Any())
             {
                 _menuStructure = query.ToList();

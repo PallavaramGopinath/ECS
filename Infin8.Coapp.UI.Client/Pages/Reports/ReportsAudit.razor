@@ -206,7 +206,7 @@ else
                 fnlList.AddRange(fnlListResult);
 
 
-                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Print/GetReportNameList/8/{rptObject.BrCode}");
+                var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Print/GetReportNameList/8/{rptObject.BrCode}");
                 if (result!.Count > 0)
                 {
                     reportList = result.ToList();
@@ -253,7 +253,7 @@ else
         {
 
         }
-        var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/ReportsTD/GetTDNos/{rptObject.FromDateString}/{rptObject.ToDateString}/F/{rptObject.BrCode}");
+        var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/ReportsTD/GetTDNos/{rptObject.FromDateString}/{rptObject.ToDateString}/F/{rptObject.BrCode}");
         if (result != null && result.Any())
         {
             tdList.Clear();
@@ -395,7 +395,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"https://localhost:7073/api/ReportsAudit/print-audit-memtrn", rptObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"api/ReportsAudit/print-audit-memtrn", rptObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -428,7 +428,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"https://localhost:7073/api/ReportsAudit/print-audit-jewelloan", rptObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"api/ReportsAudit/print-audit-jewelloan", rptObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -461,7 +461,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"https://localhost:7073/api/ReportsAudit/print-audit-termdeposit", rptObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"api/ReportsAudit/print-audit-termdeposit", rptObject);
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -494,7 +494,7 @@ else
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"https://localhost:7073/api/ReportsAudit/print-audit-ledger", rptObject);
+            var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"api/ReportsAudit/print-audit-ledger", rptObject);
 
             if (response.IsSuccessStatusCode)
             {

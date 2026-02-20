@@ -67,7 +67,7 @@
     private async Task HandleValidSubmit()
     {
         _isProcessing = true;
-        var response = await _httpClient.GetFromJsonAsync<DateTime>($"https://localhost:7073/api/BusinessDay/day-begin/{model.BrCode}");
+        var response = await _httpClient.GetFromJsonAsync<DateTime>($"api/BusinessDay/day-begin/{model.BrCode}");
         // if (response)
         // {
             model.ProcessDate = response!;

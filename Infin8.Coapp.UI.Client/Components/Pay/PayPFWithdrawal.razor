@@ -207,7 +207,7 @@ else
                 model.YrId = userInfoDto.YrId;
                 model.Created_By = userInfoDto.UserId;
                 // string asOnDate = TransactionDate.ToString("yyyy-MM-dd");
-                // var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}");
+                // var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}");
                 // if (response != null && response.Employee_Id > 0)
                 // {
                 //     model = response!;
@@ -228,7 +228,7 @@ else
         try
         {
             string asOnDate = TransactionDate.ToString("yyyy-MM-dd");
-            var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"https://localhost:7073/api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}/{model.BrCode}");
+            var response = await _httpClient.GetFromJsonAsync<DtoPayPFData>($"api/Pay/GetPFBalance/{Employee_Id}/{asOnDate}/{model.BrCode}");
             if (response != null && response.Employee_Id > 0)
             {
                 if (response._isError)
@@ -382,7 +382,7 @@ else
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -428,7 +428,7 @@ else
             CashPayment_Amount = CashOrAdjustment == 1 ? model.TotalWidhdrawn : 0,
             AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.TotalWidhdrawn : 0
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnPFContributionComponentClose.InvokeAsync(model);
         await TransactionState.NotifyIntiate(true);
     }

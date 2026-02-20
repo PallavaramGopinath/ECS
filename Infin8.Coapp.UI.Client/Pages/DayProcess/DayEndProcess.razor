@@ -189,7 +189,7 @@
                 string currentDateString = model.ProcessDate.ToString("yyyy-MM-dd");
                 string fromDateString = model.FromDate.ToString("yyyy-MM-dd");
                 string toDateString = model.ToDate.ToString("yyyy-MM-dd");
-                var response = await _httpClient.GetFromJsonAsync<List<DtoAccountsBalance>>($"https://localhost:7073/api/BusinessDay/Getledgerbalance/{model.YrId}/{currentDateString}/{fromDateString}/{toDateString}/{model.Created_By}/{model.BrCode}");
+                var response = await _httpClient.GetFromJsonAsync<List<DtoAccountsBalance>>($"api/BusinessDay/Getledgerbalance/{model.YrId}/{currentDateString}/{fromDateString}/{toDateString}/{model.Created_By}/{model.BrCode}");
                 if(response != null && response.Any())
                 {
                     accountsList = response.ToList();
@@ -239,7 +239,7 @@
     private async Task HandleValidSubmit()
     {
         _isProcessing = true;
-        var response = await _httpClient.PostAsJsonAsync<DtoDayProcess>($"https://localhost:7073/api/BusinessDay/day-end", model);
+        var response = await _httpClient.PostAsJsonAsync<DtoDayProcess>($"api/BusinessDay/day-end", model);
         if (response.IsSuccessStatusCode)
         {
             _isProcessed = true;

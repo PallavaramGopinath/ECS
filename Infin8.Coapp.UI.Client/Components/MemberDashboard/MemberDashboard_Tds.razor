@@ -128,7 +128,7 @@
                 {
                     string fromDateString = From_Date.ToString("yyyy-MM-dd");
                     string toDateString = To_Date.ToString("yyyy-MM-dd");
-                    var response = await _httpClient.GetFromJsonAsync<TDLedgerVM>($"https://localhost:7073/api/Dashboard/dashboard-td-ledger/{Td_Id}/{fromDateString}/{toDateString}/{BrCode}");
+                    var response = await _httpClient.GetFromJsonAsync<TDLedgerVM>($"api/Dashboard/dashboard-td-ledger/{Td_Id}/{fromDateString}/{toDateString}/{BrCode}");
                     if (response != null && response.TDMaster!.TDScheme_Id > 0) model = response;
                 }
                 StateHasChanged();

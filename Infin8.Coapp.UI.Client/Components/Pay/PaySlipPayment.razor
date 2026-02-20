@@ -197,9 +197,9 @@
                 salaryPayment.Created_By = userInfoDto.UserId;
 
                 salaryPayment.Employee_Id = Employee_Id;
-                var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPayment/P/{salaryPayment.BrCode!}");
+                var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Pay/GetPaySlipListForSalaryPayment/P/{salaryPayment.BrCode!}");
                 if (response != null && response.Any()) payIdList = response.ToList();
-                var response2 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetPaySlipListForSalaryPayment/A/{salaryPayment.BrCode!}");
+                var response2 = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Pay/GetPaySlipListForSalaryPayment/A/{salaryPayment.BrCode!}");
                 if (response2 != null && response2.Any()) payIdList.AddRange(response2);
                 _isLoading = false;
                 StateHasChanged();
@@ -231,11 +231,11 @@
             {
                 isError = false;
                 errorMessage = "";
-                // var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Pay/GetEmployeeNamesForSalaryPayment/{salaryPayment.Pay_Id}/{brCode}");
+                // var response = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Pay/GetEmployeeNamesForSalaryPayment/{salaryPayment.Pay_Id}/{brCode}");
                 // if (response != null && response.Any()) empIdList = response.ToList();
 
-                // var response = await _httpClient.GetFromJsonAsync<DropdownItem>($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
-                var response = await _httpClient.GetAsync($"https://localhost:7073/api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{salaryPayment.BrCode!}");
+                // var response = await _httpClient.GetFromJsonAsync<DropdownItem>($"api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
+                var response = await _httpClient.GetAsync($"api/Pay/GetEmployeeNameForSalaryPayment/{salaryPayment.Employee_Id}/{salaryPayment.Pay_Id}/{salaryPayment.BrCode!}");
                 if (response.IsSuccessStatusCode)
                 {
                     var data = await response.Content.ReadFromJsonAsync<DropdownItem>();
@@ -302,9 +302,9 @@
         }
         // Build query string properly for multiple values
         var queryString = string.Join("&", empIds.Select(id => $"empIdList={id}"));
-        var url = $"https://localhost:7073/api/Pay/GetPaySlipForPayment?{queryString}&payId={salaryPayment.Pay_Id}&brCode={salaryPayment.BrCode}";
+        var url = $"api/Pay/GetPaySlipForPayment?{queryString}&payId={salaryPayment.Pay_Id}&brCode={salaryPayment.BrCode}";
         var response = await _httpClient.GetFromJsonAsync<List<Pay_Slip>>(url);
-        // var response = await _httpClient.GetFromJsonAsync<List<Pay_Slip>>($"https://localhost:7073/api/Pay/GetPaySlipForPayment/{Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
+        // var response = await _httpClient.GetFromJsonAsync<List<Pay_Slip>>($"api/Pay/GetPaySlipForPayment/{Employee_Id}/{salaryPayment.Pay_Id}/{brCode}");
         if (response != null && response.Any())
         {
             salaryPayment.GrossPay = response.Sum(x => x.Pay_Tot_Allowance);
@@ -320,7 +320,7 @@
         string accountName = "";
         try
         {
-            var responseForAccountName = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseForAccountName = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseForAccountName.IsSuccessStatusCode)
             {
@@ -387,7 +387,7 @@
             AdjustmentReceipt_Amount = adjustmentReceiptAmount ,
             AdjustmentPayment_Amount = adjustmentPaymentAmount 
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
     }
 

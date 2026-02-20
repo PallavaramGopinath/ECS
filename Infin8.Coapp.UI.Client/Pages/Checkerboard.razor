@@ -213,7 +213,7 @@ else
     //     {
     //         if (firstRender && !_isDataLoaded)
     //         {
-    //             var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+    //             var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
     //             // if (query != null && query.Count > 0)
     //             // {
     //             //     checkerDashboardList = query.ToList();
@@ -258,7 +258,7 @@ else
     {
         try
         {
-            var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+            var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
             // if (query != null && query.Count > 0)
             // {
             //     checkerDashboardList = query.ToList();
@@ -294,7 +294,7 @@ else
     //     // parameters = new Dictionary<string, object> { { "Message", "Switched dynamically!" } };
     //     if (isComponent(account.AccountId))
     //     {
-    //         var url = $"https://localhost:7073/api/Transaction/GetComponentName/{account.AccountId}";
+    //         var url = $"api/Transaction/GetComponentName/{account.AccountId}";
     //         using var response = await _httpClient.GetAsync(url);
     //         var jsonString = await response.Content.ReadAsStringAsync();
     //         componentName = jsonString + "View";
@@ -466,7 +466,7 @@ else
     private async Task ApproveTransactions(decimal stagingId)
     {
         // decimal vocId = 0;
-        var response = await _httpClient.PostAsJsonAsync("https://localhost:7073/api/Staging/ApproveStaging", stagingId);
+        var response = await _httpClient.PostAsJsonAsync("api/Staging/ApproveStaging", stagingId);
         if (response.IsSuccessStatusCode)
         {
             isSubmitted = true;
@@ -477,7 +477,7 @@ else
             /// print receipt and payment reports + refresh dashboard concurrently
             var printTask = HandlePrint();
             var dashboardTask = _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>(
-                $"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+                $"api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
 
             await Task.WhenAll(printTask, dashboardTask);
 
@@ -505,13 +505,13 @@ else
 
     private async Task RejectTransactions(decimal stagingId)
     {
-        var response = await _httpClient.PostAsJsonAsync<decimal>("https://localhost:7073/api/Staging/RejectStaging", stagingId);
+        var response = await _httpClient.PostAsJsonAsync<decimal>("api/Staging/RejectStaging", stagingId);
         if (response.IsSuccessStatusCode)
         {
             checkerDashboardList = new();
             try
             {
-                var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"https://localhost:7073/api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
+                var query = await _httpClient.GetFromJsonAsync<List<DtoCheckerDashboard>>($"api/Staging/GetCheckerDashboard?createdDate={Transaction_Date:yyyy-MM-dd}&stagingStatus={stagingStatus}&brCode={brCode}");
                 checkerDashboardList = query ?? new List<DtoCheckerDashboard>();
             }
             catch (HttpRequestException ex)
@@ -532,7 +532,7 @@ else
 
     private async Task ViewTransactions(DtoCheckerDashboard dashboard)
     {
-        var trnFromStaging = await _httpClient.GetFromJsonAsync<List<AccountTransactionVM>>($"https://localhost:7073/api/Staging/GetChekerDashboardById/{dashboard.Staging_Id}");
+        var trnFromStaging = await _httpClient.GetFromJsonAsync<List<AccountTransactionVM>>($"api/Staging/GetChekerDashboardById/{dashboard.Staging_Id}");
         if (trnFromStaging != null)
         {
             transactionAccountsList = trnFromStaging.ToList();
@@ -548,7 +548,7 @@ else
             var assemblyName = "Infin8.Coapp.UI.Client"; // Your assembly name without .dll
             if (isComponent(account.AccountId))
             {
-                var url = $"https://localhost:7073/api/Transaction/GetViewComponentName/{account.AccountId}";
+                var url = $"api/Transaction/GetViewComponentName/{account.AccountId}";
                 using var response = await _httpClient.GetAsync(url);
                 var jsonString = await response.Content.ReadAsStringAsync();
                 componentName = jsonString;
@@ -590,7 +590,7 @@ else
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName},{assemblyName}";
                         break;
                     case 48:    /// Loan disbursement PLDB
-                        var staging = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{account.Staging_Id}/{account.AccountId}");
+                        var staging = await _httpClient.GetFromJsonAsync<Staging_Details>($"api/Staging/GetStagingDetailsById/{account.Staging_Id}/{account.AccountId}");
                         if (staging != null && staging.Staging_Id > 0)
                         {
                             if (staging.Security_Type == 1)
@@ -651,7 +651,7 @@ else
         List<rptReceiptAndPaymentAmount> rptPmtList = new();
         try
         {
-            var rptPmtResponse = await _httpClient.GetFromJsonAsync<List<rptReceiptAndPaymentAmount>>($"https://localhost:7073/api/Print/GetReceiptAndPaymentData/{voucherData!.Voc_Id}/{voucherData.brCode}");
+            var rptPmtResponse = await _httpClient.GetFromJsonAsync<List<rptReceiptAndPaymentAmount>>($"api/Print/GetReceiptAndPaymentData/{voucherData!.Voc_Id}/{voucherData.brCode}");
             if (rptPmtResponse!.Count > 0)
             {
                 rptPmtList = rptPmtResponse.ToList();
@@ -728,7 +728,7 @@ else
         Task statusStreamTask = Task.Run(async () =>
         {
             List<string> statusList = new();
-            var statusResult = await _httpClient.GetFromJsonAsync<List<string>>($"https://localhost:7073/api/Print/GetStatus/{voucherData!.Voc_Id}/{brCode}");
+            var statusResult = await _httpClient.GetFromJsonAsync<List<string>>($"api/Print/GetStatus/{voucherData!.Voc_Id}/{brCode}");
             if (statusResult!.Count > 0)
             {
                 statusList = statusResult!.ToList();
@@ -793,7 +793,7 @@ else
         await Task.WhenAll(allTasks);
 
         // #region Member Receipt
-        // var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rpt);
+        // var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt", rpt);
         // if (response.IsSuccessStatusCode)
         // {
         //     fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -826,7 +826,7 @@ else
 
     private async Task Print_Member_Receipt(rptReceiptObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -858,7 +858,7 @@ else
 
     private async Task Print_General_Receipt(rptReceiptObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-receipt-general", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt-general", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -890,7 +890,7 @@ else
 
     private async Task Print_Voucher(rptReportObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"https://localhost:7073/api/Print/print-voucher", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"api/Print/print-voucher", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -915,7 +915,7 @@ else
 
     private async Task Print_FDPayment(rptReceiptObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-fdpayment", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-fdpayment", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -940,7 +940,7 @@ else
 
     private async Task Print_FDBond(rptReceiptObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"https://localhost:7073/api/Print/print-fdbond", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-fdbond", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -965,7 +965,7 @@ else
 
     private async Task Print_JL_Ledger(rptReportObject rptObject)
     {
-        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"https://localhost:7073/api/Print/print-jl-ledger", rptObject);
+        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"api/Print/print-jl-ledger", rptObject);
         if (response.IsSuccessStatusCode)
         {
             fileBytes = await response.Content.ReadAsByteArrayAsync();

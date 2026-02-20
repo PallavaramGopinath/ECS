@@ -36,8 +36,18 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddHttpClient();
+var jwtSettings = builder.Configuration.GetSection("Jwt");
 
+// Ensure we don't pass a possibly-null string to Uri. Read issuer once and validate when not in Development.
+var issuer = jwtSettings["Issuer"];
+var baseAddressString = builder.Environment.IsDevelopment()
+    ? "https://localhost:7073/"
+    : issuer ?? throw new InvalidOperationException("Configuration value 'Jwt:Issuer' is missing or null.");
+
+builder.Services.AddScoped(sp => new HttpClient(new HttpClientHandler())
+{
+    BaseAddress = new Uri(baseAddressString)
+});
 
 builder.Services.AddScoped(typeof(DbContext), typeof(CSISContext));
 
@@ -53,7 +63,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazor", builder =>
     {
-        builder.WithOrigins("https://localhost:7073") //
+        builder.WithOrigins(jwtSettings["Issuer"])
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
@@ -62,7 +72,6 @@ builder.Services.AddCors(options =>
 
 
 // JWT
-var jwtSettings = builder.Configuration.GetSection("Jwt");
 builder.Services
     .AddAuthentication("CookiesJwt")
     .AddJwtBearer("CookiesJwt", options =>
@@ -78,11 +87,9 @@ builder.Services
             ValidAudience = jwtSettings["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwtSettings["Key"]!)),
-            
-
         };
 
-        // 👇 Read token from cookie
+        // Read token from cookie
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>

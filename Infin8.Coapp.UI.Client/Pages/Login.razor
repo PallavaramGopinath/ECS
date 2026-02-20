@@ -329,7 +329,7 @@
         try
         {
             // var url = _httpClient.BaseAddress!.ToString();
-            // var request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7073/api/Auth/login")
+            // var request = new HttpRequestMessage(HttpMethod.Post, "api/Auth/login")
             var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}api/Auth/login")
         {
                 Content = JsonContent.Create(loginModel)

@@ -398,7 +398,7 @@
         try
         {
             // List<DropdownItem> loanSchemes = new List<DropdownItem>();
-            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/Loan/GetLoanSchemes/2/{loanDetails.BrCode}");
+            var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Loan/GetLoanSchemes/2/{loanDetails.BrCode}");
             if (result != null && result.Count > 0)
             {
                 loanSchemes = result.ToList();
@@ -457,31 +457,31 @@
             int period = 0;
             // Loan_Schemes? jlScheme = new Loan_Schemes();
             LoanROIAndPIVM? roi = new LoanROIAndPIVM();
-            var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"https://localhost:7073/api/Loan/GetMarketRate/{loanDetails.BrCode}");
+            var marketRate = await _httpClient.GetFromJsonAsync<JewelLoanMarketRate>($"api/Loan/GetMarketRate/{loanDetails.BrCode}");
             if (marketRate != null)
             {
                 loanDetails.Market_Rate = marketRate.Market_Rate;
                 loanDetails.Govt_Rate = marketRate.Market_Rate;
             }
-            eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLEligiblePercentage/{loanDetails.BrCode}");
+            eligiblePercentage = await _httpClient.GetFromJsonAsync<double>($"api/Loan/GetJLEligiblePercentage/{loanDetails.BrCode}");
             loanDetails.Percentage_Of_Eligibility_On_Market_Rate = eligiblePercentage;
 
             string formattedDate = loanDetails.Tranaction_Date.ToString("yyyy-MM-dd");
-            maximumLimit = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLMaximumLimit?wef={formattedDate}&brCode={loanDetails.BrCode}");
+            maximumLimit = await _httpClient.GetFromJsonAsync<double>($"api/Loan/GetJLMaximumLimit?wef={formattedDate}&brCode={loanDetails.BrCode}");
             loanDetails.Maximum_Loan_Limit = maximumLimit;
 
-            period = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}/{loanDetails.BrCode}");
+            period = await _httpClient.GetFromJsonAsync<int>($"api/Loan/GetJLPeriod/{loanDetails.Scheme_Id}/{loanDetails.BrCode}");
 
             loanDetails.Period_Of_Loan = period;
 
             string wefFormatted = ((DateTime)loanDetails.Tranaction_Date).ToString("yyyy-MM-dd");
             string agency = "S";
-            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"https://localhost:7073/api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}&brCode={loanDetails.BrCode}");
+            roi = await _httpClient.GetFromJsonAsync<LoanROIAndPIVM>($"api/Loan/GetRateOfInterest?schemeId={loanDetails.Scheme_Id}&agency={agency}&wef={wefFormatted}&brCode={loanDetails.BrCode}");
 
             loanDetails.Rate_Of_Interest = roi!.Roi;
             loanDetails.Penal_Rate = roi!.Pi;
 
-            jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}/{loanDetails.BrCode}");
+            jlExistingLoanBalance = await _httpClient.GetFromJsonAsync<double>($"api/Loan/GetJLExistingLoanOutstandingByMemId/{loanDetails.Mem_Id}/{loanDetails.BrCode}");
 
             loanDetails.Existing_Loan_Outstanding = jlExistingLoanBalance;
 
@@ -783,7 +783,7 @@
             capturedImageData = await JSRuntime.InvokeAsync<string>("captureImage");
 
             // Upload to server
-            var response = await _httpClient.PostAsJsonAsync("https://localhost:7073/api/Transaction/upload",
+            var response = await _httpClient.PostAsJsonAsync("api/Transaction/upload",
                 new { ImageData = capturedImageData });
 
             if (response.IsSuccessStatusCode)
@@ -949,7 +949,7 @@
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -1009,7 +1009,7 @@
             AdjustmentReceipt_Amount = adjustmentReceiptAmount ,
             AdjustmentPayment_Amount = adjustmentPaymentAmount 
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnJLDisbursementInitiate.InvokeAsync(loanDetails);
         await TransactionState.NotifyIntiate(true);
     }

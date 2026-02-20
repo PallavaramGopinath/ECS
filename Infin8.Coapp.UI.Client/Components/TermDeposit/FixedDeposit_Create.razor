@@ -491,7 +491,7 @@
             _fixedDepositModel.Common.Account_Opendate = TransactionDate;
             _fixedDepositModel.Common.Value_Date = TransactionDate;
             _fixedDepositModel.Maturity_Date = TransactionDate.AddMonths(12);
-            var schemeListTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"https://localhost:7073/api/TermDeposit/GetTDScheme/F,C/{brCode}");
+            var schemeListTmp = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/TermDeposit/GetTDScheme/F,C/{brCode}");
             if (schemeListTmp != null) schemeList = schemeListTmp.ToList();
             // if (IsRenewal)
             // {
@@ -526,7 +526,7 @@
             fd.Common!.Member_No_ToAdd = e.Value?.ToString();
             if (!string.IsNullOrWhiteSpace(_fixedDepositModel.Common!.Member_No_ToAdd))
             {
-                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"https://localhost:7073/api/Member/GetMemberDetails/{fd.Common.Member_No_ToAdd}/{brCode}");
+                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"api/Member/GetMemberDetails/{fd.Common.Member_No_ToAdd}/{brCode}");
                 if (mem != null)
                 {
                     fd.Common.Mem_Id_ToAdd = mem.Mem_Id;
@@ -536,7 +536,7 @@
                     {
                         string fromDateFormatted = ((DateTime)mem.Dob).ToString("yyyy-MM-dd");
                         string toDateFormatted = _fixedDepositModel.Common.Account_Opendate.ToString("yyyy-MM-dd");
-                        var age = await _httpClient.GetFromJsonAsync<int>($"https://localhost:7073/api/Utility/GetAge?fromDate={fromDateFormatted}&toDate={toDateFormatted}");
+                        var age = await _httpClient.GetFromJsonAsync<int>($"api/Utility/GetAge?fromDate={fromDateFormatted}&toDate={toDateFormatted}");
                         // if(age != null )
                         _fixedDepositModel.Common.Age_ToAdd = Convert.ToInt16(age);
                     }
@@ -559,7 +559,7 @@
         DtoNominee nominee = new DtoNominee();
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<DtoNominee>($"https://localhost:7073/api/TermDeposit/GetNominee?memId={MemberId}&tdSchemeType=F&brCode={brCode}");
+            var result = await _httpClient.GetFromJsonAsync<DtoNominee>($"api/TermDeposit/GetNominee?memId={MemberId}&tdSchemeType=F&brCode={brCode}");
             if (result != null)
             {
                 _fixedDepositModel.Common.Nominee1Name = result.Nominee1Name;
@@ -585,7 +585,7 @@
             await JSRuntime.InvokeVoidAsync("alert", "Scheme name not selected!"); // Alert
             return;
         }
-        var url = $"https://localhost:7073/api/NewAccountNo/NewTDNo/{_fixedDepositModel.Common.Tdscheme_Id}/{brCode}";
+        var url = $"api/NewAccountNo/NewTDNo/{_fixedDepositModel.Common.Tdscheme_Id}/{brCode}";
         Console.WriteLine($"Calling API: {url}"); // Debug URL
         using var response = await _httpClient.GetAsync(url);
         var jsonString = await response.Content.ReadAsStringAsync();
@@ -634,7 +634,7 @@
         try
         {
             string formattedDate = _fixedDepositModel.Common.Value_Date.ToString("yyyy-MM-dd");
-            var roi = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/TermDeposit/GetTDROI?depositDate={formattedDate}&schemeId={_fixedDepositModel.Common.Tdscheme_Id}&prdInMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}&brCode={brCode}");
+            var roi = await _httpClient.GetFromJsonAsync<double>($"api/TermDeposit/GetTDROI?depositDate={formattedDate}&schemeId={_fixedDepositModel.Common.Tdscheme_Id}&prdInMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}&brCode={brCode}");
             _fixedDepositModel.Rate_Of_Interest = Convert.ToDouble(roi);
             StateHasChanged();
         }
@@ -689,10 +689,10 @@
                 _fixedDepositModel.Is_DiscountRate, _fixedDepositModel.compoundfrequency);
         StateHasChanged();
         // string formattedDate = _fixedDepositModel.Common.Value_Date.ToString("yyyy-MM-dd");
-        // string requestUri = $"https://localhost:7073/api/Utility/GetTDMaturityDate?TDDate={Convert.ToDateTime(formattedDate)}&NoOfMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}";
+        // string requestUri = $"api/Utility/GetTDMaturityDate?TDDate={Convert.ToDateTime(formattedDate)}&NoOfMonths={_fixedDepositModel.Period_In_Months}&prdInDays={_fixedDepositModel.Period_In_Days}";
         // var maturityDate = await _httpClient.GetFromJsonAsync<DateTime>(requestUri);
         // _fixedDepositModel.Maturity_Date = maturityDate;
-        // var maturityAmount = await _httpClient.GetFromJsonAsync<double>($"https://localhost:7073/api/Utility/GetFDMaturityAmount?Principal={_fixedDepositModel.Deposit_Amount}&FromDate={formattedDate}&ToDate={maturityDate}&PeriodInMonths={_fixedDepositModel.Period_In_Months}&PeriodInDays={_fixedDepositModel.Period_In_Days}&ROI={_fixedDepositModel.Rate_Of_Interest}&IntPayablePrd={_fixedDepositModel.Interest_Payable_Frequency}&IsDiscountRate={_fixedDepositModel.Is_DiscountRate}&CompoundFrequency={_fixedDepositModel.compoundfrequency}");
+        // var maturityAmount = await _httpClient.GetFromJsonAsync<double>($"api/Utility/GetFDMaturityAmount?Principal={_fixedDepositModel.Deposit_Amount}&FromDate={formattedDate}&ToDate={maturityDate}&PeriodInMonths={_fixedDepositModel.Period_In_Months}&PeriodInDays={_fixedDepositModel.Period_In_Days}&ROI={_fixedDepositModel.Rate_Of_Interest}&IntPayablePrd={_fixedDepositModel.Interest_Payable_Frequency}&IsDiscountRate={_fixedDepositModel.Is_DiscountRate}&CompoundFrequency={_fixedDepositModel.compoundfrequency}");
         // _fixedDepositModel.Maturity_Amount = maturityAmount;
     }
 
@@ -873,7 +873,7 @@
         string accountName = "";
         try
         {
-            var response = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var response = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -948,7 +948,7 @@
                 AdjustmentReceipt_Amount = adjReceipt,
                 AdjustmentPayment_Amount = adjPayment
             };
-            var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+            var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
             await TransactionState.NotifyIntiate(true);
             // await OnFDNewInitiate.InvokeAsync(_fixedDepositModel);
         }
@@ -1014,7 +1014,7 @@
                 AdjustmentReceipt_Amount = adjReceipt,
                 AdjustmentPayment_Amount = adjPayment
             };
-            var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+            var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
             // await OnFDRenewalInitiate.InvokeAsync(_fixedDepositRenewal);
             // await OnFDNewInitiate.InvokeAsync(_fixedDepositModel);
             await TransactionState.NotifyIntiate(true);

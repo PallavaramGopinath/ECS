@@ -247,12 +247,12 @@
         try
         {
             // First, get the anti-forgery token
-            var tokenResponse = await _httpClient.GetAsync("https://localhost:7073/api/Auth/get-antiforgery-token");
+            var tokenResponse = await _httpClient.GetAsync("api/Auth/get-antiforgery-token");
             if (tokenResponse.IsSuccessStatusCode)
             {
                 var tokenResult = await tokenResponse.Content.ReadFromJsonAsync<AntiforgeryTokenResponse>();
 
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7073/api/Auth/Register")
+                var request = new HttpRequestMessage(HttpMethod.Post, "api/Auth/Register")
                 {
                     Content = JsonContent.Create(registration)
                 };

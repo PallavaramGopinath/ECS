@@ -195,7 +195,7 @@ else
             model.BrCode = userInfoDto.BrCode!;
 
             model.Component_List = new List<DtoBonusPaymentData>();
-            var empResponse = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{model.BrCode}");
+            var empResponse = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"api/Pay/GetEmployeeList/{model.BrCode}");
             if (empResponse != null && empResponse.Any()) employeeList = empResponse.ToList();
             _isLoading = false;
             // StateHasChanged();
@@ -279,7 +279,7 @@ else
         string accountName = "";
         try
         {
-            var responseStaging = await _httpClient.GetAsync($"https://localhost:7073/api/Accounts/GetAccountName/{AccountId}");
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
 
             if (responseStaging.IsSuccessStatusCode)
             {
@@ -327,7 +327,7 @@ else
             CashPayment_Amount = CashOrAdjustment == 1 ? model.TotalPayment_Amount : 0,
             AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.TotalPayment_Amount : 0
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnPFContributionComponentClose.InvokeAsync(model);
         await TransactionState.NotifyIntiate(true);
     }

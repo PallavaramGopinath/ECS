@@ -398,14 +398,14 @@
         {
             if (stagingId > 0 && relatedAccountId > 0)
             {
-                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
                 details = query ?? new Staging_Details();
                 if (details != null)
                 {
                     payment = Utility.JsonbObject.ConvertFromJsonForSalaryPayment(details.Related_Account_Data!);
                 }
             }
-            var response = await _httpClient.GetFromJsonAsync<DtoPaySlip>($"https://localhost:7073/api/Pay/GetPaySlipById/{payment.Pay_Id}/{payment.Employee_Id}/{details!.BrCode}");
+            var response = await _httpClient.GetFromJsonAsync<DtoPaySlip>($"api/Pay/GetPaySlipById/{payment.Pay_Id}/{payment.Employee_Id}/{details!.BrCode}");
             if (response != null)
             {
                 selectedPayslip = response;

@@ -77,7 +77,7 @@
         {
             if (stagingId > 0 && relatedAccountId > 0)
             {
-                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"https://localhost:7073/api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+                var query = await _httpClient.GetFromJsonAsync<Staging_Details>($"api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
                 details = query ?? new Staging_Details();
                 if (details != null)
                 {

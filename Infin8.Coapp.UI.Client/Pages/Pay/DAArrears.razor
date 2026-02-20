@@ -237,7 +237,7 @@ else
                 model.Created_By = userInfoDto.UserId;
                 model.YrId = userInfoDto.YrId;
 
-                var mem = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"https://localhost:7073/api/Pay/GetEmployeeList/{model.BrCode}");
+                var mem = await _httpClient.GetFromJsonAsync<List<EmployeeMasterDto>>($"api/Pay/GetEmployeeList/{model.BrCode}");
                 if (mem != null && mem.Any())
                 {
                     employeeList = mem.ToList();
@@ -301,12 +301,12 @@ else
             string fromDateToString = model.DAFrom_Date.ToString("yyyy-MM-dd");
             string toDateToString = model.DATo_Date.ToString("yyyy-MM-dd");
             string description = "D";
-            payId = await _httpClient.GetFromJsonAsync<decimal>($"https://localhost:7073/api/Pay/GetPayIdForDAArrears/{fromDateToString}/{toDateToString}/{description}/{model.BrCode}");
+            payId = await _httpClient.GetFromJsonAsync<decimal>($"api/Pay/GetPayIdForDAArrears/{fromDateToString}/{toDateToString}/{description}/{model.BrCode}");
             if (payId > 0)
             {
                 foreach (var emp in selectedEmployeeList!)
                 {
-                    var result = await _httpClient.GetFromJsonAsync<bool>($"https://localhost:7073/api/Pay/IsPaySlipGenerated/{payId}/{emp.Mem_Id}/{model.BrCode}");
+                    var result = await _httpClient.GetFromJsonAsync<bool>($"api/Pay/IsPaySlipGenerated/{payId}/{emp.Mem_Id}/{model.BrCode}");
                     if (result)
                     {
                         errorMessage += " DA Arrears already generated for the employee " + emp.MemberName + " ";
@@ -323,7 +323,7 @@ else
             {
                 model.EmployeeList = new List<EmployeeMasterDto>();
                 model.EmployeeList = selectedEmployeeList;
-                var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/CalculateDAArrears", model);
+                var response = await _httpClient.PostAsJsonAsync($"api/Pay/CalculateDAArrears", model);
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<DtoPayDAArrears>();
@@ -399,7 +399,7 @@ else
                 return;
             }
             _isGenerating = true;
-            var response = await _httpClient.PostAsJsonAsync($"https://localhost:7073/api/Pay/GenerateDAArrears", model);
+            var response = await _httpClient.PostAsJsonAsync($"api/Pay/GenerateDAArrears", model);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<DtoPayDAArrears>();
