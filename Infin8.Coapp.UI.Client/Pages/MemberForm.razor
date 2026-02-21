@@ -1,8 +1,16 @@
 ﻿@page "/member-registration"
 @using Infin8.Coapp.Dto
-@rendermode InteractiveAuto
+@* @rendermode InteractiveAuto *@
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
 <div class="container-fluid p-4">
     <EditForm Model="@member" method="post" OnValidSubmit="@HandleValidSubmit" FormName="member-create">
         <DataAnnotationsValidator />
@@ -449,6 +457,8 @@
 </div>
 @statusMessage
 @code {
+    private string brCode = ""; // Branch code, can be dynamic based on user selection or context
+    decimal createdBy = 0;
     private bool isSucceeded = false;
     // private string statusMessage = "Initial value";
     private string statusMessage = "";
@@ -467,30 +477,40 @@
     private List<DropdownItem> banks = new();
     private List<DropdownItem> constituencies = new();
 
-    protected override async Task OnInitializedAsync()
+    // protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadLookups();
+        if (firstRender)
+        {
+            await LoadLookups();
+        }
     }
 
     private async Task LoadLookups()
     {
         member.isnewmember = true;
         member.isexistingmember = false;
-        member.brcode = "11001";
-        var religion = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/6/11001/false");
+        // member.brcode = "11001";
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        brCode = userInfoDto?.BrCode!;
+        member.brcode = brCode;
+        createdBy = userInfoDto!.UserId;
+
+        var religion = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/6/{brCode}/false");
         if (religion != null) religions = religion.ToList();
-        var community = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/1/11001/false");
+        var community = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/1/{brCode}/false");
         if (community != null) communities = community.ToList();
-        var caste = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/4/11001/false");
+        var caste = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/4/{brCode}/false");
         if (caste != null) castes = caste.ToList();
-        var occupation = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/5/11001/false");
+        var occupation = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/5/{brCode}/false");
         if (occupation != null) occupations = occupation.ToList();
-        var area = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/Area/11001");
+        var area = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/Area/{brCode}");
         if (area != null) areas = area.ToList();
         var bank = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/BankItems");
         if (bank != null) banks = bank.ToList();
         var constituency = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/Constituencies");
         if (constituency != null) constituencies = constituency.ToList();
+        StateHasChanged();
     }
 
     private async Task OnMemberTypeChanged()
@@ -499,7 +519,7 @@
         {
             string memberNo = "";
             int memType = member.membertype;
-            var url = $"api/NewAccountNo/NewMemberNo/{memType}/11001";
+            var url = $"api/NewAccountNo/NewMemberNo/{memType}/{brCode}";
             Console.WriteLine($"Calling API: {url}"); // Debug URL
             using var response = await _httpClient.GetAsync(url);
             var jsonString = await response.Content.ReadAsStringAsync();
@@ -593,7 +613,7 @@
 
             member.isnewmember = true;
             member.isexistingmember = false;
-            member.brcode = "11001";
+            member.brcode = brCode;
 
             StateHasChanged();
         }
