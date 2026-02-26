@@ -1,7 +1,9 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
+//using Microsoft.Reporting.WebForms;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,9 +14,11 @@ namespace Infin8.Coapp.BusinessLogic
     public class ReportsHandler : IReportsHandler
     {
         readonly IUnitOfWork _unitOfWork;
-        public ReportsHandler(IUnitOfWork unitOfWork)
+        readonly ICreateReportsHandler _createReportsHandler;
+        public ReportsHandler(IUnitOfWork unitOfWork, ICreateReportsHandler createReportsHandler )
         {
             _unitOfWork = unitOfWork;
+            _createReportsHandler = createReportsHandler;
         }
 
         public async Task<List<DropdownItem>> GetReportNameList(int grpId,string brCode)
@@ -94,7 +98,62 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsMaster.GetJewelLoanLedger(vocId);
         }
-        #endregion
+        #endregion 
+
+        //#region Create report data as byte[]
+        //public byte[] CreateLocalReport(string dsName, Stream path, IEnumerable result, Dictionary<string, string> parameterDictionary)
+        //{
+        //    byte[] pdfAsBytes = Array.Empty<byte>();
+
+        //    pdfAsBytes = CreateReport(dsName, path, result, parameterDictionary);
+
+        //    return pdfAsBytes;
+        //}
+
+        //public byte[] CreateReport(string dsName, Stream stream, IEnumerable result, Dictionary<string, string> parameterDictionary)
+        //{
+        //    byte[] pdfAsBytes = Array.Empty<byte>();
+
+        //    if (result.Equals(0))
+        //    {
+        //        return pdfAsBytes;
+        //    }
+
+        //    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        //    Encoding.GetEncoding("windows-1252");
+
+        //    LocalReport localReport = new LocalReport
+        //    {
+        //        EnableExternalImages = true
+        //    };
+        //    //using (FileStream stream = System.IO.File.OpenRead(path))
+        //    //{
+        //    localReport.LoadReportDefinition(stream);
+        //    //}
+
+        //    localReport.DataSources.Add(new ReportDataSource(dsName) { Value = result });
+
+        //    List<ReportParameter> rParameters = new List<ReportParameter>();
+        //    foreach (var param in parameterDictionary)
+        //    {
+        //        ReportParameter rParam = new ReportParameter(param.Key, param.Value);
+        //        rParameters.Add(rParam);
+        //    }
+
+        //    localReport.SetParameters(rParameters);
+
+        //    try
+        //    {
+        //        pdfAsBytes = localReport.Render("PDF");
+        //        return pdfAsBytes;
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        Console.WriteLine(e.Message);
+        //        return pdfAsBytes;
+        //    }
+        //}
+        //#endregion
 
     }
 }

@@ -16,18 +16,18 @@ namespace Infin8.Coapp.UI.Controllers
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IGeneralHandler _generalHandler;
         private readonly IReportsFinalAccountsHandler _reportsFinalAccountHandler;
-        private readonly IReportsAudit   _reportsAudit;
+        //private readonly IReportsAudit   _reportsAudit;
         string societyName = "";
         string reportHeader = "";
         public ReportsAuditController(IGeneralHandler generalHandler, IReportsMemberHandler reportsMemberHandler,
             IWebHostEnvironment webHostEnvironment, IReportsHandler reportHandler, 
-            IReportsFinalAccountsHandler reportsFinalAccountHandler , IReportsAudit  reportsAudit)
+            IReportsFinalAccountsHandler reportsFinalAccountHandler )
         {
             _generalHandler = generalHandler;
             _webHostEnvironment = webHostEnvironment;
             _reportHandler = reportHandler;
             _reportsFinalAccountHandler = reportsFinalAccountHandler;
-            _reportsAudit = reportsAudit;
+            //_reportsAudit = reportsAudit;
         }
 
         [HttpPost]
@@ -203,68 +203,68 @@ namespace Infin8.Coapp.UI.Controllers
         [Route("print-audit-ledger")]
         public async Task<FileContentResult> Print_Audit_Ledger(rptReportAuditObject rptObject)
         {
-            //Reports_Master report = new Reports_Master();
+            Reports_Master report = new Reports_Master();
             byte[] pdfAsBytes = Array.Empty<byte>();
             try
             {
                 #region old
-                //List<rptFALedgerTrn> ledgetList = new();
-                //societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
-                //report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                //var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                List<rptFALedgerTrn> ledgetList = new();
+                societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
+                report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
 
-                //LocalReport localReport = new LocalReport
-                //{
-                //    EnableExternalImages = true,
-                //};
+                LocalReport localReport = new LocalReport
+                {
+                    EnableExternalImages = true,
+                };
 
-                ////using (FileStream stream = System.IO.File.OpenRead(path))
-                //{
-                //    localReport.ReportPath = path;
-                //    //localReport.LoadReportDefinition(stream);
-                //}
-                //switch (rptObject.FnlId)
-                //{
-                //    case 0:
-                //        reportHeader = "Cash on hand from  " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
-                //        break;
-                //    case 1:
-                //        reportHeader = "Assets Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
-                //        break;
-                //    case 2:
-                //        reportHeader = "Liability Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
-                //        break;
-                //    case 3:
-                //        reportHeader = "Income Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
-                //        break;
-                //    case 4:
-                //        reportHeader = "Expenditure Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
-                //        break;
-                //    case 5:
-                //        reportHeader = "All Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
-                //        break;
-                //}
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    //localReport.ReportPath = path;
+                    localReport.LoadReportDefinition(stream);
+                }
+                switch (rptObject.FnlId)
+                {
+                    case 0:
+                        reportHeader = "Cash on hand from  " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+                        break;
+                    case 1:
+                        reportHeader = "Assets Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+                        break;
+                    case 2:
+                        reportHeader = "Liability Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+                        break;
+                    case 3:
+                        reportHeader = "Income Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+                        break;
+                    case 4:
+                        reportHeader = "Expenditure Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+                        break;
+                    case 5:
+                        reportHeader = "All Ledger outstanding from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy");
+                        break;
+                }
 
-                //var ledgerListData = await _reportsFinalAccountHandler.GetLedgerOutstandingFA(rptObject.FromDate, rptObject.ToDate, rptObject.YrId, rptObject.FnlId, rptObject.BrCode);
+                var ledgerListData = await _reportsFinalAccountHandler.GetLedgerOutstandingFA(rptObject.FromDate, rptObject.ToDate, rptObject.YrId, rptObject.FnlId, rptObject.BrCode);
 
-                //if (ledgerListData != null && ledgerListData.Any())
-                //{
-                //    ledgetList = ledgerListData.ToList();
-                //}
-                //var parameters = new[]
-                //{
-                //    new ReportParameter("paramSocietyName", societyName ),
-                //    new ReportParameter("paramReportHeader", reportHeader )
-                //};
+                if (ledgerListData != null && ledgerListData.Any())
+                {
+                    ledgetList = ledgerListData.ToList();
+                }
+                var parameters = new[]
+                {
+                    new ReportParameter("paramSocietyName", societyName ),
+                    new ReportParameter("paramReportHeader", reportHeader )
+                };
 
-                //localReport.DataSources.Clear();
-                //localReport.DataSources.Add(new ReportDataSource("Ds_FALedgerTrn", ledgetList));
-                //localReport.SetParameters(parameters);
-                //localReport.Refresh();
-                //pdfAsBytes = localReport.Render("PDF");
+                localReport.DataSources.Clear();
+                localReport.DataSources.Add(new ReportDataSource("Ds_FALedgerTrn", ledgetList));
+                localReport.SetParameters(parameters);
+                localReport.Refresh();
+                pdfAsBytes = localReport.Render("PDF");
                 #endregion 
 
-                pdfAsBytes = await _reportsAudit.GetLedgerOutstanding(rptObject);
+                //pdfAsBytes = await _reportsAudit.GetLedgerOutstanding(rptObject);
             }
             catch (Exception ex)
             {

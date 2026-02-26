@@ -35,7 +35,11 @@ namespace Infin8.Coapp.Repository
                     var query = await (from mt in CSISContext.Mem_Trn
                                        join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
                                        join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
-                                       where mt.Trn_Type == trnType && mt.MemTrn_Delete == false
+                                       where mt.Trn_Type == trnType
+                                       && mt.BrCode == brCode
+                                       && fl.BrCode == brCode
+                                       && mm.brcode == brCode
+                                       && mt.MemTrn_Delete == false
                                        select new { mt, mm, fl }).ToListAsync();
 
                     // Get opening balances
@@ -97,7 +101,7 @@ namespace Infin8.Coapp.Repository
                                        where mt.Trn_Type == trnType && mt.MemTrn_Delete == false
                                        && mt.BrCode == brCode && mt.Voc_Status == "V"
                                        && mm.brcode == brCode
-                                       && fl.BrCode == brCode 
+                                       && fl.BrCode == brCode
                                        select new { mt, mm, fl }).ToListAsync();
 
                     // Get opening balances with different formula
@@ -210,148 +214,283 @@ namespace Infin8.Coapp.Repository
             return memTrnList;
         }
 
-        public async Task<List<rptMemberTrn>> GetRptMemberTrn(DateTime toDate, int trnType, string brCode)
+        public async Task<List<rptMemberTrn>> GetRptMemberTrnOS(DateTime toDate, int trnType, string brCode)
+        {
+            var memTrnList = new List<rptMemberTrn>();
+            try
+            {
+                #region linq
+                if (trnType == 2 || trnType == 3 || trnType == 6)
+                {
+                    var query = from memTrn in CSISContext.Mem_Trn
+                                join finLedger in CSISContext.Fin_Ledger on memTrn.Led_Id equals finLedger.Led_Id
+                                join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
+                                where memTrn.Trn_Type == trnType
+                                      && memTrn.Trn_Date <= toDate
+                                      && memTrn.MemTrn_Delete == false
+                                      && memMaster.membertype <= 4
+                                select new { memTrn, finLedger, memMaster } into joined
+                                group joined by new
+                                {
+                                    joined.memTrn.Trn_Type,
+                                    joined.memTrn.Mem_Id,
+                                    joined.memTrn.Led_Id,
+                                    joined.finLedger.Led_Name,
+                                    joined.memMaster.memberno,
+                                    joined.memMaster.perno,
+                                    joined.memMaster.membername
+                                } into g
+                                select new
+                                {
+                                    g.Key,
+                                    AmtCB = g.Sum(x => x.memTrn.Rpt_Amt) - g.Sum(x => x.memTrn.Pmt_Amt)
+                                } into result
+                                where result.AmtCB > 0
+                                orderby result.Key.Led_Name, result.Key.memberno
+                                select new rptMemberTrn
+                                {
+                                    Trn_Type = result.Key.Trn_Type,
+                                    Mem_Id = result.Key.Mem_Id,
+                                    Led_Id = result.Key.Led_Id,
+                                    Amt_CB  = (double)result.AmtCB,
+                                    Led_Name = result.Key.Led_Name,
+                                    MemberNo = result.Key.memberno,
+                                    PerNo = result.Key.perno,
+                                    MemberName = result.Key.membername
+                                };
+                    if (query != null && query.Any())
+                    {
+                        memTrnList = await query.ToListAsync();
+                    }
+                }
+
+                else if (trnType == 1 || trnType == 5) // type 1=due to, type 5=staff due to
+                {
+                    var query = from memTrn in CSISContext.Mem_Trn
+                                join finLedger in CSISContext.Fin_Ledger on memTrn.Led_Id equals finLedger.Led_Id
+                                join memMaster in CSISContext.mem_master on memTrn.Mem_Id equals memMaster.mem_id
+                                where memTrn.Trn_Type == trnType
+                                      && memTrn.Trn_Date <= toDate
+                                      && memTrn.MemTrn_Delete == false
+                                      && memMaster.membertype <= 4
+                                select new { memTrn, finLedger, memMaster } into joined
+                                group joined by new
+                                {
+                                    joined.memTrn.Trn_Type,
+                                    joined.memTrn.Mem_Id,
+                                    joined.memTrn.Led_Id,
+                                    joined.finLedger.Led_Name,
+                                    joined.memMaster.memberno,
+                                    joined.memMaster.perno,
+                                    joined.memMaster.membername
+                                } into g
+                                select new
+                                {
+                                    g.Key,
+                                    AmtCB = g.Sum(x => x.memTrn.Pmt_Amt) - g.Sum(x => x.memTrn.Rpt_Amt)
+                                } into result
+                                where result.AmtCB > 0
+                                orderby result.Key.Led_Name, result.Key.memberno
+                                select new rptMemberTrn
+                                {
+                                    Trn_Type = result.Key.Trn_Type,
+                                    Mem_Id = result.Key.Mem_Id,
+                                    Led_Id = result.Key.Led_Id,
+                                    Amt_CB = (double)result.AmtCB,
+                                    Led_Name = result.Key.Led_Name,
+                                    MemberNo = result.Key.memberno,
+                                    PerNo = result.Key.perno,
+                                    MemberName = result.Key.membername
+                                };
+                    if (query != null && query.Any())
+                    {
+                        memTrnList = await query.ToListAsync();
+                    }
+                }
+                #endregion 
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in fetching Member's transaction data " + ex.Message);
+                memTrnList = new();
+            }
+            return memTrnList;
+        }
+
+        public async Task<List<rptMemberTrn>> GetRptMemberTrnNew(DateTime fromDate, DateTime toDate, int trnType, string brCode)
         {
             var memTrnList = new List<rptMemberTrn>();
             try
             {
                 #region old linq
-                if (trnType == 2 || trnType == 3 || trnType == 6)    // type 2= dueby, type 3= share capital, type 6= staff due by
-                {
-                    memTrnList = await (from mt in CSISContext.Mem_Trn
-                                        join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
-                                        join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
-                                        where mt.Trn_Type == trnType &&
-                                              mt.Trn_Date <= toDate &&
-                                              mt.MemTrn_Delete == false &&
-                                              mm.membertype <= 4 &&
-                                              mt.BrCode == brCode &&
-                                              fl.BrCode == brCode &&
-                                              mm.brcode == brCode
-                                        group new { mt, fl, mm } by new
-                                        {
-                                            mt.Trn_Type,
-                                            mt.Mem_Id,
-                                            mt.Led_Id,
-                                            fl.Led_Name,
-                                            mm.memberno,
-                                            mm.perno,
-                                            mm.membername
-                                        } into g
-                                        // let balance = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)
-                                        where g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt) > 0
-                                        orderby g.Key.Led_Name, g.Key.memberno
-                                        select new rptMemberTrn
-                                        {
-                                            Trn_Type = g.Key.Trn_Type,
-                                            Mem_Id = g.Key.Mem_Id,
-                                            Led_Id = g.Key.Led_Id,
-                                            Amt_CB = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt), ///(double)balance,
-                                            Led_Name = g.Key.Led_Name,
-                                            MemberNo = g.Key.memberno,
-                                            PerNo = g.Key.perno,
-                                            MemberName = g.Key.membername
-                                        }).ToListAsync();
-                }
-                else if (trnType == 1 || trnType == 5)   // type 1= due to, type 5= staff due to
-                {
-                    memTrnList = await (from mt in CSISContext.Mem_Trn
-                                        join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
-                                        join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
-                                        where mt.Trn_Type == trnType &&
-                                              mt.Trn_Date <= toDate &&
-                                              mt.MemTrn_Delete == false &&
-                                              mm.membertype <= 4 &&
-                                              mt.BrCode == brCode &&
-                                              fl.BrCode == brCode &&
-                                              mm.brcode == brCode
-                                        group new { mt, fl, mm } by new
-                                        {
-                                            mt.Trn_Type,
-                                            mt.Mem_Id,
-                                            mt.Led_Id,
-                                            fl.Led_Name,
-                                            mm.memberno,
-                                            mm.perno,
-                                            mm.membername
-                                        } into g
-                                        //let balance = g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt)
-                                        where g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt) > 0
-                                        orderby g.Key.Led_Name, g.Key.memberno
-                                        select new rptMemberTrn
-                                        {
-                                            Trn_Type = g.Key.Trn_Type,
-                                            Mem_Id = g.Key.Mem_Id,
-                                            Led_Id = g.Key.Led_Id,
-                                            Amt_CB = g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt), ///(double)balance,
-                                            Led_Name = g.Key.Led_Name,
-                                            MemberNo = g.Key.memberno,
-                                            PerNo = g.Key.perno,
-                                            MemberName = g.Key.membername
-                                        }).ToListAsync();
-                }
+                //if (trnType == 2 || trnType == 3 || trnType == 6)    // type 2= dueby, type 3= share capital, type 6= staff due by
+                //{
+                //    memTrnList = await (from mt in CSISContext.Mem_Trn
+                //                        join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
+                //                        join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
+                //                        where mt.Trn_Type == trnType &&
+                //                              mt.Trn_Date <= toDate &&
+                //                              mt.MemTrn_Delete == false &&
+                //                              mm.membertype <= 4 &&
+                //                              mt.BrCode == brCode &&
+                //                              fl.BrCode == brCode &&
+                //                              mm.brcode == brCode
+                //                        group new { mt, fl, mm } by new
+                //                        {
+                //                            mt.Trn_Type,
+                //                            mt.Mem_Id,
+                //                            mt.Led_Id,
+                //                            fl.Led_Name,
+                //                            mm.memberno,
+                //                            mm.perno,
+                //                            mm.membername,
+                //                            mt.Trn_Date 
+                //                        } into g
+                //                        // let balance = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)
+                //                        where g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt) > 0
+                //                        orderby g.Key.Led_Name, g.Key.memberno
+                //                        select new rptMemberTrn
+                //                        {
+                //                            Trn_Type = g.Key.Trn_Type,
+                //                            Trn_Date = g.Key.Trn_Date,
+                //                            Mem_Id = g.Key.Mem_Id,
+                //                            Led_Id = g.Key.Led_Id,
+                //                            Amt_CB = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt), ///(double)balance,
+                //                            Led_Name = g.Key.Led_Name,
+                //                            MemberNo = g.Key.memberno,
+                //                            PerNo = g.Key.perno,
+                //                            MemberName = g.Key.membername
+                //                        }).ToListAsync();
+                //}
+                //else if (trnType == 1 || trnType == 5)   // type 1= due to, type 5= staff due to
+                //{
+                //    memTrnList = await (from mt in CSISContext.Mem_Trn
+                //                        join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
+                //                        join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
+                //                        where mt.Trn_Type == trnType &&
+                //                              mt.Trn_Date <= toDate &&
+                //                              mt.MemTrn_Delete == false &&
+                //                              mm.membertype <= 4 &&
+                //                              mt.BrCode == brCode &&
+                //                              fl.BrCode == brCode &&
+                //                              mm.brcode == brCode
+                //                        group new { mt, fl, mm } by new
+                //                        {
+                //                            mt.Trn_Type,
+                //                            mt.Mem_Id,
+                //                            mt.Led_Id,
+                //                            fl.Led_Name,
+                //                            mm.memberno,
+                //                            mm.perno,
+                //                            mm.membername,
+                //                            mt.Trn_Date 
+                //                        } into g
+                //                        //let balance = g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt)
+                //                        where g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt) > 0
+                //                        orderby g.Key.Led_Name, g.Key.memberno
+                //                        select new rptMemberTrn
+                //                        {
+                //                            Trn_Type = g.Key.Trn_Type,
+                //                            Trn_Date = g.Key.Trn_Date,
+                //                            Mem_Id = g.Key.Mem_Id,
+                //                            Led_Id = g.Key.Led_Id,
+                //                            Amt_CB = g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt), ///(double)balance,
+                //                            Led_Name = g.Key.Led_Name,
+                //                            MemberNo = g.Key.memberno,
+                //                            PerNo = g.Key.perno,
+                //                            MemberName = g.Key.membername
+                //                        }).ToListAsync();
+                //}
                 #endregion
 
                 #region linq new
-                //    // First part - Opening Balance query
-                //    var openingBalanceQuery = GetOpeningBalanceQuery(toDate, trnType);
+                // First part - Opening Balance query
+                await Task.Delay(1000);
+                var openingBalanceQuery = GetOpeningBalanceQuery(fromDate, trnType);
 
-                //    // Second part - Transaction period query
-                //    var transactionPeriodQuery = GetTransactionPeriodQuery(fromDate , toDate, trnType);
+                // Second part - Transaction period query
+                var transactionPeriodQuery = GetTransactionPeriodQuery(fromDate, toDate, trnType);
 
-                //    // Union the two queries
-                //    var unionQuery = openingBalanceQuery.Union(transactionPeriodQuery);
+                // Union the two queries
+                var unionQuery = openingBalanceQuery.Union(transactionPeriodQuery);
 
-                //    // Execute the query
-                //    var rawResults = unionQuery.ToList();
+                // Execute the query
+                var rawResults = unionQuery.ToList();
 
-                //    // Group and aggregate the results
-                //    memTrnList = (from mem in rawResults
-                //                  group mem by new
-                //                  {
-                //                      mem.Mem_Id,
-                //                      mem.memberNo,
-                //                      mem.PerNo,
-                //                      mem.memberName,
-                //                      mem.Trn_Type,
-                //                      mem.Led_Id,
-                //                      mem.Led_Name
-                //                  } into g
-                //                  select new rptMemberTrn
-                //                  {
-                //                      Mem_Id = g.Key.Mem_Id,
-                //                      memberNo = g.Key.memberNo,
-                //                      PerNo = g.Key.PerNo,
-                //                      memberName = g.Key.memberName,
-                //                      Trn_Type = g.Key.Trn_Type,
-                //                      Led_Id = g.Key.Led_Id,
-                //                      Led_Name = g.Key.Led_Name,
-                //                      Amt_OB = g.Sum(trn => trn.Amt_OB),
-                //                      Rpt_Amt = g.Sum(trn => trn.Rpt_Amt),
-                //                      Pmt_Amt = g.Sum(trn => trn.Pmt_Amt)
-                //                  })
-                //                  .OrderBy(x => x.Trn_Type)
-                //                  .ThenBy(x => x.Mem_Id)
-                //                  .ThenBy(x => x.Led_Id)
-                //                  .ToList();
+                // Group and aggregate the results
+                memTrnList = (from mem in rawResults
+                              group mem by new
+                              {
+                                  mem.Mem_Id,
+                                  mem.MemberNo,
+                                  mem.PerNo,
+                                  mem.MemberName,
+                                  mem.Trn_Type,
+                                  mem.Trn_Date,
+                                  mem.Led_Id,
+                                  mem.Led_Name
+                              } into g
+                              select new rptMemberTrn
+                              {
+                                  Mem_Id = g.Key.Mem_Id,
+                                  MemberNo = g.Key.MemberNo,
+                                  PerNo = g.Key.PerNo,
+                                  MemberName = g.Key.MemberName,
+                                  Trn_Type = g.Key.Trn_Type,
+                                  Trn_Date = g.Key.Trn_Date,
+                                  Led_Id = g.Key.Led_Id,
+                                  Led_Name = g.Key.Led_Name,
+                                  Amt_OB = g.Sum(trn => trn.Amt_OB),
+                                  Rpt_Amt = g.Sum(trn => trn.Rpt_Amt),
+                                  Pmt_Amt = g.Sum(trn => trn.Pmt_Amt)
+                              })
+                              .OrderBy(x => x.Trn_Type)
+                              .ThenBy(x => x.Mem_Id)
+                              .ThenBy(x => x.Led_Id)
+                              .ToList();
 
-                //    // Calculate closing balance for each transaction
-                //    foreach (var trn in memTrnList)
-                //    {
-                //        switch (trn.Trn_Type)
-                //        {
-                //            case 1: /// member due to
-                //            case 5: /// staff due to
-                //                trn.Amt_CB = trn.Amt_OB + Convert.ToDouble(trn.Pmt_Amt) - Convert.ToDouble(trn.Rpt_Amt);
-                //                break;
-                //            case 2: /// member due by
-                //            case 3: /// share capital
-                //            case 6: /// staff due by
-                //                trn.Amt_CB = trn.Amt_OB + Convert.ToDouble(trn.Rpt_Amt) - Convert.ToDouble(trn.Pmt_Amt);
-                //                break;
-                //        }
-                //    }
+                // Calculate closing balance for each transaction
+                decimal memId = 0, ledId = 0;
+                double OB = 0, CB = 0;
+                foreach (var trn in memTrnList)
+                {
+                    if (memId == trn.Mem_Id && ledId != trn.Led_Id)
+                    {
+                        ledId = trn.Led_Id;
+                        OB = trn.Amt_OB;
+                        CB = trn.Amt_OB;
+                    }
+                    if (memId != trn.Mem_Id && ledId != trn.Led_Id)
+                    {
+                        memId = trn.Mem_Id;
+                        ledId = trn.Led_Id;
+                        OB = trn.Amt_OB;
+                        CB = trn.Amt_OB;
+                    }
+                    if (memId != trn.Mem_Id && ledId == trn.Led_Id)
+                    {
+                        memId = trn.Mem_Id;
+                        OB = trn.Amt_OB;
+                        CB = trn.Amt_OB;
+                    }
+                    switch (trn.Trn_Type)
+                    {
+                        case 1: /// member due to
+                        case 5: /// staff due to
+                                /// trn.Amt_CB = trn.Amt_OB + Convert.ToDouble(trn.Pmt_Amt) - Convert.ToDouble(trn.Rpt_Amt);
+                            CB += Convert.ToDouble(trn.Pmt_Amt) - Convert.ToDouble(trn.Rpt_Amt);
+                            break;
+                        case 2: /// member due by
+                        case 3: /// share capital
+                        case 6: /// staff due by
+                                /// trn.Amt_CB = trn.Amt_OB + Convert.ToDouble(trn.Rpt_Amt) - Convert.ToDouble(trn.Pmt_Amt);\
+                            CB += Convert.ToDouble(trn.Rpt_Amt) - Convert.ToDouble(trn.Pmt_Amt);
+                            break;
+                    }
+                    trn.Amt_CB = CB;
+                }
                 #endregion
+
             }
             catch (Exception ex)
             {
@@ -360,17 +499,17 @@ namespace Infin8.Coapp.Repository
             return memTrnList;
         }
 
-        private IQueryable<rptMemberTrn> GetOpeningBalanceQuery( DateTime toDate, int trnType)
+        private IQueryable<rptMemberTrn> GetOpeningBalanceQuery(DateTime fromDate, int trnType)
         {
             switch (trnType)
             {
                 case 1: /// member due to
                 case 5: /// staff due to
-                    return  (from mt in CSISContext.Mem_Trn
+                    return (from mt in CSISContext.Mem_Trn
                             join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
                             join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
                             where mt.MemTrn_Delete == false &&
-                                  mt.Trn_Date < toDate &&
+                                  mt.Trn_Date < fromDate &&
                                   mt.Trn_Type == trnType
                             group new { mt, mm, fl } by new
                             {
@@ -390,6 +529,7 @@ namespace Infin8.Coapp.Repository
                                 PerNo = g.Key.perno,
                                 MemberName = g.Key.membername,
                                 Trn_Type = g.Key.Trn_Type,
+                                Trn_Date = g.Max(x => x.mt.Trn_Date),
                                 Led_Id = g.Key.Led_Id,
                                 Led_Name = g.Key.Led_Name,
                                 Amt_OB = (double)(g.Sum(x => x.mt.Pmt_Amt) - g.Sum(x => x.mt.Rpt_Amt)),
@@ -400,11 +540,11 @@ namespace Infin8.Coapp.Repository
                 case 2: /// member due by
                 case 3: /// share capital
                 case 6: /// staff due by
-                    return  (from mt in CSISContext.Mem_Trn
+                    return (from mt in CSISContext.Mem_Trn
                             join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
                             join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
                             where mt.MemTrn_Delete == false &&
-                                  mt.Trn_Date < toDate &&
+                                  mt.Trn_Date < fromDate &&
                                   mt.Trn_Type == trnType
                             group new { mt, mm, fl } by new
                             {
@@ -424,6 +564,7 @@ namespace Infin8.Coapp.Repository
                                 PerNo = g.Key.perno,
                                 MemberName = g.Key.membername,
                                 Trn_Type = g.Key.Trn_Type,
+                                Trn_Date = g.Max(x => x.mt.Trn_Date),
                                 Led_Id = g.Key.Led_Id,
                                 Led_Name = g.Key.Led_Name,
                                 Amt_OB = (double)(g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)),
@@ -436,9 +577,9 @@ namespace Infin8.Coapp.Repository
             }
         }
 
-        private IQueryable<rptMemberTrn> GetTransactionPeriodQuery( DateTime fromDate, DateTime toDate, int trnType)
+        private IQueryable<rptMemberTrn> GetTransactionPeriodQuery(DateTime fromDate, DateTime toDate, int trnType)
         {
-            return  (from mt in CSISContext.Mem_Trn
+            return (from mt in CSISContext.Mem_Trn
                     join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
                     join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
                     where mt.MemTrn_Delete == false &&
@@ -453,7 +594,8 @@ namespace Infin8.Coapp.Repository
                         mm.membername,
                         mt.Trn_Type,
                         mt.Led_Id,
-                        fl.Led_Name
+                        fl.Led_Name,
+                        mt.Trn_Date
                     } into g
                     where g.Sum(x => x.mt.Rpt_Amt) > 0 || g.Sum(x => x.mt.Pmt_Amt) > 0
                     select new rptMemberTrn
@@ -463,6 +605,7 @@ namespace Infin8.Coapp.Repository
                         PerNo = g.Key.perno,
                         MemberName = g.Key.membername,
                         Trn_Type = g.Key.Trn_Type,
+                        Trn_Date = g.Key.Trn_Date,
                         Led_Id = g.Key.Led_Id,
                         Led_Name = g.Key.Led_Name,
                         Amt_OB = 0,
@@ -495,7 +638,7 @@ namespace Infin8.Coapp.Repository
                                                                      .Contains(fv.Voc_Id) &&
                                                  !CSISContext.Map_Banks.Select(mb => mb.Led_Id).Contains(fvt.Led_Id) &&
                                                  fvt.Led_Id != cashLedId
-                                                 && fv.BrCode == brCode && fv.Voc_Status =="V"
+                                                 && fv.BrCode == brCode && fv.Voc_Status == "V"
                                                  && gvb.BrCode == brCode && gvb.Voc_Status == "V"
                                                  && fvt.BrCode == brCode && fvt.Voc_Status == "V"
                                            orderby mm.memberno ascending
@@ -521,7 +664,7 @@ namespace Infin8.Coapp.Repository
             return memTrnList;
         }
 
-        public async Task<List<rptMemberList>> GetMemberList(DateTime asOnDate, List<int> memberTypeList, List<int> memberStatusList, string brCode)
+        public async Task<List<rptMemberList>> GetMemberList(DateTime asOnDate, List<int> memberTypeList, int memberStatus, string brCode)
         {
             List<rptMemberList> memList = new List<rptMemberList>();
             try
@@ -533,11 +676,12 @@ namespace Infin8.Coapp.Repository
                                         from ra in areaJoin.DefaultIfEmpty()
                                         where mm.memberdelete == false &&
                                               memberTypeList.Contains(mm.membertype) &&
-                                              memberStatusList.Contains(mm.memberstatus) &&
+                                              mm.memberstatus == memberStatus &&
+                                              //memberStatusList.Contains(mm.memberstatus) &&
                                               mm.isaccountclosed == false &&
                                               (mm.admissiondate == null || mm.admissiondate <= asOnDate)
-                                              && mm.brcode == brCode 
-                                              && ra.BrCode == brCode 
+                                              && mm.brcode == brCode
+                                              && ra.BrCode == brCode
                                         orderby mm.membertype, mm.memberno
                                         select new rptMemberList
                                         {
@@ -595,54 +739,107 @@ namespace Infin8.Coapp.Repository
             return memList;
         }
 
-        public async Task<List<rptMemberRegister>> GetMemberRegister(int memId)
+        public async Task<List<rptMemberRegister>> GetMemberRegister(decimal memId)
         {
             List<rptMemberRegister> memTrnList = new List<rptMemberRegister>();
             try
             {
-                var memTrnListTmp = await (from mt in CSISContext.Mem_Trn
-                                           join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
-                                           join ra in CSISContext.Refer_Area on mm.prearea_id equals ra.Area_Id into ra_join
-                                           from ra in ra_join.DefaultIfEmpty()
-                                           where mm.mem_id == memId && mt.Trn_Type == 3 && mt.MemTrn_Delete == false
-                                           && mt.Voc_Status =="V"
-                                           orderby mt.Mem_Id, mt.Trn_Date, mt.Trn_SlNo
-                                           select new rptMemberRegister
-                                           {
-                                               Mem_Id = mt.Mem_Id,
-                                               MemberNo = mm.memberno,
-                                               PerNo = mm.perno,
-                                               MemberName = mm.membername,
-                                               FatherName = mm.fathername,
-                                               Dob = mm.dob,
-                                               Age = mm.age,
-                                               PreAdd1 = mm.preadd1,
-                                               PreAdd2 = mm.preadd2,
-                                               PreAdd3 = mm.preadd3,
-                                               Area_Name = ra.Area_Name,
-                                               Trn_Date = mt.Trn_Date,
-                                               Rpt_Amt = (double)mt.Rpt_Amt,
-                                               Pmt_Amt = (double)mt.Pmt_Amt,
-                                               Bal_Amt = 0, //  Not present in query. Needs to be calculated if required
-                                               IntCalc_Amt = (double)mt.IntCalc_Amt,
-                                               IntCalc_Date = mt.IntCalc_Date,
-                                               IntPaid_Amt = (double)mt.IntPaid_Amt,
-                                               Int_Bal = 0, // Not present in query. Needs to be calculated if required
-                                               MobileNo = mm.mobileno,
-                                               PANNo = mm.panno,
-                                               AadharNo = mm.aadharno,
-                                               SmartCardNo = mm.smartcardno,
-                                               MemberPhoto = mm.memberphoto
-                                           }).ToListAsync();
-                double BalAmt = 0, IntBal = 0;
-                foreach (var mem in memTrnListTmp)
+                //var memtrn = CSISContext.Mem_Trn.Where(mt => mt.Mem_Id == memId && mt.Trn_Type == 3 && mt.MemTrn_Delete == false)
+                //                              .OrderBy(mt => mt.Mem_Id)
+                //                              .ThenBy(mt => mt.Trn_Date)
+                //                              .ThenBy(mt => mt.Trn_SlNo)
+                //                              .Select(mt => new rptMemberRegister
+                //                              {
+                //                                  Mem_Id = mt.Mem_Id,
+                //                                  Trn_Date = mt.Trn_Date,
+                //                                  Rpt_Amt = (double)mt.Rpt_Amt,
+                //                                  Pmt_Amt = (double)mt.Pmt_Amt,
+                //                                  IntCalc_Amt = (double)mt.IntCalc_Amt,
+                //                                  IntCalc_Date = mt.IntCalc_Date,
+                //                                  IntPaid_Amt = (double)mt.IntPaid_Amt
+                //                              }).ToList();
+                var memTrnTmp = CSISContext.Mem_Trn.Where(mt => mt.Mem_Id == memId && mt.Trn_Type == 3 && mt.MemTrn_Delete == false).ToList();
+                if (memTrnTmp != null && memTrnTmp.Any())
                 {
-                    BalAmt += mem.Rpt_Amt - mem.Pmt_Amt;
-                    IntBal += mem.IntCalc_Amt - mem.IntPaid_Amt;
-                    mem.Bal_Amt = BalAmt;
-                    mem.Int_Bal = IntBal;
+                    var memTrnListTmp = await (from mt in CSISContext.Mem_Trn
+                                               join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
+                                               join ra in CSISContext.Refer_Area on mm.prearea_id equals ra.Area_Id into ra_join
+                                               from ra in ra_join.DefaultIfEmpty()
+                                               where mm.mem_id == memId && mt.Trn_Type == 3 && mt.MemTrn_Delete == false
+                                               orderby mt.Mem_Id, mt.Trn_Date, mt.Trn_SlNo
+                                               select new rptMemberRegister
+                                               {
+                                                   Mem_Id = mt.Mem_Id,
+                                                   MemberNo = mm.memberno,
+                                                   PerNo = mm.perno,
+                                                   MemberName = mm.membername,
+                                                   FatherName = mm.fathername,
+                                                   Dob = mm.dob,
+                                                   Age = mm.age,
+                                                   PreAdd1 = mm.preadd1,
+                                                   PreAdd2 = mm.preadd2,
+                                                   PreAdd3 = mm.preadd3,
+                                                   Area_Name = ra.Area_Name,
+                                                   Trn_Date = mt.Trn_Date,
+                                                   Rpt_Amt = (double)mt.Rpt_Amt,
+                                                   Pmt_Amt = (double)mt.Pmt_Amt,
+                                                   Bal_Amt = 0, //  Not present in query. Needs to be calculated if required
+                                                   IntCalc_Amt = (double)mt.IntCalc_Amt,
+                                                   IntCalc_Date = mt.IntCalc_Date,
+                                                   IntPaid_Amt = (double)mt.IntPaid_Amt,
+                                                   Int_Bal = 0, // Not present in query. Needs to be calculated if required
+                                                   MobileNo = mm.mobileno,
+                                                   PANNo = mm.panno,
+                                                   AadharNo = mm.aadharno,
+                                                   SmartCardNo = mm.smartcardno,
+                                                   MemberPhoto = mm.memberphoto
+                                               }).ToListAsync();
+
+                    double BalAmt = 0, IntBal = 0;
+                    foreach (var mem in memTrnListTmp)
+                    {
+                        BalAmt += mem.Rpt_Amt - mem.Pmt_Amt;
+                        IntBal += mem.IntCalc_Amt - mem.IntPaid_Amt;
+                        mem.Bal_Amt = BalAmt;
+                        mem.Int_Bal = IntBal;
+                    }
+                    if (memTrnListTmp != null) memTrnList = memTrnListTmp;
                 }
-                if (memTrnListTmp != null) memTrnList = memTrnListTmp;
+                else
+                {
+                    var memTrnListTmp = await (from mm in CSISContext.mem_master
+                                               join ra in CSISContext.Refer_Area on mm.prearea_id equals ra.Area_Id into ra_join
+                                               from ra in ra_join.DefaultIfEmpty()
+                                               where mm.mem_id == memId 
+                                               select new rptMemberRegister
+                                               {
+                                                   Mem_Id = mm.mem_id,
+                                                   MemberNo = mm.memberno,
+                                                   PerNo = mm.perno,
+                                                   MemberName = mm.membername,
+                                                   FatherName = mm.fathername,
+                                                   Dob = mm.dob,
+                                                   Age = mm.age,
+                                                   PreAdd1 = mm.preadd1,
+                                                   PreAdd2 = mm.preadd2,
+                                                   PreAdd3 = mm.preadd3,
+                                                   Area_Name = ra.Area_Name,
+                                                   Trn_Date = null,
+                                                   Rpt_Amt = 0,
+                                                   Pmt_Amt = 0,
+                                                   Bal_Amt = 0, //  Not present in query. Needs to be calculated if required
+                                                   IntCalc_Amt = 0,
+                                                   IntCalc_Date =null,
+                                                   IntPaid_Amt = 0,
+                                                   Int_Bal = 0, // Not present in query. Needs to be calculated if required
+                                                   MobileNo = mm.mobileno,
+                                                   PANNo = mm.panno,
+                                                   AadharNo = mm.aadharno,
+                                                   SmartCardNo = mm.smartcardno,
+                                                   MemberPhoto = mm.memberphoto
+                                               }).ToListAsync();
+                    if (memTrnListTmp != null) memTrnList = memTrnListTmp;
+                }
             }
             catch (Exception)
             {
@@ -670,9 +867,9 @@ namespace Infin8.Coapp.Repository
                                                              .GroupBy(mt => mt.Mem_Id)
                                                              .Where(g => g.Sum(mt => mt.Rpt_Amt) - g.Sum(mt => mt.Pmt_Amt) >= minimumSCBalance)
                                                              .Any()
-                                            && rdCaste.BrCode == brCode 
-                                            && rdCommunity.BrCode == brCode 
-                                            && area.BrCode == brCode 
+                                            && rdCaste.BrCode == brCode
+                                            && rdCommunity.BrCode == brCode
+                                            && area.BrCode == brCode
                                         orderby mm.membertype, mm.memberno
                                         select new rptMemberVoutersList
                                         {
@@ -735,8 +932,7 @@ namespace Infin8.Coapp.Repository
                                               memberTypeList.Contains(mm.membertype) && // Assuming memberTypeList is List<int>
                                               memberStatusList.Contains(mm.memberstatus) && // Assuming memberStatusList is List<string>
                                               mm.isaccountclosed == false &&
-                                              mt.MemTrn_Delete == false &&
-                                              mt.Voc_Status=="V"
+                                              mt.MemTrn_Delete == false
                                         group new { mm, mt, rdCaste, rdComm, area } by new
                                         {
                                             mm.memberno,
@@ -809,8 +1005,8 @@ namespace Infin8.Coapp.Repository
                                            where mt.Trn_Type == 3 &&
                                                  mm.admissiondate >= fromDate &&
                                                  mm.admissiondate <= toDate &&
-                                                 mt.MemTrn_Delete == false && mt.BrCode == brCode && mt.Voc_Status =="V" &&
-                                                 mm.brcode == brCode 
+                                                 mt.MemTrn_Delete == false && mt.BrCode == brCode && mt.Voc_Status == "V" &&
+                                                 mm.brcode == brCode
 
                                            orderby mm.memberno
                                            select new rptMemberNewAdmission
@@ -833,7 +1029,7 @@ namespace Infin8.Coapp.Repository
             return memTrnList;
         }
 
-        public async Task<List<rptMemberKYC>> GetMemberKYC(int memId)
+        public async Task<List<rptMemberKYC>> GetMemberKYC(decimal memId, string brCode)
         {
             List<rptMemberKYC> kyc = new List<rptMemberKYC>();
             try
@@ -843,7 +1039,9 @@ namespace Infin8.Coapp.Repository
                                     from presentArea in presentArea_join.DefaultIfEmpty()
                                     join permanentArea in CSISContext.Refer_Area on mm.perarea_id equals permanentArea.Area_Id into permanentArea_join
                                     from permanentArea in permanentArea_join.DefaultIfEmpty()
-                                    where mm.mem_id == memId && mm.memberdelete == false
+                                    where mm.mem_id == memId
+                                    && mm.brcode == brCode
+                                    && mm.memberdelete == false
                                     select new rptMemberKYC
                                     {
                                         Mem_Id = mm.mem_id,
@@ -886,5 +1084,7 @@ namespace Infin8.Coapp.Repository
             }
             return kyc;
         }
+
+
     }
 }

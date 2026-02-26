@@ -505,21 +505,35 @@ namespace Infin8.Coapp.API.Controllers
                     // parts[0] = "uploads"
                     // parts[1] = "jewels"
                     // parts[2] = "jewel_39df9efb-5ba0-49df-aca0-671e98222e46.jpg"
-                    string[] parts = loan.JewelsImage!.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-                    imagePath = Path.Combine(_webHostEnvironment.WebRootPath, parts[0], parts[1], parts[2]);
-                    if (imagePath.Length >0)
+                    if (loan.JewelsImage != null)
                     {
-                        byte[] imageBytes = System.IO.File.ReadAllBytes(imagePath);
-                        base64Image = Convert.ToBase64String(imageBytes);
-                        loan.JewelsImage =  base64Image;
+                        string[] parts = loan.JewelsImage!.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                        imagePath = Path.Combine(_webHostEnvironment.WebRootPath, parts[0], parts[1], parts[2]);
+                        if (imagePath.Length > 0)
+                        {
+                            byte[] imageBytes = System.IO.File.ReadAllBytes(imagePath);
+                            base64Image = Convert.ToBase64String(imageBytes);
+                            loan.JewelsImage = base64Image;
+                        }
                     }
-                    string[] parts2 = loan.MemberPhoto!.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-                    imagePath2 = Path.Combine(_webHostEnvironment.WebRootPath, parts2[0], parts2[1], parts2[2]);
-                    if (imagePath2.Length > 0)
+                    else
                     {
-                        byte[] imageBytes2 = System.IO.File.ReadAllBytes(imagePath2);
-                        base64Image2 = Convert.ToBase64String(imageBytes2);
-                        loan.MemberPhoto = base64Image2;
+                        loan.JewelsImage = null;
+                    }
+                    if (loan.MemberPhoto != null)
+                    {
+                        string[] parts2 = loan.MemberPhoto!.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                        imagePath2 = Path.Combine(_webHostEnvironment.WebRootPath, parts2[0], parts2[1], parts2[2]);
+                        if (imagePath2.Length > 0)
+                        {
+                            byte[] imageBytes2 = System.IO.File.ReadAllBytes(imagePath2);
+                            base64Image2 = Convert.ToBase64String(imageBytes2);
+                            loan.MemberPhoto = base64Image2;
+                        }
+                    }
+                    else
+                    {
+                        loan.MemberPhoto = null;
                     }
                 }
                 rsInWords = _utilityHandler.RupeesInWords(loanList.Select(x => x.San_Amt).FirstOrDefault());

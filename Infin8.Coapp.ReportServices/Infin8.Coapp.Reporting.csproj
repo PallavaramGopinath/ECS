@@ -7,13 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Infin8.Coapp.BusinessLogic\Infin8.Coapp.BusinessLogic.csproj" />
     <ProjectReference Include="..\Infin8.Coapp.Dto\Infin8.Coapp.Dto.csproj" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.26" />
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.33" />
   </ItemGroup>
 </Project>

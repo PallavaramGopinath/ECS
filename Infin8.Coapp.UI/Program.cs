@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
+using Infin8.Coapp.Reporting;
 using Infin8.Coapp.ReportServices.Concrete;
 using Infin8.Coapp.ReportServices.Interface;
 using Infin8.Coapp.Repository;
@@ -157,6 +158,7 @@ builder.Services.AddScoped<IReferenceConstituencyHandler, ReferenceConstituencyH
 #endregion 
 
 #region Reports
+builder.Services.AddScoped<ICreateReportsHandler, CreateReportsHandler>();
 builder.Services.AddScoped<IReportsHandler, ReportsHandler>();
 builder.Services.AddScoped<IReportsTermDepositsHandler, ReportsTermDepositsHandler>();
 builder.Services.AddScoped<IReportsJewelLoanHandler, ReportsJewelLoanHandler>();
@@ -165,6 +167,7 @@ builder.Services.AddScoped<IReportsLoanHandler, ReportsLoanHandler>();
 builder.Services.AddScoped<IReportsFinalAccountsHandler, ReportsFinalAccountsHandler>();
 builder.Services.AddScoped<IReportsAccountHandler, ReportsAccountHandler>();
 builder.Services.AddScoped<IReportsEmployeeHandler, ReportsEmployeeHandler>();
+//builder.Services.AddScoped<IReportsAudit, ReportsAudit>();
 #endregion 
 
 #region TermDeposit
@@ -208,10 +211,7 @@ builder.Services.AddScoped<ISBCAMasterHandler, SBCAMasterHandler>();
 builder.Services.AddScoped<ISBCASchemesHandler, SBCASchemesHandler>();
 #endregion 
 
-#region reports
-builder.Services.AddScoped<IReportsHandler, ReportsHandler>();
-builder.Services.AddScoped<IReportsAudit, ReportsAudit>();
-#endregion 
+
 
 
 #region Report Servces

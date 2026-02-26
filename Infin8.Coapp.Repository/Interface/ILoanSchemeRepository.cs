@@ -24,6 +24,7 @@ namespace Infin8.Coapp.Repository
         Task<Loan_Schemes> GetLoanSchemeByType(int loanType, string brCode);
         Task<List<Loan_Schemes>> GetLoanSchemeListByType(int loanType, string brCode);
         Task<int> GetPeriodOfLoan(int schemeId,string brCode);
+        Task<List<Loan_Schemes>> GetAllLoanProductes(string brCode);
 
     }
 }

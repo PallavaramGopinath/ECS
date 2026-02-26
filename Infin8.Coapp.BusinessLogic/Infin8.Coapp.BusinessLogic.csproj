@@ -13,7 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.33" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Infin8.Coapp.Models\Infin8.Coapp.Models.csproj" />
+    <ProjectReference Include="..\Infin8.Coapp.ReportServices\Infin8.Coapp.Reporting.csproj" />
     <ProjectReference Include="..\Infin8.Coapp.Repository\Infin8.Coapp.Repository.csproj" />
   </ItemGroup>
 

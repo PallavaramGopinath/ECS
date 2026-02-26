@@ -1,6 +1,7 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -41,5 +42,8 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<rptJewelLoanLedger>> GetJewelLoanLedger(decimal vocId);
         #endregion
 
+        #region Create report data as byte[]
+        //byte[] CreateLocalReport(string dsName, Stream path, IEnumerable result, Dictionary<string, string> parameterDictionary);
+        #endregion
     }
 }

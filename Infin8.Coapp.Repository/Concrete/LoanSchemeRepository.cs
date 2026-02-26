@@ -268,7 +268,6 @@ namespace Infin8.Coapp.Repository
             return loanSchemes;
         }
         
-
         public async Task<List<DropdownItem>> GetLoanSchemesItemsByLoanTypeArrayAsync(int[] loanTypeList)
         {
             List<DropdownItem> list = new List<DropdownItem>();
@@ -336,6 +335,27 @@ namespace Infin8.Coapp.Repository
             }
             return loanSchemes;
         }
+
+        public async Task<List<Loan_Schemes>> GetAllLoanProductes(string brCode)
+        {
+            List<Loan_Schemes> loanSchemes = new List<Loan_Schemes>();
+            try
+            {
+                var list = await CSISContext.Loan_Schemes.Where(x =>  x.BrCode == brCode && x.Scheme_Delete == false).ToListAsync();
+                if (list != null && list.Any())
+                {
+                    loanSchemes = list.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString() + " Something went wrong! An error occurred while fetching loan scheme details");
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching loan scheme details");
+            }
+
+            return loanSchemes;
+        }
+
     }
 }
 

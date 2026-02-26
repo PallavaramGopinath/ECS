@@ -19,7 +19,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infin8.Coapp.Repository", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infin8.Coapp.Utility", "Infin8.Coapp.Utility\Infin8.Coapp.Utility.csproj", "{0B3949BB-BC54-4FF2-AB2A-3CF84DDB3A41}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infin8.Coapp.ReportServices", "Infin8.Coapp.ReportServices\Infin8.Coapp.ReportServices.csproj", "{AC1148A7-8116-4E84-99D5-A767BF1112A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infin8.Coapp.Reporting", "Infin8.Coapp.ReportServices\Infin8.Coapp.Reporting.csproj", "{AC1148A7-8116-4E84-99D5-A767BF1112A4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

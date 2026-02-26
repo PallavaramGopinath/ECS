@@ -93,6 +93,17 @@ namespace Infin8.Coapp.API.Controllers
                 return NotFound();
             }
         }
+
+        [HttpGet]
+        [Route("GetAllLoanProducts/{brCode}")]
+        public async Task<ActionResult<List<Loan_Schemes>>> GetAllLoanProducts( string brCode)
+        {
+            List<Loan_Schemes> items = new List<Loan_Schemes>();
+            items = await _loanSchemeHandler.GetAllLoanProductes(brCode);
+            if (items.Count > 0) return Ok(items);
+            else
+                return NotFound();
+        }
         #endregion
 
         #region Jewel Loan

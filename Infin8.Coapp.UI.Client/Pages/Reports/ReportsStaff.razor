@@ -220,10 +220,12 @@ else
                 rptObject.BrCode = userInfoDto.BrCode;
                 rptObject.Yr_Id = userInfoDto.YrId;
                 rptObject.FromDate = userInfoDto.YrBeginningDate;
-                rptObject.ToDate = userInfoDto.YrEndDate;
-
                 rptObject.ToDate = DateTime.UtcNow;
-                rptObject.FromDate = new DateTime(2025, 4, 1);
+
+                // rptObject.ToDate = userInfoDto.YrEndDate;
+
+                // rptObject.ToDate = DateTime.UtcNow;
+                // rptObject.FromDate = new DateTime(2025, 4, 1);
                 var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Print/GetReportNameList/6/{rptObject.BrCode}");
                 if (result!.Count > 0)
                 {

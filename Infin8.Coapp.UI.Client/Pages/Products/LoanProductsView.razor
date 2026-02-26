@@ -1,0 +1,633 @@
+﻿@page "/loanproducts/view/{SchemeId:int}"
+@using Coapp.Dto
+@* @using YourApp.Data *@
+@rendermode InteractiveWebAssembly
+@inject NavigationManager Navigation
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-11">
+            <!-- Header with Actions -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-1">
+                                    <li class="breadcrumb-item">
+                                        <a href="/loanproducts" class="text-decoration-none">Loan Products</a>
+                                    </li>
+                                    <li class="breadcrumb-item active" aria-current="page">View Details</li>
+                                </ol>
+                            </nav>
+                            <h3 class="mb-0">
+                                <i class="bi bi-file-text me-2 text-primary"></i>@loanScheme?.Scheme_Name
+                                <span class="badge bg-@(loanScheme?.Scheme_Delete == false ? "success" : "danger") ms-2">
+                                    @(loanScheme?.Scheme_Delete == false ? "Active" : "Inactive")
+                                </span>
+                            </h3>
+                            <small class="text-muted">Scheme Code: @loanScheme?.Scheme_Code</small>
+                        </div>
+                        <div class="btn-group">
+                            @* <button class="btn btn-outline-primary" @onclick="() => Navigation.NavigateTo($"/loanproducts/edit/{SchemeId}")">
+                                <i class="bi bi-pencil-square me-2"></i>Edit
+                            </button> *@
+                            <button class="btn btn-outline-secondary" @onclick="GoBack">
+                                <i class="bi bi-arrow-left me-2"></i>Back
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan Details Tabs -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item">
+                            @* <button class="nav-link @(activeTab == "basic" ? "active" : "")" 
+                                    @onclick="() => SetActiveTab('basic')" type="button">
+                                <i class="bi bi-info-circle me-2"></i>Basic Information
+                            </button> *@
+                            <!-- Method 2: Using a lambda with a method call (Recommended) -->
+                            <button class="nav-link @(activeTab == "basic" ? "active" : "")"
+                                    @onclick="() => SetActiveTabBasic()" type="button">
+                                <i class="bi bi-info-circle me-2"></i>Basic Information
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                           @*  <button class="nav-link @(activeTab == "limits" ? "active" : "")" 
+                                    @onclick="() => SetActiveTab('limits')" type="button">
+                                <i class="bi bi-sliders2 me-2"></i>Loan Limits
+                            </button> *@
+                            <button class="nav-link @(activeTab == "limits" ? "active" : "")"
+                                    @onclick="() => SetActiveTabLimits()" type="button">
+                                <i class="bi bi-sliders2 me-2"></i>Loan Limits
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            @* <button class="nav-link @(activeTab == "interest" ? "active" : "")" 
+                                    @onclick="() => SetActiveTab('interest')" type="button">
+                                <i class="bi bi-percent me-2"></i>Interest Settings
+                            </button> *@
+                            <button class="nav-link @(activeTab == "interest" ? "active" : "")"
+                                    @onclick="() => SetActiveTabInterest()" type="button">
+                                <i class="bi bi-percent me-2"></i>Interest Settings
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            @* <button class="nav-link @(activeTab == "ledgers" ? "active" : "")" 
+                                    @onclick="() => SetActiveTab('ledgers')" type="button">
+                                <i class="bi bi-journal-bookmark-fill me-2"></i>Ledger Mapping
+                            </button> *@
+                            <button class="nav-link @(activeTab == "ledgers" ? "active" : "")"
+                                    @onclick="() => SetActiveTabLedgers()" type="button">
+                                <i class="bi bi-journal-bookmark-fill me-2"></i>Ledger Mapping
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            @* <button class="nav-link @(activeTab == "eligibility" ? "active" : "")" 
+                                    @onclick="() => SetActiveTab('eligibility')" type="button">
+                                <i class="bi bi-person-check me-2"></i>Eligibility
+                            </button> *@
+                            <button class="nav-link @(activeTab == "eligibility" ? "active" : "")"
+                                    @onclick="() => SetActiveTabEligibility()" type="button">
+                                <i class="bi bi-person-check me-2"></i>Eligibility
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Basic Information Tab -->
+                    @if (activeTab == "basic")
+                    {
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Scheme Code</h6>
+                                    <p class="fs-5 fw-bold">@loanScheme?.Scheme_Code</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Scheme Name</h6>
+                                    <p class="fs-5 fw-bold">@loanScheme?.Scheme_Name</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Loan Category</h6>
+                                    <p class="fw-bold">@GetCategoryName(loanScheme?.Pur_Id)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Loan Type</h6>
+                                    <p>@GetLoanTypeName(loanScheme?.Loan_Type)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Disbursement Type</h6>
+                                    <p>@GetDisbursementTypeName(loanScheme?.Disb_Type)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Loan Number Prefix</h6>
+                                    <p><span class="badge bg-secondary">@loanScheme?.LoanNoStartWith</span></p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Created By (User ID)</h6>
+                                    <p>@loanScheme?.Usr_Id</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Year ID</h6>
+                                    <p>@loanScheme?.Yr_Id</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Loan Limits Tab -->
+                    @if (activeTab == "limits")
+                    {
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="card bg-light border-0">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-currency-rupee display-4 text-primary"></i>
+                                        <h6 class="text-muted mt-2">Maximum Loan Amount</h6>
+                                        <h3 class="mb-0">₹ @(loanScheme?.MaximumLoanAmount.ToString("N0") ?? "0")</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light border-0">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-calendar-check display-4 text-success"></i>
+                                        <h6 class="text-muted mt-2">Maximum Principal Period</h6>
+                                        <h3 class="mb-0">@(loanScheme?.MaximumPrincipalPeriod.ToString() ?? "0") Months</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light border-0">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-calendar-week display-4 text-info"></i>
+                                        <h6 class="text-muted mt-2">Maximum Interest Period</h6>
+                                        <h3 class="mb-0">@(loanScheme?.MaximumInterestPeriod.ToString() ?? "0") Months</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mt-4">
+                                <h6 class="border-bottom pb-2">Frequency Settings</h6>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Demand Frequency</h6>
+                                    <p>@GetFrequencyName(loanScheme?.Dem_Frequency)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Interest Frequency</h6>
+                                    <p>@GetFrequencyName(loanScheme?.Int_Frequency)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Installment Type</h6>
+                                    <p>@GetInstallmentTypeName(loanScheme?.Inst_Type)</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Interest Settings Tab -->
+                    @if (activeTab == "interest")
+                    {
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="card @(loanScheme?.IsCompound_Int == true ? "bg-primary bg-opacity-10" : "bg-light") border-0">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <i class="bi @(loanScheme?.IsCompound_Int == true ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-4 me-2"></i>
+                                            <h6 class="mb-0">Compound Interest</h6>
+                                        </div>
+                                        @if (loanScheme?.IsCompound_Int == true)
+                                        {
+                                            <p class="mb-0">Compound Period: @GetCompoundPeriodName(loanScheme.Compound_Prd)</p>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card @(loanScheme?.IntFromTemplate == true ? "bg-primary bg-opacity-10" : "bg-light") border-0">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi @(loanScheme?.IntFromTemplate == true ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-4 me-2"></i>
+                                            <h6 class="mb-0">Interest from Template</h6>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card @(loanScheme?.IsDeductBalances == true ? "bg-primary bg-opacity-10" : "bg-light") border-0">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi @(loanScheme?.IsDeductBalances == true ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-4 me-2"></i>
+                                            <h6 class="mb-0">Deduct Balances</h6>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mt-4">
+                                <h6 class="border-bottom pb-2">Interest Application</h6>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Interest Application</h6>
+                                    <p>@GetApplicationTypeName(loanScheme?.Int_Application)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">PI Application</h6>
+                                    <p>@GetApplicationTypeName(loanScheme?.PI_Application)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">IOD Application</h6>
+                                    <p>@GetApplicationTypeName(loanScheme?.IOD_Application)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Advance P&L Application</h6>
+                                    <p>@GetApplicationTypeName(loanScheme?.Adv_Prl_Application)</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Ledger Mapping Tab -->
+                    @if (activeTab == "ledgers")
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Ledger Type</th>
+                                        <th>Principal Ledger ID</th>
+                                        <th>Interest Ledger ID</th>
+                                        <th>IOD Ledger ID</th>
+                                        <th>P&L Ledger ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Primary Ledgers</strong></td>
+                                        <td>@loanScheme?.PILed_Id</td>
+                                        <td>@loanScheme?.IntLed_Id</td>
+                                        <td>@loanScheme?.IODLed_Id</td>
+                                        <td>@loanScheme?.PrlLed_Id</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Reimbursement Ledgers</strong></td>
+                                        <td>@loanScheme?.ReimPILed_Id</td>
+                                        <td>@loanScheme?.ReimIntLed_Id</td>
+                                        <td>@loanScheme?.ReimIODLed_Id</td>
+                                        <td>@loanScheme?.ReimPrlLed_Id</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+
+                    <!-- Eligibility Tab -->
+                    @if (activeTab == "eligibility")
+                    {
+                        <div class="row g-4">
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Member Eligibility</h6>
+                                    @if (loanScheme?.Is_Member == true)
+                                    {
+                                        <span class="badge bg-success">Eligible</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Not Eligible</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Staff Eligibility</h6>
+                                    @if (loanScheme?.Is_Staff == true)
+                                    {
+                                        <span class="badge bg-success">Eligible</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Not Eligible</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Staff Advance</h6>
+                                    @if (loanScheme?.IsStaffAdvance == true)
+                                    {
+                                        <span class="badge bg-info">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">No</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Staff Loan Interest Type</h6>
+                                    <p>@GetStaffLoanIntTypeName(loanScheme?.StaffLoan_Int_Type)</p>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Adopt Loan Eligibility</h6>
+                                    <p>@GetEligibilityTypeName(loanScheme?.AdoptLoanEligibility)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Deduct Previous Loans</h6>
+                                    <p>@GetYesNoName(loanScheme?.DeductPreviousLoans)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Match Share Capital</h6>
+                                    <p>@GetYesNoName(loanScheme?.MatchShareCapital)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Adopt Loan Limit</h6>
+                                    <p>@GetYesNoName(loanScheme?.AdoptLoanLimit)</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-card">
+                                    <h6 class="text-muted mb-2">Security Members Required</h6>
+                                    <p><span class="badge bg-warning">@loanScheme?.IssurityMemberRequired</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                
+                </div>
+            </div>
+
+            <!-- Action Buttons at Bottom -->
+            <div class="d-flex justify-content-end gap-2 mt-4">
+               @*  <button class="btn btn-outline-primary" @onclick="() => Navigation.NavigateTo($"/loanproducts/edit/{SchemeId}")">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Loan Product
+                </button>
+                <button class="btn btn-outline-success" @onclick="PrintLoanDetails">
+                    <i class="bi bi-printer me-2"></i>Print
+                </button> *@
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="bi bi-arrow-left me-2"></i>Back to List
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int SchemeId { get; set; }
+    private DtoLoanProducts? loanScheme;
+    private string activeTab = "basic";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLoanScheme();
+    }
+
+    // Individual methods for each tab
+    private void SetActiveTabBasic()
+    {
+        activeTab = "basic";
+    }
+
+    private void SetActiveTabLimits()
+    {
+        activeTab = "limits";
+    }
+
+    private void SetActiveTabInterest()
+    {
+        activeTab = "interest";
+    }
+
+    private void SetActiveTabLedgers()
+    {
+        activeTab = "ledgers";
+    }
+
+    private void SetActiveTabEligibility()
+    {
+        activeTab = "eligibility";
+    }
+
+    private async Task LoadLoanScheme()
+    {
+        // TODO: Load from service
+        loanScheme = GetSampleLoanData().FirstOrDefault(l => l.Scheme_Id == SchemeId);
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/loanproducts");
+    }
+
+    private void PrintLoanDetails()
+    {
+        // Implement print functionality
+    }
+
+    // Helper methods for displaying values
+    private string GetCategoryName(int? purId)
+    {
+        return purId switch
+        {
+            1 => "Jewel Loans",
+            2 => "Loans on Fixed Deposits",
+            3 => "Staff Loans",
+            4 => "Farm Sector Loans",
+            5 => "Non-Farm Sector Loans",
+            6 => "Rural Housing",
+            7 => "Small Road Transport Loans",
+            _ => "Not Specified"
+        };
+    }
+
+    private string GetLoanTypeName(int? loanType)
+    {
+        return loanType switch
+        {
+            1 => "Term Loan",
+            2 => "Overdraft",
+            _ => "Not Specified"
+        };
+    }
+
+    private string GetDisbursementTypeName(int? disbType)
+    {
+        return disbType switch
+        {
+            1 => "Full Disbursement",
+            2 => "Partial Disbursement",
+            _ => "Not Specified"
+        };
+    }
+
+    private string GetFrequencyName(int? frequency)
+    {
+        return frequency switch
+        {
+            1 => "Monthly",
+            2 => "Quarterly",
+            3 => "Half-Yearly",
+            4 => "Yearly",
+            _ => "Not Specified"
+        };
+    }
+
+    private string GetInstallmentTypeName(int? instType)
+    {
+        return instType switch
+        {
+            1 => "Equal Monthly Installments",
+            2 => "Equal Quarterly Installments",
+            3 => "Bullet Payment",
+            _ => "Not Specified"
+        };
+    }
+
+    private string GetCompoundPeriodName(int? period)
+    {
+        return period switch
+        {
+            1 => "Monthly",
+            2 => "Quarterly",
+            3 => "Half-Yearly",
+            4 => "Yearly",
+            _ => "Not Specified"
+        };
+    }
+
+    private string GetApplicationTypeName(int? appType)
+    {
+        return appType switch
+        {
+            1 => "At Disbursement",
+            2 => "At Maturity",
+            3 => "Periodic",
+            _ => "Not Specified"
+        };
+    }
+
+    private string GetStaffLoanIntTypeName(int? intType)
+    {
+        return intType switch
+        {
+            1 => "Simple Interest",
+            2 => "Reducing Balance",
+            3 => "Fixed",
+            _ => "Not Specified"
+        };
+    }
+
+    private string GetEligibilityTypeName(int? eligType)
+    {
+        return eligType switch
+        {
+            1 => "Based on Share Capital",
+            2 => "Based on Deposit",
+            3 => "Fixed Amount",
+            _ => "Not Specified"
+        };
+    }
+
+    private string GetYesNoName(int? value)
+    {
+        return value == 1 ? "Yes" : value == 0 ? "No" : "Not Specified";
+    }
+
+    private List<DtoLoanProducts> GetSampleLoanData()
+    {
+        return new List<DtoLoanProducts>
+        {
+            new DtoLoanProducts 
+            { 
+                Scheme_Id = 1,
+                Pur_Id = 1,
+                Scheme_Code = "JWL001",
+                Scheme_Name = "Gold Jewel Loan",
+                MaximumLoanAmount = 500000,
+                MaximumPrincipalPeriod = 12,
+                MaximumInterestPeriod = 12,
+                Is_Member = true,
+                Is_Staff = false,
+                Loan_Type = 1,
+                Disb_Type = 1,
+                IsCompound_Int = false,
+                Compound_Prd = 1,
+                Dem_Frequency = 1,
+                Int_Frequency = 1,
+                Inst_Type = 1,
+                PILed_Id = 1001,
+                IntLed_Id = 1002,
+                IODLed_Id = 1003,
+                PrlLed_Id = 1004,
+                ReimPILed_Id = 2001,
+                ReimIntLed_Id = 2002,
+                ReimIODLed_Id = 2003,
+                ReimPrlLed_Id = 2004,
+                Scheme_Delete = false,
+                Usr_Id = 101,
+                Yr_Id = 2024,
+                IsDeductBalances = false,
+                IntFromTemplate = true,
+                LoanNoStartWith = "JWL",
+                IssurityMemberRequired = 2
+            }
+        };
+    }
+
+    private void NavigateToEdit()
+    {
+        Navigation.NavigateTo($"/loanproducts/edit/{SchemeId}");
+    }
+}

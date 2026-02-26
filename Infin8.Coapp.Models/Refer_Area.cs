@@ -6,7 +6,7 @@ namespace Infin8.Coapp.Models
     public partial class Refer_Area
     {
         [Key]
-        public int Area_Id { get; set; }
+        public decimal Area_Id { get; set; }
         public int Taluk_Id { get; set; }
         public string? Area_Name { get; set; }
         public string? Area_Notes { get; set; }

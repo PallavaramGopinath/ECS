@@ -14,7 +14,7 @@
         public string? PreAdd2 { get; set; }
         public string? PreAdd3 { get; set; }
         public string? Area_Name { get; set; }
-        public DateTime Trn_Date { get; set; }
+        public DateTime? Trn_Date { get; set; }
         public double Rpt_Amt { get; set; }
         public double Pmt_Amt { get; set; }
         public double Bal_Amt { get; set; }

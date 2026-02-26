@@ -102,19 +102,19 @@ else
     {
         if (firstRender)
         {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode!;
+            voucherData!.brCode = userInfoDto.BrCode;
+            yrId = userInfoDto.YrId;
             if (Voc_Id > 0)
             {
-                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
-                brCode = userInfoDto.BrCode!;
-                voucherData!.brCode = userInfoDto.BrCode;
-                yrId = userInfoDto.YrId;
                 var result = await _httpClient.GetFromJsonAsync<DtoVoucher>($"api/AccountsDashboard/GetTransactionByVocId/{Voc_Id}/{voucherData!.brCode}");
                 voucherData = result;
-               
-                // voucherData!.brCode = BrCode;
-                isLoading = false;
-                StateHasChanged();
+                // isLoading = false;
+                // StateHasChanged();
             }
+            isLoading = false;
+            StateHasChanged();
         }
     }
 

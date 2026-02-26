@@ -1,0 +1,836 @@
+﻿@page "/loanproducts"
+@using Coapp.Dto
+@using Infin8.Coapp.Models
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1 text-primary">
+                                <i class="bi bi-bank2 me-2"></i>Loan Products Management
+                            </h2>
+                            <p class="text-muted mb-0">Manage all loan schemes for Cooperative Agriculture and Rural Development Banks</p>
+                        </div>
+                        <button class="btn btn-primary btn-lg" @onclick="CreateNewLoan">
+                            <i class="bi bi-plus-circle me-2"></i>Create New Loan Product
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <ul class="nav nav-tabs nav-fill" role="tablist">
+                @foreach (var category in GetLoanCategoriesForTabs())
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link @(selectedCategory == category.Category ? "active" : "")"
+                                @onclick="() => SelectCategory(category.Category)"
+                                type="button">
+                            <i class="bi @category.Icon me-2"></i>@category.Name
+                        </button>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Loan Products Grid -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">
+                                @GetSelectedCategoryName()
+                                <span class="badge bg-primary ms-2">@filteredLoans.Count() Products</span>
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" class="form-control border-0 bg-light"
+                                       placeholder="Search loan products..."
+                                       @bind="searchTerm"
+                                       @bind:event="oninput" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (filteredLoans.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Scheme Code</th>
+                                        <th>Scheme Name</th>
+                                        <th>Type</th>
+                                        <th>Max Amount (₹)</th>
+                                        <th>Max Period (Months)</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var loan in filteredLoans.OrderBy(x=> x.Loan_Type).ThenBy(x=> x.LoanNoStartWith))
+                                    {
+                                        <tr>
+                                            <td><span class="badge bg-secondary">@loan.LoanNoStartWith</span></td>
+                                            <td>
+                                                <strong>@loan.Scheme_Name</strong>
+                                                @if (loan.Is_Staff)
+                                                {
+                                                    <span class="badge bg-info ms-2">Staff</span>
+                                                }
+                                                @if (loan.Is_Member)
+                                                {
+                                                    <span class="badge bg-success ms-2">Member</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (loan.Loan_Type == 1)
+                                                {
+                                                    <span class="badge bg-primary">Term Loan</span>
+                                                }
+                                                else if (loan.Loan_Type == 2)
+                                                {
+                                                    <span class="badge bg-warning">Short Term Loan</span>
+                                                }
+                                                else if (loan.Loan_Type == 3)
+                                                {
+                                                    <span class="badge bg-success">Short Term Loan</span>
+                                                }
+                                                else if(loan.Loan_Type == 4)
+                                                {
+                                                    <span class="badge bg-secondary">Short Term Loan</span>
+                                                }
+                                                else if (loan.Loan_Type == 5)
+                                                {
+                                                    <span class="badge bg-info">Term Loan</span>
+                                                }
+                                                else if(loan.Loan_Type == 6)
+                                                {
+                                                    <span class="badge bg-dark">Long Term Loan</span>
+                                                }
+                                                 else if(loan.Loan_Type == 7)
+                                                {
+                                                    <span class="badge bg-secondary">Long Term Loan</span>
+                                                }
+                                                 else if(loan.Loan_Type == 8)
+                                                {
+                                                    <span class="badge bg-primary">Long Term Loan</span>
+                                                }
+                                                 else if(loan.Loan_Type == 9)
+                                                {
+                                                    <span class="badge bg-warning">Long Term Loan</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Others </span>
+                                                }
+                                            </td>
+                                            <td>₹ @(loan.MaximumLoanAmount.ToString("N0") ?? "N/A")</td>
+                                            <td>@(loan.MaximumPrincipalPeriod.ToString() ?? "N/A")</td>
+                                            <td>
+                                                @if (!loan.Scheme_Delete)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary me-1"
+                                                        @onclick="() => ViewLoan(loan.Scheme_Id)"
+                                                        title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning me-1"
+                                                        @onclick="() => EditLoan(loan.Scheme_Id)"
+                                                        title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        @onclick="() => DeleteLoan(loan.Scheme_Id)"
+                                                        title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox display-1 text-muted"></i>
+                            <h5 class="mt-3 text-muted">No loan products found</h5>
+                            <p class="text-muted">Click "Create New Loan Product" to add your first loan scheme.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub Categories Section (for selected category) -->
+    @if (selectedCategory.HasValue && GetSubCategories(selectedCategory.Value).Any())
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0">Sub Categories</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            @foreach (var subCategory in GetSubCategories(selectedCategory.Value))
+                            {
+                                <div class="col-md-4">
+                                    <div class="card h-100 border-0 bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">@subCategory.Name</h6>
+                                            <p class="card-text small text-muted">@subCategory.Description</p>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    @onclick="() => FilterBySubCategory(subCategory.Name)">
+                                                View Products
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string brCode = "11005";
+    private List<Loan_Schemes> allLoans = new();
+    private List<Loan_Schemes> filteredLoans = new();
+    private List<LoanCategoryInfo> loanCategoryInforForTabs = new();
+    List<LoanCategoryInfo> loanSubCategories = new List<LoanCategoryInfo>();
+    // private List<DtoLoanProducts> allLoans = new();
+    // private List<DtoLoanProducts> filteredLoans = new();
+
+    private enum LoanCategory
+    {
+        EmploheeSocietyLoans = 1,
+        JewelLoans = 2,
+        LoansOnFixedDeposits = 3,
+        LoansOnRecurringDeposits = 4,
+        StaffLoans = 5,
+        FarmSectorLoans = 6,
+        NonFarmSectorLoans = 7,
+        RuralHousing = 8,
+        SmallRoadTransportLoans = 9
+
+        // JewelLoans = 1,
+        // LoansOnFixedDeposits = 2,
+        // StaffLoans = 3,
+        // FarmSectorLoans = 4,
+        // NonFarmSectorLoans = 5,
+        // RuralHousing = 6,
+        // SmallRoadTransportLoans = 7
+    }
+
+    private class LoanSubCategory
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+    }
+
+    private class LoanCategoryInfo
+    {
+        public LoanCategory Category { get; set; }
+        public string? Name { get; set; }
+        public string? Icon { get; set; }
+        public List<LoanSubCategory>? SubCategories { get; set; }
+    }
+
+    private LoanCategory? selectedCategory;
+    private string? searchTerm = "";
+    private string? selectedSubCategory = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLoanProducts();
+    }
+
+    private async Task LoadLoanProducts()
+    {
+        // TODO: Replace with actual data service call
+        allLoans = await  GetSampleLoanData();
+        FilterLoans();
+    }
+
+    private List<LoanCategoryInfo> GetLoanCategories()
+    {
+        List<LoanCategoryInfo> loanCategoryInfo = new List<LoanCategoryInfo>();
+
+        /// get jewel loan
+        var jewelLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.JewelLoans).ToList();
+        foreach (var loan in jewelLoan)
+        {
+            loanCategoryInfo.Add(new LoanCategoryInfo
+            {
+                Category = LoanCategory.JewelLoans,
+                Name = "Jewel Loans",
+                Icon = "bi-gem",
+                SubCategories = new List<LoanSubCategory>
+                {
+                    new LoanSubCategory { Name = loan.Scheme_Name, Description = loan.LoanNoStartWith }
+                }
+            });
+        }
+        /// get fixed deposit loan
+        var fixedDepositLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.LoansOnFixedDeposits).ToList();
+        foreach(var loan in fixedDepositLoan)
+        {
+            loanCategoryInfo.Add(new LoanCategoryInfo
+            {
+                Category = LoanCategory.LoansOnFixedDeposits,
+                Name = "Loans on Fixed Deposits",
+                Icon = "bi-piggy-bank",
+                SubCategories = new List<LoanSubCategory>
+                {
+                    new LoanSubCategory { Name = loan.Scheme_Name, Description = loan.LoanNoStartWith }
+                }
+            });
+        }
+        /// get recurring deposit loan
+        var recurringDepositLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.LoansOnRecurringDeposits).ToList();
+        foreach (var loan in recurringDepositLoan)
+        {
+            loanCategoryInfo.Add(new LoanCategoryInfo
+            {
+                Category = LoanCategory.LoansOnRecurringDeposits,
+                Name = "Loans on Recurring Deposits",
+                Icon = "bi-piggy-bank",
+                SubCategories = new List<LoanSubCategory>
+                {
+                    new LoanSubCategory { Name = loan.Scheme_Name, Description = loan.LoanNoStartWith }
+                }
+            });
+        }
+        /// get staff loan
+        var staffLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.StaffLoans).ToList();
+        foreach(var loan in staffLoan)
+        {
+            loanCategoryInfo.Add(new LoanCategoryInfo
+            {
+                Category = LoanCategory.StaffLoans,
+                Name = "Staff Loans",
+                Icon = "bi-people",
+                SubCategories = new List<LoanSubCategory>
+                {
+                    new LoanSubCategory { Name = loan.Scheme_Name, Description = loan.LoanNoStartWith }
+                }
+            });
+        }
+
+        /// get farm sector loan
+        var farmSectorLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.FarmSectorLoans).ToList();
+        foreach (var loan in farmSectorLoan)
+        {
+            loanCategoryInfo.Add(new LoanCategoryInfo
+            {
+                Category = LoanCategory.FarmSectorLoans,
+                Name = "Farm Sector Loans",
+                Icon = "bi-tree",
+                SubCategories = new List<LoanSubCategory>
+                {
+                    new LoanSubCategory { Name = loan.Scheme_Name, Description = loan.LoanNoStartWith }
+                }
+            });
+        }
+
+        /// get farm sector loan
+        var nonfarmSectorLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.NonFarmSectorLoans).ToList();
+        foreach (var loan in nonfarmSectorLoan)
+        {
+            loanCategoryInfo.Add(new LoanCategoryInfo
+            {
+                Category = LoanCategory.NonFarmSectorLoans,
+                Name = "Non-Farm Sector Loans",
+                Icon = "bi-building",
+                SubCategories = new List<LoanSubCategory>
+                {
+                    new LoanSubCategory { Name = loan.Scheme_Name, Description = loan.LoanNoStartWith }
+                }
+            });
+        }
+        
+        /// get rural housing loan
+        var ruralHousingLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.RuralHousing).ToList();
+        foreach (var loan in ruralHousingLoan)
+        {
+            loanCategoryInfo.Add(new LoanCategoryInfo
+            {
+                Category = LoanCategory.RuralHousing,
+                Name = "Rural Housing Loans",
+                Icon = "bi-building",
+                SubCategories = new List<LoanSubCategory>
+                {
+                    new LoanSubCategory { Name = loan.Scheme_Name, Description = loan.LoanNoStartWith }
+                }
+            });
+        }
+
+        /// get rural housing loan
+        var srtoLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.SmallRoadTransportLoans ).ToList();
+        foreach (var loan in srtoLoan)
+        {
+            loanCategoryInfo.Add(new LoanCategoryInfo
+            {
+                Category = LoanCategory.SmallRoadTransportLoans ,
+                Name = "Small Road Transport Loans",
+                Icon = "bi-truck",
+                SubCategories = new List<LoanSubCategory>
+                {
+                    new LoanSubCategory { Name = loan.Scheme_Name, Description = loan.LoanNoStartWith }
+                }
+            });
+        }
+
+        return loanCategoryInfo.OrderBy(x=> x.Category).ToList();
+
+        /// get non farm sector loan
+        /// get rural housing loan
+        /// get small road transport loan
+        /// get other loan
+
+        #region commented sample data
+        // return new List<LoanCategoryInfo>
+        // {
+        //     new LoanCategoryInfo
+        //     {
+        //         Category = LoanCategory.JewelLoans,
+        //         Name = "Jewel Loans",
+        //         Icon = "bi-gem",
+        //         SubCategories = new List<LoanSubCategory>()
+        //     },
+        //     new LoanCategoryInfo
+        //     {
+        //         Category = LoanCategory.LoansOnFixedDeposits,
+        //         Name = "Loans on Fixed Deposits",
+        //         Icon = "bi-piggy-bank",
+        //         SubCategories = new List<LoanSubCategory>()
+        //     },
+        //     new LoanCategoryInfo
+        //     {
+        //         Category = LoanCategory.StaffLoans,
+        //         Name = "Staff Loans",
+        //         Icon = "bi-people",
+        //         SubCategories = new List<LoanSubCategory>
+        //         {
+        //             new LoanSubCategory { Name = "Festival Advance", Description = "Advance for festival expenses" },
+        //             new LoanSubCategory { Name = "House Loan", Description = "Housing loan for staff" },
+        //             new LoanSubCategory { Name = "Conveyance Loan", Description = "Vehicle loan for staff" }
+        //         }
+        //     },
+        //     new LoanCategoryInfo
+        //     {
+        //         Category = LoanCategory.FarmSectorLoans,
+        //         Name = "Farm Sector Loans",
+        //         Icon = "bi-tree",
+        //         SubCategories = new List<LoanSubCategory>
+        //         {
+        //             new LoanSubCategory { Name = "Minor Irrigation Loan", Description = "For irrigation purposes" },
+        //             new LoanSubCategory { Name = "Tractor Loan", Description = "For purchasing tractors" }
+        //         }
+        //     },
+        //     new LoanCategoryInfo
+        //     {
+        //         Category = LoanCategory.NonFarmSectorLoans,
+        //         Name = "Non-Farm Sector Loans",
+        //         Icon = "bi-building",
+        //         SubCategories = new List<LoanSubCategory>
+        //         {
+        //             new LoanSubCategory { Name = "Industrial Loans", Description = "Loans for small industries" }
+        //         }
+        //     },
+        //     new LoanCategoryInfo
+        //     {
+        //         Category = LoanCategory.RuralHousing,
+        //         Name = "Rural Housing",
+        //         Icon = "bi-house",
+        //         SubCategories = new List<LoanSubCategory>
+        //         {
+        //             new LoanSubCategory { Name = "Construction", Description = "House construction loan" },
+        //             new LoanSubCategory { Name = "Renovation", Description = "House renovation loan" },
+        //             new LoanSubCategory { Name = "Purchase", Description = "House purchase loan" }
+        //         }
+        //     },
+        //     new LoanCategoryInfo
+        //     {
+        //         Category = LoanCategory.SmallRoadTransportLoans,
+        //         Name = "Small Road Transport",
+        //         Icon = "bi-truck",
+        //         SubCategories = new List<LoanSubCategory>
+        //         {
+        //             new LoanSubCategory { Name = "Van Purchase", Description = "Loan for purchasing van" },
+        //             new LoanSubCategory { Name = "Lorry Purchase", Description = "Loan for purchasing lorry" }
+        //         }
+        //     }
+        // };
+        #endregion 
+    }
+
+    private List<LoanSubCategory> GetSubCategories(LoanCategory category)
+    {
+        // return GetLoanCategories().First(c => c.Category == category).SubCategories;
+        // var query = GetLoanCategories()
+        //    .Where(c => c.Category == category)
+        //    .SelectMany(c => c.SubCategories!)
+        //    .Distinct() // Optional: removes duplicates if needed
+        //    .ToList();
+        var query = GetLoanCategories()
+          .Where(c => c.Category == category)
+          .SelectMany(c => c.SubCategories!)
+          .ToList();
+        return query;
+    }
+
+    private List<LoanCategoryInfo> GetLoanCategoriesForTabs()
+    {
+        List<LoanCategoryInfo> loanCategoryInfo = new List<LoanCategoryInfo>();
+        var distinctByLoanType = allLoans
+            .GroupBy(x => x.Loan_Type)
+            .Select(g => g.First())
+            .ToList();
+        foreach (var loan in distinctByLoanType)
+        {
+            string icode = "";
+            var catogery = LoanCategory.JewelLoans; ;
+            switch(loan.Loan_Type )
+            {
+                case 1:
+                    icode = "bi-people";
+                    catogery = LoanCategory.EmploheeSocietyLoans;
+                    break;
+                case 2:
+                    catogery = LoanCategory.JewelLoans;
+                    icode = "bi-gem"; 
+                    break;
+                case 3:
+                    catogery = LoanCategory.LoansOnFixedDeposits;
+                    icode = "bi-piggy-bank";
+                    break;
+                case 4:
+                    catogery = LoanCategory.LoansOnRecurringDeposits;
+                    icode = "bi-piggy-bank"; 
+                    break;
+                case 5:
+                    catogery = LoanCategory.StaffLoans;
+                    icode = "bi-people"; 
+                    break;
+                case 6:
+                    catogery = LoanCategory.FarmSectorLoans ;
+                    icode = "bi-tree";
+                    break;
+               case 7: /// Non farm sector
+                    catogery = LoanCategory.NonFarmSectorLoans ;
+                    icode = "bi-building";
+                    break;
+                case 8: /// Rural housing
+                    catogery = LoanCategory.RuralHousing;
+                    icode = "bi-house";
+                    break;
+                case 9: /// Small road transport
+                    catogery = LoanCategory.SmallRoadTransportLoans ;
+                    icode = "bi-truck";
+                    break;
+                default:
+                    icode = "bi-question-circle";
+                    break;
+            }
+            loanCategoryInfo.Add(new LoanCategoryInfo
+            {
+                Category = catogery,
+                Name = loan.Scheme_Name , // "Jewel Loans",
+                Icon = icode,
+                SubCategories = new List<LoanSubCategory>
+                {
+                    new LoanSubCategory { Name = loan.Scheme_Name, Description = loan.LoanNoStartWith }
+                }
+            });
+        }
+        return loanCategoryInfo;
+    }
+
+    private string GetSelectedCategoryName()
+    {
+        // return selectedCategory.HasValue
+        //     ? GetLoanCategories().First(c => c.Category == selectedCategory.Value).Name
+        //     : "All Loan Products";
+        return selectedCategory.HasValue
+           ? GetLoanCategoriesForTabs().First(c => c.Category == selectedCategory.Value).Name
+           : "All Loan Products";
+    }
+
+    private void SelectCategory(LoanCategory category)
+    {
+        selectedCategory = category;
+        selectedSubCategory = "";
+        FilterLoans();
+    }
+
+    private void FilterBySubCategory(string subCategory)
+    {
+        selectedSubCategory = subCategory;
+        FilterLoans();
+    }
+
+    private void FilterLoans()
+    {
+        filteredLoans = allLoans.Where(l =>
+            (selectedCategory == null || l.Loan_Type == (int)selectedCategory) &&
+            (string.IsNullOrEmpty(searchTerm) ||
+             l.Scheme_Name!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             l.LoanNoStartWith!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(selectedSubCategory) ||
+             l.Scheme_Name!.Contains(selectedSubCategory, StringComparison.OrdinalIgnoreCase))
+        ).ToList();
+
+        // filteredLoans = allLoans.Where(l =>
+        //     (selectedCategory == null || l.Pur_Id == (int)selectedCategory) &&
+        //     (string.IsNullOrEmpty(searchTerm) ||
+        //      l.Scheme_Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+        //      l.Scheme_Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+        //     (string.IsNullOrEmpty(selectedSubCategory) ||
+        //      l.Scheme_Name.Contains(selectedSubCategory, StringComparison.OrdinalIgnoreCase))
+        // ).ToList();
+    }
+
+    private void CreateNewLoan()
+    {
+        Navigation.NavigateTo("/loanproducts/create");
+    }
+
+    private void ViewLoan(int schemeId)
+    {
+        Navigation.NavigateTo($"/loanproducts/view/{schemeId}");
+    }
+
+    private void EditLoan(int schemeId)
+    {
+        Navigation.NavigateTo($"/loanproducts/edit/{schemeId}");
+    }
+
+    private async Task DeleteLoan(int schemeId)
+    {
+        // TODO: Implement delete confirmation and logic
+        var loan = allLoans.FirstOrDefault(l => l.Scheme_Id == schemeId);
+        if (loan != null)
+        {
+            // Implement soft delete
+            loan.Scheme_Delete = true;
+            await LoadLoanProducts();
+        }
+    }
+
+    // Sample data for demonstration
+    private async Task<List<Loan_Schemes>> GetSampleLoanData()
+    {
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<Loan_Schemes>>($"api/Loan/GetAllLoanProducts/{brCode}");
+            if (result != null && result.Count > 0)
+            {
+                allLoans = result.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching loan products: {ex.Message}");
+            allLoans = new List<Loan_Schemes>(); // Return empty list on error
+        }
+        return allLoans;
+
+        #region commented sample data
+        // return new List<DtoLoanProducts>
+        // {
+        //     new DtoLoanProducts
+        //     {
+        //         Scheme_Id = 1,
+        //         Pur_Id = 1,
+        //         Scheme_Code = "JWL001",
+        //         Scheme_Name = "Gold Jewel Loan",
+        //         MaximumLoanAmount = 500000,
+        //         MaximumPrincipalPeriod = 12,
+        //         Is_Member = true,
+        //         Is_Staff = false,
+        //         Loan_Type = 1,
+        //         Scheme_Delete = false
+        //     },
+        //     new DtoLoanProducts 
+        //     {
+        //         Scheme_Id = 2,
+        //         Pur_Id = 3,
+        //         Scheme_Code = "STF001",
+        //         Scheme_Name = "Festival Advance",
+        //         MaximumLoanAmount = 50000,
+        //         MaximumPrincipalPeriod = 6,
+        //         Is_Member = false,
+        //         Is_Staff = true,
+        //         IsStaffAdvance = true,
+        //         Loan_Type = 1,
+        //         Scheme_Delete = false
+        //     },
+        //     new DtoLoanProducts 
+        //     {
+        //         Scheme_Id = 3,
+        //         Pur_Id = 4,
+        //         Scheme_Code = "FRM001",
+        //         Scheme_Name = "Tractor Loan",
+        //         MaximumLoanAmount = 1000000,
+        //         MaximumPrincipalPeriod = 60,
+        //         Is_Member = true,
+        //         Is_Staff = false,
+        //         Loan_Type = 1,
+        //         Scheme_Delete = false
+        //     }
+        // };
+        #endregion 
+    }
+}
+
+<style>
+    /* Progress Steps */
+    .progress-steps {
+        padding: 20px 0;
+    }
+
+    .step-item {
+        text-align: center;
+        position: relative;
+    }
+
+        .step-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 25px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: #e9ecef;
+            z-index: 1;
+        }
+
+        .step-item.active:not(:last-child)::after,
+        .step-item.completed:not(:last-child)::after {
+            background: #0d6efd;
+        }
+
+    .step-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #e9ecef;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        position: relative;
+        z-index: 2;
+        transition: all 0.3s;
+    }
+
+    .step-item.active .step-icon {
+        background: #0d6efd;
+        color: white;
+    }
+
+    .step-item.completed .step-icon {
+        background: #198754;
+        color: white;
+    }
+
+    .step-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6c757d;
+    }
+
+    .step-item.active .step-label {
+        color: #0d6efd;
+        font-weight: 600;
+    }
+
+    .step-item.completed .step-label {
+        color: #198754;
+    }
+
+    /* Detail Cards */
+    .detail-card {
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 3px solid #0d6efd;
+    }
+
+    /* Form Floating Labels */
+    .form-floating > .form-control,
+    .form-floating > .form-select {
+        height: calc(3.5rem + 2px);
+        line-height: 1.25;
+    }
+
+    .form-floating > label {
+        padding: 1rem 0.75rem;
+    }
+
+    /* Review Section */
+    .review-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+        .review-section h6 {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .review-section table {
+            margin-bottom: 0;
+        }
+
+            .review-section table th {
+                width: 40%;
+                color: #495057;
+                font-weight: 500;
+            }
+
+            .review-section table td {
+                color: #212529;
+                font-weight: 500;
+            }
+</style>
