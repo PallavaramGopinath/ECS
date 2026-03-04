@@ -241,13 +241,15 @@ namespace Infin8.Coapp.API.Controllers
 
                 var receiptData = await _reportHandler.GetReceiptGeneralData(rptObject.vocId, rptObject.brCode!);
                 rptList = receiptData.receiptData;
-                //receiptAmt = rptList.Sum(x => x.Voc_Rpt);
-                rsInWords = _utilityHandler.RupeesInWords(rptObject.receiptAmt);
-;
-                chequeDetails = receiptData.chequeDetails;
-               
-                var parameters = new[]
+                double receiptAmt = rptList.Sum(x => x.Voc_Rpt);
+                if (receiptAmt > 0)
                 {
+                    rsInWords = _utilityHandler.RupeesInWords(rptObject.receiptAmt);
+                    ;
+                    chequeDetails = receiptData.chequeDetails;
+
+                    var parameters = new[]
+                    {
                     new ReportParameter("paramSocietyName", societyName ) ,
                     new ReportParameter("ParamFirstSignature", report.FirstSignature ) ,
                     new ReportParameter("ParamSecondSignature", report.SecondSignature ),
@@ -257,9 +259,10 @@ namespace Infin8.Coapp.API.Controllers
                     new ReportParameter("paramChequeDetails", chequeDetails)
                     };
 
-                localReport.DataSources.Add(new ReportDataSource("Ds_ReceiptGeneral", rptList));
-                localReport.SetParameters(parameters);
-                pdfAsBytes = localReport.Render("PDF");
+                    localReport.DataSources.Add(new ReportDataSource("Ds_ReceiptGeneral", rptList));
+                    localReport.SetParameters(parameters);
+                    pdfAsBytes = localReport.Render("PDF");
+                }
             }
             catch (Exception)
             {

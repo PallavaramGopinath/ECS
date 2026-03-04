@@ -1722,5 +1722,27 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.TransactionsRepository.GetTransactionStatusByAccId((int)accId);
         }
+
+        public async Task<List<DropdownItem>> GetLedgerItems(int fnlId, string brCode)
+        {
+            decimal cashLedId = 0;
+            List<DropdownItem> ledList = new List<DropdownItem>();
+            try
+            {
+                cashLedId = await _unitOfWork.Accounts.GetCashLedgerId(brCode);
+                ledList = await _unitOfWork.TransactionsRepository.GetLedgerItems(fnlId, cashLedId, brCode);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                ledList = new List<DropdownItem>();
+            }
+            return ledList ;
+        }
+
+        public async Task<List<DropdownItem>> GetPrincipalLedgerItems(string brCode)
+        {
+            return await _unitOfWork.TransactionsRepository.GetPrincipalLedgerItems(brCode);
+        }
     }
 }

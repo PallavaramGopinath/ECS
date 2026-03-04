@@ -1,5 +1,5 @@
 ﻿using Infin8.Coapp.Repository;
-using Models;
+using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,6 +48,20 @@ namespace Infin8.Coapp.BusinessLogic
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Loan scheme group not deleted");
             }
             return result;
+        }
+
+        public async Task<List<Loan_Schemes_Group>> GetLoanSchemesGroup()
+        {
+            List<Loan_Schemes_Group> groups = new List<Loan_Schemes_Group>();
+            try
+            {
+                groups = await _unitOfWork.LoanSchemeGroup.GetLoanSchemesGroup();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return groups;
         }
     }
 }

@@ -1,0 +1,309 @@
+﻿@page "/finance/ledgers/{action}/{id:decimal?}"
+@using Coapp.Models
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h4 class="mb-0 text-primary">
+                        <i class="bi bi-@(IsEditMode ? "pencil-square" : "plus-circle") me-2"></i>
+                        @(IsEditMode ? "Edit Ledger" : "Create New Ledger")
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@ledger" OnValidSubmit="@HandleValidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <div class="row g-4">
+                            <!-- Basic Information -->
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">Basic Information</h6>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <InputText id="ledgerNo" class="form-control" @bind-Value="ledger.Led_No" />
+                                    <label for="ledgerNo">Ledger Number *</label>
+                                    <ValidationMessage For="@(() => ledger.Led_No)" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <InputText id="ledgerName" class="form-control" @bind-Value="ledger.Led_Name" />
+                                    <label for="ledgerName">Ledger Name *</label>
+                                    <ValidationMessage For="@(() => ledger.Led_Name)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="form-floating mb-3">
+                                    <InputText id="ledgerDesc" class="form-control" @bind-Value="ledger.Led_Desc" />
+                                    <label for="ledgerDesc">Description</label>
+                                </div>
+                            </div>
+
+                            <!-- Classification -->
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">Classification</h6>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputSelect id="finalLedger" class="form-select" @bind-Value="selectedFinalLedgerId" @onchange="OnFinalLedgerChange">
+                                        <option value="">Select Final Ledger</option>
+                                        @foreach (var final in finalLedgers)
+                                        {
+                                            <option value="@final.Fnl_Id">@final.Fnl_Name</option>
+                                        }
+                                    </InputSelect>
+                                    <label for="finalLedger">Final Ledger *</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputSelect id="ledgerGroup" class="form-select" @bind-Value="ledger.Grp_Id">
+                                        <option value="0">Select Ledger Group</option>
+                                        @foreach (var group in filteredGroups)
+                                        {
+                                            <option value="@group.Grp_Id">@group.Grp_Name</option>
+                                        }
+                                    </InputSelect>
+                                    <label for="ledgerGroup">Ledger Group *</label>
+                                    <ValidationMessage For="@(() => ledger.Grp_Id)" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputNumber id="subGroup" class="form-control" @bind-Value="ledger.SubGrp_Id" />
+                                    <label for="subGroup">Sub Group ID</label>
+                                </div>
+                            </div>
+
+                            <!-- Financial Details -->
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">Financial Details</h6>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputNumber id="openingBalance" class="form-control" @bind-Value="ledger.Led_OB" step="0.01" />
+                                    <label for="openingBalance">Opening Balance</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputDate id="obDate" class="form-control" @bind-Value="ledger.Led_OB_Date" />
+                                    <label for="obDate">Opening Balance Date</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputNumber id="currentBalance" class="form-control" @bind-Value="ledger.Led_CB" step="0.01" />
+                                    <label for="currentBalance">Current Balance</label>
+                                </div>
+                            </div>
+
+                            <!-- Ledger Configuration -->
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">Ledger Configuration</h6>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputSelect id="ledgerType" class="form-select" @bind-Value="ledger.Led_Type">
+                                        <option value="1">Asset</option>
+                                        <option value="2">Liability</option>
+                                        <option value="3">Income</option>
+                                        <option value="4">Expense</option>
+                                    </InputSelect>
+                                    <label for="ledgerType">Ledger Type *</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputSelect id="sundryType" class="form-select" @bind-Value="ledger.Led_Sundry_Type">
+                                        <option value="0">None</option>
+                                        <option value="1">Sundry Debtor</option>
+                                        <option value="2">Sundry Creditor</option>
+                                    </InputSelect>
+                                    <label for="sundryType">Sundry Type</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputSelect id="realNominal" class="form-select" @bind-Value="ledger.Led_RealNominal">
+                                        <option value="1">Real</option>
+                                        <option value="2">Nominal</option>
+                                    </InputSelect>
+                                    <label for="realNominal">Real/Nominal</label>
+                                </div>
+                            </div>
+
+                            <!-- Toggle Switches -->
+                            <div class="col-12">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="form-check form-switch mb-3">
+                                            <InputCheckbox id="mapped" class="form-check-input" @bind-Value="ledger.Led_Mapped" />
+                                            <label class="form-check-label" for="mapped">Is Mapped</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check form-switch mb-3">
+                                            <InputCheckbox id="glAvailable" class="form-check-input" @bind-Value="ledger.Led_GLAvailable" />
+                                            <label class="form-check-label" for="glAvailable">GL Available</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- System Fields -->
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">System Information</h6>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputNumber id="serialNo" class="form-control" @bind-Value="ledger.Led_SlNo" />
+                                    <label for="serialNo">Serial Number</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputText id="brCode" class="form-control" @bind-Value="ledger.BrCode" />
+                                    <label for="brCode">Branch Code</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputNumber id="userId" class="form-control" @bind-Value="ledger.Usr_Id" />
+                                    <label for="userId">User ID *</label>
+                                </div>
+                            </div>
+
+                            <!-- Hidden Fields -->
+                            <InputNumber id="yrId" @bind-Value="ledger.Yr_Id" class="d-none" />
+                            <InputCheckbox id="ledgerDelete" @bind-Value="ledger.Led_Delete" class="d-none" />
+
+                            <!-- Form Actions -->
+                            <div class="col-12">
+                                <hr />
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
+                                        <i class="bi bi-x-circle me-2"></i>Cancel
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-@(IsEditMode ? "check-circle" : "plus-circle") me-2"></i>
+                                        @(IsEditMode ? "Update Ledger" : "Create Ledger")
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Action { get; set; }
+    [Parameter] public decimal? Id { get; set; }
+
+    private Fin_Ledger ledger = new();
+    private List<Fin_Ledger_Grp> allGroups = new();
+    private List<Fin_Ledger_Grp> filteredGroups = new();
+    private List<Fin_Ledger_Fnl> finalLedgers = new();
+    private int selectedFinalLedgerId;
+
+    private bool IsEditMode => Action?.ToLower() == "edit";
+    private bool IsViewMode => Action?.ToLower() == "view";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        // finalLedgers = await LedgerService.GetAllFinalLedgers();
+        // allGroups = await LedgerService.GetAllLedgerGroups();
+        filteredGroups = allGroups;
+
+        if (IsEditMode && Id.HasValue)
+        {
+            // ledger = await LedgerService.GetLedgerById(Id.Value);
+            if (ledger != null)
+            {
+                var group = allGroups.FirstOrDefault(g => g.Grp_Id == ledger.Grp_Id);
+                if (group != null)
+                {
+                    selectedFinalLedgerId = group.Fnl_Id;
+                    FilterGroupsByFinalLedger();
+                }
+            }
+        }
+        else
+        {
+            ledger.Led_OB_Date = DateTime.Today;
+            ledger.Yr_Id = DateTime.Today.Year;
+            ledger.Usr_Id = 1; // Default user ID
+        }
+    }
+
+    private void OnFinalLedgerChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int finalId))
+        {
+            selectedFinalLedgerId = finalId;
+            FilterGroupsByFinalLedger();
+            ledger.Grp_Id = 0; // Reset group selection
+        }
+    }
+
+    private void FilterGroupsByFinalLedger()
+    {
+        filteredGroups = allGroups.Where(g => g.Fnl_Id == selectedFinalLedgerId).ToList();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            if (IsEditMode)
+            {
+                // await LedgerService.UpdateLedger(ledger);
+                await JSRuntime.InvokeVoidAsync("showToast", "Ledger updated successfully!", "success");
+            }
+            else
+            {
+                // await LedgerService.CreateLedger(ledger);
+                await JSRuntime.InvokeVoidAsync("showToast", "Ledger created successfully!", "success");
+            }
+
+            Navigation.NavigateTo("/finance/ledgers");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showToast", $"Error: {ex.Message}", "error");
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/finance/ledgers");
+    }
+}

@@ -104,16 +104,27 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId,int relateAccountId)
+        public async Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId,int relateAccountId,decimal ledgerId, string brCode)
         {
             bool result = false;
             try
             {
-                await CSISContext.Staging_Details
-                .Where(x => x.Staging_Id == stagingId && x.Related_Account_Id == relateAccountId)
-                .ExecuteDeleteAsync();
-                await CSISContext.SaveChangesAsync();
-                result = true;
+                if (ledgerId == 0)
+                {
+                    await CSISContext.Staging_Details
+                    .Where(x => x.Staging_Id == stagingId && x.Related_Account_Id == relateAccountId && x.BrCode == brCode )
+                    .ExecuteDeleteAsync();
+                    await CSISContext.SaveChangesAsync();
+                    result = true;
+                }
+                else
+                {
+                    await CSISContext.Staging_Details
+                    .Where(x => x.Staging_Id == stagingId && x.Related_Account_Id == relateAccountId && x.Ledger_Id == ledgerId && x.BrCode == brCode )
+                    .ExecuteDeleteAsync();
+                    await CSISContext.SaveChangesAsync();
+                    result = true;
+                }
             }
             catch (Exception ex)
             {
@@ -555,25 +566,45 @@ namespace Infin8.Coapp.Repository
             }
             return accRelatedDataList;
         }
-        public async Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId)
+        public async Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId,decimal ledgerId)
         {
             int resultCount = 0;
             //string[] sourceArrayInitiatedOrMacked = new[] { "I", "M" };
             DateTime.TryParse(transactedDate, out DateTime transactedDateparsed);
             try
             {
-                var count = await  (from master in CSISContext.Staging_Master
-                             join details in CSISContext.Staging_Details
-                             on master.Staging_Id equals details.Staging_Id
-                             where master.Created_Date == transactedDateparsed
-                                   && details.Member_Id == memId
-                                   && details.Related_Account_Id == relatedAccountId
-                                   && sourceArrayInitiatedOrMacked.Contains(details.Staging_Status)
-                                   && sourceArrayInitiatedOrMacked.Contains(master.Staging_Status)
-                             select details).CountAsync();
-                if(count > 0)
+                if (ledgerId == 0)
                 {
-                    resultCount = count;
+                    var count = await (from master in CSISContext.Staging_Master
+                                       join details in CSISContext.Staging_Details
+                                       on master.Staging_Id equals details.Staging_Id
+                                       where master.Created_Date == transactedDateparsed
+                                             && details.Member_Id == memId
+                                             && details.Related_Account_Id == relatedAccountId
+                                             && sourceArrayInitiatedOrMacked.Contains(details.Staging_Status)
+                                             && sourceArrayInitiatedOrMacked.Contains(master.Staging_Status)
+                                       select details).CountAsync();
+                    if (count > 0)
+                    {
+                        resultCount = count;
+                    }
+                }
+                else
+                {
+                    var count = await (from master in CSISContext.Staging_Master
+                                       join details in CSISContext.Staging_Details
+                                       on master.Staging_Id equals details.Staging_Id
+                                       where master.Created_Date == transactedDateparsed
+                                             && details.Member_Id == memId
+                                             && details.Related_Account_Id == relatedAccountId
+                                             && details.Ledger_Id == ledgerId
+                                             && sourceArrayInitiatedOrMacked.Contains(details.Staging_Status)
+                                             && sourceArrayInitiatedOrMacked.Contains(master.Staging_Status)
+                                       select details).CountAsync();
+                    if (count > 0)
+                    {
+                        resultCount = count;
+                    }
                 }
             }
             catch (Exception)

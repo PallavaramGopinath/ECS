@@ -22,7 +22,26 @@ namespace Infin8.Coapp.BusinessLogic
             bool result = false;
             try
             {
-                result = await _unitOfWork.FinLedger.AddFinLedgerAsync(finLedger);
+                List<Fin_Ledger_Trn> trnList = new();
+                List<Fin_Yr_Master> yearList = await _unitOfWork.FinYearMaster.GetFinancialYearList(finLedger.BrCode!);
+
+                decimal ledId = await _unitOfWork.FinLedger.AddFinLedgerAsync(finLedger);
+
+                foreach (var yr in yearList)
+                {
+                    Fin_Ledger_Trn ledTrn = new Fin_Ledger_Trn();
+                    ledTrn.Trn_Id = 0;
+                    ledTrn.Led_Id = ledId;
+                    ledTrn.OB_Amt = 0;
+                    ledTrn.Tot_Rpt_Amt = 0;
+                    ledTrn.Tot_Pmt_Amt = 0;
+                    ledTrn.CB_Amt = 0;
+                    ledTrn.Usr_Id = finLedger.Usr_Id;
+                    ledTrn.Yr_Id = finLedger.Yr_Id;
+                    ledTrn.LedgerTrn_Delete = false;
+                    trnList.Add(ledTrn);
+                }
+                await _unitOfWork.FinLedgerTrn.AddFinLedgerTrnListAsync(trnList);
                 await _unitOfWork.CompleteAsync();
                 result = true;
             }
@@ -61,6 +80,11 @@ namespace Infin8.Coapp.BusinessLogic
         public async Task<List<DropdownItem>> GetLedgerItemsExceptBankLedgersAsyn(string brCode)
         {
             return await _unitOfWork.FinLedger.GetLedgerItemsExceptBankLedgersAsyn(brCode);
+        }
+
+        public async Task<List<Fin_Ledger>> GetLedgerList10Async(string brCode)
+        {
+            return await _unitOfWork.FinLedger.GetLedgerList10Async(brCode);
         }
 
         public async Task<List<DropdownItem>> GetLedgerListAsync(int fnlId, string brCode)

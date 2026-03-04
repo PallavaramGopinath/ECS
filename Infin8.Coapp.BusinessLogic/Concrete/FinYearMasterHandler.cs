@@ -60,5 +60,10 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return dayBeginInfo!;
         }
+
+        public async Task<List<Fin_Yr_Master>> GetFinancialYearList(string brCode)
+        {
+            return await _unitOfWork.FinYearMaster.GetFinancialYearList(brCode);
+        }
     }
 }

@@ -147,17 +147,17 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpDelete]
-        [Route("DeleteStaging/{stagingId:decimal}/{relatedAccountId:int}")]
-        public async Task<ActionResult<bool>> DeleteStaging(decimal stagingId, int relatedAccountId)
+        [Route("DeleteStaging/{stagingId:decimal}/{relatedAccountId:int}/{ledgerId:decimal}/{brCode}")]
+        public async Task<ActionResult<bool>> DeleteStaging(decimal stagingId, int relatedAccountId, decimal ledgerId, string brCode)
         {
-            var result = await _stagingDetailsHandler.DeleteStagingDetailsByStagingId(stagingId, relatedAccountId);
+            var result = await _stagingDetailsHandler.DeleteStagingDetailsByStagingId(stagingId, relatedAccountId, ledgerId, brCode);
             return Ok(result);
         }
         [HttpGet]
-        [Route("VerifyTransactionExistsInStagingDetails/{memId:decimal}/{transactedDate}/{relatedAccountId:int}")]
-        public async Task<ActionResult<int>> VerifyTransactionExistsInStagingDetails(decimal memId, string transactedDate, int relatedAccountId)
+        [Route("VerifyTransactionExistsInStagingDetails/{memId:decimal}/{transactedDate}/{relatedAccountId:int}/{ledgerId:decimal}")]
+        public async Task<ActionResult<int>> VerifyTransactionExistsInStagingDetails(decimal memId, string transactedDate, int relatedAccountId, decimal ledgerId)
         {
-            var result = await _stagingDetailsHandler.IsAlreadyTransactedButNotVerifiedOrRejected(memId, transactedDate, relatedAccountId);
+            var result = await _stagingDetailsHandler.IsAlreadyTransactedButNotVerifiedOrRejected(memId, transactedDate, relatedAccountId, ledgerId);
             return Ok(result);
         }
 

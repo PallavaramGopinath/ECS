@@ -14,5 +14,7 @@ namespace Infin8.Coapp.Repository
         //Task<bool> EditFinYearMasterAsync(Fin_Yr_Master finYrMaster);
         Task<Fin_Yr_Master> GetWorkingYear();
         Task<DayBeginInfo> GetDayBeginInfo(string brCode);
+
+        Task<List<Fin_Yr_Master>> GetFinancialYearList(string brCode);
     }
 }

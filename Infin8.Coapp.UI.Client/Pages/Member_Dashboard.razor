@@ -7,7 +7,15 @@
 @using Infin8.Coapp.UI.Client.Components.ModalDialog
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
+
+@inject TransactionStateService TransactionState
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
 @* You might want to add a CSS file for custom styles, e.g., MemberDashboard.razor.css *@
 
@@ -397,19 +405,20 @@
     private DateTime fromDate = DateTime.Now;
     private DateTime toDate = DateTime.Now;
 
-    private string brCode = "11001";
+    // private string brCode = "11001";
     // private string userName = "Gopinath";
     // private string password = "aaa123";
 
-    // protected override async Task OnAfterRenderAsync(bool firstRender)
-    // {
-    //     if (firstRender)
-    //     {
-
-    //         await LoadData();
-    //         isLoading = false;
-    //     }
-    // }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            memberDetails.BrCode = userInfoDto.BrCode;
+            // await LoadData();
+            // isLoading = false;
+        }
+    }
 
     private async Task handleMemNo(MemberDetailsVM member)
     {
@@ -417,12 +426,13 @@
         {
             if (!string.IsNullOrWhiteSpace(member.MemberNo))
             {
-                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"api/Member/GetMemberDetails/{member.MemberNo}/{brCode}");
+                var mem = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"api/Member/GetMemberDetails/{member.MemberNo}/{memberDetails.BrCode}");
                 if (mem != null && mem.Mem_Id > 0)
                 {
                     memberDetails.Mem_Id = mem.Mem_Id;
                     memberDetails.MemberNo = mem.MemberNo;
                     memberDetails.MemberName = mem.MemberName;
+                    memberDetails.FatherName = mem.FatherName;
                     memberDetails.Address = mem.Address;
                     memberDetails.Dob = mem.Dob;
                     memberDetails.Age = mem.Age;

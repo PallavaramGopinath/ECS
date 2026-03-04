@@ -21,13 +21,29 @@ namespace Infin8.Coapp.Repository
         public StagingMasterRepository(DbContext context) : base(context)
         {
         }
-        public async  Task<decimal> AddStagingMaster(Staging_Master stagingMaster  )
+        public async Task<decimal> AddStagingMaster(Staging_Master stagingMaster)
         {
             decimal maxId = 0;
             try
             {
-                maxId = await CSISContext.Staging_Master.Where(x => x.BrCode == stagingMaster.BrCode).MaxAsync(x => x.Staging_Id);
-                maxId++;
+                //maxId = await CSISContext.Staging_Master.Where(x => x.BrCode == stagingMaster.BrCode).MaxAsync(x => x.Staging_Id);
+                //maxId = await CSISContext.Staging_Master
+                //.Where(x => x.BrCode == stagingMaster.BrCode)
+                //.Select(x => x.Staging_Id)
+                //.DefaultIfEmpty(0)
+                //.MaxAsync();
+                var hasRecords = await CSISContext.Staging_Master
+                .AnyAsync(x => x.BrCode == stagingMaster.BrCode);
+
+                maxId = hasRecords
+                    ? await CSISContext.Staging_Master
+                        .Where(x => x.BrCode == stagingMaster.BrCode)
+                        .MaxAsync(x => x.Staging_Id)
+                    : 0;
+                if (maxId == 0)
+                    maxId = Convert.ToDecimal(stagingMaster.BrCode) * 10000000 + 1;
+                else
+                    maxId++;
                 stagingMaster.Staging_Id = maxId;
                 await AddAsync(stagingMaster);
             }
@@ -41,7 +57,7 @@ namespace Infin8.Coapp.Repository
         public bool IsStagingMasterCreated(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate)
         {
             bool result = false;
-            var count =  CSISContext.Staging_Master
+            var count = CSISContext.Staging_Master
                 .Count(s => s.Member_Id == memId &&
                 s.Created_By == createdBy &&
                 s.Created_Date == createdDate &&
@@ -51,14 +67,14 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<bool> DeleteStagingMaster(decimal stagingId,string brCode)
+        public async Task<bool> DeleteStagingMaster(decimal stagingId, string brCode)
         {
             bool result = false;
             try
             {
-                 await CSISContext.Staging_Master
-                .Where(x => x.Staging_Id == stagingId && x.BrCode == brCode )
-                .ExecuteDeleteAsync();
+                await CSISContext.Staging_Master
+               .Where(x => x.Staging_Id == stagingId && x.BrCode == brCode)
+               .ExecuteDeleteAsync();
                 await CSISContext.SaveChangesAsync();
                 result = true;
             }
@@ -103,13 +119,13 @@ namespace Infin8.Coapp.Repository
             }
         }
 
-        public async Task<List<Staging_Master>> GetStagingMasterListByDate(DateTime stagingDate,string brCode)
+        public async Task<List<Staging_Master>> GetStagingMasterListByDate(DateTime stagingDate, string brCode)
         {
             List<Staging_Master> masterList = new();
             try
             {
                 var result = await CSISContext.Staging_Master.Where(x => x.Created_Date == stagingDate && x.BrCode == brCode).ToListAsync();
-                if(result != null && result.Count > 0) masterList = result;
+                if (result != null && result.Count > 0) masterList = result;
             }
             catch (Exception ex)
             {
@@ -120,7 +136,7 @@ namespace Infin8.Coapp.Repository
 
         public async Task<decimal> GetStagingMasterId(decimal createdBy, decimal memId, string stagingStatus, DateTime createdDate)
         {
-            decimal stagingId = await  CSISContext.Staging_Master
+            decimal stagingId = await CSISContext.Staging_Master
             .Where(s => s.Member_Id == memId &&
                         s.Created_By == createdBy &&
                         s.Created_Date == createdDate &&
@@ -136,10 +152,10 @@ namespace Infin8.Coapp.Repository
             Staging_Master stagingMaster = new Staging_Master();
             try
             {
-                var query  = await CSISContext.Staging_Master
+                var query = await CSISContext.Staging_Master
                 .Where(x => x.Staging_Id == stagingId)
                 .FirstOrDefaultAsync();
-                if(query != null && query.Staging_Id == stagingId)
+                if (query != null && query.Staging_Id == stagingId)
                 {
                     stagingMaster = query;
                     stagingMaster.Staging_Status = "M"; // Change status to "M" for submitted by maker
@@ -160,7 +176,7 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<bool> CheckerStateStaging(decimal stagingId,decimal vocId, decimal checkedBy, string stagingStatus)
+        public async Task<bool> CheckerStateStaging(decimal stagingId, decimal vocId, decimal checkedBy, string stagingStatus)
         {
             bool result = false;
             Staging_Master stagingMaster = new Staging_Master();
@@ -202,18 +218,18 @@ namespace Infin8.Coapp.Repository
             Staging_Master master = new();
             try
             {
-                var query = await  CSISContext.Staging_Master
+                var query = await CSISContext.Staging_Master
                     .Where(x => x.Staging_Id == stagingId)
-                    .FirstOrDefaultAsync(); 
-                if(query != null) master = query;
+                    .FirstOrDefaultAsync();
+                if (query != null) master = query;
             }
             catch (Exception ex)
             {
-                Console.WriteLine (ex.Message );
+                Console.WriteLine(ex.Message);
             }
             return master;
         }
 
-        
+
     }
 }

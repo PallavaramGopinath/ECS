@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Infin8.Coapp.UI.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -13,9 +14,25 @@ namespace API.Controllers
     public class AccountsController : ControllerBase
     {
         readonly IAccountsHandler _accountsHandler;
-        public AccountsController(IAccountsHandler accountsHandler)
+        readonly IFinLedgerHandler _finLedgerHandler;
+        readonly IFinLedgerGroupHandler _finLedgerGroupHandler;
+        readonly IFinLedgerTrnHandler _finLedgerTrnHandler;
+        public AccountsController(IAccountsHandler accountsHandler,IFinLedgerHandler finLedgerHandler,
+            IFinLedgerGroupHandler finLedgerGroupHandler , IFinLedgerTrnHandler finLedgerTrnHandler  )
         {
             _accountsHandler = accountsHandler;
+            _finLedgerHandler = finLedgerHandler;
+            _finLedgerGroupHandler = finLedgerGroupHandler;
+            _finLedgerTrnHandler = finLedgerTrnHandler;
+        }
+
+        [HttpPost]
+        [Route("AddFinLedger")]
+        public async Task<ActionResult<Fin_Ledger>> AddFinLedger([FromBody] Fin_Ledger finLedger)
+        {
+            var result = await _finLedgerHandler.AddFinLedgerAsync(finLedger);
+            if (result) return Ok(result);
+            else return NotFound();
         }
         [HttpGet]
         [Route("IsBankLedger/{ledgerId:decimal}/{brCode}")]
@@ -141,6 +158,22 @@ namespace API.Controllers
             {
                 return BadRequest("Failed to create new financial year");
             }
+        }
+
+        [HttpGet]
+        [Route("GetLedgerList10Async/{brCode}")]
+        public async Task<ActionResult<List<Fin_Ledger>>> GetLedgerList10Async(string brCode)
+        {
+            List<Fin_Ledger> result = new List<Fin_Ledger>();
+            try
+            {
+                result = await _finLedgerHandler.GetLedgerList10Async(brCode);
+            }
+            catch (Exception)
+            {
+                //return NotFound();
+            }
+            return Ok(result);
         }
     }
 }

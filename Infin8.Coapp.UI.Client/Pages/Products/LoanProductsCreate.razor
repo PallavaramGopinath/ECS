@@ -1,10 +1,11 @@
 ﻿@page "/loanproducts/create"
 @page "/loanproducts/edit/{SchemeId:int}"
-@using Coapp.Dto 
-@* @using YourApp.Data *@
+@using Coapp.Dto
+@using Infin8.Coapp.Models
 @rendermode InteractiveWebAssembly
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
 
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
@@ -26,7 +27,15 @@
                             </nav>
                             <h3 class="mb-0">
                                 <i class="bi @(SchemeId == 0 ? "bi-plus-circle" : "bi-pencil-square") me-2 text-primary"></i>
-                                @(SchemeId == 0 ? "Create New Loan Product" : $"Edit {loanScheme?.Scheme_Name}")
+                                @* @(SchemeId == 0 ? $"Create New Loan Product {loanScheme.Scheme_Name}" : $"Edit {loanScheme?.Scheme_Name}") *@
+                                @if (SchemeId == 0)
+                                {
+                                    @:Create New Loan Product <span class="text-danger">@loanScheme.Scheme_Name</span>
+                                }
+                                else
+                                {
+                                    @:Edit @loanScheme?.Scheme_Name
+                                }
                             </h3>
                         </div>
                         <button class="btn btn-outline-secondary" @onclick="GoBack">
@@ -62,7 +71,7 @@
                                     <div class="step-icon">
                                         <i class="bi @(currentStep > 3 ? "bi-check-lg" : "bi-percent")"></i>
                                     </div>
-                                    <div class="step-label">Interest Settings</div>
+                                    <div class="step-label">Ledger Mapping Settings</div>
                                 </div>
                             </div>
                             <div class="col-3">
@@ -94,26 +103,19 @@
                         </div>
                         <div class="card-body">
                             <div class="row g-4">
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <InputText class="form-control" id="schemeCode"
-                                                   @bind-Value="loanScheme.Scheme_Code"
-                                                   placeholder="Enter scheme code" />
-                                        <label for="schemeCode">Scheme Code <span class="text-danger">*</span></label>
-                                    </div>
-                                </div>
+                                <!--Scheme Name-->
                                 <div class="col-md-6">
                                     <div class="form-floating mb-3">
                                         <InputText class="form-control" id="schemeName"
-                                                   @bind-Value="loanScheme.Scheme_Name"
+                                                   @bind-Value="loanScheme!.Scheme_Name"
                                                    placeholder="Enter scheme name" />
                                         <label for="schemeName">Scheme Name <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
-
-                                <div class="col-md-4">
+                                <!--Loan Type-->
+                                <div class="col-md-6">
                                     <div class="form-floating">
-                                        <InputSelect class="form-select" id="loanCategory" @bind-Value="loanScheme.Pur_Id">
+                                        <InputSelect class="form-select" id="loanCategory" @bind-Value="loanScheme.Loan_Type">
                                             <option value="">Select Category</option>
                                             @foreach (var category in GetLoanCategories())
                                             {
@@ -123,18 +125,16 @@
                                         <label for="loanCategory">Loan Category</label>
                                     </div>
                                 </div>
-
+                                <!--Scheme Code (Loan start with No)-->
                                 <div class="col-md-4">
-                                    <div class="form-floating">
-                                        <InputSelect class="form-select" id="loanType" @bind-Value="loanScheme.Loan_Type">
-                                            <option value="">Select Type</option>
-                                            <option value="1">Term Loan</option>
-                                            <option value="2">Overdraft</option>
-                                        </InputSelect>
-                                        <label for="loanType">Loan Type</label>
+                                    <div class="form-floating mb-3">
+                                        <InputText class="form-control" id="schemeCode"
+                                                   @bind-Value="loanScheme!.LoanNoStartWith"
+                                                   placeholder="Enter scheme code e.g., 201" />
+                                        <label for="schemeCode">Scheme Code <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
-
+                                <!--Disbursement Type-->
                                 <div class="col-md-4">
                                     <div class="form-floating">
                                         <InputSelect class="form-select" id="disbType" @bind-Value="loanScheme.Disb_Type">
@@ -146,19 +146,10 @@
                                     </div>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <div class="form-floating">
-                                        <InputText class="form-control" id="loanPrefix"
-                                                   @bind-Value="loanScheme.LoanNoStartWith"
-                                                   placeholder="e.g., JWL" />
-                                        <label for="loanPrefix">Loan Number Prefix</label>
-                                    </div>
-                                </div>
-
                                 <div class="col-12">
                                     <h6 class="border-bottom pb-2 mt-3">Eligibility</h6>
                                 </div>
-
+                                <!--Member Eligible-->
                                 <div class="col-md-3">
                                     <div class="card bg-light border-0">
                                         <div class="card-body">
@@ -169,7 +160,7 @@
                                         </div>
                                     </div>
                                 </div>
-
+                                <!--Staff Eligible-->
                                 <div class="col-md-3">
                                     <div class="card bg-light border-0">
                                         <div class="card-body">
@@ -181,31 +172,7 @@
                                     </div>
                                 </div>
 
-                                @if (loanScheme.Is_Staff)
-                                {
-                                    <div class="col-md-3">
-                                        <div class="card bg-light border-0">
-                                            <div class="card-body">
-                                                <div class="form-check form-switch">
-                                                    <InputCheckbox class="form-check-input" id="isStaffAdvance" @bind-Value="loanScheme.IsStaffAdvance" />
-                                                    <label class="form-check-label" for="isStaffAdvance">Staff Advance</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <div class="col-md-3">
-                                        <div class="form-floating">
-                                            <InputSelect class="form-select" id="staffLoanIntType" @bind-Value="loanScheme.StaffLoan_Int_Type">
-                                                <option value="">Select Type</option>
-                                                <option value="1">Simple Interest</option>
-                                                <option value="2">Reducing Balance</option>
-                                                <option value="3">Fixed</option>
-                                            </InputSelect>
-                                            <label for="staffLoanIntType">Staff Loan Interest Type</label>
-                                        </div>
-                                    </div>
-                                }
                             </div>
                         </div>
                     </div>
@@ -222,83 +189,187 @@
                         </div>
                         <div class="card-body">
                             <div class="row g-4">
-                                <div class="col-md-4">
-                                    <div class="form-floating">
-                                        <InputNumber class="form-control" id="maxAmount"
-                                                     @bind-Value="loanScheme.MaximumLoanAmount"
-                                                     placeholder="Enter amount" />
-                                        <label for="maxAmount">Maximum Loan Amount (₹)</label>
+                                @if (loanScheme!.Loan_Type != 3 && loanScheme.Loan_Type != 4)
+                                {
+                                    <!--Maximum Loan Amount-->
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <InputNumber class="form-control" id="maxAmount"
+                                                         @bind-Value="loanScheme!.MaximumLoanAmount"
+                                                         placeholder="Enter amount" />
+                                            <label for="maxAmount">Maximum Loan Amount (₹)</label>
+                                        </div>
                                     </div>
-                                </div>
+                                    <!--Maximum Pricnipal period-->
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <InputNumber class="form-control" id="maxPrincipalPeriod"
+                                                         @bind-Value="loanScheme.MaximumPrincipalPeriod"
+                                                         placeholder="Enter months" />
+                                            <label for="maxPrincipalPeriod">Maximum Principal Period (Months)</label>
+                                        </div>
+                                    </div>
+                                    <!--Maximu Interest Period-->
+                                    <div class="col-md-4">
+                                        <div class="form-floating">
+                                            <InputNumber class="form-control" id="maxInterestPeriod"
+                                                         @bind-Value="loanScheme.MaximumInterestPeriod"
+                                                         placeholder="Enter months" />
+                                            <label for="maxInterestPeriod">Maximum Interest Period (Months)</label>
+                                        </div>
+                                    </div>
 
-                                <div class="col-md-4">
-                                    <div class="form-floating">
-                                        <InputNumber class="form-control" id="maxPrincipalPeriod"
-                                                     @bind-Value="loanScheme.MaximumPrincipalPeriod"
-                                                     placeholder="Enter months" />
-                                        <label for="maxPrincipalPeriod">Maximum Principal Period (Months)</label>
+                                    <div class="col-12">
+                                        <h6 class="border-bottom pb-2 mt-3">Frequency Settings</h6>
                                     </div>
-                                </div>
+                                    <!--Principal demand frequency-->
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="demFrequency" @bind-Value="loanScheme.Dem_Frequency">
+                                                <option value="">Select Frequency</option>
+                                                <option value="1">Monthly</option>
+                                                <option value="2">Quarterly</option>
+                                                <option value="3">Half-Yearly</option>
+                                                <option value="4">Yearly</option>
+                                                <option value="5">On Due Date</option>
 
-                                <div class="col-md-4">
-                                    <div class="form-floating">
-                                        <InputNumber class="form-control" id="maxInterestPeriod"
-                                                     @bind-Value="loanScheme.MaximumInterestPeriod"
-                                                     placeholder="Enter months" />
-                                        <label for="maxInterestPeriod">Maximum Interest Period (Months)</label>
+                                            </InputSelect>
+                                            <label for="demFrequency">Demand Frequency</label>
+                                        </div>
                                     </div>
-                                </div>
+                                    <!--Interest demand frequency-->
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="intFrequency" @bind-Value="loanScheme.Int_Frequency">
+                                                <option value="">Select Frequency</option>
+                                                <option value="1">Monthly</option>
+                                                <option value="2">Quarterly</option>
+                                                <option value="3">Half-Yearly</option>
+                                                <option value="4">Yearly</option>
+                                                <option value="5">On Due Date</option>
+                                            </InputSelect>
+                                            <label for="intFrequency">Interest Frequency</label>
+                                        </div>
+                                    </div>
+                                }
+                                <!--Instalment Type other than staff loan-->
+                                @if (loanScheme.Loan_Type != 5 && loanScheme.Loan_Type != 3 && loanScheme.Loan_Type != 4)
+                                {
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="instType" @bind-Value="loanScheme.Inst_Type">
+                                                <option value="">Select Type</option>
+                                                <option value="1">Equal Installments(Fixed Principal)</option>
+                                                <option value="2">Equated Installments</option>
+                                                <option value="3">Bullet Payment (for Jewel Loans)</option>
+                                                <option value="4">No Periodic Installment (FD/RD Backed Loan/Maturity Based)</option>
+                                            </InputSelect>
+                                            <label for="instType">Installment Type</label>
+                                        </div>
+                                    </div>
+                                }
+                                <!--Insstalment Type for staff loan-->
+                                @if (loanScheme.Loan_Type == 5)
+                                {
+                                    <!--is staff advance-->
+                                    @* <div class="col-md-3">
+                                        <div class="card bg-light border-0">
+                                            <div class="card-body">
+                                                <div class="form-check form-switch">
+                                                    <InputCheckbox class="form-check-input" id="isStaffAdvance" @bind-Value="loanScheme.IsStaffAdvance" />
+                                                    <label class="form-check-label" for="isStaffAdvance">Staff Advance</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div> *@
+                                    <!--Staff loan instalment type-->
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="staffLoanIntType" @bind-Value="loanScheme.StaffLoan_Int_Type">
+                                                <option value="">Select Type</option>
+                                                <option value="1">Interest Paid After Fixed Principal</option>
+                                                <option value="2">Interest Paid with Principal (EMI)</option>
+                                                <option value="3">No Interest (Fixed Principal Only)</option>
+                                                <option value="4">Paid With Fixed Principal</option>
+                                            </InputSelect>
+                                            <label for="staffLoanIntType">Staff Loan Instalment Type</label>
+                                        </div>
+                                    </div>
+                                }
 
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mt-3">Frequency Settings</h6>
+                                    <h6 class="border-bottom pb-2 mt-3">Interest Application</h6>
                                 </div>
-
+                                <!--Interest applications-->
                                 <div class="col-md-3">
                                     <div class="form-floating">
-                                        <InputSelect class="form-select" id="demFrequency" @bind-Value="loanScheme.Dem_Frequency">
-                                            <option value="">Select Frequency</option>
-                                            <option value="1">Monthly</option>
-                                            <option value="2">Quarterly</option>
-                                            <option value="3">Half-Yearly</option>
-                                            <option value="4">Yearly</option>
-                                        </InputSelect>
-                                        <label for="demFrequency">Demand Frequency</label>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <div class="form-floating">
-                                        <InputSelect class="form-select" id="intFrequency" @bind-Value="loanScheme.Int_Frequency">
-                                            <option value="">Select Frequency</option>
-                                            <option value="1">Monthly</option>
-                                            <option value="2">Quarterly</option>
-                                            <option value="3">Half-Yearly</option>
-                                            <option value="4">Yearly</option>
-                                        </InputSelect>
-                                        <label for="intFrequency">Interest Frequency</label>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <div class="form-floating">
-                                        <InputSelect class="form-select" id="instType" @bind-Value="loanScheme.Inst_Type">
+                                        <InputSelect class="form-select" id="intApplication" @bind-Value="loanScheme.Int_Application">
                                             <option value="">Select Type</option>
-                                            <option value="1">Equal Monthly Installments</option>
-                                            <option value="2">Equal Quarterly Installments</option>
-                                            <option value="3">Bullet Payment</option>
+                                            <option value="1">On Non-Overdue Principal</option>
+                                            <option value="2">On Principal Outstanding</option>
                                         </InputSelect>
-                                        <label for="instType">Installment Type</label>
+                                        <label for="intApplication">Interest Application</label>
                                     </div>
                                 </div>
+                                @if (loanScheme.Loan_Type != 3 && loanScheme.Loan_Type != 4 && loanScheme.Loan_Type != 5)
+                                {
+                                    <!--Penal Interest application-->
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="piApplication" @bind-Value="loanScheme.PI_Application">
+                                                <option value="">Select Type</option>
+                                                <option value="1">No Penal Applied</option>
+                                                <option value="2">Penal on Principal Overdue</option>
+                                                <option value="3">Penal on Principal and Interest Overdues</option>
+                                            </InputSelect>
+                                            <label for="piApplication">Penal Interest Application</label>
+                                        </div>
+                                    </div>
+                                }
 
-                                <div class="col-md-3">
-                                    <div class="form-floating">
-                                        <InputNumber class="form-control" id="securityMembers"
-                                                     @bind-Value="loanScheme.IssurityMemberRequired"
-                                                     placeholder="Number of members" />
-                                        <label for="securityMembers">Security Members Required</label>
+                                @if (loanScheme.Loan_Type == 6 && loanScheme.Loan_Type == 7 && loanScheme.Loan_Type == 8 && loanScheme.Loan_Type == 9)
+                                {
+                                    <!--IOD application-->
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="iodApplication" @bind-Value="loanScheme.IOD_Application">
+                                                <option value="">Select Type</option>
+                                                <option value="1">No EMI Applied</option>
+                                                <option value="2">On Principal Overdue</option>
+                                                <option value="3">On Principal and Interest Overdues</option>
+                                            </InputSelect>
+                                            <label for="iodApplication">Interst on Overdue Application</label>
+                                        </div>
                                     </div>
-                                </div>
+                                    <!--Advance principal demand application-->
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="advPrlApplication" @bind-Value="loanScheme.Adv_Prl_Application">
+                                                <option value="">Select Advance Principal Handling</option>
+                                                <option value="1">Adjust Advance Principal</option>
+                                                <option value="2">Ignore Advance Principal</option>
+                                            </InputSelect>
+                                            <label for="advPrlApplication">Advance Principal Application Method</label>
+                                        </div>
+                                    </div>
+                                }
+                                @if (loanScheme.Loan_Type == 1)
+                                {
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            @* <InputNumber class="form-control" id="securityMembers"
+                                                     @bind-Value="loanScheme.IssurityMemberRequired"
+                                                     placeholder="Number of members" /> *@
+                                            <InputSelect class="form-select" id="securityMembers" @bind-Value="loanScheme.IssurityMemberRequired">
+                                                <option value="">Select Type</option>
+                                                <option value="1">Surety Required</option>
+                                                <option value="2">Surety Not Required</option>
+                                            </InputSelect>
+                                            <label for="securityMembers">Is Securety Required (for Employee Society)</label>
+                                        </div>
+                                    </div>
+                                }
+
                             </div>
                         </div>
                     </div>
@@ -307,7 +378,76 @@
                 <!-- Step 3: Interest Settings -->
                 @if (currentStep == 3)
                 {
+                    <!--Ledgers Mapping-->
                     <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0">
+                                <i class="bi bi-percent me-2 text-primary"></i>Ledger Mapping
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="card bg-light border-0">
+                                <div class="row g-4">
+                                    <!--Principal Ledger-->
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="prlLedId" @bind-Value="loanScheme!.PrlLed_Id">
+                                                <option value="0">--Select Ledger--</option>
+                                                @foreach (var account in prlLedgerList)
+                                                {
+                                                    <option value="@account.Value">@account.Text</option>
+                                                }
+                                            </InputSelect>
+                                            <label for="prlLedId">Principal Ledger</label>
+                                        </div>
+                                    </div>
+                                    <!--Interest Ledger-->
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="intLedId" @bind-Value="loanScheme!.IntLed_Id">
+                                                <option value="0">--Select Ledger--</option>
+                                                @foreach (var account in intLedgerList)
+                                                {
+                                                    <option value="@account.Value">@account.Text</option>
+                                                }
+                                            </InputSelect>
+                                            <label for="intLedId">Interest Ledger</label>
+                                        </div>
+                                    </div>
+                                    <!--Penal Interest Ledger-->
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="piLedId" @bind-Value="loanScheme!.PILed_Id">
+                                                <option value="0">--Select Penal Interest Ledger--</option>
+                                                @foreach (var account in piLedgerList)
+                                                {
+                                                    <option value="@account.Value">@account.Text</option>
+                                                }
+                                            </InputSelect>
+                                            <label for="piLedId">Penal Interest Ledger</label>
+                                        </div>
+                                    </div>
+                                    <!--IOD Ledger-->
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="iodLedId" @bind-Value="loanScheme!.IODLed_Id">
+                                                <option value="0">--Select Interest on Overdue Ledger--</option>
+                                                @foreach (var account in iodLedgerList)
+                                                {
+                                                    <option value="@account.Value">@account.Text</option>
+                                                }
+                                            </InputSelect>
+                                            <label for="iodLedId">Interest on Overdue Ledger</label>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- commented Interest settings-->
+                    @* <div class="card border-0 shadow-sm">
                         <div class="card-header bg-white py-3">
                             <h5 class="mb-0">
                                 <i class="bi bi-percent me-2 text-primary"></i>Interest Settings
@@ -372,9 +512,8 @@
                                     <div class="form-floating">
                                         <InputSelect class="form-select" id="intApplication" @bind-Value="loanScheme.Int_Application">
                                             <option value="">Select Type</option>
-                                            <option value="1">At Disbursement</option>
-                                            <option value="2">At Maturity</option>
-                                            <option value="3">Periodic</option>
+                                            <option value="1">On Non-Overdue Principal</option>
+                                            <option value="2">On Principal Outstanding</option>
                                         </InputSelect>
                                         <label for="intApplication">Interest Application</label>
                                     </div>
@@ -384,11 +523,11 @@
                                     <div class="form-floating">
                                         <InputSelect class="form-select" id="piApplication" @bind-Value="loanScheme.PI_Application">
                                             <option value="">Select Type</option>
-                                            <option value="1">At Disbursement</option>
-                                            <option value="2">At Maturity</option>
-                                            <option value="3">Periodic</option>
+                                            <option value="1">No Penal Applied</option>
+                                            <option value="2">Penal on Principal Overdue</option>
+                                            <option value="3">Penal on Principal and Interest Overdues</option>
                                         </InputSelect>
-                                        <label for="piApplication">PI Application</label>
+                                        <label for="piApplication">Penal Application</label>
                                     </div>
                                 </div>
 
@@ -396,11 +535,11 @@
                                     <div class="form-floating">
                                         <InputSelect class="form-select" id="iodApplication" @bind-Value="loanScheme.IOD_Application">
                                             <option value="">Select Type</option>
-                                            <option value="1">At Disbursement</option>
-                                            <option value="2">At Maturity</option>
-                                            <option value="3">Periodic</option>
+                                            <option value="1">No EMI Applied</option>
+                                            <option value="2">On Principal Overdue</option>
+                                            <option value="3">On Principal and Interest Overdues</option>
                                         </InputSelect>
-                                        <label for="iodApplication">IOD Application</label>
+                                        <label for="iodApplication">Interst on Overdue Application</label>
                                     </div>
                                 </div>
 
@@ -408,16 +547,16 @@
                                     <div class="form-floating">
                                         <InputSelect class="form-select" id="advPrlApplication" @bind-Value="loanScheme.Adv_Prl_Application">
                                             <option value="">Select Type</option>
-                                            <option value="1">At Disbursement</option>
-                                            <option value="2">At Maturity</option>
+                                            <option value="1">Do not raise Prl Demand on Adv. Prl.</option>
+                                            <option value="2">Raise Prl. Demand on Every Duedate</option>
                                             <option value="3">Periodic</option>
                                         </InputSelect>
-                                        <label for="advPrlApplication">Advance P&L Application</label>
+                                        <label for="advPrlApplication">Advance Principal Demand Application</label>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> *@
                 }
 
                 <!-- Step 4: Review & Save -->
@@ -431,13 +570,14 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
+                                <!--Scheme Basic Details-->
                                 <div class="col-md-6">
                                     <div class="review-section">
                                         <h6 class="text-primary">Basic Information</h6>
                                         <table class="table table-sm">
                                             <tr>
                                                 <th>Scheme Code:</th>
-                                                <td>@loanScheme.Scheme_Code</td>
+                                                <td>@loanScheme!.LoanNoStartWith </td>
                                             </tr>
                                             <tr>
                                                 <th>Scheme Name:</th>
@@ -445,11 +585,7 @@
                                             </tr>
                                             <tr>
                                                 <th>Category:</th>
-                                                <td>@GetCategoryName(loanScheme.Pur_Id)</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Loan Type:</th>
-                                                <td>@GetLoanTypeName(loanScheme.Loan_Type)</td>
+                                                <td>@GetCategoryName(loanScheme.Loan_Type)</td>
                                             </tr>
                                             <tr>
                                                 <th>Eligibility:</th>
@@ -467,30 +603,154 @@
                                         </table>
                                     </div>
                                 </div>
+                                <!-- Loan Limits-->
+                                @if (loanScheme.Loan_Type == 1 || loanScheme.Loan_Type == 2 || loanScheme.Loan_Type == 5 || loanScheme.Loan_Type >= 6)
+                                {
+                                    <div class="col-md-6">
+                                        <div class="review-section">
+                                            <h6 class="text-primary">Loan Limits</h6>
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <th>Max Amount:</th>
+                                                    <td>₹ @(loanScheme.MaximumLoanAmount.ToString("N0"))</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Max Principal Period:</th>
+                                                    <td>@loanScheme.MaximumPrincipalPeriod Months</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Max Interest Period:</th>
+                                                    <td>@loanScheme.MaximumInterestPeriod Months</td>
+                                                </tr>
+                                                @if (loanScheme.Loan_Type == 1)
+                                                {
+                                                    <tr>
+                                                        <th>Security Members:</th>
+                                                        <td>@loanScheme.IssurityMemberRequired</td>
+                                                    </tr>
+                                                }
+                                            </table>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!--Demand Frequency-->
                                 <div class="col-md-6">
                                     <div class="review-section">
-                                        <h6 class="text-primary">Loan Limits</h6>
+                                        <h6 class="text-primary">Demand Frequency</h6>
                                         <table class="table table-sm">
+                                            <!--Principal Demand Frequency-->
                                             <tr>
-                                                <th>Max Amount:</th>
-                                                <td>₹ @(loanScheme.MaximumLoanAmount.ToString("N0"))</td>
+                                                <th>Principal Demand:</th>
+                                                @switch (loanScheme.Dem_Frequency)
+                                                {
+                                                    case 1: /// Monthly
+                                                        <td>Monthly</td>
+                                                        break;
+                                                    case 2: /// Quarterly
+                                                        <td>Quarterly</td>
+                                                        break;
+                                                    case 3: /// Half yearly
+                                                        <td>Half Yearly</td>
+                                                        break;
+                                                    case 4:/// Annual
+                                                        <td>Annual</td>
+                                                        break;
+                                                    case 5: /// On Due Date
+                                                        <td>On Due Date</td>
+                                                        break;
+                                                }
                                             </tr>
+                                            <!--Interest Demand Frequency-->
                                             <tr>
-                                                <th>Max Principal Period:</th>
-                                                <td>@loanScheme.MaximumPrincipalPeriod Months</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Max Interest Period:</th>
-                                                <td>@loanScheme.MaximumInterestPeriod Months</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Security Members:</th>
-                                                <td>@loanScheme.IssurityMemberRequired</td>
+                                                <th>Interest Demand:</th>
+                                                @switch (loanScheme.Int_Frequency)
+                                                {
+                                                    case 1: /// Monthly
+                                                        <td>Monthly</td>
+                                                        break;
+                                                    case 2: /// Quarterly
+                                                        <td>Quarterly</td>
+                                                        break;
+                                                    case 3: /// Half yearly
+                                                        <td>Half Yearly</td>
+                                                        break;
+                                                    case 4:/// Annual
+                                                        <td>Annual</td>
+                                                        break;
+                                                    case 5: /// On Due Date
+                                                        <td>On Due Date</td>
+                                                        break;
+                                                }
                                             </tr>
                                         </table>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
+                                    <div class="review-section">
+                                        <h6 class="text-primary">Instalment Method</h6>
+                                        <table>
+                                            <!--Instalment Method-->
+                                            <tr>
+                                                <th>Instalment Method:</th>
+                                                @switch (loanScheme.Inst_Type)
+                                                {
+                                                    case 1:
+                                                        <td>Equal Installments(Fixed Principal)</td>
+                                                        break;
+                                                    case 2:
+                                                        <td>Equated Installments</td>
+                                                        break;
+                                                    case 3:
+                                                        <td>Bullet Payment (for Jewel Loans)</td>
+                                                        break;
+                                                    case 4:
+                                                        <td>No Periodic Installment (FD/RD Backed Loan/Maturity Based)</td>
+                                                        break;
+                                                }
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="review-section">
+                                        <h6 class="text-primary">Ledger Mapping</h6>
+                                        <table>
+                                            <!--Ledger Mapping-->
+                                            <tr>
+                                                <th>Principal Ledger:</th>
+                                                <td>
+                                                    @prlLedgerList.FirstOrDefault(x => x.Value == loanScheme.PrlLed_Id.ToString())?.Text
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Interest Ledger:</th>
+                                                <td>
+                                                    @intLedgerList.FirstOrDefault(x => x.Value == loanScheme.IntLed_Id.ToString())?.Text
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Penal Interest Ledger:</th>
+                                                <td>
+                                                    @piLedgerList.FirstOrDefault(x => x.Value == loanScheme.PILed_Id.ToString())?.Text
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Interest On Overdue Ledger:</th>
+                                                <td>
+                                                    @iodLedgerList.FirstOrDefault(x => x.Value == loanScheme.IODLed_Id.ToString())?.Text
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!--Instalment Method-->
+                        <!--Ledger Mapping-->
+                        @* <div class="col-md-6">
                                     <div class="review-section">
                                         <h6 class="text-primary">Interest Settings</h6>
                                         <table class="table table-sm">
@@ -511,9 +771,7 @@
                                             </tr>
                                         </table>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
+                                </div> *@
                     </div>
                 }
 
@@ -553,19 +811,40 @@
 
 @code {
     [Parameter] public int SchemeId { get; set; }
-    private DtoLoanProducts loanScheme = new();
+    private Loan_Schemes loanScheme = new();
+    private List<Loan_Schemes_Group> loan_Schemes_Groups = new List<Loan_Schemes_Group>();
+    private List<DropdownItem> prlLedgerList = new List<DropdownItem>();
+    private List<DropdownItem> intLedgerList = new List<DropdownItem>();
+    private List<DropdownItem> piLedgerList = new List<DropdownItem>();
+    private List<DropdownItem> iodLedgerList = new List<DropdownItem>();
+
+    private bool isSubmitted =false;
+    private string submittedMessage = "";
+
     private int currentStep = 1;
+    private string brCode = "11005";
 
     private enum LoanCategory
     {
-        JewelLoans = 1,
-        LoansOnFixedDeposits = 2,
-        StaffLoans = 3,
-        FarmSectorLoans = 4,
-        NonFarmSectorLoans = 5,
-        RuralHousing = 6,
-        SmallRoadTransportLoans = 7
+        EmploheeSocietyLoans = 1,
+        JewelLoans = 2,
+        LoansOnFixedDeposits = 3,
+        LoansOnRecurringDeposits = 4,
+        StaffLoans = 5,
+        FarmSectorLoans = 6,
+        NonFarmSectorLoans = 7,
+        RuralHousing = 8,
+        SmallRoadTransportLoans = 9
+
+        // JewelLoans = 1,
+        // LoansOnFixedDeposits = 2,
+        // StaffLoans = 3,
+        // FarmSectorLoans = 4,
+        // NonFarmSectorLoans = 5,
+        // RuralHousing = 6,
+        // SmallRoadTransportLoans = 7
     }
+
     private class LoanSubCategory
     {
         public string? Name { get; set; }
@@ -579,8 +858,10 @@
         public string? Icon { get; set; }
         public List<LoanSubCategory>? SubCategories { get; set; }
     }
+
     protected override async Task OnInitializedAsync()
     {
+        await GetLedgerList(brCode);
         if (SchemeId != 0)
         {
             await LoadLoanScheme();
@@ -593,7 +874,7 @@
 
     private void InitializeNewLoan()
     {
-        loanScheme = new DtoLoanProducts
+        loanScheme = new Loan_Schemes
         {
             Scheme_Delete = false,
             Is_Member = true,
@@ -601,14 +882,33 @@
             IsCompound_Int = false,
             IsDeductBalances = false,
             IntFromTemplate = false,
-            IsStaffAdvance = false
+            IsStaffAdvance = false,
+            BrCode = brCode
         };
     }
 
-    private async Task LoadLoanScheme()
+    private async Task<Loan_Schemes> LoadLoanScheme()
     {
         // TODO: Load from service
-        loanScheme = GetSampleLoanData().FirstOrDefault(l => l.Scheme_Id == SchemeId) ?? new DtoLoanProducts();
+        try
+        {
+            if (SchemeId > 0)
+            {
+                var result = await _httpClient.GetFromJsonAsync<Loan_Schemes>($"api/Loan/GetLoanScheme/{SchemeId}/{brCode}");
+                if (result != null)
+                {
+                    loanScheme = result;
+                }
+            }
+            else loanScheme = new Loan_Schemes();
+        }
+        catch (Exception ex)
+        {
+
+            Console.WriteLine(ex.Message);
+        }
+        return loanScheme;
+        // loanScheme = GetSampleLoanData().FirstOrDefault(l => l.Scheme_Id == SchemeId) ?? new DtoLoanProducts();
     }
 
     private void NextStep()
@@ -635,6 +935,21 @@
     private async Task HandleValidSubmit()
     {
         // TODO: Save to database
+        if (loanScheme.Is_Member) loanScheme.Is_MemberOrStaff = "M";
+        else loanScheme.Is_MemberOrStaff = "S";
+        var response = await _httpClient.PostAsJsonAsync("api/Loan/AddLoanScheme", loanScheme);
+        if (response.IsSuccessStatusCode)
+        {
+            isSubmitted = true;
+            submittedMessage = "Transaction approved successfully!";
+            loanScheme = new();
+            StateHasChanged();
+            // await JSRuntime.InvokeVoidAsync("alert", "Transaction approved successfully!");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Saving of Loan Scheme failed!");
+        }
         // Show success message
         await JSRuntime.InvokeVoidAsync("alert",
             SchemeId == 0 ? "Loan product created successfully!" : "Loan product updated successfully!");
@@ -649,6 +964,7 @@
         {
             new LoanCategoryInfo { Category = LoanCategory.JewelLoans, Name = "Jewel Loans" },
             new LoanCategoryInfo { Category = LoanCategory.LoansOnFixedDeposits, Name = "Loans on Fixed Deposits" },
+            new LoanCategoryInfo { Category = LoanCategory.LoansOnRecurringDeposits, Name = "Loan on Recurring Deposits"},
             new LoanCategoryInfo { Category = LoanCategory.StaffLoans, Name = "Staff Loans" },
             new LoanCategoryInfo { Category = LoanCategory.FarmSectorLoans, Name = "Farm Sector Loans" },
             new LoanCategoryInfo { Category = LoanCategory.NonFarmSectorLoans, Name = "Non-Farm Sector Loans" },
@@ -661,13 +977,13 @@
     {
         return purId switch
         {
-            1 => "Jewel Loans",
-            2 => "Loans on Fixed Deposits",
-            3 => "Staff Loans",
-            4 => "Farm Sector Loans",
-            5 => "Non-Farm Sector Loans",
-            6 => "Rural Housing",
-            7 => "Small Road Transport Loans",
+            2 => "Jewel Loans",
+            3 => "Loans on Fixed Deposits",
+            5 => "Staff Loans",
+            6 => "Farm Sector Loans",
+            7 => "Non-Farm Sector Loans",
+            8 => "Rural Housing",
+            9 => "Small Road Transport Loans",
             _ => "Not Specified"
         };
     }
@@ -725,5 +1041,28 @@
                 IssurityMemberRequired = 2
             }
         };
+    }
+
+    private async Task GetLedgerList(string brCode)
+    {
+        try
+        {
+            var prlLedger = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetPrincipalLedgerList/{brCode}");
+            if (prlLedger != null && prlLedger.Any())
+            {
+                prlLedgerList = prlLedger.ToList();
+            }
+            var intLedger = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetLedgerList/3/{brCode}");
+            if (intLedger != null && intLedger.Any())
+            {
+                intLedgerList = intLedger.ToList(); 
+                piLedgerList = intLedger.ToList(); 
+                iodLedgerList = intLedger.ToList(); ;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
     }
 }

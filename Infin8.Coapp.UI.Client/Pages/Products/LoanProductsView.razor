@@ -1,8 +1,13 @@
 ﻿@page "/loanproducts/view/{SchemeId:int}"
 @using Coapp.Dto
+@using Infin8.Coapp.Models
 @* @using YourApp.Data *@
-@rendermode InteractiveWebAssembly
 @inject NavigationManager Navigation
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+@rendermode InteractiveWebAssembly
+
 
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
@@ -26,7 +31,7 @@
                                     @(loanScheme?.Scheme_Delete == false ? "Active" : "Inactive")
                                 </span>
                             </h3>
-                            <small class="text-muted">Scheme Code: @loanScheme?.Scheme_Code</small>
+                            <small class="text-muted">Scheme Code: @loanScheme?.LoanNoStartWith  </small>
                         </div>
                         <div class="btn-group">
                             @* <button class="btn btn-outline-primary" @onclick="() => Navigation.NavigateTo($"/loanproducts/edit/{SchemeId}")">
@@ -106,7 +111,7 @@
                             <div class="col-md-6">
                                 <div class="detail-card">
                                     <h6 class="text-muted mb-2">Scheme Code</h6>
-                                    <p class="fs-5 fw-bold">@loanScheme?.Scheme_Code</p>
+                                    <p class="fs-5 fw-bold">@loanScheme?.LoanNoStartWith </p>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -118,7 +123,7 @@
                             <div class="col-md-4">
                                 <div class="detail-card">
                                     <h6 class="text-muted mb-2">Loan Category</h6>
-                                    <p class="fw-bold">@GetCategoryName(loanScheme?.Pur_Id)</p>
+                                    <p class="fw-bold">@GetCategoryName(loanScheme?.Loan_Type )</p>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -421,9 +426,9 @@
 
 @code {
     [Parameter] public int SchemeId { get; set; }
-    private DtoLoanProducts? loanScheme;
+    private Loan_Schemes? loanScheme;
     private string activeTab = "basic";
-
+    private string brCode = "11005";
     protected override async Task OnInitializedAsync()
     {
         await LoadLoanScheme();
@@ -458,7 +463,8 @@
     private async Task LoadLoanScheme()
     {
         // TODO: Load from service
-        loanScheme = GetSampleLoanData().FirstOrDefault(l => l.Scheme_Id == SchemeId);
+        // loanScheme = GetSampleLoanData().FirstOrDefault(l => l.Scheme_Id == SchemeId);
+        await GetSampleLoanData(SchemeId, brCode);
     }
 
     private void SetActiveTab(string tab)
@@ -477,17 +483,18 @@
     }
 
     // Helper methods for displaying values
-    private string GetCategoryName(int? purId)
+    private string GetCategoryName(int? loanType)
     {
-        return purId switch
+        return loanType switch
         {
-            1 => "Jewel Loans",
-            2 => "Loans on Fixed Deposits",
-            3 => "Staff Loans",
-            4 => "Farm Sector Loans",
-            5 => "Non-Farm Sector Loans",
-            6 => "Rural Housing",
-            7 => "Small Road Transport Loans",
+            2 => "Jewel Loans",
+            3 => "Loans on Fixed Deposits",
+            4 => "Loans on Recurring Deposits",
+            5 => "Staff Loans",
+            6 => "Farm Sector Loans",
+            7 => "Non-Farm Sector Loans",
+            8 => "Rural Housing",
+            9 => "Small Road Transport Loans",
             _ => "Not Specified"
         };
     }
@@ -585,45 +592,61 @@
         return value == 1 ? "Yes" : value == 0 ? "No" : "Not Specified";
     }
 
-    private List<DtoLoanProducts> GetSampleLoanData()
+    private async Task<Loan_Schemes> GetSampleLoanData(int schemeId, string brCode)
     {
-        return new List<DtoLoanProducts>
+        try
         {
-            new DtoLoanProducts 
-            { 
-                Scheme_Id = 1,
-                Pur_Id = 1,
-                Scheme_Code = "JWL001",
-                Scheme_Name = "Gold Jewel Loan",
-                MaximumLoanAmount = 500000,
-                MaximumPrincipalPeriod = 12,
-                MaximumInterestPeriod = 12,
-                Is_Member = true,
-                Is_Staff = false,
-                Loan_Type = 1,
-                Disb_Type = 1,
-                IsCompound_Int = false,
-                Compound_Prd = 1,
-                Dem_Frequency = 1,
-                Int_Frequency = 1,
-                Inst_Type = 1,
-                PILed_Id = 1001,
-                IntLed_Id = 1002,
-                IODLed_Id = 1003,
-                PrlLed_Id = 1004,
-                ReimPILed_Id = 2001,
-                ReimIntLed_Id = 2002,
-                ReimIODLed_Id = 2003,
-                ReimPrlLed_Id = 2004,
-                Scheme_Delete = false,
-                Usr_Id = 101,
-                Yr_Id = 2024,
-                IsDeductBalances = false,
-                IntFromTemplate = true,
-                LoanNoStartWith = "JWL",
-                IssurityMemberRequired = 2
+            var result = await _httpClient.GetFromJsonAsync<Loan_Schemes>($"api/Loan/GetLoanScheme/{schemeId}/{brCode}");
+            if (result != null )
+            {
+                loanScheme  = result;
             }
-        };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        return loanScheme ?? new Loan_Schemes();
+
+        #region commented sample data
+        // return new List<Loan_Schemes>
+        // {
+        //     new Loan_Schemes
+        //     { 
+        //         Scheme_Id = 1,
+        //         Pur_Id = 1,
+        //         Scheme_Code = "JWL001",
+        //         Scheme_Name = "Gold Jewel Loan",
+        //         MaximumLoanAmount = 500000,
+        //         MaximumPrincipalPeriod = 12,
+        //         MaximumInterestPeriod = 12,
+        //         Is_Member = true,
+        //         Is_Staff = false,
+        //         Loan_Type = 1,
+        //         Disb_Type = 1,
+        //         IsCompound_Int = false,
+        //         Compound_Prd = 1,
+        //         Dem_Frequency = 1,
+        //         Int_Frequency = 1,
+        //         Inst_Type = 1,
+        //         PILed_Id = 1001,
+        //         IntLed_Id = 1002,
+        //         IODLed_Id = 1003,
+        //         PrlLed_Id = 1004,
+        //         ReimPILed_Id = 2001,
+        //         ReimIntLed_Id = 2002,
+        //         ReimIODLed_Id = 2003,
+        //         ReimPrlLed_Id = 2004,
+        //         Scheme_Delete = false,
+        //         Usr_Id = 101,
+        //         Yr_Id = 2024,
+        //         IsDeductBalances = false,
+        //         IntFromTemplate = true,
+        //         LoanNoStartWith = "JWL",
+        //         IssurityMemberRequired = 2
+        //     }
+        // };
+        #endregion 
     }
 
     private void NavigateToEdit()

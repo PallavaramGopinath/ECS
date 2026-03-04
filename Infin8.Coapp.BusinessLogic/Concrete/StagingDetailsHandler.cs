@@ -75,17 +75,17 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.StagingDetails.AddStagingDetailsForAccountTransaciton(stagingDetails, stagingId);
         }
         
-        public async Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId, int relateAccountId)
+        public async Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId, int relateAccountId, decimal ledgerId, string brCode)
         {
             bool result = false;
             try
             {
                 _unitOfWork.BeginTransaction();
-                 result = await _unitOfWork.StagingDetails.DeleteStagingDetailsByStagingId(stagingId, relateAccountId);
+                 result = await _unitOfWork.StagingDetails.DeleteStagingDetailsByStagingId(stagingId, relateAccountId,ledgerId, brCode );
                 int count = await VerifyStagingIdExistinsInStagingDetails(stagingId);
                 if (count == 0) 
                 { 
-                    result = await  _unitOfWork.StagingMaster.DeleteStagingMaster(stagingId,"11001");
+                    result = await  _unitOfWork.StagingMaster.DeleteStagingMaster(stagingId,brCode);
                 }
                 _unitOfWork.Complete();
                 _unitOfWork.CommitTransaction();
@@ -148,9 +148,9 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.StagingDetails.GetStagingDetailsByDate(stagingDate, brCode);
         }
-        public async Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId)
+        public async Task<int> IsAlreadyTransactedButNotVerifiedOrRejected(decimal memId, string transactedDate, int relatedAccountId, decimal ledgerId)
         {
-            return await _unitOfWork.StagingDetails.IsAlreadyTransactedButNotVerifiedOrRejected (memId, transactedDate, relatedAccountId);
+            return await _unitOfWork.StagingDetails.IsAlreadyTransactedButNotVerifiedOrRejected (memId, transactedDate, relatedAccountId,ledgerId);
         }
         public async Task<bool> MakeStagingDetails(decimal stagingId)
         {

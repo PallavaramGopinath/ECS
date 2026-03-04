@@ -451,7 +451,8 @@ namespace Infin8.Coapp.Repository
             try
             {
                 /// get Cash ledger id
-                cashLedger = CSISContext.Map_General.Where(x => x.ID == 110010000001).Select(x => x.Cash_Led_Id).FirstOrDefault();
+                decimal id = Convert.ToDecimal(brCode) * 10000000 + 1;
+                cashLedger = CSISContext.Map_General.Where(x => x.ID == id).Select(x => x.Cash_Led_Id).FirstOrDefault();
 
                 /// get cash receipt items
                 var notBankReceipt = (from voucher in CSISContext.Fin_Voucher

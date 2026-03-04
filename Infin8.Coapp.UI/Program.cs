@@ -122,8 +122,15 @@ builder.Services.AddScoped<IAccountsHandler, AccountsHandler>();
 builder.Services.AddScoped<IFinVoucherTrnHandler, FinVoucherTrnHandler>();
 #endregion 
 
+#region Fin Ledger
+builder.Services.AddScoped<IFinLedgerHandler, FinLedgerHandler>();
+builder.Services.AddScoped<IFinLedgerFnlHandler, FinLedgerFnlHandler>();
+builder.Services.AddScoped<IFinLedgerGroupHandler , FinLedgerGroupHandler>();
+builder.Services.AddScoped<IFinLedgerTrnHandler, FinLedgerTrnHandler>();
+#endregion 
 #region Loan
 builder.Services.AddScoped<ILoanSchemeHandler, LoanSchemeHandler>();
+builder.Services.AddScoped<ILoanSchemeGroupHandler, LoanSchemeGroupHandler>();
 builder.Services.AddScoped<ILoanMasterHandler, LoanMasterHandler>();
 builder.Services.AddScoped<ILoanTrnHandler, LoanTrnHandler>();
 builder.Services.AddScoped<ILoanDisburementHandler, LoanDisburementHandler>();
@@ -210,9 +217,6 @@ builder.Services.AddScoped<IStagingBalanceHandler, StagingBalanceHandler>();
 builder.Services.AddScoped<ISBCAMasterHandler, SBCAMasterHandler>();
 builder.Services.AddScoped<ISBCASchemesHandler, SBCASchemesHandler>();
 #endregion 
-
-
-
 
 #region Report Servces
 //builder.Services.AddScoped<IInstant_Reports, Instant_Reports>();

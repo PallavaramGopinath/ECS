@@ -14,5 +14,6 @@ namespace Infin8.Coapp.BusinessLogic
 
         Task<Fin_Yr_Master> GetWorkingYear();
         Task<DayBeginInfo> GetDayBeginInfo(string brCode);
+        Task<List<Fin_Yr_Master>> GetFinancialYearList(string brCode);
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Models
+namespace Infin8.Coapp.Models
 {
     public class Loan_Schemes_Group
     {

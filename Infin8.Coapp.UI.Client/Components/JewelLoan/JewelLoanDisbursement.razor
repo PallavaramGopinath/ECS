@@ -11,7 +11,7 @@
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject TransactionStateService TransactionState
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@* @inject AuthenticationStateProvider AuthenticationStateProvider *@
 
 
 @rendermode InteractiveWebAssembly
@@ -69,13 +69,15 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="marketRate">Market Rate (per gram):</label>
-                            <InputNumber id="marketRate" class="form-control" @bind-Value="loanDetails.Market_Rate" readonly />
+                            <InputNumber id="marketRate" class="form-control" @bind-Value="loanDetails.Market_Rate"
+                                         @onblur="CalculateEligibleAmount" />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="govtRate">Government Rate (per gram):</label>
-                            <InputNumber id="govtRate" class="form-control" @bind-Value="loanDetails.Govt_Rate" readonly />
+                            <InputNumber id="govtRate" class="form-control" @bind-Value="loanDetails.Govt_Rate"
+                                         @onblur="CalculateEligibleAmount" />
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -485,42 +487,6 @@
 
             loanDetails.Existing_Loan_Outstanding = jlExistingLoanBalance;
 
-
-            // Example: Call API to get scheme details
-            // var schemeDetails = await Http.GetFromJsonAsync<SchemeDetails>($"api/loanschemes/{loanDetails.Scheme_Id}");
-
-            // For demo, use sample data based on scheme ID
-            // switch (loanDetails.Scheme_Id)
-            // {
-            //     case 1: // Normal Jewel Loan
-            //         loanDetails.Market_Rate = 5500.00;
-            //         loanDetails.Govt_Rate = 5000.00;
-            //         loanDetails.Maximum_Loan_Limit = 500000.00;
-            //         loanDetails.Percentage_Of_Eligibility_On_Market_Rate = 80.0;
-            //         loanDetails.Period_Of_Loan = 12;
-            //         loanDetails.Rate_Of_Interest = 12.5;
-            //         loanDetails.Penal_Rate = 2.0;
-            //         break;
-            //     case 2: // Agriculture Jewel Loan
-            //         loanDetails.Market_Rate = 5500.00;
-            //         loanDetails.Govt_Rate = 5000.00;
-            //         loanDetails.Maximum_Loan_Limit = 300000.00;
-            //         loanDetails.Percentage_Of_Eligibility_On_Market_Rate = 75.0;
-            //         loanDetails.Period_Of_Loan = 24;
-            //         loanDetails.Rate_Of_Interest = 10.0;
-            //         loanDetails.Penal_Rate = 1.5;
-            //         break;
-            //     case 3: // Special Jewel Loan
-            //         loanDetails.Market_Rate = 5500.00;
-            //         loanDetails.Govt_Rate = 5000.00;
-            //         loanDetails.Maximum_Loan_Limit = 750000.00;
-            //         loanDetails.Percentage_Of_Eligibility_On_Market_Rate = 85.0;
-            //         loanDetails.Period_Of_Loan = 36;
-            //         loanDetails.Rate_Of_Interest = 14.0;
-            //         loanDetails.Penal_Rate = 3.0;
-            //         break;
-            // }
-
             // Calculate due date
             CalculateDueDate();
         }
@@ -590,45 +556,48 @@
     {
         if (loanDetails.Ornment_List == null || loanDetails.Ornment_List.Count == 0)
         {
-            JSRuntime.InvokeVoidAsync("alert", "Ornment details are empty");
+            // JSRuntime.InvokeVoidAsync("alert", "Ornment details are empty");
             loanDetails.Jewels_Value = 0;
             return;
         }
 
         // Calculate net weight
-        loanDetails.Net_Weight = loanDetails.Gross_Weight - loanDetails.Wasgate;
+        if (loanDetails.Gross_Weight - loanDetails.Wasgate > 0)
+        {
+            loanDetails.Net_Weight = loanDetails.Gross_Weight - loanDetails.Wasgate;
 
-        if (loanDetails.Net_Weight < 0)
-        {
-            loanDetails.Net_Weight = 0;
-        }
+            if (loanDetails.Net_Weight < 0)
+            {
+                loanDetails.Net_Weight = 0;
+            }
 
-        // Calculate jewel value and loan eligibility
-        double valueOnGrossWeight = loanDetails.Gross_Weight * loanDetails.Market_Rate * (loanDetails.Percentage_Of_Eligibility_On_Market_Rate / 100);
-        double valueOnNetWeight = loanDetails.Net_Weight * loanDetails.Govt_Rate;
+            // Calculate jewel value and loan eligibility
+            double valueOnGrossWeight = loanDetails.Gross_Weight * loanDetails.Market_Rate * (loanDetails.Percentage_Of_Eligibility_On_Market_Rate / 100);
+            double valueOnNetWeight = loanDetails.Net_Weight * loanDetails.Govt_Rate;
 
-        // Determine eligible amount (lesser of the two)
-        if (valueOnGrossWeight >= valueOnNetWeight)
-        {
-            loanDetails.Jewels_Value = valueOnNetWeight;
-        }
-        else
-        {
-            loanDetails.Jewels_Value = valueOnGrossWeight;
-        }
+            // Determine eligible amount (lesser of the two)
+            if (valueOnGrossWeight >= valueOnNetWeight)
+            {
+                loanDetails.Jewels_Value = valueOnNetWeight;
+            }
+            else
+            {
+                loanDetails.Jewels_Value = valueOnGrossWeight;
+            }
 
-        // Apply maximum loan limit
-        if (loanDetails.Jewels_Value > loanDetails.Maximum_Loan_Limit)
-        {
-            loanDetails.Jewels_Value = loanDetails.Maximum_Loan_Limit;
+            // Apply maximum loan limit
+            if (loanDetails.Jewels_Value > loanDetails.Maximum_Loan_Limit)
+            {
+                loanDetails.Jewels_Value = loanDetails.Maximum_Loan_Limit;
+            }
+            if (loanDetails.Existing_Loan_Outstanding + loanDetails.Loan_Amount > loanDetails.Maximum_Loan_Limit)
+            {
+                loanDetails.Loan_Amount = loanDetails.Maximum_Loan_Limit - loanDetails.Existing_Loan_Outstanding;
+            }
+            // Set a suggested loan amount
+            loanDetails.Loan_Amount = loanDetails.Jewels_Value;
+            CalculateAppraisalFee();
         }
-        if (loanDetails.Existing_Loan_Outstanding + loanDetails.Loan_Amount > loanDetails.Maximum_Loan_Limit)
-        {
-            loanDetails.Loan_Amount = loanDetails.Maximum_Loan_Limit - loanDetails.Existing_Loan_Outstanding;
-        }
-        // Set a suggested loan amount
-        loanDetails.Loan_Amount = loanDetails.Jewels_Value;
-        CalculateAppraisalFee();
     }
 
     private void ValidateLoanAmount()

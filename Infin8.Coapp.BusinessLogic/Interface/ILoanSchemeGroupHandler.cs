@@ -1,4 +1,4 @@
-﻿using Models;
+﻿using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +11,6 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<bool> AddLoanSchemeGroupAsync(Loan_Schemes_Group loanSchemeGrp);
         Task<bool> EditLoanSchemeGroupAsync(Loan_Schemes_Group loanSchemeGrp);
+        Task<List<Loan_Schemes_Group>> GetLoanSchemesGroup();
     }
 }

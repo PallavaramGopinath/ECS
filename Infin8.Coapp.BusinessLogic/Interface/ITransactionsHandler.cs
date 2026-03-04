@@ -25,5 +25,7 @@ namespace Infin8.Coapp.BusinessLogic
         DtoTransactionRptPmtNos GetReceiptAndPaymentNo(double cashReceipt, double cashPayment, double adjReceipt, double adjPayment, bool IsChequeOnly, decimal yrId);
         Task<bool> IsChequeOnly(decimal stagingId);
         Task<string> GetTransactionStatusByAccId(int accId);
+        Task<List<DropdownItem>> GetLedgerItems(int fnlId, string brCode);
+        Task<List<DropdownItem>> GetPrincipalLedgerItems(string brCode);
     }
 }

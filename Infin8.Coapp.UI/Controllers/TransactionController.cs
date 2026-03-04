@@ -13,7 +13,7 @@ namespace Infin8.Coapp.API.Controllers
     [Route("api/[controller]")]
     [ApiController]
     //[Authorize(Roles ="Admin,Maker,Checker")]
-    [Authorize]
+    //[Authorize]
     public class TransactionController : ControllerBase
     {
         readonly ITransactionsHandler _transactionHandler;
@@ -193,6 +193,24 @@ namespace Infin8.Coapp.API.Controllers
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        [HttpGet]
+        [Route("GetLedgerList/{fnlId:int}/{brCode}")]
+        public async Task<ActionResult<List<DropdownItem>>> GetLedgerList(int fnlId, string brCode)
+        {
+            List<DropdownItem> ledgerList = new List<DropdownItem>();
+            ledgerList = await _transactionHandler.GetLedgerItems(fnlId, brCode);
+            return Ok(ledgerList);
+        }
+
+        [HttpGet]
+        [Route("GetPrincipalLedgerList/{brCode}")]
+        public async Task<ActionResult<List<DropdownItem>>> GetPrincipalLedgerList( string brCode)
+        {
+            List<DropdownItem> ledgerList = new List<DropdownItem>();
+            ledgerList = await _transactionHandler.GetPrincipalLedgerItems(brCode);
+            return Ok(ledgerList);
         }
     }
 

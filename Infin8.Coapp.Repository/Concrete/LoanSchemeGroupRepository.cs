@@ -1,6 +1,5 @@
 ﻿using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
-using Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Infin8.Coapp.Repository
 {
-    public class LoanSchemeGroupRepository :Repository<Loan_Schemes_Group>, ILoanSchemeGroupRepository
+    public class LoanSchemeGroupRepository : Repository<Loan_Schemes_Group>, ILoanSchemeGroupRepository
     {
         public CSISContext CSISContext => (CSISContext)Context;
         public LoanSchemeGroupRepository(DbContext context) : base(context)
@@ -50,6 +49,20 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Loan scheme group not modified");
             }
             return result;
+        }
+
+        public async Task<List<Loan_Schemes_Group>> GetLoanSchemesGroup()
+        {
+            List<Loan_Schemes_Group> groups = new List<Loan_Schemes_Group>();
+            try
+            {
+                groups = await CSISContext.Loan_Schemes_Group.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Loan scheme group not fetching");
+            }
+            return groups;
         }
     }
 }

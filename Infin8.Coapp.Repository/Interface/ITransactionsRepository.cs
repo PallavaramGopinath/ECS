@@ -24,6 +24,8 @@ namespace Infin8.Coapp.Repository
         Task<bool> IsChequeOnly(decimal stagingId);
         Task<string> GetTransactionStatusByAccId(int accId);
         Task<Dictionary<int, string>> GetTransactionStatusesByAccIds(List<int> accIds);
+        Task<List<DropdownItem>> GetLedgerItems(int fnlId, decimal cashledId, string brCode);
+        Task<List<DropdownItem>> GetPrincipalLedgerItems(string brCode);
 
     }
 }

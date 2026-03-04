@@ -29,23 +29,26 @@
     </div>
 
     <!-- Category Tabs -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <ul class="nav nav-tabs nav-fill" role="tablist">
-                @foreach (var category in GetLoanCategoriesForTabs())
-                {
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link @(selectedCategory == category.Category ? "active" : "")"
-                                @onclick="() => SelectCategory(category.Category)"
-                                type="button">
-                            <i class="bi @category.Icon me-2"></i>@category.Name
-                        </button>
-                    </li>
-                }
-            </ul>
+    @if (loanCategories.Count > 0)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <ul class="nav nav-tabs nav-fill" role="tablist">
+                    @*  @foreach (var category in GetLoanCategoriesForTabs()) *@
+                    @foreach (var category in loanCategories)
+                    {
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(selectedCategory == category.Category ? "active" : "")"
+                                    @onclick="() => SelectCategory(category.Category)"
+                                    type="button">
+                                <i class="bi @category.Icon me-2"></i>@category.Name
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
         </div>
-    </div>
-
+    }
     <!-- Loan Products Grid -->
     <div class="row">
         <div class="col-12">
@@ -88,7 +91,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var loan in filteredLoans.OrderBy(x=> x.Loan_Type).ThenBy(x=> x.LoanNoStartWith))
+                                    @foreach (var loan in filteredLoans.OrderBy(x => x.Loan_Type).ThenBy(x => x.LoanNoStartWith))
                                     {
                                         <tr>
                                             <td><span class="badge bg-secondary">@loan.LoanNoStartWith</span></td>
@@ -116,7 +119,7 @@
                                                 {
                                                     <span class="badge bg-success">Short Term Loan</span>
                                                 }
-                                                else if(loan.Loan_Type == 4)
+                                                else if (loan.Loan_Type == 4)
                                                 {
                                                     <span class="badge bg-secondary">Short Term Loan</span>
                                                 }
@@ -124,19 +127,19 @@
                                                 {
                                                     <span class="badge bg-info">Term Loan</span>
                                                 }
-                                                else if(loan.Loan_Type == 6)
+                                                else if (loan.Loan_Type == 6)
                                                 {
                                                     <span class="badge bg-dark">Long Term Loan</span>
                                                 }
-                                                 else if(loan.Loan_Type == 7)
+                                                else if (loan.Loan_Type == 7)
                                                 {
                                                     <span class="badge bg-secondary">Long Term Loan</span>
                                                 }
-                                                 else if(loan.Loan_Type == 8)
+                                                else if (loan.Loan_Type == 8)
                                                 {
                                                     <span class="badge bg-primary">Long Term Loan</span>
                                                 }
-                                                 else if(loan.Loan_Type == 9)
+                                                else if (loan.Loan_Type == 9)
                                                 {
                                                     <span class="badge bg-warning">Long Term Loan</span>
                                                 }
@@ -212,7 +215,7 @@
                                             <h6 class="card-title">@subCategory.Name</h6>
                                             <p class="card-text small text-muted">@subCategory.Description</p>
                                             <button class="btn btn-sm btn-outline-primary"
-                                                    @onclick="() => FilterBySubCategory(subCategory.Name)">
+                                                    @onclick="() => FilterBySubCategory(subCategory.Name!)">
                                                 View Products
                                             </button>
                                         </div>
@@ -229,10 +232,12 @@
 
 @code {
     private string brCode = "11005";
+    private List<Loan_Schemes_Group> schemeGroupList = new List<Loan_Schemes_Group>();
     private List<Loan_Schemes> allLoans = new();
     private List<Loan_Schemes> filteredLoans = new();
     private List<LoanCategoryInfo> loanCategoryInforForTabs = new();
     List<LoanCategoryInfo> loanSubCategories = new List<LoanCategoryInfo>();
+    List<LoanCategoryInfo> loanCategories = new List<LoanCategoryInfo>();
     // private List<DtoLoanProducts> allLoans = new();
     // private List<DtoLoanProducts> filteredLoans = new();
 
@@ -276,14 +281,20 @@
     private string? selectedSubCategory = "";
 
     protected override async Task OnInitializedAsync()
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadLoanProducts();
+        // if (firstRender)
+        // {
+            await LoadLoanProducts();
+        // }
     }
 
     private async Task LoadLoanProducts()
     {
         // TODO: Replace with actual data service call
-        allLoans = await  GetSampleLoanData();
+        schemeGroupList = await GetLoanSchemeGroupData();
+        allLoans = await GetSampleLoanData();
+        loanCategories = GetLoanCategoriesForTabs();
         FilterLoans();
     }
 
@@ -308,7 +319,7 @@
         }
         /// get fixed deposit loan
         var fixedDepositLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.LoansOnFixedDeposits).ToList();
-        foreach(var loan in fixedDepositLoan)
+        foreach (var loan in fixedDepositLoan)
         {
             loanCategoryInfo.Add(new LoanCategoryInfo
             {
@@ -338,7 +349,7 @@
         }
         /// get staff loan
         var staffLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.StaffLoans).ToList();
-        foreach(var loan in staffLoan)
+        foreach (var loan in staffLoan)
         {
             loanCategoryInfo.Add(new LoanCategoryInfo
             {
@@ -383,7 +394,7 @@
                 }
             });
         }
-        
+
         /// get rural housing loan
         var ruralHousingLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.RuralHousing).ToList();
         foreach (var loan in ruralHousingLoan)
@@ -401,12 +412,12 @@
         }
 
         /// get rural housing loan
-        var srtoLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.SmallRoadTransportLoans ).ToList();
+        var srtoLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.SmallRoadTransportLoans).ToList();
         foreach (var loan in srtoLoan)
         {
             loanCategoryInfo.Add(new LoanCategoryInfo
             {
-                Category = LoanCategory.SmallRoadTransportLoans ,
+                Category = LoanCategory.SmallRoadTransportLoans,
                 Name = "Small Road Transport Loans",
                 Icon = "bi-truck",
                 SubCategories = new List<LoanSubCategory>
@@ -416,7 +427,7 @@
             });
         }
 
-        return loanCategoryInfo.OrderBy(x=> x.Category).ToList();
+        return loanCategoryInfo.OrderBy(x => x.Category).ToList();
 
         /// get non farm sector loan
         /// get rural housing loan
@@ -497,7 +508,7 @@
         //         }
         //     }
         // };
-        #endregion 
+        #endregion
     }
 
     private List<LoanSubCategory> GetSubCategories(LoanCategory category)
@@ -525,8 +536,8 @@
         foreach (var loan in distinctByLoanType)
         {
             string icode = "";
-            var catogery = LoanCategory.JewelLoans; ;
-            switch(loan.Loan_Type )
+            var catogery = LoanCategory.JewelLoans;
+            switch (loan.Loan_Type)
             {
                 case 1:
                     icode = "bi-people";
@@ -534,7 +545,7 @@
                     break;
                 case 2:
                     catogery = LoanCategory.JewelLoans;
-                    icode = "bi-gem"; 
+                    icode = "bi-gem";
                     break;
                 case 3:
                     catogery = LoanCategory.LoansOnFixedDeposits;
@@ -542,18 +553,18 @@
                     break;
                 case 4:
                     catogery = LoanCategory.LoansOnRecurringDeposits;
-                    icode = "bi-piggy-bank"; 
+                    icode = "bi-piggy-bank";
                     break;
                 case 5:
                     catogery = LoanCategory.StaffLoans;
-                    icode = "bi-people"; 
+                    icode = "bi-people";
                     break;
                 case 6:
-                    catogery = LoanCategory.FarmSectorLoans ;
+                    catogery = LoanCategory.FarmSectorLoans;
                     icode = "bi-tree";
                     break;
-               case 7: /// Non farm sector
-                    catogery = LoanCategory.NonFarmSectorLoans ;
+                case 7: /// Non farm sector
+                    catogery = LoanCategory.NonFarmSectorLoans;
                     icode = "bi-building";
                     break;
                 case 8: /// Rural housing
@@ -561,7 +572,7 @@
                     icode = "bi-house";
                     break;
                 case 9: /// Small road transport
-                    catogery = LoanCategory.SmallRoadTransportLoans ;
+                    catogery = LoanCategory.SmallRoadTransportLoans;
                     icode = "bi-truck";
                     break;
                 default:
@@ -570,8 +581,10 @@
             }
             loanCategoryInfo.Add(new LoanCategoryInfo
             {
+                // Name = loan.Scheme_Name , // "Jewel Loans",
+                // Name = schemeGroupList.Where(x=> x.Grp_Id == Convert.ToInt16( catogery) ) .Select(x=> x.Grp_Name ).FirstOrDefault(),
                 Category = catogery,
-                Name = loan.Scheme_Name , // "Jewel Loans",
+                Name = schemeGroupList.Where(x => x.Grp_Id == Convert.ToInt16(catogery)).Select(x => x.Grp_Name).FirstOrDefault(),
                 Icon = icode,
                 SubCategories = new List<LoanSubCategory>
                 {
@@ -585,10 +598,10 @@
     private string GetSelectedCategoryName()
     {
         // return selectedCategory.HasValue
-        //     ? GetLoanCategories().First(c => c.Category == selectedCategory.Value).Name
-        //     : "All Loan Products";
+        //    ? GetLoanCategoriesForTabs().First(c => c.Category == selectedCategory.Value).Name!
+        //    : "All Loan Products";
         return selectedCategory.HasValue
-           ? GetLoanCategoriesForTabs().First(c => c.Category == selectedCategory.Value).Name
+           ? loanCategoryInforForTabs.First(c => c.Category == selectedCategory.Value).Name!
            : "All Loan Products";
     }
 
@@ -687,7 +700,7 @@
         //         Loan_Type = 1,
         //         Scheme_Delete = false
         //     },
-        //     new DtoLoanProducts 
+        //     new DtoLoanProducts
         //     {
         //         Scheme_Id = 2,
         //         Pur_Id = 3,
@@ -701,7 +714,7 @@
         //         Loan_Type = 1,
         //         Scheme_Delete = false
         //     },
-        //     new DtoLoanProducts 
+        //     new DtoLoanProducts
         //     {
         //         Scheme_Id = 3,
         //         Pur_Id = 4,
@@ -715,7 +728,29 @@
         //         Scheme_Delete = false
         //     }
         // };
-        #endregion 
+        #endregion
+    }
+
+    private async Task<List<Loan_Schemes_Group>> GetLoanSchemeGroupData()
+
+    {
+        try
+        {
+            // var fullUrl = _httpClient.BaseAddress + "api/Loan/GetLoanSchemeGroupList";
+            // Console.WriteLine($"Calling URL: {fullUrl}");  // Log full URL
+            var result = await _httpClient.GetFromJsonAsync<List<Loan_Schemes_Group>>($"api/Loan/GetLoanSchemeGroupList");
+            // var result = await _httpClient.GetFromJsonAsync<List<Loan_Schemes_Group>>(fullUrl);
+            if (result != null && result.Count > 0)
+            {
+                schemeGroupList = result.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching loan products: {ex.Message}");
+            schemeGroupList = new List<Loan_Schemes_Group>(); // Return empty list on error
+        }
+        return schemeGroupList;
     }
 }
 

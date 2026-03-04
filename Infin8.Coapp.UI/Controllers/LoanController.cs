@@ -15,6 +15,7 @@ namespace Infin8.Coapp.API.Controllers
     public class LoanController : ControllerBase
     {
         readonly ILoanSchemeHandler _loanSchemeHandler;
+        readonly ILoanSchemeGroupHandler _loanSchemeGroupHandler;
         readonly ILoanTrnHandler _loanTrnHandler;
         readonly IJLDetailsHandler _jlDetailsHandler;
         readonly IJLEligibleHandler _jleligibleHandler;
@@ -23,7 +24,8 @@ namespace Infin8.Coapp.API.Controllers
 
         public LoanController(ILoanSchemeHandler loanSchemeHandler, ILoanTrnHandler loanTrnHandler,
             IJLDetailsHandler jLDetailsHandler, IJLEligibleHandler jLEligibleHandler,
-            IJLMaximimumLimitHandler jLMaximimumLimitHandler, ILoanROITemplateHandler loanROITemplateHandler)
+            IJLMaximimumLimitHandler jLMaximimumLimitHandler, ILoanROITemplateHandler loanROITemplateHandler,
+            ILoanSchemeGroupHandler loanSchemeGroupHandler)
         {
             _loanSchemeHandler = loanSchemeHandler;
             _loanTrnHandler = loanTrnHandler;
@@ -31,11 +33,13 @@ namespace Infin8.Coapp.API.Controllers
             _jleligibleHandler = jLEligibleHandler;
             _jlelMaximimumLimitHandler = jLMaximimumLimitHandler;
             _loanROITemplateHandler = loanROITemplateHandler;
+            _loanSchemeGroupHandler = loanSchemeGroupHandler;
         }
         //[Authorize(Roles = $"{RoleConstants.Admin},{RoleConstants.Maker},{RoleConstants.Checker},{RoleConstants.Configurator}")] // to authorize two roles, use $"{RoleConstants.Admin},{RoleConstants.Maker}"
         //[Authorize(Roles = RoleConstants.Configurator)]
         [HttpPost]
-        public async Task<ActionResult<Loan_Schemes>> AddScheme(Loan_Schemes loanscheme)
+        [Route("AddLoanScheme")]
+        public async Task<ActionResult<Loan_Schemes>> AddScheme([FromBody]  Loan_Schemes loanscheme)
         {
             var result = await _loanSchemeHandler.AddLoanSchemeAsync(loanscheme);
             if (result) return Ok(result);
@@ -96,7 +100,7 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetAllLoanProducts/{brCode}")]
-        public async Task<ActionResult<List<Loan_Schemes>>> GetAllLoanProducts( string brCode)
+        public async Task<ActionResult<List<Loan_Schemes>>> GetAllLoanProducts(string brCode)
         {
             List<Loan_Schemes> items = new List<Loan_Schemes>();
             items = await _loanSchemeHandler.GetAllLoanProductes(brCode);
@@ -105,6 +109,22 @@ namespace Infin8.Coapp.API.Controllers
                 return NotFound();
         }
         #endregion
+
+        #region Loan Scheme Group
+        [HttpGet]
+        [Route("GetLoanSchemeGroupList")]
+        public async Task<ActionResult<List<Loan_Schemes_Group>>> GetLoanSchemeGroupList()
+        {
+            List<Loan_Schemes_Group> schemeList = new List<Loan_Schemes_Group>();
+            schemeList = await _loanSchemeGroupHandler.GetLoanSchemesGroup();
+            if (schemeList != null && schemeList.Any())
+            {
+                return Ok(schemeList);
+            }
+            else
+                return NotFound();
+        }
+        #endregion 
 
         #region Jewel Loan
         [HttpGet]
@@ -344,10 +364,10 @@ namespace Infin8.Coapp.API.Controllers
                     return NotFound();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return NotFound();
-                Console.Write(ex.Message);
+                //Console.Write(ex.Message);
             }
         }
 
@@ -378,12 +398,13 @@ namespace Infin8.Coapp.API.Controllers
             if (result != null && result.Scheme_Id > 0)
             {
                 staffLoan = result;
-                return Ok(staffLoan);
+                //return Ok(staffLoan);
             }
             else
             {
-                return NotFound();
+                //return NotFound();
             }
+            return Ok(staffLoan);
         }
         #endregion
     }

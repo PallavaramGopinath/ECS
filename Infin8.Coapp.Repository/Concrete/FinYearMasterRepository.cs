@@ -80,6 +80,26 @@ namespace Infin8.Coapp.Repository
             return dayBeginInfo;
         }
 
+        public async Task<List<Fin_Yr_Master>> GetFinancialYearList(string brCode)
+        {
+            List<Fin_Yr_Master> yrList = new();
+            try
+            {
+                var result = await CSISContext.Fin_Yr_Master
+                    .Where(x => x.BrCode == brCode )
+                    .ToListAsync();
+                if (result != null && result.Any()) 
+                {
+                    yrList = result.ToList();
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return yrList;
+        }
+
         //public async Task<bool> EditFinYearMasterAsync(Fin_Yr_Master finYrMaster)
         //{
         //    bool result = false;

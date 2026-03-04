@@ -65,7 +65,7 @@ namespace Infin8.Coapp.Repository
             {
                 var result = await CSISContext.Fin_Ledger
                 .Where(fl => fl.Led_Delete == false &&
-                        fl.BrCode == brCode )
+                        fl.BrCode == brCode)
                 .Select(fl => new DropdownItem
                 {
                     Value = fl.Led_Id.ToString(),
@@ -80,6 +80,7 @@ namespace Infin8.Coapp.Repository
             }
             return trnList;
         }
+
         public async Task<List<DropdownItem>> GetSuspenseLedgerItems(int suspeneType, string brCode)
         {
             List<DropdownItem> trnList = new List<DropdownItem>();
@@ -307,7 +308,7 @@ namespace Infin8.Coapp.Repository
                                        Type = master.Type,
                                        Security_Type = details.Security_Type,
                                    }).ToListAsync();
-                if (query != null && query.Count >0)
+                if (query != null && query.Count > 0)
                 {
                     transaction = query.ToList();
                 }
@@ -358,5 +359,69 @@ namespace Infin8.Coapp.Repository
                 .ToDictionaryAsync(x => x.Acc_Id, x => x.Acc_Status);
         }
 
+        public async Task<List<DropdownItem>> GetLedgerItems(int fnlId, decimal cashledId, string brCode)
+        {
+            List<DropdownItem> trnList = new List<DropdownItem>();
+            try
+            {
+                if (fnlId == 0)
+                {
+                    var result = await (from led in CSISContext.Fin_Ledger
+                                        join grp in CSISContext.Fin_Ledger_Grp on led.Grp_Id equals grp.Grp_Id
+                                        where led.Led_Id != cashledId
+                                        && led.BrCode == brCode
+                                        && led.Led_Delete == false
+                                        select new DropdownItem
+                                        {
+                                            Value = led.Led_Id.ToString(),
+                                            Text = led.Led_Name
+                                        }).ToListAsync();
+                    if (result != null) trnList = result;
+                }
+                else
+                {
+                    var result = await (from led in CSISContext.Fin_Ledger
+                                        join grp in CSISContext.Fin_Ledger_Grp on led.Grp_Id equals grp.Grp_Id
+                                        where grp.Fnl_Id == fnlId
+                                        && led.Led_Id != cashledId
+                                        && led.BrCode == brCode
+                                        && led.Led_Delete == false
+                                        select new DropdownItem
+                                        {
+                                            Value = led.Led_Id.ToString(),
+                                            Text = led.Led_Name
+                                        }).ToListAsync();
+                    if (result != null) trnList = result;
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return trnList;
+        }
+
+        public async Task<List<DropdownItem>> GetPrincipalLedgerItems(string brCode)
+        {
+            List<DropdownItem> trnList = new List<DropdownItem>();
+            try
+            {
+                var result  = await CSISContext.Fin_Ledger
+                    .Where(x => x.Led_Delete == false && x.Grp_Id == 4 && x.BrCode == brCode)
+                    .Select(x => new DropdownItem
+                    {
+                        Value = x.Led_Id.ToString(),
+                        Text = x.Led_Name
+                    })
+                    .ToListAsync();
+
+                if (result != null) trnList = result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return trnList;
+        }
     }
 }

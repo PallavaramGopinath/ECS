@@ -400,18 +400,6 @@
         // if (!isFirstRender)
         if (firstRender && !_isDataLoaded)
         {
-            // var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            // var user = authState.User;
-            // var stateBrCode = user.FindFirst("BrCode")?.Value.ToString();
-            // var yrId = user.FindFirst("YrId")?.Value.ToString();
-            // var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
-            // var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
-            // var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
-            // brCode = stateBrCode!;
-            // transaction.Transaction_Date = currentDate ;
-            // transaction.Cheque_Date = currentDate;
-            // transaction.Yr_Id = Convert.ToDecimal(yrId);
-
             var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
             brCode = userInfoDto.BrCode!;
             transaction.Transaction_Date = userInfoDto.CurrentDate;
@@ -655,6 +643,7 @@
 
     private async Task handlerShowAccountModal()
     {
+        await Task.Yield(); // <-- add this line
         string errorMsg = string.Empty;
         isComponentLoaded = false;
         if (transaction.Cash_Adjustment == 0)
@@ -675,19 +664,26 @@
         string accountName = accountItems.FirstOrDefault(a => a.Value == transaction.Account_Id.ToString())?.Text ?? string.Empty;
         try
         {
-            var count = await _httpClient.GetFromJsonAsync<int>($"api/Staging/VerifyTransactionExistsInStagingDetails/{transaction.Member_Id}/{transaction.Transaction_Date.ToString("yyyy-MM-dd")}/{transaction.Account_Id}");
-            if (count > 0)
+            bool isVerify = false;
+            if (transaction.Account_Id != 3 || transaction.Account_Id != 4 || transaction.Account_Id != 11 || transaction.Account_Id != 21)
+                isVerify = false;
+            else
+                isVerify = true;
+            /// 3 = mem due by, 4 = mem due to, 11 = bank account, 21= ledger entry. These accounts require multiple transactions
+            if(isVerify )
             {
-                await JSRuntime.InvokeVoidAsync("alert", "Transaction already exists but not either approved or rejected of the account " + accountName + " for this member for this date");
-                transaction.Account_Id = 0;
-                isComponentLoaded = false;
-                // StateHasChanged();
-                return;
+                var count = await _httpClient.GetFromJsonAsync<int>($"api/Staging/VerifyTransactionExistsInStagingDetails/{transaction.Member_Id}/{transaction.Transaction_Date.ToString("yyyy-MM-dd")}/{transaction.Account_Id}/0");
+                if (count > 0)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Transaction already exists but not either approved or rejected of the account " + accountName + " for this member for this date");
+                    transaction.Account_Id = 0;
+                    isComponentLoaded = false;
+                    return;
+                }
             }
         }
         catch (Exception)
         {
-
             throw;
         }
         /// verify if the member has already a sb account
@@ -727,10 +723,10 @@
         }
 
         ledgerNameItems = await GetLedgerNameList();
-        StateHasChanged();
+        // StateHasChanged();
         await GetComponentName(transaction.Account_Id);
         isDdlLedger = false;
-        StateHasChanged();
+        // StateHasChanged();
         #region common accounts
         switch (transaction.Account_Id)
         {
@@ -910,6 +906,7 @@
             StateHasChanged();
         }
         #endregion
+        StateHasChanged();
     }
     #endregion
 
@@ -1849,6 +1846,22 @@
 
     private async Task GetLedgerBalance()
     {
+        await Task.Yield(); // <-- add this line
+        string accountName = accountItems.FirstOrDefault(a => a.Value == transaction.Account_Id.ToString())?.Text ?? string.Empty;
+        // if (transaction.Account_Id != 3 && transaction.Account_Id != 4 && transaction.Account_Id != 11 && transaction.Account_Id != 21)
+        // {
+        var count = await _httpClient.GetFromJsonAsync<int>($"api/Staging/VerifyTransactionExistsInStagingDetails/{transaction.Member_Id}/{transaction.Transaction_Date.ToString("yyyy-MM-dd")}/{transaction.Account_Id}/{transaction.Ledger_Id}");
+        if (count > 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Transaction already exists but not either approved or rejected of the account " + accountName + " for this member for this date");
+            transaction.Account_Id = 0;
+            transaction.Ledger_Id = 0;
+            isComponentLoaded = false;
+                // StateHasChanged();
+                return;
+            }
+        // }
+
         switch (transaction.Account_Id)
         {
             case 3: /// Member suspense creditor
@@ -2048,12 +2061,12 @@
 
     private async Task RemoveAccountRow(AccountTransactionVM account)
     {
-        await DeleteTransactedAccount(account.Staging_Id, account.AccountId);
+        await DeleteTransactedAccount(account.Staging_Id, account.AccountId,account.LedId, brCode);
         // transactionAccountsList.Remove(account);
         await UpdateJLRecoveryTransactionFromStaging("I");
     }
 
-    private async Task DeleteTransactedAccount(decimal stagingId, int relatedAccountId)
+    private async Task DeleteTransactedAccount(decimal stagingId, int relatedAccountId,decimal ledgerId, string brCode)
     {
         #region common accounts
         switch (relatedAccountId)
@@ -2220,7 +2233,7 @@
         StateHasChanged();
         try
         {
-            var response = await _httpClient.DeleteAsync($"api/Staging/DeleteStaging/{stagingId}/{relatedAccountId}");
+            var response = await _httpClient.DeleteAsync($"api/Staging/DeleteStaging/{stagingId}/{relatedAccountId}/{ledgerId}/{brCode}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -2260,22 +2273,23 @@
     {
         string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
         var cashBalance = await _httpClient.GetFromJsonAsync<double>($"api/Accounts/GetCashBalanceAsOnDate?yrId={transaction.Yr_Id}&asonDate={formatedDate}&brCode={brCode}");
-        // transaction.Cash_Led_Balance = cashBalance;
-        StateHasChanged();
-        transaction = new TransactionBy_Members
-        {
-            Transaction_Date = DateTime.Today,
-            Receipt_Payment = 1,
-            Cash_Adjustment = 1,
-            Yr_Id = 110010000024,
-            Cash_Led_Balance = cashBalance
-        };
+       
+        transaction.Member_Id =0;
+        transaction.Member_No = "";
+        transaction.Member_Name = "";
+        transaction.Father_Name ="";
+        transaction.Address = "";
+        transaction.Receipt_Payment =1;
+        transaction.Cash_Adjustment = 1;
+        transaction.Cash_Led_Balance = cashBalance ;
+
         isDdlCashAdjustmentDisable = false;
         isMemberNoDisable = false;
         transactionAccountsList.Clear();
         isBankAccount = false;
         isLedgerSection = false;
         isComponentLoaded = false;
+        StateHasChanged();
         // AddNewAccountRow();
     }
 
