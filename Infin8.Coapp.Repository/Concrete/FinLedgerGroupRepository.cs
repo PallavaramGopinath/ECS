@@ -73,12 +73,26 @@ namespace Infin8.Coapp.Repository
             return list;
         }
 
-        public async Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(int fnlId)
+        public async Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(int fnlId, string brCode)
         {
             List<Fin_Ledger_Grp> list = new List<Fin_Ledger_Grp>();
             try
             {
-                list = await CSISContext.Fin_Ledger_Grp.Where(x=> x.Fnl_Id  == fnlId && x.Grp_Delete == false).ToListAsync();  
+                list = await CSISContext.Fin_Ledger_Grp.Where(x=> x.Fnl_Id  == fnlId && x.Grp_Delete == false && x.BrCode == brCode).ToListAsync();  
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching ledger group List");
+            }
+            return list;
+        }
+
+        public async Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(string brCode)
+        {
+            List<Fin_Ledger_Grp> list = new List<Fin_Ledger_Grp>();
+            try
+            {
+                list = await CSISContext.Fin_Ledger_Grp.Where(x =>  x.Grp_Delete == false && x.BrCode == brCode).ToListAsync();
             }
             catch (Exception ex)
             {

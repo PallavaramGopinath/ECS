@@ -16,14 +16,17 @@ namespace API.Controllers
         readonly IAccountsHandler _accountsHandler;
         readonly IFinLedgerHandler _finLedgerHandler;
         readonly IFinLedgerGroupHandler _finLedgerGroupHandler;
+        readonly IFinLedgerFnlHandler _finLedgerFnlHandler;
         readonly IFinLedgerTrnHandler _finLedgerTrnHandler;
         public AccountsController(IAccountsHandler accountsHandler,IFinLedgerHandler finLedgerHandler,
-            IFinLedgerGroupHandler finLedgerGroupHandler , IFinLedgerTrnHandler finLedgerTrnHandler  )
+            IFinLedgerGroupHandler finLedgerGroupHandler , IFinLedgerTrnHandler finLedgerTrnHandler,
+            IFinLedgerFnlHandler finLedgerFnlHandler  )
         {
             _accountsHandler = accountsHandler;
             _finLedgerHandler = finLedgerHandler;
             _finLedgerGroupHandler = finLedgerGroupHandler;
             _finLedgerTrnHandler = finLedgerTrnHandler;
+            _finLedgerFnlHandler = finLedgerFnlHandler;
         }
 
         [HttpPost]
@@ -34,6 +37,7 @@ namespace API.Controllers
             if (result) return Ok(result);
             else return NotFound();
         }
+
         [HttpGet]
         [Route("IsBankLedger/{ledgerId:decimal}/{brCode}")]
         public async Task<ActionResult<bool>> IsBankLedger(decimal ledgerId,string brCode)
@@ -168,6 +172,70 @@ namespace API.Controllers
             try
             {
                 result = await _finLedgerHandler.GetLedgerList10Async(brCode);
+            }
+            catch (Exception)
+            {
+                //return NotFound();
+            }
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("GetLedgerListAsync/{brCode}")]
+        public async Task<ActionResult<List<Fin_Ledger>>> GetLedgerListAsync(string brCode)
+        {
+            List<Fin_Ledger> result = new List<Fin_Ledger>();
+            try
+            {
+                result = await _finLedgerHandler.GetLedgerListAsync(brCode);
+            }
+            catch (Exception)
+            {
+                //return NotFound();
+            }
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("GetLedgerByIdAsync/{Id:decimal}/{brCode}")]
+        public async Task<ActionResult<Fin_Ledger>> GetLedgerByIdAsync(decimal Id, string brCode)
+        {
+            Fin_Ledger result = new Fin_Ledger();
+            try
+            {
+                result = await _finLedgerHandler.GetLedgerByIdAsync(Id, brCode);
+            }
+            catch (Exception)
+            {
+                //return NotFound();
+            }
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("GetLedgerGroupListAsync/{brCode}")]
+        public async Task<ActionResult<List<Fin_Ledger_Grp>>> GetLedgerGroupListAsync(string brCode)
+        {
+            List<Fin_Ledger_Grp> result = new List<Fin_Ledger_Grp>();
+            try
+            {
+                result = await _finLedgerGroupHandler.GetFinLedgerGroupListAsync(brCode);
+            }
+            catch (Exception)
+            {
+                //return NotFound();
+            }
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("GetLedgerFnlListAsync")]
+        public async Task<ActionResult<List<Fin_Ledger_Fnl>>> GetLedgerFnlListAsync()
+        {
+            List<Fin_Ledger_Fnl> result = new List<Fin_Ledger_Fnl>();
+            try
+            {
+                result = await _finLedgerFnlHandler.GetFinLedgerFnlListAsync();
             }
             catch (Exception)
             {

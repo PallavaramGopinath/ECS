@@ -1,4 +1,5 @@
 ﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,11 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<List<DropdownItem>> GetFinLedgerFnlListAsync()
+        //public async Task<List<DropdownItem>> GetFinLedgerFnlListAsync()
+        //{
+        //    return await _unitOfWork.FinLedgerFnl.GetFinLedgerFnlListAsync();
+        //}
+        public async Task<List<Fin_Ledger_Fnl>> GetFinLedgerFnlListAsync()
         {
             return await _unitOfWork.FinLedgerFnl.GetFinLedgerFnlListAsync();
         }

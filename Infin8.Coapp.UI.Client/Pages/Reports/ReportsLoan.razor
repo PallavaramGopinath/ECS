@@ -1,0 +1,443 @@
+﻿@page "/reports-loan"
+
+<h3>Loan Reports</h3>
+@using Infin8.Coapp.Dto
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<!-- loading spinner -->
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Select Loan Type  -->
+    <div class="card mt-2">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Select Loan Type</label>
+                        <select class="form-select shadow-none"
+                                     value="rptObject.LoanType"
+                                @onchange="handlerSelectRport">
+                            @foreach (var rpt in loanTypeList)
+                            {
+                                <option value="@rpt.Value">@rpt.Text</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Select Report -->
+
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Select Report</label>
+                            <select class="form-select shadow-none"
+                                         Value="rptObject.ReportId"
+                                         @onchange="handlerCreteria">
+                                @foreach (var rpt in filteredReportList)
+                                {
+                                    <option value="@rpt.Report_Id ">@rpt.ReportName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- As on date -->
+    @if (isAsonDate)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>As on date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.AsOnDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Between two dates -->
+    @if (isBetweenDates)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>From date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.FromDate" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>To date</label>
+                            <InputDate class="form-control shadow-none"
+                                       @bind-Value="rptObject.ToDate" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Loan No List -->
+    @if (LoanNoList != null && LoanNoList.Any())
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            @foreach (var loan in LoanNoList)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="@($"loan_{loan.Loan_Id}")"
+                                           @onchange="e => ToggleLoanSelection(loan, (bool)e.Value)" />
+                                    <label class="form-check-label" for="@($"loan_{loan.Loan_Id}")">
+                                        @loan.Loan_No
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Button -->
+    <button type="button" class="btn btn-primary mt-3" disabled="@isPrintDisbled" @onclick="HandlePrint">
+        @* <i class="oi oi-print" aria-hidden="true"></i> *@
+        @if (_isFetchingData)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" area-hidden="true"></span>
+            <span class="ps-2">Loading....</span>
+        }
+        else
+        {
+            <i class="oi oi-print" aria-hidden="true"></i>
+            <span class="ps-2">Print</span>
+        }
+    </button>
+}
+
+
+@code {
+    private bool _isLoading = true;
+    private bool isAsonDate = false;
+    private bool isBetweenDates = false;
+    private bool isPrintDisbled = true;
+    private bool _isFetchingData = false;
+
+    private List<Reports_Master> reportList = new();
+    private List<Reports_Master> filteredReportList = new();
+    private List<DropdownItem> loanTypeList = new()
+    {
+        new DropdownItem{Value ="3",Text="Fixed Deposit Loans"},
+        new DropdownItem{Value ="4",Text="Recurring Deposit Loans"},
+        new DropdownItem{Value ="5",Text="Staff Loans"},
+        new DropdownItem{Value ="6",Text="Farm Sector Loans"},
+        new DropdownItem{Value ="7",Text="Non-Farm Sector Loans"},
+        new DropdownItem{Value ="8",Text="Rural Housing Loans"},
+        new DropdownItem{Value ="9",Text="SRTO Loans"}
+    };
+    private List<DtoLoanNo> LoanNoList = new();
+
+    private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
+
+    rptReportLoanObject rptObject = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            rptObject.BrCode = userInfoDto.BrCode;
+            rptObject.FromDate = userInfoDto.YrBeginningDate;
+            rptObject.ToDate = DateTime.UtcNow;
+            rptObject.AsOnDate = DateTime.UtcNow;
+            var result = await _httpClient.GetFromJsonAsync<List<Reports_Master>>($"api/Reports/GetReportsList");
+            if (result != null && result.Any())
+            {
+                reportList = result.ToList();
+            }
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void handlerSelectRport(ChangeEventArgs e)
+    {
+        isBetweenDates = false;
+        isPrintDisbled = false;
+        int loanType = 0;
+        try
+        {
+            if (int.TryParse(e.Value?.ToString(), out int loanTypeId))
+            {
+                loanType = loanTypeId;
+            }
+            filteredReportList = new();
+            switch (loanType)
+            {
+                case 1:    /// Employee society loan
+                    // isBetweenDates = true;
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 1).ToList();
+                    break;
+                case 2:    /// Jewel loan
+                    // isBetweenDates = true;
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 13).ToList();
+                    break;
+                case 3:    /// Fixed Deposit loan 
+                    // isAsonDate = true;
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 7).ToList();
+                    break;
+                case 4:    /// Recurring Deposit loan
+                    // isAsonDate = true;
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 0).ToList();
+                    break;
+                case 5:    /// Staff loan
+                    // isAsonDate = true;
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 0).ToList();
+                    break;
+                case 6:    /// Farm  sector loan
+                    // isAsonDate = true;
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 0).ToList();
+                    break;
+                case 7:    /// Non-fram sector loan
+                    // isAsonDate = true;
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 0).ToList();
+                    break;
+                case 9:    /// SRTO Loan
+                    // isBetweenDates = true;
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 8).ToList();
+                    break;
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void handlerCreteria(ChangeEventArgs e)
+    {
+        try
+        {
+            if (int.TryParse(e.Value?.ToString(), out int reportId))
+            {
+                rptObject.ReportId = reportId;
+            }
+            filteredReportList = new();
+
+            switch (reportId)
+            {
+                case 15:    /// Loan Sanction Office Note
+                    isBetweenDates = true;
+
+                    break;
+                case 16:    /// Loan Ledger
+                    isBetweenDates = true;
+                    isAsonDate = false;
+                    break;
+                case 17:    /// Loan Ledger
+                    isBetweenDates = true;
+                    isAsonDate = false;
+                    break;
+                case 18:    /// Recurring Deposit loan
+                    isBetweenDates = true;
+                    isAsonDate = false;
+                    break;
+                case 19:    /// Loan Outstanding Member-wise
+                    isAsonDate = true;
+                    isBetweenDates = false;
+                    break;
+                case 20:    /// Loan Outstanding Member-wise
+                    isAsonDate = true;
+                    isBetweenDates = false;
+                    break;
+                case 21:    /// Loan Reimbursement for TSIS
+                    isAsonDate = true;
+                    isBetweenDates = false;
+                    break;
+                case 107:    /// Demand Collection And Balance
+                    isBetweenDates = true;
+                    isAsonDate = false;
+                    break;
+                case 108:    /// Loan Reimbursement Application (TSIS)
+                    isBetweenDates = true;
+                    isAsonDate = false;
+                    break;
+                case 132:    /// Loan Reimbursement Application (TSIS)
+                    isBetweenDates = true;
+                    isAsonDate = false;
+                    break;
+                case 133:    /// Loan Outstanding Factory-Wise- Active Members in Notepad
+                    isBetweenDates = true;
+                    isAsonDate = false;
+                    break;
+                case 134:    /// Loan Outstanding Scheme-Wise-Active Members in Notepad
+                    isBetweenDates = true;
+                    isAsonDate = false;
+                    break;
+                case 141:    /// Loan Disbursement (HSIS)
+                    isBetweenDates = true;
+                    isAsonDate = false;
+                    break;
+                case 68:    /// Fixed Loan Outstanding Loan No-wise
+                    isAsonDate  = true;
+                    isBetweenDates = false;
+                    break;
+                case 69:    /// Fixed Deposit Loan Outstanding Member-wise
+                    isAsonDate  = true;
+                    isBetweenDates = false;
+                    break;
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void ToggleLoanSelection(DtoLoanNo loan, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedLoans.Any(l => l.Loan_Id == loan.Loan_Id))
+            {
+                selectedLoans.Add(loan);
+            }
+        }
+        else
+        {
+            selectedLoans.RemoveAll(l => l.Loan_Id == loan.Loan_Id);
+        }
+    }
+
+    private async Task HandlePrint()
+    {
+        _isFetchingData = true;
+        try
+        {
+            switch (rptObject.ReportId )
+            {
+                case 15:    /// Loan Sanction Office Note
+                    isBetweenDates = true;
+
+                    break;
+                case 16:    /// Loan Ledger
+                    isBetweenDates = true;
+
+                    break;
+                case 17:    /// Loan Ledger
+                    isBetweenDates = true;
+
+                    break;
+                case 18:    /// Recurring Deposit loan
+                    isBetweenDates = true;
+
+                    break;
+                case 19:    /// Loan Outstanding Member-wise
+                    isAsonDate = true;
+
+                    break;
+                case 20:    /// Loan Outstanding Member-wise
+                    isAsonDate = true;
+
+                    break;
+                case 21:    /// Loan Reimbursement for TSIS
+                    isAsonDate = true;
+
+                    break;
+                case 107:    /// Demand Collection And Balance
+                    isBetweenDates = true;
+
+                    break;
+                case 108:    /// Loan Reimbursement Application (TSIS)
+                    isBetweenDates = true;
+
+                    break;
+                case 132:    /// Loan Reimbursement Application (TSIS)
+                    isBetweenDates = true;
+
+                    break;
+                case 133:    /// Loan Outstanding Factory-Wise- Active Members in Notepad
+                    isBetweenDates = true;
+
+                    break;
+                case 134:    /// Loan Outstanding Scheme-Wise-Active Members in Notepad
+                    isBetweenDates = true;
+
+                    break;
+                case 141:    /// Loan Disbursement (HSIS)
+                    isBetweenDates = true;
+
+                    break;
+                case 68:    /// Fixed Loan Outstanding Loan No-wise
+                    isAsonDate = true;
+                    await Print_FDLoanOutstandingLoanWise();
+                    break;
+                case 69:    /// Fixed Deposit Loan Outstanding Member-wise
+                    isAsonDate = true;
+
+                    break;
+            }
+            _isFetchingData = false;
+        }
+        catch (Exception)
+        {
+            _isFetchingData = false;
+            throw;
+        }
+        _isFetchingData = false;
+    }
+
+    private async Task Print_FDLoanOutstandingLoanWise()
+    {
+        try
+        {
+            var fileBytes = await _httpClient.GetFromJsonAsync<byte[]>($"api/ReportsLoan/print-FD-LoanOustanding/{rptObject.ReportId}/{rptObject.AsOnDate.ToString("yyyy-MM-dd")}/{rptObject.BrCode}");
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes!);
+            // 2. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}

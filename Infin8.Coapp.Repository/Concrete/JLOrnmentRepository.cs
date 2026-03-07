@@ -21,9 +21,9 @@ namespace Infin8.Coapp.Repository
             decimal maxId = 0;
             try
             {
+                maxId = await CSISContext.JL_Ornments.MaxAsync(x => x.JLO_Id);
                 foreach (var jl in jLOrnmentList) 
                 {
-                    maxId = await CSISContext.JL_Ornments.MaxAsync(x => x.JLO_Id);
                     maxId++;
                     jl.JLO_Id = maxId;
                     await AddAsync(jl);

@@ -11,6 +11,7 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<bool> AddFinLedgerGroupAsync(Fin_Ledger_Grp finLedgerGroup);
         Task<bool> EditFinLedgerGroupAsync(Fin_Ledger_Grp finLedgerGroup);
-        Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(int fnlId);
+        Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(int fnlId, string brCode);
+        Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(string brCode);
     }
 }

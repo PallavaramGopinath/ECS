@@ -2,10 +2,18 @@
 @page "/loanproducts/edit/{SchemeId:int}"
 @using Coapp.Dto
 @using Infin8.Coapp.Models
-@rendermode InteractiveWebAssembly
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
 
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
@@ -861,6 +869,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        brCode = userInfoDto.BrCode!;
         await GetLedgerList(brCode);
         if (SchemeId != 0)
         {

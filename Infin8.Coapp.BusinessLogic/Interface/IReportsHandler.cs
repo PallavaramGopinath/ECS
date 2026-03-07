@@ -17,6 +17,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<int> GetReportId(string reportName);
         Task<Reports_Master> GetReportNameWithSignature(int reportId);
         Task<Reports_Master> GetReportNameWithSignature(string reportName);
+        Task<List<Reports_Master>> GetReportsList();
         #endregion
 
         #region status

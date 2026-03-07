@@ -949,18 +949,17 @@ namespace Infin8.Coapp.BusinessLogic
                             Map_General map = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
                             if (dtoJLDisb.CashOrAdjustment == 1)
                             {
-                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, jlSchemes.PrlLed_Id, 0, trns.CashPayment_Amount,
-                                dtoJLDisb.CashOrAdjustment, Narration + " Loan No : " + jlLoanNo, false, Checked_By, yrId, Status, "Loan No :" + jlLoanNo,
-                                dtoJLDisb.Mem_Id, brCode, jlLoanId, dtoJLDisb.Loan_Amount, 0);
-                                finVoucherTrns.Add(vocTrn);
-                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, jlSchemes.PrlLed_Id, 0, trns.AdjustmentPayment_Amount,
-                                2, Narration + " Loan No : " + jlLoanNo, false, Checked_By, yrId, Status, "Loan No :" + jlLoanNo,
-                                dtoJLDisb.Mem_Id, brCode, jlLoanId, dtoJLDisb.Loan_Amount, 0);
-                                finVoucherTrns.Add(vocTrn);
+                                if (trns.CashPayment_Amount > 0)
+                                {
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, jlSchemes.PrlLed_Id, 0, trns.CashPayment_Amount,
+                                    dtoJLDisb.CashOrAdjustment, Narration + " Loan No : " + jlLoanNo, false, Checked_By, yrId, Status, "Loan No :" + jlLoanNo,
+                                    dtoJLDisb.Mem_Id, brCode, jlLoanId, dtoJLDisb.Loan_Amount, 0);
+                                    finVoucherTrns.Add(vocTrn);
+                                }
                                 if (dtoJLDisb.AppraisalFee > 0)
                                 {
                                     vocTrn = new();
-                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, map.Appraisal_Fee_Led_Id, dtoJLDisb.AppraisalFee, 0, 2,
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, map.Appraisal_Fee_Led_Id, dtoJLDisb.AppraisalFee, 0, 1,
                                         Narration + " Loan No :" + jlLoanNo, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNo, dtoJLDisb.Mem_Id, brCode,
                                         jlLoanId, dtoJLDisb.Loan_Amount, 0);
                                     finVoucherTrns.Add(vocTrn);
@@ -969,7 +968,7 @@ namespace Infin8.Coapp.BusinessLogic
                                 {
                                     vocTrn = new();
                                     vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, map.Bank_Charges_Led_Id, dtoJLDisb.BankCharges,
-                                        0, 2, Narration + " Loan No :" + jlLoanNo, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNo,
+                                        0, 1, Narration + " Loan No :" + jlLoanNo, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNo,
                                         dtoJLDisb.Mem_Id, brCode, jlLoanId, dtoJLDisb.Loan_Amount, 0);
                                     finVoucherTrns.Add(vocTrn);
                                 }

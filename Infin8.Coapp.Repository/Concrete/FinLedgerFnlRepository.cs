@@ -16,21 +16,36 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<List<DropdownItem>> GetFinLedgerFnlListAsync()
+        //public async Task<List<DropdownItem>> GetFinLedgerFnlListAsync()
+        //{
+        //    List<DropdownItem> list = new List<DropdownItem>();
+        //    try
+        //    {
+        //        list = await (from fnl in CSISContext.Fin_Ledger_Fnl
+        //                      select new DropdownItem
+        //                      {
+        //                          Value = fnl.Fnl_Id.ToString(),
+        //                          Text = fnl.Fnl_Name
+        //                      }).ToListAsync();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching ledger final account list");
+        //    }
+        //    return list;
+        //}
+
+        public async Task<List<Fin_Ledger_Fnl>> GetFinLedgerFnlListAsync()
         {
-            List<DropdownItem> list = new List<DropdownItem>();
+            List<Fin_Ledger_Fnl> list = new List<Fin_Ledger_Fnl>();
             try
             {
-                list = await (from fnl in CSISContext.Fin_Ledger_Fnl
-                              select new DropdownItem
-                              {
-                                  Value = fnl.Fnl_Id.ToString(),
-                                  Text = fnl.Fnl_Name
-                              }).ToListAsync();
+                //list = await (from fnl in CSISContext.Fin_Ledger_Fnl).ToListAsync();
+                list = await CSISContext.Fin_Ledger_Fnl.ToListAsync();
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching ledger final account list");
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching ledger final ledger list");
             }
             return list;
         }

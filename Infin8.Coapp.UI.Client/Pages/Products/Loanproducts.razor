@@ -1,10 +1,19 @@
 ﻿@page "/loanproducts"
 @using Coapp.Dto
 @using Infin8.Coapp.Models
-@rendermode InteractiveWebAssembly
+
 @inject HttpClient _httpClient
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@using System.Globalization
+
+@using Infin8.Coapp.Utility
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin")]
 
 <div class="container-fluid py-4">
     <!-- Header Section -->
@@ -283,9 +292,11 @@
     protected override async Task OnInitializedAsync()
     // protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // if (firstRender)
-        // {
-            await LoadLoanProducts();
+        //     if (firstRender)
+        //     {
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        brCode = userInfoDto.BrCode!;
+        await LoadLoanProducts();
         // }
     }
 
@@ -600,9 +611,18 @@
         // return selectedCategory.HasValue
         //    ? GetLoanCategoriesForTabs().First(c => c.Category == selectedCategory.Value).Name!
         //    : "All Loan Products";
-        return selectedCategory.HasValue
-           ? loanCategoryInforForTabs.First(c => c.Category == selectedCategory.Value).Name!
-           : "All Loan Products";
+        // return selectedCategory.HasValue
+        //    ? loanCategoryInforForTabs.First(c => c.Category == selectedCategory.Value).Name!
+        //    : "All Loan Products";
+        // loanCategories
+        string categoryName = "";
+        if(loanCategories != null && loanCategories.Count >0)
+        {
+            categoryName = selectedCategory.HasValue 
+                ? loanCategories.First(c => c.Category == selectedCategory.Value).Name! 
+                : "All Loan Products";
+        }
+        return categoryName;
     }
 
     private void SelectCategory(LoanCategory category)

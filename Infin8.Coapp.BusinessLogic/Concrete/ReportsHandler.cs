@@ -39,6 +39,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsMaster.GetReportNameWithSignature(reportName);
         }
+        public async Task<List<Reports_Master>> GetReportsList()
+        {
+            return await _unitOfWork.ReportsMaster.GetReportsList();
+        }
         #endregion
 
         #region status
@@ -99,6 +103,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.ReportsMaster.GetJewelLoanLedger(vocId);
         }
         #endregion 
+
 
         //#region Create report data as byte[]
         //public byte[] CreateLocalReport(string dsName, Stream path, IEnumerable result, Dictionary<string, string> parameterDictionary)

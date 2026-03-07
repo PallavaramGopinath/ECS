@@ -944,10 +944,12 @@
         double cashReceiptAmount = 0, cashPaymentAmount = 0, adjustmentReceiptAmount = 0, adjustmentPaymentAmount = 0;
         if(CashOrAdjustment == 1)
         {
-            cashPaymentAmount = loanDetails.Loan_Amount - (loanDetails.AppraisalFee + loanDetails.BankCharges);
-            adjustmentPaymentAmount = (loanDetails.AppraisalFee + loanDetails.BankCharges);
-            adjustmentReceiptAmount = (loanDetails.AppraisalFee + loanDetails.BankCharges);
-            cashReceiptAmount = 0;
+            // cashPaymentAmount = loanDetails.Loan_Amount - (loanDetails.AppraisalFee + loanDetails.BankCharges);
+            // adjustmentPaymentAmount = (loanDetails.AppraisalFee + loanDetails.BankCharges);
+            // adjustmentReceiptAmount = (loanDetails.AppraisalFee + loanDetails.BankCharges);
+            // cashReceiptAmount = 0;
+            cashPaymentAmount = loanDetails.Loan_Amount ;
+            cashReceiptAmount = (loanDetails.AppraisalFee + loanDetails.BankCharges);
         }
         else
         {

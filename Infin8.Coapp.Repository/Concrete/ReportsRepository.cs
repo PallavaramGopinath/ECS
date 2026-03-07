@@ -66,6 +66,13 @@ namespace Infin8.Coapp.Repository
             report = await CSISContext.Reports_Master.Where(x => x.ReportName == reportName).FirstAsync();
             return report;
         }
+
+        public async Task<List<Reports_Master>> GetReportsList()
+        {
+            List<Reports_Master> reportList = new List<Reports_Master>();
+            reportList = await CSISContext.Reports_Master.ToListAsync();
+            return reportList;
+        }
         #endregion
 
         #region Status

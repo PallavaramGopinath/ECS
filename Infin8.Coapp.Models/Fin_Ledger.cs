@@ -9,8 +9,12 @@ namespace Infin8.Coapp.Models
         [Key]
         public decimal Led_Id { get; set; }
         public string? Led_No { get; set; }
+        [Required(ErrorMessage = "Ledger name is required")]
         public string? Led_Name { get; set; }
+        [Required(ErrorMessage = "Description is required")]
         public string? Led_Desc { get; set; }
+        [Required(ErrorMessage = "Group name is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Group must be greater than 0 (not selected)")]
         public int Grp_Id { get; set; }
         public int SubGrp_Id { get; set; }
         public double Led_OB { get; set; }
@@ -20,6 +24,7 @@ namespace Infin8.Coapp.Models
         public bool Led_Mapped { get; set; }
         public int Led_RealNominal { get; set; }
         public int Led_Type { get; set; }
+        [Required(ErrorMessage = "Sundry type is required")]
         public int Led_Sundry_Type { get; set; }
         public bool Led_GLAvailable { get; set; }
         public double Led_CB { get; set; }

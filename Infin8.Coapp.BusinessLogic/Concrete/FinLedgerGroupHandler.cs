@@ -50,9 +50,14 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(int fnlId)
+        public async Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(int fnlId, string brCode)
         {
-            return await _unitOfWork.FinLedgerGroup.GetFinLedgerGroupListAsync(fnlId);
+            return await _unitOfWork.FinLedgerGroup.GetFinLedgerGroupListAsync(fnlId,brCode);
+        }
+
+        public async Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(string brCode)
+        {
+            return await _unitOfWork.FinLedgerGroup.GetFinLedgerGroupListAsync(brCode);
         }
     }
 }

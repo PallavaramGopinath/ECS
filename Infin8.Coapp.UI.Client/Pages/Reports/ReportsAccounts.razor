@@ -537,6 +537,7 @@ else
     {
         try
         {
+
             var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"api/ReportsAccount/print-lossAndProfit", rptAccObject);
             if (response.IsSuccessStatusCode)
             {

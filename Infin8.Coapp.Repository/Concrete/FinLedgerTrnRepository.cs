@@ -40,10 +40,15 @@ namespace Infin8.Coapp.Repository
             bool result = false;
             try
             {
-                //decimal maxId = await CSISContext.Fin_Ledger_Trn.MaxAsync(x => x.Trn_Id);
+                decimal maxId = await CSISContext.Fin_Ledger_Trn.MaxAsync(x => x.Trn_Id);
                 //maxId++;
                 //finLedgerTrn.Trn_Id = maxId;
                 //await AddAsync(finLedgerTrn);
+                foreach(var ledger in finLedgerTrnList)
+                {
+                    maxId++;
+                    ledger.Trn_Id = maxId;
+                }
                 await CSISContext.AddRangeAsync(finLedgerTrnList);
                 await CSISContext.SaveChangesAsync();
                 result = true;

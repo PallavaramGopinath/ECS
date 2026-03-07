@@ -26,6 +26,7 @@ namespace Infin8.Coapp.Repository
                 maxId++;
                 finLedger.Led_Id = maxId;
                 await AddAsync(finLedger);
+                ledId = maxId;
                 //result = true;
             }
             catch (Exception ex)
@@ -109,6 +110,20 @@ namespace Infin8.Coapp.Repository
         //    }
         //    return cashLedId;
         //}
+
+        public async Task<Fin_Ledger> GetLedgerByIdAsync(decimal Id, string brCode)
+        {
+            Fin_Ledger ledger = new Fin_Ledger();
+            try
+            {
+                ledger = await CSISContext.Fin_Ledger.Where(x=> x.Led_Id ==  Id &&  x.Led_Delete == false && x.BrCode == brCode).FirstAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching ledger list by group id");
+            }
+            return ledger;
+        }
 
         public async Task<List<Fin_Ledger>> GetLedgerListByGrpIdAsync(int grpId, string brCode)
         {
@@ -226,6 +241,23 @@ namespace Infin8.Coapp.Repository
                     .Where(x => x.Led_Delete == false && x.BrCode == brCode)
                     .OrderByDescending(x => x.Led_Id)  // or x.CreatedDate, x.Led_Id
                     .Take(10)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching ledger list by group id");
+            }
+            return ledgerList;
+        }
+
+        public async Task<List<Fin_Ledger>> GetLedgerListAsync(string brCode)
+        {
+            List<Fin_Ledger> ledgerList = new List<Fin_Ledger>();
+            try
+            {
+                ledgerList = await CSISContext.Fin_Ledger
+                    .Where(x => x.Led_Delete == false && x.BrCode == brCode)
+                    .OrderByDescending(x => x.Led_Id)  // or x.CreatedDate, x.Led_Id
                     .ToListAsync();
             }
             catch (Exception ex)

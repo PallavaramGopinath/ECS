@@ -2,6 +2,17 @@
 @using Coapp.Models
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@using System.ComponentModel.DataAnnotations
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
 
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
@@ -9,11 +20,26 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3">
                     <h4 class="mb-0 text-primary">
-                        <i class="bi bi-@(IsEditMode ? "pencil-square" : "plus-circle") me-2"></i>
-                        @(IsEditMode ? "Edit Ledger" : "Create New Ledger")
+                        @if (IsEditMode)
+                        {
+                            <i class="bi bi-@(IsEditMode ? "pencil-square" : "plus-circle") me-2"></i>
+                            @(IsEditMode ? "Edit Ledger" : "Create New Ledger")
+                        }
+                        else if (IsViewMode)
+                        {
+                            <i class="bi bi-@(IsViewMode ? "eye" : "plus-circle") me-2"></i>
+                            @(IsViewMode ? "View Ledger" : "Create New Ledger")
+                        }
+                        else
+                        {
+                            <i class="bi bi-plus-circle me-2"></i>
+                            @("Create New Ledger")
+                        }
                     </h4>
                 </div>
                 <div class="card-body">
+                    @* Model="@ledger" *@
+                    @* EditContext="@editContext" *@
                     <EditForm Model="@ledger" OnValidSubmit="@HandleValidSubmit">
                         <DataAnnotationsValidator />
                         <ValidationSummary class="alert alert-danger" />
@@ -24,13 +50,13 @@
                                 <h6 class="text-primary border-bottom pb-2">Basic Information</h6>
                             </div>
 
-                            <div class="col-md-6">
+                            @* <div class="col-md-6">
                                 <div class="form-floating mb-3">
                                     <InputText id="ledgerNo" class="form-control" @bind-Value="ledger.Led_No" />
                                     <label for="ledgerNo">Ledger Number *</label>
                                     <ValidationMessage For="@(() => ledger.Led_No)" />
                                 </div>
-                            </div>
+                            </div> *@
 
                             <div class="col-md-6">
                                 <div class="form-floating mb-3">
@@ -40,10 +66,11 @@
                                 </div>
                             </div>
 
-                            <div class="col-12">
+                            <div class="col-md-6">
                                 <div class="form-floating mb-3">
                                     <InputText id="ledgerDesc" class="form-control" @bind-Value="ledger.Led_Desc" />
                                     <label for="ledgerDesc">Description</label>
+                                    <ValidationMessage For="@(() => ledger.Led_Desc)" />
                                 </div>
                             </div>
 
@@ -52,19 +79,21 @@
                                 <h6 class="text-primary border-bottom pb-2">Classification</h6>
                             </div>
 
-                            <div class="col-md-4">
-                                <div class="form-floating mb-3">
-                                    <InputSelect id="finalLedger" class="form-select" @bind-Value="selectedFinalLedgerId" @onchange="OnFinalLedgerChange">
-                                        <option value="">Select Final Ledger</option>
-                                        @foreach (var final in finalLedgers)
-                                        {
-                                            <option value="@final.Fnl_Id">@final.Fnl_Name</option>
-                                        }
-                                    </InputSelect>
-                                    <label for="finalLedger">Final Ledger *</label>
+                            @if (IsViewMode)
+                            {
+                                <div class="col-md-4">
+                                    <div class="form-floating mb-3">
+                                        <InputSelect id="finalLedger" class="form-select" @bind-Value="selectedFinalLedgerId" @onchange="OnFinalLedgerChange">
+                                            <option value="">Select Final Ledger</option>
+                                            @foreach (var final in finalLedgers)
+                                            {
+                                                <option value="@final.Fnl_Id">@final.Fnl_Name</option>
+                                            }
+                                        </InputSelect>
+                                        <label for="finalLedger">Final Ledger *</label>
+                                    </div>
                                 </div>
-                            </div>
-
+                            }
                             <div class="col-md-4">
                                 <div class="form-floating mb-3">
                                     <InputSelect id="ledgerGroup" class="form-select" @bind-Value="ledger.Grp_Id">
@@ -78,16 +107,26 @@
                                     <ValidationMessage For="@(() => ledger.Grp_Id)" />
                                 </div>
                             </div>
-
                             <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <InputSelect id="sundryType" class="form-select" @bind-Value="ledger.Led_Sundry_Type">
+                                        <option value="0">None</option>
+                                        <option value="1">Sundry Debtor</option>
+                                        <option value="2">Sundry Creditor</option>
+                                    </InputSelect>
+                                    <label for="sundryType">Sundry Type</label>
+                                    <ValidationMessage For="@(() => ledger.Led_Sundry_Type)" />
+                                </div>
+                            </div>
+                            @* <div class="col-md-4">
                                 <div class="form-floating mb-3">
                                     <InputNumber id="subGroup" class="form-control" @bind-Value="ledger.SubGrp_Id" />
                                     <label for="subGroup">Sub Group ID</label>
                                 </div>
-                            </div>
+                            </div> *@
 
                             <!-- Financial Details -->
-                            <div class="col-12">
+                            @* <div class="col-12">
                                 <h6 class="text-primary border-bottom pb-2">Financial Details</h6>
                             </div>
 
@@ -110,14 +149,14 @@
                                     <InputNumber id="currentBalance" class="form-control" @bind-Value="ledger.Led_CB" step="0.01" />
                                     <label for="currentBalance">Current Balance</label>
                                 </div>
-                            </div>
+                            </div> *@
 
                             <!-- Ledger Configuration -->
-                            <div class="col-12">
+                           @*  <div class="col-12">
                                 <h6 class="text-primary border-bottom pb-2">Ledger Configuration</h6>
-                            </div>
+                            </div> *@
 
-                            <div class="col-md-4">
+                            @* <div class="col-md-4">
                                 <div class="form-floating mb-3">
                                     <InputSelect id="ledgerType" class="form-select" @bind-Value="ledger.Led_Type">
                                         <option value="1">Asset</option>
@@ -127,9 +166,9 @@
                                     </InputSelect>
                                     <label for="ledgerType">Ledger Type *</label>
                                 </div>
-                            </div>
+                            </div> *@
 
-                            <div class="col-md-4">
+                            @* <div class="col-md-4">
                                 <div class="form-floating mb-3">
                                     <InputSelect id="sundryType" class="form-select" @bind-Value="ledger.Led_Sundry_Type">
                                         <option value="0">None</option>
@@ -138,9 +177,9 @@
                                     </InputSelect>
                                     <label for="sundryType">Sundry Type</label>
                                 </div>
-                            </div>
+                            </div> *@
 
-                            <div class="col-md-4">
+                           @*  <div class="col-md-4">
                                 <div class="form-floating mb-3">
                                     <InputSelect id="realNominal" class="form-select" @bind-Value="ledger.Led_RealNominal">
                                         <option value="1">Real</option>
@@ -148,10 +187,10 @@
                                     </InputSelect>
                                     <label for="realNominal">Real/Nominal</label>
                                 </div>
-                            </div>
+                            </div> *@
 
                             <!-- Toggle Switches -->
-                            <div class="col-12">
+                            @* <div class="col-12">
                                 <div class="row">
                                     <div class="col-md-3">
                                         <div class="form-check form-switch mb-3">
@@ -166,7 +205,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> *@
 
                             <!-- System Fields -->
                             <div class="col-12">
@@ -182,14 +221,14 @@
 
                             <div class="col-md-4">
                                 <div class="form-floating mb-3">
-                                    <InputText id="brCode" class="form-control" @bind-Value="ledger.BrCode" />
+                                    <InputText id="brCode" class="form-control" @bind-Value="ledger.BrCode"  readonly/>
                                     <label for="brCode">Branch Code</label>
                                 </div>
                             </div>
 
                             <div class="col-md-4">
                                 <div class="form-floating mb-3">
-                                    <InputNumber id="userId" class="form-control" @bind-Value="ledger.Usr_Id" />
+                                    <InputNumber id="userId" class="form-control" @bind-Value="ledger.Usr_Id" readonly />
                                     <label for="userId">User ID *</label>
                                 </div>
                             </div>
@@ -205,10 +244,27 @@
                                     <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
                                         <i class="bi bi-x-circle me-2"></i>Cancel
                                     </button>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-@(IsEditMode ? "check-circle" : "plus-circle") me-2"></i>
-                                        @(IsEditMode ? "Update Ledger" : "Create Ledger")
-                                    </button>
+                                    @if (IsEditMode)
+                                    {
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-@(IsEditMode ? "check-circle" : "plus-circle") me-2"></i>
+                                            @(IsEditMode ? "Update Ledger" : "Create Ledger")
+                                        </button>
+                                    }
+                                    else if (IsViewMode)
+                                    {
+                                        @* <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-@(IsViewMode ? "eye" : "plus-circle") me-2"></i>
+                                            @(IsEditMode ? "Update Ledger" : "Create Ledger")
+                                        </button> *@
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" class="btn btn-primary" >
+                                            <i class="bi bi-plus-circle me-2"></i>
+                                            Create Ledger
+                                        </button>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -223,6 +279,9 @@
     [Parameter] public string? Action { get; set; }
     [Parameter] public decimal? Id { get; set; }
 
+    // private EditContext? editContext;
+    // private bool isFormValid;
+
     private Fin_Ledger ledger = new();
     private List<Fin_Ledger_Grp> allGroups = new();
     private List<Fin_Ledger_Grp> filteredGroups = new();
@@ -232,20 +291,40 @@
     private bool IsEditMode => Action?.ToLower() == "edit";
     private bool IsViewMode => Action?.ToLower() == "view";
 
-    protected override async Task OnInitializedAsync()
+    // protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadData();
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+            await LoadData(userInfoDto.BrCode!);
+            ledger.BrCode = userInfoDto.BrCode;
+            ledger.Usr_Id = userInfoDto.UserId;
+            ledger.Yr_Id = userInfoDto.YrId;
+            ledger.Led_OB_Date = DateTime.Now;
+            StateHasChanged();
+        }
+        // editContext = new EditContext(ledger);
+        // editContext.OnFieldChanged += (_, __) => ValidateForm();
+        // editContext.OnValidationStateChanged += (_, __) => ValidateForm();
+        // ValidateForm
+        
     }
 
-    private async Task LoadData()
+    private async Task LoadData(string brCode)
     {
         // finalLedgers = await LedgerService.GetAllFinalLedgers();
         // allGroups = await LedgerService.GetAllLedgerGroups();
+        finalLedgers = await GetLedgerFnl();
+        allGroups = await GetLedgerGroup(brCode);
         filteredGroups = allGroups;
+       
 
-        if (IsEditMode && Id.HasValue)
+        if ((IsEditMode || IsViewMode) && Id.HasValue)
         {
             // ledger = await LedgerService.GetLedgerById(Id.Value);
+            ledger = await GetLedgerById(Id.Value, brCode);
             if (ledger != null)
             {
                 var group = allGroups.FirstOrDefault(g => g.Grp_Id == ledger.Grp_Id);
@@ -258,10 +337,64 @@
         }
         else
         {
-            ledger.Led_OB_Date = DateTime.Today;
-            ledger.Yr_Id = DateTime.Today.Year;
-            ledger.Usr_Id = 1; // Default user ID
+            // ledger.Led_OB_Date = DateTime.Today;
+            // ledger.Yr_Id = DateTime.Today.Year;
+            // ledger.Usr_Id = 1; // Default user ID
         }
+    }
+
+    private async Task<Fin_Ledger> GetLedgerById(decimal Id, string brCode)
+    {
+        Fin_Ledger ledger = new();
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<Fin_Ledger>($"api/Accounts/GetLedgerByIdAsync/{Id}/{brCode}");
+            if (result != null)
+            {
+                ledger = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Write(ex.Message);
+        }
+        return ledger;
+    }
+
+    private async Task<List<Fin_Ledger_Grp>> GetLedgerGroup(string brCode)
+    {
+        List<Fin_Ledger_Grp> ledgerList = new();
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<Fin_Ledger_Grp>>($"api/Accounts/GetLedgerGroupListAsync/{brCode}");
+            if (result != null && result.Count > 0)
+            {
+                ledgerList = result.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Write(ex.Message);
+        }
+        return ledgerList;
+    }
+
+    private async Task<List<Fin_Ledger_Fnl>> GetLedgerFnl()
+    {
+        List<Fin_Ledger_Fnl> ledgerList = new();
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<Fin_Ledger_Fnl>>($"api/Accounts/GetLedgerFnlListAsync");
+            if (result != null && result.Count > 0)
+            {
+                ledgerList = result.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Write(ex.Message);
+        }
+        return ledgerList;
     }
 
     private void OnFinalLedgerChange(ChangeEventArgs e)
@@ -279,6 +412,14 @@
         filteredGroups = allGroups.Where(g => g.Fnl_Id == selectedFinalLedgerId).ToList();
     }
 
+    // private void ValidateForm()
+    // {
+    //     if (editContext is null) return;
+    //     // Validate() runs data-annotations and updates IsValid
+    //     isFormValid = editContext.Validate();
+    //     StateHasChanged();
+    // }
+
     private async Task HandleValidSubmit()
     {
         try
@@ -291,7 +432,19 @@
             else
             {
                 // await LedgerService.CreateLedger(ledger);
-                await JSRuntime.InvokeVoidAsync("showToast", "Ledger created successfully!", "success");
+                var response = await _httpClient.PostAsJsonAsync("api/Accounts/AddFinLedger", ledger);
+                if (response.IsSuccessStatusCode)
+                {
+                    ledger = new Fin_Ledger();
+                    // await JSRuntime.InvokeVoidAsync("showToast", "Ledger created successfully!", "success");
+                    await JSRuntime.InvokeVoidAsync("alert", "Ledger created successfully!", "success");
+
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Creation of Ledger failed!");
+                }
+
             }
 
             Navigation.NavigateTo("/finance/ledgers");

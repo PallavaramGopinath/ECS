@@ -5,6 +5,16 @@
 @inject NavigationManager Navigation
 @inject HttpClient _httpClient
 
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
+
 <div class="container-fluid py-4">
     <!-- Header Section -->
     <div class="row mb-4">
@@ -48,6 +58,10 @@
                         </div>
                         <div class="col-md-4">
                             <select class="form-select" @onchange="FilterByLedgerGroup">
+                            @* <InputSelect class="form-select"
+                                         @bind-Value="selectedGroupId"
+                                         @bind-Value:after="FilterByLedgerGroup"> *@
+                               @* <select class="form-select" @onchange="@(e => FilterByLedgerGroup(e))"> *@
                                 <option value="">All Ledger Groups</option>
                                 @foreach (var group in ledgerGroups)
                                 {
@@ -80,14 +94,14 @@
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Ledger No</th>
+                                    @* <th>Ledger No</th> *@
                                     <th>Ledger Name</th>
                                     <th>Description</th>
                                     <th>Group</th>
-                                    <th>Opening Balance</th>
-                                    <th>Current Balance</th>
+                                    @* <th>Opening Balance</th>
+                                    <th>Current Balance</th> *@
                                     <th>Type</th>
-                                    <th>Status</th>
+                                    @* <th>Status</th> *@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -97,7 +111,7 @@
                                     @foreach (var ledger in filteredLedgers)
                                     {
                                         <tr>
-                                            <td><span class="badge bg-light text-dark">@ledger.Led_No</span></td>
+                                            @* <td><span class="badge bg-light text-dark">@ledger.Led_No</span></td> *@
                                             <td class="fw-bold">@ledger.Led_Name</td>
                                             <td>@ledger.Led_Desc</td>
                                             <td>
@@ -106,10 +120,10 @@
                                                 }
                                                 <span class="badge bg-info">@groupName</span>
                                             </td>
-                                            <td class="text-end">@ledger.Led_OB.ToString("N2")</td>
-                                            <td class="text-end fw-bold @(ledger.Led_CB >= 0 ? "text-success" : "text-danger")">
+                                            @* <td class="text-end">@ledger.Led_OB.ToString("N2")</td> *@
+                                            @* <td class="text-end fw-bold @(ledger.Led_CB >= 0 ? "text-success" : "text-danger")">
                                                 @ledger.Led_CB.ToString("N2")
-                                            </td>
+                                            </td> *@
                                             <td>
                                                 @{
                                                     string ledgerType = ledger.Led_Type switch
@@ -123,7 +137,7 @@
                                                 }
                                                 <span class="badge bg-secondary">@ledgerType</span>
                                             </td>
-                                            <td>
+                                            @* <td>
                                                 @if (ledger.Led_Mapped)
                                                 {
                                                     <span class="badge bg-success">Mapped</span>
@@ -132,7 +146,7 @@
                                                 {
                                                     <span class="badge bg-warning">Not Mapped</span>
                                                 }
-                                            </td>
+                                            </td> *@
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     <button class="btn btn-sm btn-outline-primary"
@@ -257,6 +271,7 @@
     </div>
 }
 
+
 @code {
     private List<Fin_Ledger> allLedgers = new();
     private List<Fin_Ledger> filteredLedgers = new();
@@ -279,15 +294,21 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        brCode = userInfoDto.BrCode!;
+
         await LoadData();
     }
 
     private async Task LoadData()
     {
-        allLedgers = await GetLatestLedgers10();
+        // allLedgers = await GetLatestLedgers10();
+        allLedgers = await GetLedgers();
+        ledgerGroups = await GetLedgerGroup(brCode);
+        filteredLedgers = allLedgers.OrderByDescending(x => x.Led_Id).Take(10).ToList();
         // ledgerGroups = await LedgerService.GetAllLedgerGroups();
         // finalLedgers = await LedgerService.GetAllFinalLedgers();
-        filteredLedgers = new List<Fin_Ledger>(allLedgers);
+        // filteredLedgers = new List<Fin_Ledger>(allLedgers);
     }
 
     private async Task<List<Fin_Ledger>> GetLatestLedgers10()
@@ -296,6 +317,42 @@
         try
         {
             var result = await _httpClient.GetFromJsonAsync<List<Fin_Ledger>>($"api/Accounts/GetLedgerList10Async/{brCode}");
+            if (result != null && result.Count > 0)
+            {
+                ledgerList = result.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Write(ex.Message);
+        }
+        return ledgerList;
+    }
+
+    private async Task<List<Fin_Ledger>> GetLedgers()
+    {
+        List<Fin_Ledger> ledgerList = new();
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<Fin_Ledger>>($"api/Accounts/GetLedgerListAsync/{brCode}");
+            if (result != null && result.Count > 0)
+            {
+                ledgerList = result.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Write(ex.Message);
+        }
+        return ledgerList;
+    }
+
+    private async Task<List<Fin_Ledger_Grp>> GetLedgerGroup(string brCode)
+    {
+        List<Fin_Ledger_Grp> ledgerList = new();
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<Fin_Ledger_Grp>>($"api/Accounts/GetLedgerGroupListAsync/{brCode}");
             if (result != null && result.Count > 0)
             {
                 ledgerList = result.ToList();
@@ -327,7 +384,10 @@
     }
 
     private void FilterByLedgerGroup(ChangeEventArgs e)
+    // private async Task FilterByLedgerGroup()
     {
+        // await Task.Yield(); // <-- add this line
+        Console.WriteLine($"OnChange fired, value = {e.Value}");
         if (int.TryParse(e.Value?.ToString(), out int groupId))
         {
             selectedGroupId = groupId;
@@ -338,6 +398,7 @@
         }
 
         ApplyGroupFilter();
+        // await InvokeAsync(StateHasChanged);
     }
 
     private void ApplyGroupFilter()

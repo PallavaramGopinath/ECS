@@ -9,8 +9,8 @@
 @using System.Reflection
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@using Infin8.Coapp.Utility
 
+@using Infin8.Coapp.Utility
 @rendermode InteractiveWebAssembly
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -163,7 +163,7 @@ else
 @if (isSubmitted)
 {
     <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-        <strong>Error!</strong> @submittedMessage
+        <strong>Success!</strong> @submittedMessage
         <button type="button" class="close" @onclick="() => isSubmitted = false">
             <span>&times;</span>
         </button>

@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Repository;
+using Microsoft.ReportingServices.ReportProcessing.ReportObjectModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,18 +12,31 @@ namespace Infin8.Coapp.BusinessLogic
     public class ReportsLoanHandler : IReportsLoanHandler
     {
         readonly IUnitOfWork _unitOfWork;
-        public ReportsLoanHandler(IUnitOfWork unitOfWork)
+        readonly ICreateReportsHandler _createReportsHandler;
+        public ReportsLoanHandler(IUnitOfWork unitOfWork, ICreateReportsHandler createReportsHandler)
         {
             _unitOfWork = unitOfWork;
+            _createReportsHandler = createReportsHandler;
         }
 
         public async Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate,string brCode)
         {
             return await _unitOfWork.ReportsLoan.GetLoanLedger(loanIdList, fromDate, toDate, brCode);
         }
-        public async Task<List<rptLoanOutstanding>> GetLoanOutstandingWithAgewise(DateTime toDate, int loanType,string brCode)
+        public async Task<byte[]> GetLoanOutstandingWithAgewise(string datasetName, DateTime toDate, int loanType,string brCode, FileStream reportStream, Dictionary<string, string> parameters)
         {
-            return await _unitOfWork.ReportsLoan.GetLoanOutstandingWithAgewise(toDate, loanType,brCode );
+            var rptResult =  await _unitOfWork.ReportsLoan.GetLoanOutstandingWithAgewise(toDate, loanType,brCode );
+            var rptResultEnumerable = rptResult as IEnumerable<rptLoanOutstanding> ?? rptResult.ToList();
+            var pdfAsBytes = _createReportsHandler.CreateLocalReport(datasetName, reportStream, rptResultEnumerable, parameters);
+            return pdfAsBytes;
+        }
+
+        public async Task<byte[]> GetLoanOutstanding(string datasetName, DateTime toDate, int loanType, string brCode, FileStream reportStream, Dictionary<string, string> parameters)
+        {
+            var rptResult = await _unitOfWork.ReportsLoan.GetLoanOutstanding(toDate, loanType, brCode);
+            var rptResultEnumerable = rptResult as IEnumerable<rptLoanOutstanding> ?? rptResult.ToList();
+            var pdfAsBytes = _createReportsHandler.CreateLocalReport(datasetName, reportStream, rptResultEnumerable, parameters);
+            return pdfAsBytes;
         }
         public async Task<List<rptLoanDCB>> GetLoanDCB(DateTime fromDate, DateTime toDate,string brCode)
         {

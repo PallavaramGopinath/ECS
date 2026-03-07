@@ -16,6 +16,7 @@ namespace Infin8.Coapp.Repository
         Task<Reports_Master> GetReportNameWithSignature(int reportId);
         Task<Reports_Master> GetReportNameWithSignature(string reportName);
         Task<int> GetReportId(string reportName);
+        Task<List<Reports_Master>> GetReportsList();
         #endregion
 
         #region Status List

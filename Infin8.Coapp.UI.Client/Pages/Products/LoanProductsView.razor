@@ -7,6 +7,13 @@
 @inject IJSRuntime JSRuntime
 
 @rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
 
 
 <div class="container-fluid py-4">
@@ -431,6 +438,8 @@
     private string brCode = "11005";
     protected override async Task OnInitializedAsync()
     {
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        brCode = userInfoDto.BrCode!;
         await LoadLoanScheme();
     }
 

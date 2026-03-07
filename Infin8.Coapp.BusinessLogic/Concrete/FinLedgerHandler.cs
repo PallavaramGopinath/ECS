@@ -37,18 +37,22 @@ namespace Infin8.Coapp.BusinessLogic
                     ledTrn.Tot_Pmt_Amt = 0;
                     ledTrn.CB_Amt = 0;
                     ledTrn.Usr_Id = finLedger.Usr_Id;
-                    ledTrn.Yr_Id = finLedger.Yr_Id;
+                    ledTrn.Yr_Id = yr.Yr_Id;
+                    ledTrn.BrCode = finLedger.BrCode;
                     ledTrn.LedgerTrn_Delete = false;
                     trnList.Add(ledTrn);
                 }
+                _unitOfWork.BeginTransaction();
                 await _unitOfWork.FinLedgerTrn.AddFinLedgerTrnListAsync(trnList);
                 await _unitOfWork.CompleteAsync();
+                _unitOfWork.CommitTransaction();
                 result = true;
             }
             catch (Exception ex)
             {
                 result = false;
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Ledger name not saved");
+                _unitOfWork.RollBack();
             }
             return result;
         }
@@ -70,6 +74,11 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
+        public async Task<Fin_Ledger> GetLedgerByIdAsync(decimal Id, string brCode)
+        {
+            return await _unitOfWork.FinLedger.GetLedgerByIdAsync(Id, brCode);
+        }
+
         public async Task<List<DropdownItem>> GetLedgerItemsByFnlIdAsync(int fnlId,  string brCode)
         {
             decimal cashLedId = 0;
@@ -85,6 +94,11 @@ namespace Infin8.Coapp.BusinessLogic
         public async Task<List<Fin_Ledger>> GetLedgerList10Async(string brCode)
         {
             return await _unitOfWork.FinLedger.GetLedgerList10Async(brCode);
+        }
+
+        public async Task<List<Fin_Ledger>> GetLedgerListAsync(string brCode)
+        {
+            return await _unitOfWork.FinLedger.GetLedgerListAsync(brCode);
         }
 
         public async Task<List<DropdownItem>> GetLedgerListAsync(int fnlId, string brCode)

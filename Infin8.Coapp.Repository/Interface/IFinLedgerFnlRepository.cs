@@ -1,4 +1,5 @@
 ﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,7 @@ namespace Infin8.Coapp.Repository
 {
     public interface IFinLedgerFnlRepository
     {
-        Task<List<DropdownItem>> GetFinLedgerFnlListAsync();
+        //Task<List<DropdownItem>> GetFinLedgerFnlListAsync();
+        Task<List<Fin_Ledger_Fnl>> GetFinLedgerFnlListAsync();
     }
 }
