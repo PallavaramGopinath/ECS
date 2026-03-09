@@ -896,7 +896,7 @@ namespace Infin8.Coapp.Repository
                 ob = await GetLoanOBOnLoanId(loanId, fromDate, brCode);
 
                 loanList = await GetLoanDetailsBetweenDatesOnLoanId(loanId, fromDate, toDate, brCode);
-                if (ob != null)
+                if (ob != null && ob.Loan_Id >0)
                     loanListFinal.Add(ob);
                 if (loanList != null)
                     loanListFinal.AddRange(loanList);

@@ -3,8 +3,8 @@
 @using Infin8.Coapp.UI.Client.Components.ModalDialog
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
-
+@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
+@rendermode InteractiveWebAssembly
 <h3>Loan Details</h3>
 
 @if (model.Header != null )

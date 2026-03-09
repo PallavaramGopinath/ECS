@@ -448,7 +448,7 @@ else
             if (string.IsNullOrWhiteSpace(transaction.Issue_Bank)) errorMessage += Environment.NewLine + "\n Issue Bank Name is required";
         }
         if (transaction.Ledger_Entry == 0) errorMessage += "<br/> Ledger Transaction Amount is required";
-        if(transaction.Narration!.Length == 0) errorMessage += "\n Narration is required";
+        if(transaction.Narration!.Trim().Length == 0) errorMessage += "\n Narration is required";
         if (errorMessage.Length > 0)
         {
             result = false;

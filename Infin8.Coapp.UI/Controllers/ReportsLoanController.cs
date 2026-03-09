@@ -44,7 +44,7 @@ namespace Infin8.Coapp.UI.Controllers
                 societyName = await _generalHandler.GetSocietyName(brCode);
                 report = await _reportHandler.GetReportNameWithSignature(reportId);
                 var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
-                reportHeader = "Loan outstanding as on " + asOnDate;
+                reportHeader = "Fixed Deposit Loan outstanding as on " + asOnDate;
                 var parameters = new Dictionary<string, string>
                 {
                     { "paramSocietyName", societyName },
@@ -64,6 +64,53 @@ namespace Infin8.Coapp.UI.Controllers
             return pdfReport;
         }
 
+        [HttpGet]
+        [Route("print-LoanOustanding-Others/{reportId:int}/{loanType:int}/{asOnDate}/{brCode}")]
+        public async Task<byte[]> Print_LoanOustanding_Others(int reportId,int loanType, string asOnDate, string brCode)
+        {
+            Reports_Master report = new Reports_Master();
+            string reportHeader = "";
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            byte[] pdfReport = Array.Empty<byte>();
+            try
+            {
+                DateTime.TryParse(asOnDate, out DateTime asOnDateFormatted);
+                List<rptLoanOutstanding> loanList = new();
+                //societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
+                societyName = await _generalHandler.GetSocietyName(brCode);
+                report = await _reportHandler.GetReportNameWithSignature(reportId);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                switch(loanType)
+                {
+                    case 3:
+                        reportHeader = "Fixed Deposit Loan outstanding as on " + asOnDate;
+                        break;
+                    case 4:
+                        reportHeader = "Recurring Deposit Loan outstanding as on " + asOnDate;
+                        break;
+                    case 5:
+                        reportHeader = "Staff Loan outstanding as on " + asOnDate;
+                        break;
+                }
+                
+                var parameters = new Dictionary<string, string>
+                {
+                    { "paramSocietyName", societyName },
+                    { "paramReportHeader",reportHeader}
+                };
+
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    pdfAsBytes = await _reportsLoanHandler.GetLoanOutstanding("Ds_LoanOutstanding", asOnDateFormatted, loanType, brCode, stream, parameters);
+                }
+                pdfReport = CreatePDFAsBytes(pdfAsBytes);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+            return pdfReport;
+        }
         private byte[] CreatePDFAsBytes(byte[] pdfAsBytes)
         {
             try
