@@ -1,0 +1,321 @@
+﻿@page "/map-general"
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
+
+<EditForm Model="@general" method="post" OnValidSubmit="@HandleValidSubmit" FormName="mappingGeneral">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+
+    <!--General (Cash,Share Capital, Dividend-->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <h5>Mapping General</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="cashLedger" @bind-Value="general.Cash_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var cash in LedgersForCash)
+                            {
+                                <option value="@cash.Led_Id">@cash.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="instType">Select Cash Ledger</label>
+                        <ValidationMessage For="@(() => general.Cash_Led_Id)" />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="shareCapitalLedger" @bind-Value="general.ShareCapital_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var share in LedgersForShareCapital)
+                            {
+                                <option value="@share.Led_Id">@share.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="shareCapitalLedger">Select Share Capital Ledger</label>
+                        <ValidationMessage For="@(() => general.ShareCapital_Led_Id)" />
+
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="diviendLedger" @bind-Value="general.Dividend_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var dividend in LedgersForDividend)
+                            {
+                                <option value="@dividend.Led_Id">@dividend.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="diviendLedger">Select Dividend Ledger</label>
+                        <ValidationMessage For="@(() => general.Dividend_Led_Id)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Fixed Deposit-->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <h5>Mapping Fixed Deposit</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="fdLedger" @bind-Value="general.FD_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var fd in LedgersForFD)
+                            {
+                                <option value="@fd.Led_Id">@fd.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="fdLedger">Select Fixed Deposit Ledger</label>
+                        <ValidationMessage For="@(() => general.FD_Led_Id)" />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="fdIntLedger" @bind-Value="general.FD_Int_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var led in LedgersForFDInterest)
+                            {
+                                <option value="@led.Led_Id">@led.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="fdIntLedger">Select Interest Payable on Fixed Deposit Ledger</label>
+                        <ValidationMessage For="@(() => general.FD_Int_Led_Id)" />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="fdPreMaturityLedger" @bind-Value="general.FD_Excess_IntPaid_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var led in LedgersForFDPreMaturity)
+                            {
+                                <option value="@led.Led_Id">@led.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="fdPreMaturityLedger">Select Interest Recived on Pre-Maturity Fixed Deposit Ledger</label>
+                    </div>
+                    <ValidationMessage For="@(() => general.FD_Excess_IntPaid_Id)" />
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!--Recurring Deposit-->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <h5>Mapping Recurring Deposit</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="rdLedger" @bind-Value="general.RD_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var fd in LedgersForRD)
+                            {
+                                <option value="@fd.Led_Id">@fd.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="rdLedger">Select Recurring Deposit Ledger</label>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="rdIntLedger" @bind-Value="general.RD_Int_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var led in LedgersForRDIntetest)
+                            {
+                                <option value="@led.Led_Id">@led.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="rdIntLedger">Select Interest Payable on Recurring Deposit Ledger</label>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="rdPILedger" @bind-Value="general.RD_PI_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var led in LedgersForRDPenalInterest)
+                            {
+                                <option value="@led.Led_Id">@led.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="rdPILedger">Select Penal Interest Recived Recurring Deposit Ledger</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Jewel Loan Fees-->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <h5>Mapping Jewel Loan Fees</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="appraisalLedger" @bind-Value="general.Appraisal_Fee_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var fd in LedgersForAppraisalFee)
+                            {
+                                <option value="@fd.Led_Id">@fd.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="appraisalLedger">Select Appraisal Fee Ledger for Jewel Loan</label>
+                        <ValidationMessage For="@(() => general.Appraisal_Fee_Led_Id)" />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="bankChargesLedger" @bind-Value="general.Bank_Charges_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var led in LedgersForBankCharges)
+                            {
+                                <option value="@led.Led_Id">@led.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="bankChargesLedger">Select Bank Charges Ledger for Jewel Loan</label>
+                        <ValidationMessage For="@(() => general.Bank_Charges_Led_Id)" />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputSelect class="form-select" id="serviceTaxLedger" @bind-Value="general.Service_Tax_Led_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var led in LedgersForServiceCharges)
+                            {
+                                <option value="@led.Led_Id">@led.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="serviceTaxLedger">Select Service Tax Ledger for Jewel Loan</label>
+                        <ValidationMessage For="@(() => general.Service_Tax_Led_Id)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--General Settings-->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <h5>General Settings</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputNumber class="form-control" id="shareCapitalPercentage"
+                                     @bind-Value="general.ShareCapitalPercentageOnLoanOS"
+                                     placeholder="Enter Share Capital %" />
+                        <label for="shareCapitalPercentage">Share Capital % on Loan</label>
+                        <ValidationMessage For="@(() => general.ShareCapitalPercentageOnLoanOS)" />
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-floating">
+                        <InputNumber class="form-control" id="jlPeriodMinium"
+                                     @bind-Value="general.JL_minimum_Days"
+                                     placeholder="Minimum Interest Calculation Period for Jewel Loan" />
+                        <label for="jlPeriodMinium">Minimum Interest Calculation Period for Jewel Loan</label>
+                        <ValidationMessage For="@(() => general.JL_minimum_Days)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex justify-content-between mt-4">
+        <div class="d-flex gap-2">
+            <button type="submit" class=" btn btn-success">
+                Submit
+            </button>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private Map_General general = new();
+    private List<Fin_Ledger> LedgersForCash = new();
+    private List<Fin_Ledger> LedgersForShareCapital = new();
+    private List<Fin_Ledger> LedgersForDividend = new();
+    private List<Fin_Ledger> LedgersForFD = new();
+    private List<Fin_Ledger> LedgersForFDInterest = new();
+    private List<Fin_Ledger> LedgersForFDPreMaturity = new();
+    private List<Fin_Ledger> LedgersForRD = new();
+    private List<Fin_Ledger> LedgersForRDIntetest = new();
+    private List<Fin_Ledger> LedgersForRDPenalInterest = new();
+    private List<Fin_Ledger> LedgersForAppraisalFee = new();
+    private List<Fin_Ledger> LedgersForBankCharges = new();
+    private List<Fin_Ledger> LedgersForServiceCharges = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+            general.BrCode = userInfoDto.BrCode!;
+            var ledgerList = await _httpClient.GetFromJsonAsync<List<Fin_Ledger>>($"api/Accounts/GetLedgerListAsync/{general.BrCode}");
+            if (ledgerList != null && ledgerList.Any())
+            {
+                LedgersForCash = ledgerList.ToList();
+                LedgersForShareCapital = ledgerList.ToList();
+                LedgersForDividend = ledgerList.ToList();
+                LedgersForFD = ledgerList.ToList();
+                LedgersForFDInterest = ledgerList.ToList();
+                LedgersForFDPreMaturity = ledgerList.ToList();
+                LedgersForRD = ledgerList.ToList();
+                LedgersForRDIntetest = ledgerList.ToList();
+                LedgersForRDPenalInterest = ledgerList.ToList();
+                LedgersForAppraisalFee = ledgerList.ToList();
+                LedgersForBankCharges = ledgerList.ToList();
+                LedgersForServiceCharges = ledgerList.ToList();
+            }
+            var mapGen = await _httpClient.GetFromJsonAsync<Map_General>($"api/Mapping/GetMapGeneral/{general.BrCode}");
+            if (mapGen != null) general = mapGen;
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var response = await _httpClient.PostAsJsonAsync<Map_General>("api/Mapping/UpdateMapGeneral", general);
+        if (response.IsSuccessStatusCode)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Mapping modified successfully!");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Modification of Mapping failed!");
+        }
+    }
+}

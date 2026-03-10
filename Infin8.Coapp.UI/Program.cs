@@ -117,6 +117,12 @@ builder.Services.AddScoped<IDashboardMemberHandler, DashboardMemberHandler>();
 builder.Services.AddScoped<IGeneralHandler, GeneralHandler>();
 builder.Services.AddScoped<IAuthenticationHandler, JwtAuthenticationHandler>();
 
+#region Mapping
+builder.Services.AddScoped<IMapGeneralHandler, MapGeneralHandler>();
+builder.Services.AddScoped<IMapSuspenseAccountsHandler, MapSuspenseAccountsHandler>();
+builder.Services.AddScoped<IMapBanksHandler, MapBanksHandler>();
+#endregion 
+
 #region accounts
 builder.Services.AddScoped<IAccountsHandler, AccountsHandler>();
 builder.Services.AddScoped<IFinVoucherTrnHandler, FinVoucherTrnHandler>();
@@ -128,6 +134,7 @@ builder.Services.AddScoped<IFinLedgerFnlHandler, FinLedgerFnlHandler>();
 builder.Services.AddScoped<IFinLedgerGroupHandler , FinLedgerGroupHandler>();
 builder.Services.AddScoped<IFinLedgerTrnHandler, FinLedgerTrnHandler>();
 #endregion 
+
 #region Loan
 builder.Services.AddScoped<ILoanSchemeHandler, LoanSchemeHandler>();
 builder.Services.AddScoped<ILoanSchemeGroupHandler, LoanSchemeGroupHandler>();

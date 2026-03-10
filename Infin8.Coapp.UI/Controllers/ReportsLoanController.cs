@@ -83,13 +83,16 @@ namespace Infin8.Coapp.UI.Controllers
                 switch(loanType)
                 {
                     case 3:
-                        reportHeader = "Fixed Deposit Loan outstanding as on " + asOnDate;
+                        if(reportId == 68)
+                            reportHeader = "Fixed Deposit Loan outstanding Loan No-wise as on " + asOnDate;
+                        else if(reportId == 69)
+                            reportHeader = "Fixed Deposit Loan outstanding Member-wise as on " + asOnDate;
                         break;
                     case 4:
                         reportHeader = "Recurring Deposit Loan outstanding as on " + asOnDate;
                         break;
                     case 5:
-                        reportHeader = "Staff Loan outstanding as on " + asOnDate;
+                        reportHeader = "Staff Loan outstanding Loan No-wise as on " + asOnDate;
                         break;
                 }
                 
