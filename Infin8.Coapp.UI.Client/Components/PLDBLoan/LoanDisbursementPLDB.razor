@@ -713,7 +713,7 @@ else
     private bool showSuccessMessage = false;
     private bool showErrorMessage = false;
     private string errorMessage = "";
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     private bool isCameraInitialized = false;
     DtoJewelLoanDisbursement jlDisbursement = new DtoJewelLoanDisbursement();
     #endregion
@@ -1684,10 +1684,11 @@ else
             CashPayment_Amount = cashPaymentAmount,
             AdjustmentReceipt_Amount = adjReceiptAmount,
             AdjustmentPayment_Amount = adjPaymentAmount,
-            Security_Type = security_type
+            Security_Type = security_type,
+            Transaction_Type = "Member Transaction"
 
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
     }
 

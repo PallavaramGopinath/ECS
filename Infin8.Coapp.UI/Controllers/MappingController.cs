@@ -3,6 +3,7 @@ using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 
 namespace Infin8.Coapp.UI.Controllers
 {
@@ -39,6 +40,21 @@ namespace Infin8.Coapp.UI.Controllers
             return Ok(mapGeneral);
         }
 
+        [HttpGet]
+        [Route("GetMapSuspenseAccounts/{brCode}")]
+        public async Task<ActionResult<List<Map_SuspenseAccounts>>> GetMapSuspenseAccounts(string brCode)
+        {
+            List<Map_SuspenseAccounts> mapSusenseAccounts = new List<Map_SuspenseAccounts>();
+
+            var result = await _mapSuspenseAccountsHandler.GetSuspenseLedgerAsync(brCode);
+
+            if (result != null && result!.Any())
+            {
+                mapSusenseAccounts = result.ToList();
+            }
+            return Ok(mapSusenseAccounts);
+        }
+
         [HttpPost]
         [Route("UpdateMapGeneral")]
         public async Task<ActionResult<Map_General>> UpdateMapGeneralAsync([FromBody] Map_General mapGeneral)
@@ -48,6 +64,20 @@ namespace Infin8.Coapp.UI.Controllers
                 return Ok(mapGeneral);
             else
                 return BadRequest();
+        }
+
+        [HttpPost]
+        [Route("UpdateMapSuspenseAccounts")]
+        public async Task<ActionResult<List<Map_SuspenseAccounts>>> UpdateMapSuspenseAccounts([FromBody] List<Map_SuspenseAccounts> susAccouontList)
+        {
+            var result = await _mapSuspenseAccountsHandler.UpdateMapSuspenseAccountsAsync(susAccouontList);
+            if (result == true)
+                return Ok(susAccouontList);
+            else
+            {
+                List<Map_SuspenseAccounts> nullAccounts = new();
+                return Ok(nullAccounts);
+            }
         }
 
     }

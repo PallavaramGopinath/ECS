@@ -457,7 +457,7 @@
 </div>
 @statusMessage
 @code {
-    private string brCode = ""; // Branch code, can be dynamic based on user selection or context
+    // private string brCode = ""; // Branch code, can be dynamic based on user selection or context
     decimal createdBy = 0;
     private bool isSucceeded = false;
     // private string statusMessage = "Initial value";
@@ -492,19 +492,19 @@
         member.isexistingmember = false;
         // member.brcode = "11001";
         var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
-        brCode = userInfoDto?.BrCode!;
-        member.brcode = brCode;
+        // brCode = userInfoDto?.BrCode!;
+        member.brcode = userInfoDto?.BrCode!;
         createdBy = userInfoDto!.UserId;
 
-        var religion = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/6/{brCode}/false");
+        var religion = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/6/{member.brcode}/false");
         if (religion != null) religions = religion.ToList();
-        var community = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/1/{brCode}/false");
+        var community = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/1/{member.brcode}/false");
         if (community != null) communities = community.ToList();
-        var caste = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/4/{brCode}/false");
+        var caste = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/4/{member.brcode}/false");
         if (caste != null) castes = caste.ToList();
-        var occupation = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/5/{brCode}/false");
+        var occupation = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/5/{member.brcode}/false");
         if (occupation != null) occupations = occupation.ToList();
-        var area = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/Area/{brCode}");
+        var area = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/Area/{member.brcode}");
         if (area != null) areas = area.ToList();
         var bank = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/BankItems");
         if (bank != null) banks = bank.ToList();
@@ -519,7 +519,7 @@
         {
             string memberNo = "";
             int memType = member.membertype;
-            var url = $"api/NewAccountNo/NewMemberNo/{memType}/{brCode}";
+            var url = $"api/NewAccountNo/NewMemberNo/{memType}/{member.brcode}";
             Console.WriteLine($"Calling API: {url}"); // Debug URL
             using var response = await _httpClient.GetAsync(url);
             var jsonString = await response.Content.ReadAsStringAsync();
@@ -613,7 +613,7 @@
 
             member.isnewmember = true;
             member.isexistingmember = false;
-            member.brcode = brCode;
+            // member.brcode = member.brcode;
 
             StateHasChanged();
         }

@@ -1,0 +1,515 @@
+﻿@page "/map-suspense"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
+
+<!-- Progress Steps -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="progress-steps">
+            <div class="row">
+                <div class="col-3">
+                    <div class="step-item @(currentStep >= 1 ? "active" : "") @(currentStep > 1 ? "completed" : "")">
+                        <div class="step-icon">
+                            <i class="bi @(currentStep > 1 ? "bi-check-lg" : "bi-info-circle")"></i>
+                        </div>
+                        <div class="step-label">Member Suspense Debtor (Due To)</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="step-item @(currentStep >= 2 ? "active" : "") @(currentStep > 2 ? "completed" : "")">
+                        <div class="step-icon">
+                            <i class="bi @(currentStep > 2 ? "bi-check-lg" : "bi-sliders2")"></i>
+                        </div>
+                        <div class="step-label">Member Suspense Creditor (Due By)</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="step-item @(currentStep >= 3 ? "active" : "") @(currentStep > 3 ? "completed" : "")">
+                        <div class="step-icon">
+                            <i class="bi @(currentStep > 3 ? "bi-check-lg" : "bi-sliders2")"></i>
+                        </div>
+                        <div class="step-label">Staff Suspense Debtor (Due To)</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="step-item @(currentStep >= 4 ? "active" : "")">
+                        <div class="step-icon">
+                            <i class="bi bi-check2-circle"></i>
+                        </div>
+                        <div class="step-label">Staff Suspense Creditor (Due By)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<EditForm Model="@suspenseAccounts" method="post" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+
+    <!-- Step 1: Member Suspense Debtor-->
+    @if (currentStep == 1)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2 text-primary"></i>Member Suspense Debtor - Mapping
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <InputSelect class="form-select" id="memDueTo" @bind-Value="memberDueTo.Led_Id">
+                                <option value="">Select Category</option>
+                                @foreach (var ledger in memberDueToLedgers)
+                                {
+                                    <option value="@ledger.Led_Id">@ledger.Led_Name </option>
+                                }
+                            </InputSelect>
+                            <label for="memDueTo">Select Member Suspense Due To Ledger</label>
+                            <ValidationMessage For="@(() => memberDueTo.Led_Id)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    @if (memberDueToList != null && memberDueToList.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Ledger Id</th>
+                                        <th>Ledger Name</th>
+                                        <th>Suspense Type</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var led in memberDueToList)
+                                    {
+                                        <tr>
+                                            <td><span class="badge bg-primary ms-2">@led.Led_Id</span></td>
+                                            <td>@led.Led_Name</td>
+                                            <td><span class="badge bg-info ms-2">1 - Member Suspense Debtor</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        @onclick="() => DeleteMemberDueto(led.Led_Id)"
+                                                        title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 2: Member Suspenes Creditor -->
+    @if (currentStep == 2)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">
+                    <i class="bi bi-sliders2 me-2 text-primary"></i>Member Suspense Creditor - Mapping
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <InputSelect class="form-select" id="memDueBy" @bind-Value="memberDueBy.Led_Id">
+                                <option value="">Select Category</option>
+                                @foreach (var ledger in memberDueByLedgers)
+                                {
+                                    <option value="@ledger.Led_Id">@ledger.Led_Name </option>
+                                }
+                            </InputSelect>
+                            <label for="memDueBy">Select Member Suspense Due By Ledger</label>
+                            <ValidationMessage For="@(() => memberDueBy.Led_Id)" />
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="row g-4">
+                    @if (memberDueByList != null && memberDueByList.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Ledger Id</th>
+                                        <th>Ledger Name</th>
+                                        <th>Suspense Type</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var led in memberDueByList)
+                                    {
+                                        <tr>
+                                            <td><span class="badge bg-primary ms-2">@led.Led_Id</span></td>
+                                            <td>@led.Led_Name</td>
+                                            <td><span class="badge bg-info ms-2">2 - Member Suspense Creditor</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        @onclick="() => DeleteMemberDueby(led.Led_Id)"
+                                                        title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Step 3: Staff Suspense Debtor -->
+    @if (currentStep == 3)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">
+                    <i class="bi bi-sliders2 me-2 text-primary"></i>Staff Suspense Debtor - Mapping
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="card bg-light border-0">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <InputSelect class="form-select" id="staffDueTo" @bind-Value="staffDueTo.Led_Id">
+                                    <option value="0">--Select Ledger--</option>
+                                    @foreach (var account in staffDueToList)
+                                    {
+                                        <option value="@account.Led_Id">@account.Led_Name</option>
+                                    }
+                                </InputSelect>
+                                <label for="staffDueTo">Select Staff Due to Ledger</label>
+                                <ValidationMessage For="@(() => staffDueTo.Led_Id)" />
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="row g-4">
+                        @if (staffDueToList != null && staffDueToList.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Ledger Id</th>
+                                            <th>Ledger Name</th>
+                                            <th>Suspense Type</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var led in staffDueToList)
+                                        {
+                                            <tr>
+                                                <td><span class="badge bg-primary ms-2">@led.Led_Id</span></td>
+                                                <td>@led.Led_Name</td>
+                                                <td><span class="badge bg-info ms-2">5 - Staff Suspense Debtor</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-danger"
+                                                            @onclick="() => DeleteStaffDueto(led.Led_Id)"
+                                                            title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    }
+
+    <!-- Step 4: Staff Suspenes Creditor -->
+    @if (currentStep == 4)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">
+                    <i class="bi bi-check2-circle me-2 text-primary"></i>Staff Suspense Creditor - Mapping
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <InputSelect class="form-select" id="staffDueBy" @bind-Value="staffDueBy.Led_Id">
+                                <option value="">Select Category</option>
+                                @foreach (var ledger in staffDueByLedgers)
+                                {
+                                    <option value="@ledger.Led_Id">@ledger.Led_Name </option>
+                                }
+                            </InputSelect>
+                            <label for="staffDueBy">Select Staff Suspense Due By Ledger</label>
+                            <ValidationMessage For="@(() => staffDueBy.Led_Id)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    @if (staffDueByList != null && staffDueByList.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Ledger Id</th>
+                                        <th>Ledger Name</th>
+                                        <th>Suspense Type</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var led in staffDueByList)
+                                    {
+                                        <tr>
+                                            <td><span class="badge bg-primary ms-2">@led.Led_Id</span></td>
+                                            <td>@led.Led_Name</td>
+                                            <td><span class="badge bg-info ms-2">6 - Staff Suspense Creditor</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        @onclick="() => DeleteStaffDueby(led.Led_Id)"
+                                                        title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex justify-content-between mt-4">
+        <div>
+            @if (currentStep > 1)
+            {
+                <button type="button" class="btn btn-secondary" @onclick="PreviousStep">
+                    <i class="bi bi-arrow-left me-2"></i>Previous
+                </button>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            @if (currentStep < 4)
+            {
+                <button type="button" class="btn btn-primary" @onclick="NextStep">
+                    Next <i class="bi bi-arrow-right ms-2"></i>
+                </button>
+            }
+            else
+            {
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Submit
+                </button>
+            }
+        </div>
+    </div>
+
+</EditForm>
+
+@code {
+    string brCode = "11005";
+    private int currentStep = 1;
+    private List<Map_SuspenseAccounts> suspenseAccounts = new();
+
+    private FinLedgerVM memberDueTo = new();
+    private FinLedgerVM memberDueBy = new();
+    private FinLedgerVM staffDueTo = new();
+    private FinLedgerVM staffDueBy = new();
+
+    private List<FinLedgerVM> memberDueToLedgers = new();
+    private List<FinLedgerVM> memberDueByLedgers = new();
+    private List<FinLedgerVM> staffDueToLedgers = new();
+    private List<FinLedgerVM> staffDueByLedgers = new();
+
+
+    private List<Map_SuspenseAccounts> memberDueToList = new();
+    private List<Map_SuspenseAccounts> memberDueByList = new();
+    private List<Map_SuspenseAccounts> staffDueToList = new();
+    private List<Map_SuspenseAccounts> staffDueByList = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode!;
+            var ledgerList = await _httpClient.GetFromJsonAsync<List<FinLedgerVM>>($"api/Accounts/GetLedgerVMListAsync/{brCode}");
+            if (ledgerList != null && ledgerList.Any())
+            {
+                memberDueToLedgers = ledgerList.Where(x => x.Fnl_Id == 1).ToList();
+                memberDueByLedgers = ledgerList.Where(x => x.Fnl_Id == 2).ToList();
+                staffDueToLedgers = ledgerList.Where(x => x.Fnl_Id == 1).ToList();
+                staffDueByLedgers = ledgerList.Where(x => x.Fnl_Id == 2).ToList();
+            }
+
+            var result = await _httpClient.GetFromJsonAsync<List<Map_SuspenseAccounts>>($"api/Mapping/GetMapSuspenseAccounts/{brCode}");
+            if (result != null && result.Any())
+            {
+                suspenseAccounts = result!.ToList();
+                memberDueToList = suspenseAccounts.Where(x => x.Sus_Type == 1).ToList();
+                memberDueByList = suspenseAccounts.Where(x => x.Sus_Type == 2).ToList();
+                staffDueToList = suspenseAccounts.Where(x => x.Sus_Type == 5).ToList();
+                staffDueByList = suspenseAccounts.Where(x => x.Sus_Type == 6).ToList();
+            }
+        }
+    }
+
+    private void NextStep()
+    {
+        if (currentStep < 4)
+        {
+            currentStep++;
+        }
+    }
+
+    private void PreviousStep()
+    {
+        if (currentStep > 1)
+        {
+            currentStep--;
+        }
+    }
+
+    private void AddMemberDueTo(FinLedgerVM ledger)
+    {
+        Map_SuspenseAccounts map = new()
+        {
+            Led_Id = ledger.Led_Id,
+            Led_Name = ledger.Led_Name,
+            Sus_Type = 1,
+            IntCalc_Application = 0,
+            IntLed_Id = 0,
+            BrCode = brCode
+        };
+    }
+
+    private void AddMemberDueBy(FinLedgerVM ledger)
+    {
+        Map_SuspenseAccounts map = new()
+        {
+            Led_Id = ledger.Led_Id,
+            Led_Name = ledger.Led_Name,
+            Sus_Type = 2,
+            IntCalc_Application = 0,
+            IntLed_Id = 0,
+            BrCode = brCode
+        };
+    }
+
+    private void AddStaffDueTo(FinLedgerVM ledger)
+    {
+        Map_SuspenseAccounts map = new()
+        {
+            Led_Id = ledger.Led_Id,
+            Led_Name = ledger.Led_Name,
+            Sus_Type = 5,
+            IntCalc_Application = 0,
+            IntLed_Id = 0,
+            BrCode = brCode
+        };
+    }
+
+    private void AddStaffDueBy(FinLedgerVM ledger)
+    {
+        Map_SuspenseAccounts map = new()
+        {
+            Led_Id = ledger.Led_Id,
+            Led_Name = ledger.Led_Name,
+            Sus_Type = 6,
+            IntCalc_Application = 0,
+            IntLed_Id = 0,
+            BrCode = brCode
+        };
+    }
+
+    private void DeleteMemberDueto(decimal ledId)
+    {
+        memberDueToList.RemoveAll(x => x.Led_Id == ledId);
+        StateHasChanged();
+    }
+
+    private void DeleteMemberDueby(decimal ledId)
+    {
+        memberDueByList.RemoveAll(x => x.Led_Id == ledId);
+        StateHasChanged();
+    }
+
+    private void DeleteStaffDueto(decimal ledId)
+    {
+        staffDueToList.RemoveAll(x => x.Led_Id == ledId);
+        StateHasChanged();
+    }
+
+    private void DeleteStaffDueby(decimal ledId)
+    {
+        staffDueByList.RemoveAll(x => x.Led_Id == ledId);
+        StateHasChanged();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        suspenseAccounts = new();
+        suspenseAccounts.AddRange(memberDueToList);
+        suspenseAccounts.AddRange(memberDueByList);
+        suspenseAccounts.AddRange(staffDueToList);
+        suspenseAccounts.AddRange(staffDueByList);
+        if (suspenseAccounts != null && suspenseAccounts.Any())
+        {
+            var response = await _httpClient.PostAsJsonAsync<List<Map_SuspenseAccounts>>("api/Mapping/UpdateMapSuspenseAccounts", suspenseAccounts);
+            if (response.IsSuccessStatusCode)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Mapping of suspense accounts modified successfully!");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Modification mapping for suspense accounts failed!");
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Suspense account is empty. Add suspense accounts to submit!");
+        }
+    }
+}

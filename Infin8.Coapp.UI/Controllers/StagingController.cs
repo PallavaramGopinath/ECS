@@ -35,7 +35,7 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpPost]
         [Route("AddStaging")]
-        public async Task<ActionResult> AddStagingDetail([FromBody] Staging_Details stagingDetails)
+        public async Task<ActionResult> AddStagingDetail([FromBody] DtoStaging_Details stagingDetails)
         {
             var result = await _stagingDetailsHandler.AddStagingDetails(stagingDetails);
             if (result) return Ok();

@@ -511,7 +511,7 @@ else
     private bool showSuccessMessage = false;
     private bool showErrorMessage = false;
     private string errorMessage = "";
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     private bool isCameraInitialized = false;
     #endregion
 
@@ -528,7 +528,7 @@ else
                 loanDetails.Member_No = MemberNumber;
                 loanDetails.Member_Name = MemberName;
                 loanDetails.Tranaction_Date = TransactionDate;
-
+                loanDetails.BrCode = brCode;
                 loanDetails.Ornment_List = new List<DtoJewelLoanOrnments>();
 
                 // Fetch loan schemes from API
@@ -1193,9 +1193,10 @@ else
             Checked_By = 0,
             Checked_Date = null,
             Staging_Status = "I",
-            BrCode = "11001"
+            BrCode = loanDetails.BrCode,
+            Transaction_Type = "Member Transaction"
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnJLDisbursementInitiate.InvokeAsync(loanDetails);
         await TransactionState.NotifyIntiate(true);
     }

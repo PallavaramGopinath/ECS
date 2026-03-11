@@ -224,7 +224,7 @@
     private bool loanNumbersLoaded = false;
     private string? processingMessage;
     private bool isError = false;
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     #endregion 
 
     // protected override void OnInitialized()
@@ -662,9 +662,10 @@
                 CashReceipt_Amount = CashOrAdjustment ==1 ? model.Recovery_Amount : 0,
                 AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? model.Recovery_Amount :0,
                 CashPayment_Amount =0,
-                AdjustmentPayment_Amount = 0
+                AdjustmentPayment_Amount = 0,
+            Transaction_Type = "Member Transaction"
             };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         await OnJLRecoveryInitiate.InvokeAsync(model);
     }
 

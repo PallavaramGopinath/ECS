@@ -55,5 +55,15 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.MapSuspenseAccounts.GetSuspenseLedgerItemsBySupenseTypeAsync(suspenseType, brCode);
         }
+
+        public async Task<List<Map_SuspenseAccounts>> GetSuspenseLedgerAsync(string brCode)
+        {
+            return await _unitOfWork.MapSuspenseAccounts.GetSuspenseLedgerAsync(brCode);
+        }
+
+        public async Task<bool> UpdateMapSuspenseAccountsAsync(List<Map_SuspenseAccounts> mapSuspensAccounts)
+        {
+            return await _unitOfWork.MapSuspenseAccounts.UpdateMapSuspenseAccountsAsync(mapSuspensAccounts);
+        }
     }
 }

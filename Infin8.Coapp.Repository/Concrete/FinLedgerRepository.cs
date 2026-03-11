@@ -266,5 +266,33 @@ namespace Infin8.Coapp.Repository
             }
             return ledgerList;
         }
+
+        public async Task<List<FinLedgerVM>> GetLedgerVMListAsync(string brCode)
+        {
+            List<FinLedgerVM> ledgerList = new List<FinLedgerVM>();
+            try
+            {
+                var result  = await (from led in CSISContext.Fin_Ledger
+                                    join grp in CSISContext.Fin_Ledger_Grp on led.Grp_Id equals grp.Grp_Id
+                                    join fnl in CSISContext.Fin_Ledger_Fnl on grp.Fnl_Id equals fnl.Fnl_Id
+                                    where led.Led_Delete == false && led.BrCode == brCode && grp.BrCode == brCode && grp.Grp_Delete == false
+                                    select new FinLedgerVM
+                                    {
+                                        Led_Id = led.Led_Id ,
+                                        Led_Name = led.Led_Name,
+                                        Grp_Id = grp.Grp_Id,
+                                        Grp_Name = grp.Grp_Name,
+                                        Fnl_Id = grp.Fnl_Id,
+                                        Fnl_Name = fnl.Fnl_Name ,
+                                        Led_SlNo = led.Led_SlNo
+                                    }).ToListAsync();
+                if (result != null && result.Any()) ledgerList = result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching ledger list by group id");
+            }
+            return ledgerList;
+        }
     }
 }

@@ -22,7 +22,10 @@ namespace Infin8.Coapp.Repository
         {
             Context.Set<TEntity>().AddRange(entities);
         }
-
+        public async Task AddRangeAsync(IEnumerable<TEntity> entities)
+        {
+            await Context.Set<TEntity>().AddRangeAsync(entities);
+        }
         public void Delete(TEntity entity)
         {
             Context.Set<TEntity>().Remove(entity);
@@ -37,7 +40,6 @@ namespace Infin8.Coapp.Repository
         {
             Context.Set<TEntity>().RemoveRange(entities);
         }
-
         public void Edit(TEntity entity)
         {
             Context.Set<TEntity>().Attach(entity);

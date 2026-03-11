@@ -174,7 +174,7 @@
     private List<DropdownItem> payIdList = new();
     private List<DropdownItem> empIdList = new();
     private List<DropdownItem> selectedEmpIds = new();
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     #endregion
 
     #region variables
@@ -385,9 +385,10 @@
             CashPayment_Amount = cashPaymentAmount ,
             CashReceipt_Amount = cashReceiptAmount  ,
             AdjustmentReceipt_Amount = adjustmentReceiptAmount ,
-            AdjustmentPayment_Amount = adjustmentPaymentAmount 
+            AdjustmentPayment_Amount = adjustmentPaymentAmount ,
+            Transaction_Type = "Staff Transaction"
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
     }
 

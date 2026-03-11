@@ -197,6 +197,22 @@ namespace API.Controllers
         }
 
         [HttpGet]
+        [Route("GetLedgerVMListAsync/{brCode}")]
+        public async Task<ActionResult<List<FinLedgerVM>>> GetLedgerVMListAsync(string brCode)
+        {
+            List<FinLedgerVM> result = new List<FinLedgerVM>();
+            try
+            {
+                result = await _finLedgerHandler.GetLedgerVMListAsync(brCode);
+            }
+            catch (Exception)
+            {
+                //return NotFound();
+            }
+            return Ok(result);
+        }
+
+        [HttpGet]
         [Route("GetLedgerByIdAsync/{Id:decimal}/{brCode}")]
         public async Task<ActionResult<Fin_Ledger>> GetLedgerByIdAsync(decimal Id, string brCode)
         {
@@ -243,5 +259,7 @@ namespace API.Controllers
             }
             return Ok(result);
         }
+
+
     }
 }

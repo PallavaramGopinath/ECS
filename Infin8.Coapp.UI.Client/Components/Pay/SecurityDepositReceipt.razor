@@ -190,7 +190,7 @@ else
     private bool _isError = false;
     private string errorMessage = string.Empty;
     private double bonusAmount = 0;
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     #endregion
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -348,9 +348,10 @@ else
             CashReceipt_Amount = CashOrAdjustment == 1 ? model.Receipt_Amount : 0,
             AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? model.Receipt_Amount : 0,
             CashPayment_Amount = 0,
-            AdjustmentPayment_Amount = 0
+            AdjustmentPayment_Amount = 0,
+            Transaction_Type = "Staff Transaction"
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         if (response.IsSuccessStatusCode)
         {
             await TransactionState.NotifyIntiate(true);

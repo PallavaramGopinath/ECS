@@ -117,5 +117,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.FinLedger.GetLedgerListByGrpIdAsync(grpId,brCode);
         }
+
+        public async Task<List<FinLedgerVM>> GetLedgerVMListAsync(string brCode)
+        {
+            return await _unitOfWork.FinLedger.GetLedgerVMListAsync(brCode);
+        }
     }
 }

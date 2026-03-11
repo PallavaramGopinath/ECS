@@ -19,6 +19,7 @@ namespace Infin8.Coapp.Repository
         Task<List<DropdownItem>> GetLedgerItemsByFnlIdAsync(int fnlId,decimal cashLedId,string brCode);
         Task<List<Fin_Ledger>> GetLedgerList10Async(string brCode);
         Task<List<Fin_Ledger>> GetLedgerListAsync(string brCode);
+        Task<List<FinLedgerVM>> GetLedgerVMListAsync(string brCode);
 
         //Task<decimal> GetCashLedgerIdAsync();
     }

@@ -522,7 +522,7 @@
     private bool isDisableFixedDepositNoButton = true;
     private string brCode = "11001";
     decimal createdBy = 0;
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     #endregion
     // Initialize the date to current date
     // paymentModel.Mem_Id = 110010008478;
@@ -968,9 +968,10 @@
             CashReceipt_Amount = cashReceipt,
             CashPayment_Amount = cashPayment,
             AdjustmentReceipt_Amount = adjReceipt,
-            AdjustmentPayment_Amount = adjPayment
+            AdjustmentPayment_Amount = adjPayment,
+            Transaction_Type = "Member Transaction"
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
         // if (RequestType == "I")
         // {

@@ -364,7 +364,7 @@
     private bool showSuccessMessage = false;
     private bool showErrorMessage = false;
     private string errorMessage = "";
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     private bool isCameraInitialized = false;
     #endregion
 
@@ -978,9 +978,10 @@
             CashReceipt_Amount = cashReceiptAmount ,
             CashPayment_Amount = cashPaymentAmount ,
             AdjustmentReceipt_Amount = adjustmentReceiptAmount ,
-            AdjustmentPayment_Amount = adjustmentPaymentAmount 
+            AdjustmentPayment_Amount = adjustmentPaymentAmount ,
+            Transaction_Type = "Member Transaction"
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnJLDisbursementInitiate.InvokeAsync(loanDetails);
         await TransactionState.NotifyIntiate(true);
     }

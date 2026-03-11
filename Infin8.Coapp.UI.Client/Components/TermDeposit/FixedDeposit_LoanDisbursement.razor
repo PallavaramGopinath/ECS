@@ -315,7 +315,7 @@
     private string? errorMessage = null;
     private string? processingMessage;
     private bool isError = false;
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     #endregion
 
     // protected override void OnInitialized()
@@ -638,9 +638,10 @@
             CashReceipt_Amount = cashReceipt ,
             CashPayment_Amount = cashPayment ,
             AdjustmentReceipt_Amount = adjReceipt ,
-            AdjustmentPayment_Amount = adjPayment 
+            AdjustmentPayment_Amount = adjPayment ,
+            Transaction_Type = "Member Transaction"
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         await TransactionState.NotifyIntiate(true);
         // await OnFDLoanInitiate.InvokeAsync(loanModel);
     }

@@ -178,7 +178,7 @@ else
     private bool _isError = false;
     private bool _isValidSubmit = true;
     private string errorMessage = string.Empty;
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     #endregion
 
     // private double vpfReceivedValue
@@ -377,9 +377,10 @@ else
             CashReceipt_Amount = CashOrAdjustment == 1 ? model.TotalReceived : 0,
             AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? model.TotalReceived : 0,
             CashPayment_Amount = 0,
-            AdjustmentPayment_Amount = 0
+            AdjustmentPayment_Amount = 0,
+            Transaction_Type = "Staff Transaction"
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnPFContributionComponentClose.InvokeAsync(model);
         await TransactionState.NotifyIntiate(true);
     }

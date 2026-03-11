@@ -369,7 +369,8 @@
     private bool isChequeDetailsModalVisible = false;
     private AccountTransactionVM selectedAccount;
 
-    private Staging_Details stagingDetails = new();
+    private Staging_Details stagingDetails_old = new();
+    private DtoStaging_Details stagingDetails = new();
     private bool showModal = false;
     private bool isFirstRender = false;
     #endregion
@@ -1005,8 +1006,10 @@
             AdjustmentReceipt_Amount = transaction.Cash_Adjustment == 2 ? receipt : 0,
             CashPayment_Amount = transaction.Cash_Adjustment == 1 ? payment : 0,
             AdjustmentPayment_Amount = transaction.Cash_Adjustment == 2 ? payment : 0,
+            Transaction_Type = "Member Transaction"
+            
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
 
         transaction.Ledger_Id = 0;
         transaction.Account_Id = 0;

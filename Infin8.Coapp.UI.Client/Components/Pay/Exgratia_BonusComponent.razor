@@ -170,7 +170,7 @@ else
     private bool _isError = false;
     private string errorMessage = string.Empty;
     private double bonusAmount = 0;
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     #endregion
 
     // protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -325,9 +325,10 @@ else
             CashReceipt_Amount = 0,
             AdjustmentReceipt_Amount = 0,
             CashPayment_Amount = CashOrAdjustment == 1 ? model.TotalPayment_Amount : 0,
-            AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.TotalPayment_Amount : 0
+            AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.TotalPayment_Amount : 0,
+            Transaction_Type = "Staff Transaction"
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnPFContributionComponentClose.InvokeAsync(model);
         await TransactionState.NotifyIntiate(true);
     }

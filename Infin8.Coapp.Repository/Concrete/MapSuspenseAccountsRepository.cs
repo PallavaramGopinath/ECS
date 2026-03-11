@@ -70,5 +70,37 @@ namespace Infin8.Coapp.Repository
             }
             return list;
         }
+
+        public async Task<List<Map_SuspenseAccounts>> GetSuspenseLedgerAsync(string brCode)
+        {
+            List<Map_SuspenseAccounts> list = new List<Map_SuspenseAccounts>();
+            try
+            {
+                var suspenseList = await CSISContext.Map_SuspenseAccounts.Where(x=> x.BrCode == brCode).ToListAsync();
+                if (suspenseList != null && suspenseList.Count > 0) list = suspenseList;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching  suspense ledger items");
+            }
+            return list;
+        }
+
+        public async Task<bool> UpdateMapSuspenseAccountsAsync(List<Map_SuspenseAccounts> mapSuspensAccounts)
+        {
+            bool result = false;
+            try
+            {
+                DeleteRange(mapSuspensAccounts);
+                await AddRangeAsync(mapSuspensAccounts);
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while Mapping of suspense accounts");
+            }
+            return result;
+        }
     }
 }

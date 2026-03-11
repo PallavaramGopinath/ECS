@@ -196,7 +196,7 @@ else
     private bool _isLoading = true;
     private bool _isError = false;
     private string errorMessage = string.Empty;
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
     #endregion
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -209,14 +209,19 @@ else
 
                 // fromDate = userInfoDto.YrBeginningDate;
                 // toDate = userInfoDto.YrEndDate;
+
+                fromDate = userInfoDto.YrBeginningDate;
+                toDate = userInfoDto.YrEndDate;
+
                 model.BrCode = userInfoDto.BrCode;
                 model.Created_By = userInfoDto.UserId;
                 model.YrId = userInfoDto.YrId;
-               
+
                 model.Employee_Id = Employee_Id;
                 model.Employee_Name = Employee_Name;
                 model.Designation = Designation;
                 model.Transaction_Date = TransactionDate;
+                
                 // model.BrCode = brCode;
                 // model.YrId = Yr_Id;
                 // model.Created_By = Created_By;
@@ -410,9 +415,11 @@ else
             CashReceipt_Amount =  0,
             AdjustmentReceipt_Amount =  0,
             CashPayment_Amount = CashOrAdjustment == 1 ? model.SLSAmount : 0,
-            AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.SLSAmount : 0
+            AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.SLSAmount : 0,
+            Transaction_Type = "Staff Transaction"
+            
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
         // await OnPFContributionComponentClose.InvokeAsync(model);
         await TransactionState.NotifyIntiate(true);
     }

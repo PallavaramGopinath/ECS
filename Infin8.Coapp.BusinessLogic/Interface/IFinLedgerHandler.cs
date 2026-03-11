@@ -20,6 +20,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<DropdownItem>> GetLedgerItemsByFnlIdAsync(int fnlId, string brCode);
         Task<List<Fin_Ledger>> GetLedgerList10Async(string brCode);
         Task<List<Fin_Ledger>> GetLedgerListAsync(string brCode);
+        Task<List<FinLedgerVM>> GetLedgerVMListAsync(string brCode);
         //Task<decimal> GetCashLedgerIdAsync();
     }
 }

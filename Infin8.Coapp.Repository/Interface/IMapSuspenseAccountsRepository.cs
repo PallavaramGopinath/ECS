@@ -13,5 +13,7 @@ namespace Infin8.Coapp.Repository
         Task<bool> AddMapSuspenseAccountsAsync(Map_SuspenseAccounts mapSuspensAccounts);
         Task<bool> EditMapSuspenseAccountsAsync(Map_SuspenseAccounts mapSuspensAccounts);
         Task<List<DropdownItem>> GetSuspenseLedgerItemsBySupenseTypeAsync(int suspenseType,string brCode);
+        Task<List<Map_SuspenseAccounts>> GetSuspenseLedgerAsync(string brCode);
+        Task<bool> UpdateMapSuspenseAccountsAsync(List<Map_SuspenseAccounts> mapSuspensAccounts);
     }
 }

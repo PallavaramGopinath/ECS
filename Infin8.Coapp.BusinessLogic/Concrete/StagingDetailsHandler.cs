@@ -19,30 +19,59 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddStagingDetails(Staging_Details stagingDetails)
+        public async Task<bool> AddStagingDetails(DtoStaging_Details dtostagingDetails)
         {
-            string accountType = "";
+            //string accountType = "";
             decimal stagingId = 0;
-            bool isStagingCreated =  _unitOfWork.StagingMaster.IsStagingMasterCreated(stagingDetails.Created_By, stagingDetails.Member_Id, "I", stagingDetails.Created_Date);
+            Staging_Details stagingDetails = new()
+            {
+                Id = dtostagingDetails.Id,
+                Staging_Id = dtostagingDetails.Id,
+                Member_Id = dtostagingDetails.Member_Id ,
+                Ledger_Id = dtostagingDetails.Ledger_Id ,
+                Related_Account_Id = dtostagingDetails.Related_Account_Id ,
+                Receipt_Amount = dtostagingDetails.Receipt_Amount,
+                Payment_Amount = dtostagingDetails.Payment_Amount ,
+                Module_Name = dtostagingDetails.Module_Name ,
+                Cash_Or_Adjustment = dtostagingDetails.Cash_Or_Adjustment ,
+                Related_Account_Data = dtostagingDetails.Related_Account_Data ,
+                Created_By = dtostagingDetails.Created_By ,
+                Created_Date = dtostagingDetails.Created_Date , 
+                Checked_By = dtostagingDetails.Checked_By ,
+                Checked_Date = dtostagingDetails.Checked_Date ,
+                Staging_Status = dtostagingDetails.Staging_Status ,
+                BrCode = dtostagingDetails.BrCode ,
+                Cheque_No = dtostagingDetails.Cheque_No ,
+                Cheque_Date = dtostagingDetails.Cheque_Date ,
+                Issue_Bank_Name = dtostagingDetails.Issue_Bank_Name ,
+                Voc_Id = dtostagingDetails.Voc_Id ,
+                CashReceipt_Amount = dtostagingDetails.CashReceipt_Amount ,
+                CashPayment_Amount = dtostagingDetails.CashPayment_Amount ,
+                AdjustmentReceipt_Amount = dtostagingDetails.AdjustmentReceipt_Amount ,
+                AdjustmentPayment_Amount = dtostagingDetails.AdjustmentPayment_Amount ,
+                Security_Type = dtostagingDetails.Security_Type ,   
+            };
+
+            bool isStagingCreated =  _unitOfWork.StagingMaster.IsStagingMasterCreated(dtostagingDetails.Created_By, dtostagingDetails.Member_Id, "I", dtostagingDetails.Created_Date);
             if (isStagingCreated)
             {
-                stagingId = await _unitOfWork.StagingMaster.GetStagingMasterId (stagingDetails.Created_By,stagingDetails.Member_Id,"I",stagingDetails.Created_Date);
+                stagingId = await _unitOfWork.StagingMaster.GetStagingMasterId (dtostagingDetails.Created_By,dtostagingDetails.Member_Id,"I",dtostagingDetails.Created_Date);
             }
             else
             {
-                accountType = await _unitOfWork.StagingDetails.GetAccountType(stagingDetails.Related_Account_Id); /// stagingDetails.Created_By, stagingDetails.Member_Id, "I", stagingDetails.Created_Date, stagingDetails.BrCode!);
+                //accountType = await _unitOfWork.StagingDetails.GetAccountType(stagingDetails.Related_Account_Id); /// stagingDetails.Created_By, stagingDetails.Member_Id, "I", stagingDetails.Created_Date, stagingDetails.BrCode!);
                 Staging_Master master = new()
                 {
                     Staging_Id = 0,
                     Session_Id = "",
-                    Member_Id = stagingDetails.Member_Id,
-                    Created_By = stagingDetails.Created_By,
-                    Created_Date = stagingDetails.Created_Date,
+                    Member_Id = dtostagingDetails.Member_Id,
+                    Created_By = dtostagingDetails.Created_By,
+                    Created_Date = dtostagingDetails.Created_Date,
                     Checked_By = 0,
                     Checked_Date = null,
                     Staging_Status = "I",
-                    BrCode = stagingDetails.BrCode,
-                    Type = accountType 
+                    BrCode = dtostagingDetails.BrCode,
+                    Type = dtostagingDetails.Transaction_Type 
                 };
                 stagingId = await _unitOfWork.StagingMaster.AddStagingMaster(master);
             }

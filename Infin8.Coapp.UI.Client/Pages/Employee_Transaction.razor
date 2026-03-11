@@ -339,7 +339,7 @@ else
 
     DtoOtherRelatedData otherRelatedData = new();
 
-    private Staging_Details stagingDetails = new();
+    private DtoStaging_Details stagingDetails = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -1035,9 +1035,10 @@ else
             CashReceipt_Amount = transaction.Cash_Adjustment == 1 ? receipt : 0,
             AdjustmentReceipt_Amount = transaction.Cash_Adjustment == 2 ? receipt : 0,
             CashPayment_Amount = transaction.Cash_Adjustment == 1 ? payment : 0,
-            AdjustmentPayment_Amount = transaction.Cash_Adjustment == 2 ? payment : 0
+            AdjustmentPayment_Amount = transaction.Cash_Adjustment == 2 ? payment : 0,
+            Transaction_Type = "Staff Transaction"
         };
-        var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
 
         transaction.Ledger_Id = 0;
         transaction.Account_Id = 0;
@@ -1046,7 +1047,7 @@ else
         transaction.Cheque_No = string.Empty;
         transaction.Cheque_Date = null;
         transaction.Issue_Bank = string.Empty;
-        await UpdateTransactionsFromStaging("I", transaction.BrCode);
+        await UpdateTransactionsFromStaging("I", transaction.BrCode!);
     }
 
     private async Task RemoveAccountRow(AccountTransactionVM account)

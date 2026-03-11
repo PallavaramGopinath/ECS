@@ -10,7 +10,7 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface IStagingDetailsHandler
     {
-        Task<bool> AddStagingDetails(Staging_Details stagingDetails);
+        Task<bool> AddStagingDetails(DtoStaging_Details stagingDetails);
         Task<bool> AddStagingForAccountTransaction(List<Staging_Details> stagingDetails);
         Task<bool> DeleteStagingDetailsByStagingId(decimal stagingId, int relateAccountId, decimal ledgerId, string brCode);
         Task<bool> DeleteStagingDetails(List<Staging_Details> detailsList);
