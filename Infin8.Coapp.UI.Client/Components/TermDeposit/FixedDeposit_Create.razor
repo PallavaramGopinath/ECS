@@ -1013,9 +1013,10 @@
                 CashReceipt_Amount = cashReceipt,
                 CashPayment_Amount = cashPayment,
                 AdjustmentReceipt_Amount = adjReceipt,
-                AdjustmentPayment_Amount = adjPayment
+                AdjustmentPayment_Amount = adjPayment,
+                Transaction_Type = "Member Transaction"
             };
-            var response = await _httpClient.PostAsJsonAsync<Staging_Details>($"api/Staging/AddStaging", stagingDetails);
+            var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
             // await OnFDRenewalInitiate.InvokeAsync(_fixedDepositRenewal);
             // await OnFDNewInitiate.InvokeAsync(_fixedDepositModel);
             await TransactionState.NotifyIntiate(true);

@@ -81,6 +81,11 @@
                             <ValidationMessage For="@(() => memberDueTo.Led_Id)" />
                         </div>
                     </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-secondary" @onclick="AddMemberDueTo">
+                            <i class="bi bi-plus-circle me-2"></i>Add
+                        </button>
+                    </div>
                 </div>
 
                 <div class="row g-4">
@@ -145,9 +150,12 @@
                             <ValidationMessage For="@(() => memberDueBy.Led_Id)" />
                         </div>
                     </div>
-
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-secondary" @onclick="AddMemberDueBy">
+                            <i class="bi bi-plus-circle me-2"></i>Add
+                        </button>
+                    </div>
                 </div>
-
                 <div class="row g-4">
                     @if (memberDueByList != null && memberDueByList.Any())
                     {
@@ -211,7 +219,11 @@
                                 <ValidationMessage For="@(() => staffDueTo.Led_Id)" />
                             </div>
                         </div>
-
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-secondary" @onclick="AddStaffDueTo">
+                                <i class="bi bi-plus-circle me-2"></i>Add
+                            </button>
+                        </div>
                     </div>
 
                     <div class="row g-4">
@@ -278,6 +290,11 @@
                             <label for="staffDueBy">Select Staff Suspense Due By Ledger</label>
                             <ValidationMessage For="@(() => staffDueBy.Led_Id)" />
                         </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-secondary" @onclick="AddStaffDueBy">
+                            <i class="bi bi-plus-circle me-2"></i>Add
+                        </button>
                     </div>
                 </div>
 
@@ -349,7 +366,7 @@
 </EditForm>
 
 @code {
-    string brCode = "11005";
+    private string brCode = "11005";
     private int currentStep = 1;
     private List<Map_SuspenseAccounts> suspenseAccounts = new();
 
@@ -412,56 +429,104 @@
         }
     }
 
-    private void AddMemberDueTo(FinLedgerVM ledger)
+    private void AddMemberDueTo()
     {
-        Map_SuspenseAccounts map = new()
+        if (memberDueTo != null && memberDueTo.Led_Id > 0)
         {
-            Led_Id = ledger.Led_Id,
-            Led_Name = ledger.Led_Name,
-            Sus_Type = 1,
-            IntCalc_Application = 0,
-            IntLed_Id = 0,
-            BrCode = brCode
-        };
+            var findDuplicate = memberDueToList.Where(x => x.Led_Id == memberDueTo.Led_Id).FirstOrDefault();
+            if (findDuplicate != null && findDuplicate.Led_Id > 0)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Ledger " + findDuplicate.Led_Name + " already added");
+                return;
+            }
+            var result = memberDueToLedgers.Where(x => x.Led_Id == memberDueTo.Led_Id).FirstOrDefault();
+            Map_SuspenseAccounts map = new()
+            {
+                Led_Id = memberDueTo.Led_Id,
+                Led_Name = result!.Led_Name,
+                Sus_Type = 1,
+                IntCalc_Application = 0,
+                IntLed_Id = 0,
+                BrCode = brCode
+            };
+            memberDueToList.Add(map);
+            memberDueTo = new();
+        }
     }
 
-    private void AddMemberDueBy(FinLedgerVM ledger)
+    private void AddMemberDueBy()
     {
-        Map_SuspenseAccounts map = new()
+        if (memberDueBy != null && memberDueBy.Led_Id > 0)
         {
-            Led_Id = ledger.Led_Id,
-            Led_Name = ledger.Led_Name,
-            Sus_Type = 2,
-            IntCalc_Application = 0,
-            IntLed_Id = 0,
-            BrCode = brCode
-        };
+            var findDuplicate = memberDueByList.Where(x => x.Led_Id == memberDueBy.Led_Id).FirstOrDefault();
+            if (findDuplicate != null && findDuplicate.Led_Id > 0)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Ledger " + findDuplicate.Led_Name + " already added");
+                return;
+            }
+            var result = memberDueByLedgers.Where(x => x.Led_Id == memberDueBy.Led_Id).FirstOrDefault();
+            Map_SuspenseAccounts map = new()
+            {
+                Led_Id = memberDueBy.Led_Id,
+                Led_Name = result!.Led_Name,
+                Sus_Type = 2,
+                IntCalc_Application = 0,
+                IntLed_Id = 0,
+                BrCode = brCode
+            };
+            memberDueByList.Add(map);
+            memberDueBy = new();
+        }
     }
 
-    private void AddStaffDueTo(FinLedgerVM ledger)
+    private void AddStaffDueTo()
     {
-        Map_SuspenseAccounts map = new()
+        if (staffDueTo != null && staffDueTo.Led_Id > 0)
         {
-            Led_Id = ledger.Led_Id,
-            Led_Name = ledger.Led_Name,
-            Sus_Type = 5,
-            IntCalc_Application = 0,
-            IntLed_Id = 0,
-            BrCode = brCode
-        };
+            var findDuplicate = staffDueToList.Where(x => x.Led_Id == staffDueTo.Led_Id).FirstOrDefault();
+            if (findDuplicate != null && findDuplicate.Led_Id > 0)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Ledger " + findDuplicate.Led_Name + " already added");
+                return;
+            }
+            var result = staffDueToLedgers.Where(x => x.Led_Id == staffDueTo.Led_Id).FirstOrDefault();
+            Map_SuspenseAccounts map = new()
+                {
+                    Led_Id = staffDueTo.Led_Id,
+                    Led_Name = result!.Led_Name,
+                    Sus_Type = 5,
+                    IntCalc_Application = 0,
+                    IntLed_Id = 0,
+                    BrCode = brCode
+                };
+            staffDueToList.Add(map);
+            staffDueTo = new();
+        }
     }
 
-    private void AddStaffDueBy(FinLedgerVM ledger)
+    private void AddStaffDueBy()
     {
-        Map_SuspenseAccounts map = new()
+        if (staffDueBy != null && staffDueBy.Led_Id > 0)
         {
-            Led_Id = ledger.Led_Id,
-            Led_Name = ledger.Led_Name,
-            Sus_Type = 6,
-            IntCalc_Application = 0,
-            IntLed_Id = 0,
-            BrCode = brCode
-        };
+            var findDuplicate = staffDueByList.Where(x => x.Led_Id == staffDueBy.Led_Id).FirstOrDefault();
+            if (findDuplicate != null && findDuplicate.Led_Id > 0)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Ledger " + findDuplicate.Led_Name + " already added");
+                return;
+            }
+            var result = staffDueByLedgers.Where(x => x.Led_Id == staffDueBy.Led_Id).FirstOrDefault();
+            Map_SuspenseAccounts map = new()
+            {
+                Led_Id = staffDueBy.Led_Id,
+                Led_Name = result!.Led_Name,
+                Sus_Type = 6,
+                IntCalc_Application = 0,
+                IntLed_Id = 0,
+                BrCode = brCode
+            };
+            staffDueByList.Add(map);
+            staffDueBy = new();
+        }
     }
 
     private void DeleteMemberDueto(decimal ledId)
