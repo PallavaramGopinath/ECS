@@ -1,0 +1,164 @@
+﻿@page "/map-bank"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
+
+<EditForm Model="@mapBankAccounts" method="post" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="bi bi-info-circle me-2 text-primary"></i>Bank Accounts - Mapping
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        <InputSelect class="form-select" id="bankAc" @bind-Value="bankAccount.Led_Id">
+                            <option value="">Select Category</option>
+                            @foreach (var ledger in BankLedgers)
+                            {
+                                <option value="@ledger.Led_Id">@ledger.Led_Name </option>
+                            }
+                        </InputSelect>
+                        <label for="bankAc">Select Member Suspense Due To Ledger</label>
+                        <ValidationMessage For="@(() => bankAccount.Led_Id)" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-secondary" @onclick="AddBankLedger">
+                        <i class="bi bi-plus-circle me-2"></i>Add
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                @if (mapBankAccounts != null && mapBankAccounts.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ledger Id</th>
+                                    <th>Ledger Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var led in mapBankAccounts)
+                                {
+                                    <tr>
+                                        <td><span class="badge bg-primary ms-2">@led.Led_Id</span></td>
+                                        <td>@led.Led_Name</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    @onclick="() => DeleteBankAccount(led.Led_Id)"
+                                                    title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="mt-4">
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle me-2"></i>
+            Submit
+        </button>
+    </div>
+</EditForm>
+
+@code {
+    private string brCode = "11005";
+    private List<Map_Banks> mapBankAccounts = new();
+    private FinLedgerVM bankAccount = new();
+    private List<FinLedgerVM> BankLedgers = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode!;
+            var ledgerList = await _httpClient.GetFromJsonAsync<List<FinLedgerVM>>($"api/Accounts/GetLedgerVMListAsync/{brCode}");
+            if (ledgerList != null && ledgerList.Any())
+            {
+                BankLedgers = ledgerList.Where(x => x.Fnl_Id == 1 || x.Fnl_Id == 2).ToList();
+            }
+            var result = await _httpClient.GetFromJsonAsync<List<Map_Banks>>($"api/Mapping/GetMapBankAccounts/{brCode}");
+            if (result != null && result.Any())
+            {
+                mapBankAccounts = result!.ToList();
+            }
+            StateHasChanged();
+        }
+    }
+
+    void AddBankLedger()
+    {
+        if (bankAccount != null && bankAccount.Led_Id > 0)
+        {
+            var findDuplicate = mapBankAccounts.Where(x => x.Led_Id == bankAccount.Led_Id).FirstOrDefault();
+            if (findDuplicate != null && findDuplicate.Led_Id > 0)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Ledger " + findDuplicate.Led_Name + " already added");
+                return;
+            }
+            var result = BankLedgers.Where(x => x.Led_Id == bankAccount.Led_Id).FirstOrDefault();
+            Map_Banks map = new()
+            {
+                Led_Id = bankAccount.Led_Id,
+                Led_Name = result!.Led_Name,
+                AccountNo = "",
+                BrCode = brCode
+            };
+            mapBankAccounts.Add(map);
+            bankAccount = new();
+        }
+    }
+
+    void DeleteBankAccount(decimal ledId)
+    {
+        mapBankAccounts.RemoveAll(x => x.Led_Id == ledId);
+        StateHasChanged();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (mapBankAccounts != null && mapBankAccounts.Any())
+        {
+            var response = await _httpClient.PostAsJsonAsync<List<Map_Banks>>("api/Mapping/UpdateMapBankAccounts", mapBankAccounts);
+            if (response.IsSuccessStatusCode)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Mapping of suspense accounts modified successfully!");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Modification mapping for suspense accounts failed!");
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Suspense account is empty. Add suspense accounts to submit!");
+        }
+    }
+}

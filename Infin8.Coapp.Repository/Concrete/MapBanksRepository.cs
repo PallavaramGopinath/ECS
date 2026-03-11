@@ -47,5 +47,33 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
+        public async Task<List<Map_Banks>> GetMapBanksListAsync(string brCode)
+        {
+            List<Map_Banks> banks = new();
+            var result = await CSISContext.Map_Banks.ToListAsync();
+            if(result != null && result.Any())
+            {
+                banks = result.ToList();
+            }
+            return banks;
+        }
+
+        public async Task<bool> UpdateMapBankAccountsAsync(List<Map_Banks> mapBankAccounts)
+        {
+            bool result = false;
+            try
+            {
+                DeleteRange(mapBankAccounts);
+                await AddRangeAsync(mapBankAccounts);
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while Mapping of bank accounts");
+            }
+            return result;
+        }
     }
 }

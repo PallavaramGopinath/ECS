@@ -49,5 +49,15 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+
+        public async Task<List<Map_Banks>> GetMapBanksListAsync(string brCode)
+        {
+            return await _unitOfWork.MapBanks.GetMapBanksListAsync(brCode);
+        }
+
+        public async Task<bool> UpdateMapBankAccountsAsync(List<Map_Banks> mapBankAccounts)
+        {
+            return await _unitOfWork.MapBanks.UpdateMapBankAccountsAsync(mapBankAccounts);
+        }
     }
 }

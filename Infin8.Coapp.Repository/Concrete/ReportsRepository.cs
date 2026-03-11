@@ -70,7 +70,7 @@ namespace Infin8.Coapp.Repository
         public async Task<List<Reports_Master>> GetReportsList()
         {
             List<Reports_Master> reportList = new List<Reports_Master>();
-            reportList = await CSISContext.Reports_Master.ToListAsync();
+            reportList = await CSISContext.Reports_Master.Where(x=> x.ReportDelete == false).ToListAsync();
             return reportList;
         }
         #endregion

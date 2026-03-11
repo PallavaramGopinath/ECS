@@ -11,5 +11,7 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<bool> AddMapBanksAsync(Map_Banks mapBanks);
         Task<bool> DeleteMapBanksAsync(Map_Banks mapBanks);
+        Task<List<Map_Banks>> GetMapBanksListAsync(string brCode);
+        Task<bool> UpdateMapBankAccountsAsync(List<Map_Banks> mapBankAccounts);
     }
 }

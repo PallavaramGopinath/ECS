@@ -214,7 +214,7 @@ else
             {
                 case 1:    /// Employee society loan
                     // isBetweenDates = true;
-                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 1).ToList();
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 0).ToList();
                     break;
                 case 2:    /// Jewel loan
                     // isBetweenDates = true;
@@ -242,7 +242,7 @@ else
                     break;
                 case 9:    /// SRTO Loan
                     // isBetweenDates = true;
-                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 8).ToList();
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 0).ToList();
                     break;
             }
             StateHasChanged();

@@ -16,7 +16,7 @@ namespace Infin8.Coapp.UI.Controllers
         private readonly IMapBanksHandler _mapBanksHandler;
         public MappingController(IMapGeneralHandler mapGeneralHandler, 
             IMapSuspenseAccountsHandler mapSuspenseAccountsHandler, 
-             IMapBanksHandler mapBanksHandler  )
+             IMapBanksHandler mapBanksHandler)
         {
             _mapGeneralHandler = mapGeneralHandler;
             _mapSuspenseAccountsHandler = mapSuspenseAccountsHandler;
@@ -80,5 +80,33 @@ namespace Infin8.Coapp.UI.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("GetMapBankAccounts/{brCode}")]
+        public async Task<ActionResult<List<Map_Banks>>> GetMapBankAccounts(string brCode)
+        {
+            List<Map_Banks> mapBankAccounts = new List<Map_Banks>();
+
+            var result = await _mapBanksHandler.GetMapBanksListAsync(brCode);
+
+            if (result != null && result!.Any())
+            {
+                mapBankAccounts = result.ToList();
+            }
+            return Ok(mapBankAccounts);
+        }
+
+        [HttpPost]
+        [Route("UpdateMapBankAccounts")]
+        public async Task<ActionResult<List<Map_SuspenseAccounts>>> UpdateMapBankAccounts([FromBody] List<Map_Banks> mapBankAccountList)
+        {
+            var result = await _mapBanksHandler.UpdateMapBankAccountsAsync(mapBankAccountList);
+            if (result == true)
+                return Ok(mapBankAccountList);
+            else
+            {
+                List<Map_Banks> nullAccounts = new();
+                return Ok(nullAccounts);
+            }
+        }
     }
 }
