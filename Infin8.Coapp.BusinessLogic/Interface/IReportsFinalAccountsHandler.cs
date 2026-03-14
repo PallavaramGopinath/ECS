@@ -14,6 +14,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<rptFALoanOutstanding>> GetLoanOutstandingJLFDRD(DateTime fromDate, DateTime toDate, int loanType, string brCode);
         Task<List<rptTermDepositOutstanding>> GetTermDepositOutstandingFA(DateTime fromDate, DateTime toDate, string TDType, string brCode);
         Task<List<rptFADividend>> GetDividendFA(DateTime fromDate, DateTime toDate, int trnType, string brCode);
+        Task<byte[]> GetDividendFAReport(string datasetName, DateTime fromDate, DateTime toDate, int trnType, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
         Task<List<rptFALedgerTrn>> GetLedgerOutstandingFA(DateTime fromDate, DateTime toDate, decimal yrId, int fnlId, string brCode);
         Task<List<rptFAFDIntPaidPayable>> GetFDInterestPaidAndPayable(DateTime fromDate, DateTime toDate, string brCode);
         Task<List<rptFALoanOutstanding2>> GetLoanOutstandingForFA_HL_WithRceiptDates(DateTime fromDate, DateTime toDate, int loanType, string brCode);

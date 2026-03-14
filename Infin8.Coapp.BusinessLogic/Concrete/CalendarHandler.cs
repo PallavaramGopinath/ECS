@@ -219,5 +219,22 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.Calendars.GetFixedDepositIdForInterestCalculation(tdSchemeType, toDate, brCode);
         }
+
+        public  bool IsMonthEnd(DateTime date)
+        {
+            // Check if the next day is in a different month
+            return date.AddDays(1).Month != date.Month;
+        }
+
+        public  bool IsYearEnd(DateTime date)
+        {
+            // Check if it's March 31st (financial year end)
+            return date.Month == 3 && date.Day == 31;
+        }
+
+        //public static (bool isMonthEnd, bool isYearEnd) CheckDate(DateTime date)
+        //{
+        //    return (IsMonthEnd(date), IsYearEnd(date));
+        //}
     }
 }

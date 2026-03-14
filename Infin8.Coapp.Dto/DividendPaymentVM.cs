@@ -2,9 +2,9 @@
 {
     public class DividendPaymentVM
     {
-        public int DivPbleMaster_Id { get; set; }
+        public decimal DivPbleMaster_Id { get; set; }
         public int SlNo { get; set; }
-        public int Mem_Id { get; set; }
+        public decimal Mem_Id { get; set; }
         public string? MemberNo { get; set; }
         public string? PerNo { get; set; }
         public string? MemberName { get; set; }

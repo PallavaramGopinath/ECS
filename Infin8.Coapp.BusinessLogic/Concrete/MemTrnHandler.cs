@@ -21,6 +21,11 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.MemTrn.AddMemTrnAsync(memTrn);
         }
+
+        public async Task<bool> AddMemTrnListAsync(List<Mem_Trn> memTrnList)
+        {
+            return await _unitOfWork.MemTrn.AddMemTrnListAsync(memTrnList);
+        }
         public async Task<DtoSBAccountBalanceWithIds> GetSBAccountBalanceWithIds(decimal memId, string brCode)
         {
             return await _unitOfWork.MemTrn.GetSBAccountBalanceWithIds(memId,brCode);
@@ -54,5 +59,11 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.MemTrn.GetMemberTrnBalanceList(MemId, TrnType, brCode);
         }
+
+        public async Task<List<DividendOrIntOnTDPaymentVM>> GetDividendPayableListAsync(decimal memId, DateTime asOnDate, string brCode)
+        {
+            return await _unitOfWork.MemTrn.GetDividendPayableListAsync(memId, asOnDate, brCode);
+        }
+
     }
 }

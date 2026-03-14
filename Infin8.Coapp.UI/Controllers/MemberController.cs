@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
-using Infin8.Coapp.BusinessLogic;
+using Infin8.Coapp.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using System.Net;
 using System.Text;
 namespace API.Controllers
 {
@@ -68,7 +69,8 @@ namespace API.Controllers
         }
 
         [HttpPost]
-        public async Task<HttpResponseMessage> Post([FromBody] MemberRegistration memberRegistration)
+        //public async Task<HttpResponseMessage> Post([FromBody] MemberRegistration memberRegistration)
+        public async Task<ActionResult> Post([FromBody] MemberRegistration memberRegistration)
         {
             try
             {
@@ -143,11 +145,20 @@ namespace API.Controllers
                     isaccountclosed = false,
                     member_oe = false,
                     ismemexpired = false,
-                    brcode = memberRegistration.brcode
+                    brcode = memberRegistration.brcode,
+                    usr_id = memberRegistration.usr_id,
+                    yr_id = memberRegistration.yr_id,
                 };
 
-                await _memberHandler.AddMember(member);
-                return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                var result = await _memberHandler.AddMember(member);
+                if (result)
+                    return Ok(); // Returns 200 OK
+                else
+                    return StatusCode(500, "Failed to add member"); // Returns 500 with message
+                //if(result )
+                //    return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                //else
+                //    return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
             }
             catch (Exception ex)
             {
@@ -214,5 +225,21 @@ namespace API.Controllers
             balance = await _memTrnHandler.GetmemTrnTotalSuspenseAmount(memId, trnType, brCode);
             return Ok(balance);
         }
+
+        #region Dividend
+        [HttpGet]
+        [Route("MemTrn/DividendPayableByMemId/{memId:decimal}/{asOnDate}/{brCode}")]
+        public async Task<ActionResult<List<DividendOrIntOnTDPaymentVM>>> GetDividendPayableByMemId(decimal memId, string asOnDate, string brCode)
+        {
+            List<DividendOrIntOnTDPaymentVM> divideneList = new();
+            DateTime.TryParse(asOnDate, out DateTime asOnDateFormatted);
+            var result = await _memTrnHandler.GetDividendPayableListAsync(memId, asOnDateFormatted, brCode);
+            if(result != null && result.Any())
+            {
+                divideneList = result.ToList();
+            }
+            return Ok(divideneList);
+        }
+        #endregion 
     }
 }

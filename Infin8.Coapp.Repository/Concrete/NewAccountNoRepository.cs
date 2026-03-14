@@ -78,7 +78,7 @@ namespace Infin8.Coapp.Repository
                     switch (memType)
                     {
                         case 1:
-                            MaxMemNo = Convert.ToDecimal (brCode + (10000001).ToString());
+                            MaxMemNo = Convert.ToDecimal (brCode + (10000001).ToString()); //10000001
                             break;
                         case 2:
                             MaxMemNo = Convert.ToDecimal(brCode + (20000001).ToString()); // 20000001;
@@ -105,13 +105,13 @@ namespace Infin8.Coapp.Repository
                     MemNoString = MaxMemNo.ToString("#############");
                     break;
                 case 2:
-                    MemNoString = brCode + MaxMemNo.ToString("########");
+                    MemNoString = MaxMemNo.ToString("#############");
                     break;
                 case 3:
-                    MemNoString = brCode + MaxMemNo.ToString("########");
+                    MemNoString =  MaxMemNo.ToString("#############");
                     break;
                 case 4:
-                    MemNoString = brCode + MaxMemNo.ToString("########");
+                    MemNoString =  MaxMemNo.ToString("#############");
                     break;
             }
             return MemNoString;
@@ -123,7 +123,7 @@ namespace Infin8.Coapp.Repository
             try
             {
                 var maxLoanNo =await  (from loan in CSISContext.Loan_Master
-                                 where loan.Scheme_Id == 1 && loan.BrCode == brCode
+                                 where loan.Scheme_Id == schemeId && loan.BrCode == brCode
                                  select loan.Loan_No).MaxAsync();
                 if (maxLoanNo != null) loanNo = maxLoanNo.ToString();
 

@@ -124,7 +124,7 @@ namespace Infin8.Coapp.Utility
         }
 
         public static Mem_Trn GetMemTrnObject(byte TrnType, decimal MemId, decimal LedId, DateTime TrnDate, double RptAmt, double PmtAmt, bool memOE, bool MemDelete, decimal VocId, decimal UsrId,
-            decimal YrId, int TrnSlNo, int IntCalcAmt, DateTime? IntCalcDate, int IntPaidAmt, string Status, int PbleMasterId, decimal AccId, int DemandAmt,string brCode)
+            decimal YrId, int TrnSlNo, int IntCalcAmt, DateTime? IntCalcDate, int IntPaidAmt, string Status, decimal PbleMasterId, decimal AccId, int DemandAmt,string brCode)
         {
             Mem_Trn mem = new ();
             try

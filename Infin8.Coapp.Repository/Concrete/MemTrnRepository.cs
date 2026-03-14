@@ -51,6 +51,43 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<bool> AddMemTrnListAsync(List<Mem_Trn> memTrnList)
+        {
+            bool result = false;
+            decimal maxId = 0;
+            int maxSlNo = 0;
+            decimal memId = memTrnList.Select(x=> x.Mem_Id ).FirstOrDefault ();
+            int memType = memTrnList.Select(x => x.Trn_Type).FirstOrDefault();
+            decimal ledId = memTrnList.Select(x=> x.Led_Id ).FirstOrDefault();
+            string brCode = memTrnList.Select(x => x.BrCode).FirstOrDefault()!;
+            try
+            {
+                maxId = await CSISContext.Mem_Trn.MaxAsync(x => x.Mem_Trn_Id);
+                maxSlNo = await CSISContext.Mem_Trn
+                .Where(x => x.Mem_Id == memId &&
+                            x.Trn_Type == memType &&
+                            x.Led_Id == ledId  &&
+                            x.BrCode == brCode)
+                .Select(x => (int?)x.Trn_SlNo)
+                .MaxAsync() ?? 0;
+                foreach (var trn in memTrnList)
+                {
+                    maxId++;
+                    maxSlNo++;
+                    trn.Mem_Trn_Id  = maxId;
+                    trn.Trn_SlNo = maxSlNo;
+                    await AddAsync(trn);
+                    CSISContext.SaveChanges();
+                }
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Loan trn list not saved");
+            }
+            return result;
+        }
         public async Task<bool> EditMemTrnAsync(Mem_Trn memTrn, string brCode)
         {
             bool result = false;
@@ -72,30 +109,30 @@ namespace Infin8.Coapp.Repository
             DtoSBAccountBalanceWithIds sbData = new();
             try
             {
-                var query = await  (from mt in CSISContext.Mem_Trn
-                            join sm in CSISContext.SBCA_Master on mt.Acc_Id equals sm.Acc_Id
-                            join ss in CSISContext.SBCA_Schemes on sm.Scheme_Id equals ss.Scheme_Id
-                            where mt.Trn_Type == 7
-                               && mt.Mem_Id == memId
-                               && mt.MemTrn_Delete == false
-                               && sm.Acc_Delete == false
-                               && mt.BrCode == brCode
-                               && sm.BrCode == brCode
-                            group new { mt, sm, ss } by new // Group by the necessary fields
-                            {
-                                sm.Acc_Id,
-                                sm.Acc_No,
-                                ss.SBCA_Led_Id
-                            } into g // 'g' is now an IGrouping
-                            select new DtoSBAccountBalanceWithIds // Or an anonymous type: new { ... }
-                            {
-                                Acc_Id = g.Key.Acc_Id,
-                                Acc_No = g.Key.Acc_No,
-                                SBCA_Led_Id = g.Key.SBCA_Led_Id,
-                                Balance_Amount = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)
-                            }).FirstOrDefaultAsync();
+                var query = await (from mt in CSISContext.Mem_Trn
+                                   join sm in CSISContext.SBCA_Master on mt.Acc_Id equals sm.Acc_Id
+                                   join ss in CSISContext.SBCA_Schemes on sm.Scheme_Id equals ss.Scheme_Id
+                                   where mt.Trn_Type == 7
+                                      && mt.Mem_Id == memId
+                                      && mt.MemTrn_Delete == false
+                                      && sm.Acc_Delete == false
+                                      && mt.BrCode == brCode
+                                      && sm.BrCode == brCode
+                                   group new { mt, sm, ss } by new // Group by the necessary fields
+                                   {
+                                       sm.Acc_Id,
+                                       sm.Acc_No,
+                                       ss.SBCA_Led_Id
+                                   } into g // 'g' is now an IGrouping
+                                   select new DtoSBAccountBalanceWithIds // Or an anonymous type: new { ... }
+                                   {
+                                       Acc_Id = g.Key.Acc_Id,
+                                       Acc_No = g.Key.Acc_No,
+                                       SBCA_Led_Id = g.Key.SBCA_Led_Id,
+                                       Balance_Amount = g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)
+                                   }).FirstOrDefaultAsync();
                 if (query != null) sbData = query;
-                
+
             }
             catch (Exception)
             {
@@ -131,7 +168,7 @@ namespace Infin8.Coapp.Repository
             {
                 var bal = await CSISContext.Mem_Trn
                 .Where(mem => mem.MemTrn_Delete == false
-                       && mem.Acc_Id == accId 
+                       && mem.Acc_Id == accId
                        && mem.BrCode == brCode)
                 .GroupBy(x => 1) // Group all records together
                 .Select(g => (double?)(g.Sum(mem => mem.IntCalc_Amt) - g.Sum(mem => mem.IntPaid_Amt)))
@@ -152,28 +189,28 @@ namespace Infin8.Coapp.Repository
             try
             {
                 var data = await (from mem in CSISContext.Mem_Trn
-                            join led in CSISContext.Fin_Ledger
-                            on mem.Led_Id equals led.Led_Id
-                            where mem.MemTrn_Delete == false
-                                  && mem.Mem_Id == memId
-                                  && mem.Led_Id == ledId
-                                  && mem.BrCode == brCode
-                            group new { mem, led } by new
-                            {
-                                mem.Trn_Type,
-                                mem.Led_Id,
-                                mem.Mem_Id,
-                                led.Led_Name
-                            } into g
-                            select new MemberTransactionVM
-                            {
-                                TrnType = g.Key.Trn_Type,
-                                LedId = g.Key.Led_Id,
-                                MemId = g.Key.Mem_Id, // CAST to int equivalent
-                                Rpt = g.Sum(x => x.mem.Rpt_Amt),
-                                Pmt = g.Sum(x => x.mem.Pmt_Amt),
-                                LedName = g.Key.Led_Name
-                            }).FirstOrDefaultAsync();
+                                  join led in CSISContext.Fin_Ledger
+                                  on mem.Led_Id equals led.Led_Id
+                                  where mem.MemTrn_Delete == false
+                                        && mem.Mem_Id == memId
+                                        && mem.Led_Id == ledId
+                                        && mem.BrCode == brCode
+                                  group new { mem, led } by new
+                                  {
+                                      mem.Trn_Type,
+                                      mem.Led_Id,
+                                      mem.Mem_Id,
+                                      led.Led_Name
+                                  } into g
+                                  select new MemberTransactionVM
+                                  {
+                                      TrnType = g.Key.Trn_Type,
+                                      LedId = g.Key.Led_Id,
+                                      MemId = g.Key.Mem_Id, // CAST to int equivalent
+                                      Rpt = g.Sum(x => x.mem.Rpt_Amt),
+                                      Pmt = g.Sum(x => x.mem.Pmt_Amt),
+                                      LedName = g.Key.Led_Name
+                                  }).FirstOrDefaultAsync();
                 if (data != null)
                 {
                     if (data.TrnType == 2 || data.TrnType == 3 || data.TrnType == 6 || data.TrnType == 7)   /// Mem Sus Cr or Share capital or Factory Sus Cr or Staff Sus Cr
@@ -204,7 +241,7 @@ namespace Infin8.Coapp.Repository
                 .Where(t => t.Trn_Type == trnType &&
                             t.MemTrn_Delete == false &&
                             t.Mem_Id == memId &&
-                            t.BrCode == brCode )
+                            t.BrCode == brCode)
                 .SumAsync(t => (double?)(t.Pmt_Amt - t.Rpt_Amt));
                 double.TryParse(suspenseTmp.ToString(), out suspenseAmt);
             }
@@ -224,33 +261,33 @@ namespace Infin8.Coapp.Repository
             {
                 if (TrnType == 1 || TrnType == 4 || TrnType == 5)
                 {
-                    var result = await  (from mem in CSISContext.Mem_Trn
-                                  join led in CSISContext.Fin_Ledger on mem.Led_Id equals led.Led_Id
-                                  where !mem.MemTrn_Delete
-                                  group new { mem, led } by new
-                                  {
-                                      mem.Trn_Type,
-                                      mem.Mem_Id,
-                                      mem.Led_Id,
-                                      led.Led_Name,
-                                      mem.BrCode 
-                                  } into g
-                                  where g.Key.Mem_Id == MemId
-                                        && g.Key.Trn_Type == TrnType
-                                        && g.Key.BrCode == brCode 
-                                        && (g.Sum(x => (double)x.mem.Pmt_Amt) - g.Sum(x => (double)x.mem.Rpt_Amt) > 0)
-                                  select new MemberTransactionVM
-                                  {
-                                      TrnType = (byte)g.Key.Trn_Type,
-                                      MemId = g.Key.Mem_Id,
-                                      LedId = (decimal)g.Key.Led_Id,
-                                      LedName = g.Key.Led_Name,
-                                      Rpt = g.Sum(x => (double)x.mem.Rpt_Amt),
-                                      Pmt = g.Sum(x => (double)x.mem.Pmt_Amt),
-                                      IntCalculatedAmt = g.Sum(x => (int)x.mem.IntCalc_Amt),
-                                      IntPaid = g.Sum(x => (int)x.mem.IntPaid_Amt)
-                                  }).ToListAsync();
-                    if(result != null && result.Any())
+                    var result = await (from mem in CSISContext.Mem_Trn
+                                        join led in CSISContext.Fin_Ledger on mem.Led_Id equals led.Led_Id
+                                        where !mem.MemTrn_Delete
+                                        group new { mem, led } by new
+                                        {
+                                            mem.Trn_Type,
+                                            mem.Mem_Id,
+                                            mem.Led_Id,
+                                            led.Led_Name,
+                                            mem.BrCode
+                                        } into g
+                                        where g.Key.Mem_Id == MemId
+                                              && g.Key.Trn_Type == TrnType
+                                              && g.Key.BrCode == brCode
+                                              && (g.Sum(x => (double)x.mem.Pmt_Amt) - g.Sum(x => (double)x.mem.Rpt_Amt) > 0)
+                                        select new MemberTransactionVM
+                                        {
+                                            TrnType = (byte)g.Key.Trn_Type,
+                                            MemId = g.Key.Mem_Id,
+                                            LedId = (decimal)g.Key.Led_Id,
+                                            LedName = g.Key.Led_Name,
+                                            Rpt = g.Sum(x => (double)x.mem.Rpt_Amt),
+                                            Pmt = g.Sum(x => (double)x.mem.Pmt_Amt),
+                                            IntCalculatedAmt = g.Sum(x => (int)x.mem.IntCalc_Amt),
+                                            IntPaid = g.Sum(x => (int)x.mem.IntPaid_Amt)
+                                        }).ToListAsync();
+                    if (result != null && result.Any())
                     {
                         memTrnList = result.ToList();
                     }
@@ -271,7 +308,7 @@ namespace Infin8.Coapp.Repository
                                         } into g
                                         where g.Key.Mem_Id == MemId
                                               && g.Key.Trn_Type == TrnType
-                                              && g.Key.BrCode == brCode 
+                                              && g.Key.BrCode == brCode
                                               && (g.Sum(x => (double)x.mem.Rpt_Amt) - g.Sum(x => (double)x.mem.Pmt_Amt) > 0)
                                         select new MemberTransactionVM
                                         {
@@ -317,6 +354,56 @@ namespace Infin8.Coapp.Repository
                 Console.WriteLine(ex.Message);
             }
             return memTrnList!;
+        }
+
+        public async Task<List<DividendOrIntOnTDPaymentVM>> GetDividendPayableListAsync(decimal memId, DateTime asOnDate, string brCode)
+        {
+            List<DividendOrIntOnTDPaymentVM> dividendList = new();
+            try
+            {
+                var result = await (from trn in CSISContext.Mem_Trn
+                                    join dividend in CSISContext.Mem_Payable_Master on trn.PbleMaster_Id equals dividend.PbleMaster_Id
+                                    where trn.Mem_Id == memId && trn.Trn_Date <= asOnDate && trn.MemTrn_Delete == false
+                                    && trn.Trn_Type == 3 && trn.BrCode == brCode
+                                    group new { trn, dividend } by new
+                                    {
+                                        trn.Mem_Id,
+                                        trn.PbleMaster_Id,
+                                        trn.Led_Id ,
+                                        trn.Trn_Type,
+                                        dividend.PbleType ,
+                                        dividend.FromDate ,
+                                        dividend.ToDate ,
+                                        trn.BrCode
+                                    } into g
+                                    where g.Key.Mem_Id == memId
+                                             && g.Key.Trn_Type == 3
+                                             && g.Key.BrCode == brCode
+                                             && (g.Sum(x => (int)x.trn.IntCalc_Amt) - g.Sum(x => (int)x.trn.IntPaid_Amt) > 0)
+                                    select new DividendOrIntOnTDPaymentVM
+                                    {
+                                        PbleMaster_Id = g.Key.PbleMaster_Id,
+                                        Mem_Id = g.Key.Mem_Id,
+                                        Led_Id = g.Key.Led_Id,
+                                        FromDate = (DateTime)g.Key.FromDate!,
+                                        ToDate = (DateTime)g.Key.ToDate!,
+                                        PbleType = g.Key.PbleType,
+                                        IntCalc_Amt = g.Sum(x=> x.trn.IntCalc_Amt ),
+                                        IntPaid_Amt = g.Sum(x=> x.trn.IntPaid_Amt  ),
+                                        Int_Bal = g.Sum(x => x.trn.IntCalc_Amt) - g.Sum(x => x.trn.IntPaid_Amt),
+                                        Dividend_Paid = 0
+                                    }
+                             ).ToListAsync();
+                if(result != null && result.Any())
+                {
+                    dividendList = result.ToList();
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return dividendList;
         }
     }
 }

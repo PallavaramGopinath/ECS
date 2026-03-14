@@ -7,6 +7,7 @@ using Microsoft.VisualBasic;
 using Npgsql;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Principal;
 using System.Text;
@@ -1597,11 +1598,13 @@ namespace Infin8.Coapp.Repository
                         IntPaid_Amt = g.Sum(x => x.IntPaid_Amt)
                     })
                     .ToListAsync();
+                dividendList = dividendList.Where(x => x.Int_OB > 0 || x.Int_CB > 0 || x.IntCalc_Amt > 0 || x.IntPaid_Amt > 0).ToList();
                 #endregion 
                 foreach (var divi in dividendList)
                 {
                     divi.Int_CB = divi.Int_OB + divi.IntCalc_Amt - divi.IntPaid_Amt;
                 }
+                dividend = dividendList.ToList();
             }
             catch (Exception)
             {

@@ -15,15 +15,17 @@ namespace Infin8.Coapp.BusinessLogic
             bool result = false;
             try
             {
-                _unitOfWork.BeginTransaction();
+                //_unitOfWork.BeginTransaction();
                 await  _unitOfWork.Members.AddMember(member);
-                _unitOfWork.Complete();
-                _unitOfWork.CommitTransaction();
+                await _unitOfWork.CompleteAsync();
+                //_unitOfWork.Complete();
+                //_unitOfWork.CommitTransaction();
                 result = true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                _unitOfWork.RollBack();
+                //_unitOfWork.RollBack();
+                string msg = ex.Message;
                 result = false;
             }
             return result;

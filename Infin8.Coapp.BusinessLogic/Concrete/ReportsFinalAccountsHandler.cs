@@ -11,14 +11,24 @@ namespace Infin8.Coapp.BusinessLogic
     public class ReportsFinalAccountsHandler : IReportsFinalAccountsHandler
     {
         readonly IUnitOfWork _unitOfWork;
-        public ReportsFinalAccountsHandler(IUnitOfWork unitOfWork)
+        readonly ICreateReportsHandler _createReportsHandler;
+        public ReportsFinalAccountsHandler(IUnitOfWork unitOfWork, ICreateReportsHandler createReportsHandler)
         {
             _unitOfWork = unitOfWork;
+            _createReportsHandler = createReportsHandler;
         }
 
         public async Task<List<rptFADividend>> GetDividendFA(DateTime fromDate, DateTime toDate, int trnType, string brCode)
         {
             return await _unitOfWork.ReportsFinalAccounts.GetDividendFA(fromDate, toDate, trnType, brCode);
+        }
+
+        public async Task<byte[]> GetDividendFAReport(string datasetName,DateTime fromDate, DateTime toDate, int trnType, string brCode, FileStream reportStream, Dictionary<string, string> parameters)
+        {
+            var rptResult = await GetDividendFA(fromDate, toDate, trnType, brCode);
+            var rptResultEnumerable = rptResult as IEnumerable<rptFADividend> ?? rptResult.ToList();
+            var pdfAsBytes = _createReportsHandler.CreateLocalReport(datasetName, reportStream, rptResultEnumerable, parameters);
+            return pdfAsBytes;
         }
 
         public async Task<List<rptFAShareCapitalDevidend>> GetFAShareCapitalDividend(DateTime fromDate, DateTime todate, string brCode)

@@ -327,7 +327,7 @@ else
                     // Print_DepositOutstandingFA(rptId, orderBy);
                     break;
                 case 81:    /// Dividend
-                    // Print_DividendFA(rptId);
+                    await Print_Dividend();
                     break;
                 case 82:    /// Thrift Society audit report tsp
                     break;
@@ -495,7 +495,6 @@ else
         try
         {
             var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"api/ReportsAudit/print-audit-ledger", rptObject);
-
             if (response.IsSuccessStatusCode)
             {
                 fileBytes = await response.Content.ReadAsByteArrayAsync();
@@ -516,6 +515,52 @@ else
                 // Log or show error
                 Console.WriteLine($"Error: {response.StatusCode}");
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        // try
+        // {
+        //     var response = await _httpClient.PostAsJsonAsync<rptReportAuditObject>($"api/ReportsAudit/print-audit-ledger", rptObject);
+
+        //     if (response.IsSuccessStatusCode)
+        //     {
+        //         fileBytes = await response.Content.ReadAsByteArrayAsync();
+        //         // If fileBytes is null or empty, the API returned nothing.
+        //         if (fileBytes == null || fileBytes.Length == 0)
+        //         {
+        //             Console.WriteLine("Error: API returned a success status code but with no content.");
+        //             return; // Stop here
+        //         }
+        //         // 1. Convert byte array to a Base64 string
+        //         var base64String = Convert.ToBase64String(fileBytes);
+
+        //         // 2. Call the new JavaScript function to open the PDF in a new tab
+        //         await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        //     }
+        //     else
+        //     {
+        //         // Log or show error
+        //         Console.WriteLine($"Error: {response.StatusCode}");
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     // Log or show error
+        //     Console.WriteLine($"Error: {ex.Message}");
+        // }
+    }
+
+    private async Task Print_Dividend()
+    {
+        try
+        {
+            var fileBytes = await _httpClient.GetFromJsonAsync<byte[]>($"api/ReportsAudit/print-audit-dividend/{rptObject.FromDate.ToString("dd-MM-yyyy")}/{rptObject.ToDate.ToString("dd-MM-yyyy")}/{rptObject.ReportId}/{rptObject.BrCode}");
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes!);
+            // 2. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
         }
         catch (Exception ex)
         {

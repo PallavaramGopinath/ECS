@@ -273,6 +273,43 @@ namespace Infin8.Coapp.UI.Controllers
             return CreatePDFAsBytes(pdfAsBytes);
         }
 
+        [HttpGet]
+        [Route("print-audit-dividend/{fromDate}/{toDate}/{reportId:int}/{brCode}")]
+        public async Task<byte[]> Print_Audit_Dividend(string fromDate, string toDate, int reportId, string brCode)
+        {
+            Reports_Master report = new Reports_Master();
+            string reportHeader = "";
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            byte[] pdfReport = Array.Empty<byte>();
+            try
+            {
+
+                List<rptFADividend> dividendList = new();
+                societyName = await _generalHandler.GetSocietyName(brCode);
+                report = await _reportHandler.GetReportNameWithSignature(reportId);
+                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+
+                reportHeader = "Members Dividend from " + fromDate  + " to " + toDate ;
+                var parameters = new Dictionary<string, string>
+                {
+                    { "paramSocietyName", societyName },
+                    { "paramReportHeader",reportHeader}
+                };
+                DateTime.TryParse(fromDate, out DateTime  fromDateFormatted);
+                DateTime.TryParse(toDate, out DateTime  toDateformatted);
+                using (FileStream stream = System.IO.File.OpenRead(path))
+                {
+                    pdfAsBytes = await _reportsFinalAccountHandler.GetDividendFAReport("Ds_FADividend", fromDateFormatted, toDateformatted , 3, brCode,stream,parameters);
+                }
+                pdfReport = CreatePDFAsBytesNew(pdfAsBytes);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+            return pdfReport;
+        }
+
         #region Create PDF AS Bytes
         private FileContentResult CreatePDFAsBytes(byte[] pdfAsBytes)
         {
@@ -287,5 +324,17 @@ namespace Infin8.Coapp.UI.Controllers
             }
         }
         #endregion 
+
+        private byte[] CreatePDFAsBytesNew(byte[] pdfAsBytes)
+        {
+            try
+            {
+                return File(pdfAsBytes, "application/pdf").FileContents;
+            }
+            catch (Exception)
+            {
+                return File(Array.Empty<byte>(), "application/pdf").FileContents;
+            }
+        }
     }
 }

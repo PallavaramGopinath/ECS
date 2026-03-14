@@ -77,6 +77,8 @@ namespace Infin8.Coapp.BusinessLogic
             DtoTransactionRptPmtNos rptPmtNo = new();
             List<Fin_Voucher_Trn> finVoucherTrns = new();
             Fin_Voucher_Trn vocTrn = new();
+            List<Loan_Trn> loanTrnList = new();
+            List<Mem_Trn>memberTrnList = new();
             try
             {
                 _unitOfWork.BeginTransaction();
@@ -211,7 +213,8 @@ namespace Infin8.Coapp.BusinessLogic
                             scTrn = Utility.GetModalObject.GetMemTrnObject(3, trns.Account_Holder_Member_Id, trns.Ledger_Id, Transacted_Date, trns.Receipt_Amount, trns.Payment_Amount, false, false, vocId, Checked_By, yrId, 0, 0, null, 0, "", 0, 0, 0, brCode);
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
-                            result = await _unitOfWork.MemTrn.AddMemTrnAsync(scTrn);
+                            memberTrnList.Add(scTrn);
+                            //result = await _unitOfWork.MemTrn.AddMemTrnAsync(scTrn);
                             #endregion 
                             break;
                         case 6: /// Member advance deposit receipt
@@ -319,7 +322,8 @@ namespace Infin8.Coapp.BusinessLogic
                                 result = await _unitOfWork.TermDepositMaster.UpdateTermDepositMasterAsClosed(fd.FD_Id);
                             }
                             /// insert fd loan receipt
-                            result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(fdRefundLoanList);
+                            loanTrnList.AddRange(fdRefundLoanList);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(fdRefundLoanList);
                             #endregion 
                             break;
                         case 9: /// FD Renewal
@@ -492,7 +496,8 @@ namespace Infin8.Coapp.BusinessLogic
                             result = await _unitOfWork.TermDepositMember.AddTermDepositMemberListAsync(fdRenewalMembers);
                             result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(fdRenewalTrnList);
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
-                            result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(fdRenewalLoanTrnList);
+                            loanTrnList.AddRange(fdRenewalLoanTrnList);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(fdRenewalLoanTrnList);
                             result = await _unitOfWork.TermDepositMaster.UpdateTermDepositMasterAsClosed(renewalTDId);
 
                             #endregion 
@@ -554,7 +559,8 @@ namespace Infin8.Coapp.BusinessLogic
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, fdLoanScheme.PrlLed_Id, 0, fdLoan.Loan_Amount, fdLoan.CashOrAdjustment,
                                 Narration, false, Checked_By, yrId, Status, "Loan No: " + fdLoanNo, fdLoan.Mem_Id, brCode, fdLoanId, fdLoan.Loan_Amount, 0);
                             finVoucherTrns.Add(vocTrn);
-                            result = await _unitOfWork.LoanTrn.AddLoanTrn(fdLoanTrn);
+                            loanTrnList.Add(fdLoanTrn);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrn(fdLoanTrn);
                             result = await _unitOfWork.LoanDisbursement.AddLoanDisbursementAsync(fdLoanDisb);
                             result = await _unitOfWork.LoanROI.AddLoanROIAsync(fdLoanRoi);
                             result = await _unitOfWork.Lien.AddLienAsync(lien);
@@ -591,8 +597,8 @@ namespace Infin8.Coapp.BusinessLogic
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, staffLoanScheme.PrlLed_Id, 0, staffLoan.DisbursementAmount, staffLoan.CashOrAdjustment,
                                 Narration, false, Checked_By, staffLoan.YrId, Status, "Loan No: " + staffLoanNo, staffLoan.Employee_Id, staffLoan.BrCode!, staffLoanId, staffLoan.DisbursementAmount, 0);
                             finVoucherTrns.Add(vocTrn);
-
-                            result = await _unitOfWork.LoanTrn.AddLoanTrn(staffLoanTrn);
+                            loanTrnList.Add(staffLoanTrn);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrn(staffLoanTrn);
                             result = await _unitOfWork.LoanDisbursement.AddLoanDisbursementAsync(staffLoanDisb);
                             result = await _unitOfWork.LoanInstalment.AddLoanInstalmentAsync(staffLoanInst);
                             result = await _unitOfWork.LoanROI.AddLoanROIAsync(staffLoanRoi);
@@ -662,7 +668,8 @@ namespace Infin8.Coapp.BusinessLogic
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sbCAScheme.SBCA_Led_Id, sbAcc.Receipt_Amount, 0, sbAcc.CashOrAdjustment,
                                 Narration + " SB AC No : " + accNo, false, Checked_By, yrId, Status, "SB AC No: " + accNo, sbAcc.Mem_Id, brCode, accId, 0, 0);
                             finVoucherTrns.Add(vocTrn);
-                            result = await _unitOfWork.MemTrn.AddMemTrnAsync(sbMemTrn);
+                            memberTrnList.Add(sbMemTrn);
+                            //result = await _unitOfWork.MemTrn.AddMemTrnAsync(sbMemTrn);
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
                             #endregion
                             break;
@@ -675,7 +682,8 @@ namespace Infin8.Coapp.BusinessLogic
                             List<Fin_Voucher_Trn> staffLoanVocList = new();
                             staffLoanVocList = Utility.JsonbObject.GetVoucherTrnForStaffLoanRecovery(staffLoanRecovery, vocId, staffLoanRecovery.CashOrAdjustment, staffLoanRecovery.Mem_Id, staffLoanRecovery.Member_No!, staffLoanRecovery.Member_Name!, Checked_By, yrId, Status, brCode);
                             finVoucherTrns.AddRange(staffLoanVocList);
-                            result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(staffLoanTrnList);
+                            loanTrnList.AddRange(staffLoanTrnList);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(staffLoanTrnList);
                             #endregion
                             break;
                         case 20:    /// PF Subscription
@@ -711,7 +719,8 @@ namespace Infin8.Coapp.BusinessLogic
                             staffCrMemTrn = Utility.GetModalObject.GetMemTrnObject(6, trns.Account_Holder_Member_Id, trns.Ledger_Id, Transacted_Date, trns.Receipt_Amount, trns.Payment_Amount, false, false, vocId, Checked_By, yrId, 0, 0, null, 0, "", 0, 0, 0, brCode);
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
-                            result = await _unitOfWork.MemTrn.AddMemTrnAsync(staffCrMemTrn);
+                            memberTrnList.Add(staffCrMemTrn);
+                            //result = await _unitOfWork.MemTrn.AddMemTrnAsync(staffCrMemTrn);
                             #endregion 
                             break;
                         case 23:    /// Staff Suspense Debtor
@@ -723,7 +732,8 @@ namespace Infin8.Coapp.BusinessLogic
                             staffDrMemTrn = Utility.GetModalObject.GetMemTrnObject(5, trns.Account_Holder_Member_Id, trns.Ledger_Id, Transacted_Date, trns.Receipt_Amount, trns.Payment_Amount, false, false, vocId, Checked_By, yrId, 0, 0, null, 0, "", 0, 0, 0, brCode);
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
-                            result = await _unitOfWork.MemTrn.AddMemTrnAsync(staffDrMemTrn);
+                            memberTrnList.Add(staffDrMemTrn);
+                            //result = await _unitOfWork.MemTrn.AddMemTrnAsync(staffDrMemTrn);
                             #endregion 
                             break;
                         case 24:    /// FD Loan Receipt
@@ -755,7 +765,8 @@ namespace Infin8.Coapp.BusinessLogic
                                     finVoucherTrns.Add(vocTrn);
                                 }
                             }
-                            result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(fdLoanRecTrnList);
+                            loanTrnList.AddRange(fdLoanRecTrnList);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(fdLoanRecTrnList);
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
                             #endregion
                             break;
@@ -765,7 +776,26 @@ namespace Infin8.Coapp.BusinessLogic
                             break;
                         case 27:    /// Member Deposit Payment
                             break;
-                        case 29:    /// 28 fees- 29-> Divided Payment
+                        case 29:    /// 28 fees- 29-> Divided 
+                            #region
+                            List<Mem_Trn> dividendList = new();
+                            Mem_Trn dividend = new();
+                            DtoDividendPayment dividendPmt = new();
+                            decimal ledId = await  _unitOfWork.MapGeneral.GetShareCapitalLedIdAsync(brCode);
+                            decimal dividendLedId = await _unitOfWork.MapGeneral.GetDividendLedIdAsync(brCode);
+                            dividendPmt = Utility.JsonbObject.ConvertFromJsonForDividendPayment(trns.Related_Account_Data!);
+                            Narration = dividendPmt.Member_No + " " + dividendPmt.Member_Name;
+                            foreach (var div in dividendPmt.DivideneList!)
+                            {
+                                dividend = Utility.GetModalObject.GetMemTrnObject(3, dividendPmt.Mem_Id, ledId, dividendPmt.Transaction_Date, 0, 0, false, false, vocId, Checked_By, yrId, 1, 0, null,div.Dividend_Paid, "P", div.PbleMaster_Id , 0, 0, brCode);
+                                dividendList.Add(dividend);
+                            }
+                            vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId,dividendLedId, 0, dividendPmt.DividendPaid , trns.Cash_Or_Adjustment, Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
+                            finVoucherTrns.Add(vocTrn);
+                            memberTrnList.AddRange(dividendList);
+                            //result = await _unitOfWork.MemTrn.AddMemTrnListAsync(dividendList);
+
+                            #endregion
                             break;
                         case 30:    /// Int on TD Payment
                             break;
@@ -778,7 +808,8 @@ namespace Infin8.Coapp.BusinessLogic
                             List<Fin_Voucher_Trn> jlVocList = new();
                             jlVocList = Utility.JsonbObject.GetVoucherTrnForJewelLoanRecovery(jewelLoanRecovery.JewelLoanBalance_List!, vocId, jewelLoanRecovery.CashOrAdjustment, jewelLoanRecovery.Mem_Id, jewelLoanRecovery.Member_No!, jewelLoanRecovery.Member_Name!, Checked_By, yrId, Status, brCode);
                             finVoucherTrns.AddRange(jlVocList);
-                            result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(jlTrnList);
+                            loanTrnList.AddRange(jlTrnList);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(jlTrnList);
                             #endregion
                             break;
                         case 32:    /// Dividend/TD Interest payment (bulk)
@@ -886,7 +917,8 @@ namespace Infin8.Coapp.BusinessLogic
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sbTrn.SBLed_Id, sbTrn.Receipt_Amount, sbTrn.Payment_Amount,
                                 sbTrn.CashOrAdjustment, Narration + " SB AC No :" + sbTrn.SBAccount_No, false, Checked_By, yrId, Status, "SB AC No :" + sbTrn.SBAccount_No, sbTrn.Mem_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
-                            result = await _unitOfWork.MemTrn.AddMemTrnAsync(sbMemberTrn);
+                            memberTrnList.Add(sbMemberTrn);
+                            //result = await _unitOfWork.MemTrn.AddMemTrnAsync(sbMemberTrn);
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
                             #endregion
                             break;
@@ -999,7 +1031,8 @@ namespace Infin8.Coapp.BusinessLogic
                                 }
                             }
 
-                            result = await _unitOfWork.LoanTrn.AddLoanTrn(jlTrn);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrn(jlTrn);
+                            loanTrnList.Add(jlTrn);
                             result = await _unitOfWork.LoanDisbursement.AddLoanDisbursementAsync(jlDisb);
                             result = await _unitOfWork.LoanROI.AddLoanROIAsync(jlRoi);
                             result = await _unitOfWork.JLDetails.AddJLDetailsAsync(jlDetails);
@@ -1109,10 +1142,12 @@ namespace Infin8.Coapp.BusinessLogic
                             {
                                 result = await _unitOfWork.EmployeePF.AddEmployeePFAsync(pf);
                             }
-                            result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(loanList);
+                            loanTrnList.AddRange(loanList);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(loanList);
                             foreach (var memTrn in memTrnList)
                             {
-                                result = await _unitOfWork.MemTrn.AddMemTrnAsync(memTrn);
+                                memberTrnList.Add(memTrn);
+                                //result = await _unitOfWork.MemTrn.AddMemTrnAsync(memTrn);
                             }
                             #endregion
                             break;
@@ -1337,6 +1372,16 @@ namespace Infin8.Coapp.BusinessLogic
                             finVoucherTrns.Add(vocTrn);
                             break;
                     }
+                }
+                /// Insert all the loan trn
+                if (loanTrnList != null && loanTrnList.Any())
+                {
+                    result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(loanTrnList);
+                }
+                /// Insert all the mem trn
+                if (memberTrnList != null && memberTrnList.Any())
+                {
+                    result = await _unitOfWork.MemTrn.AddMemTrnListAsync(memberTrnList);
                 }
                 /// Insert all the voucher transactions
                 result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);

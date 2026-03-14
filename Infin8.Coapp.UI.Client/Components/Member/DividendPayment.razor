@@ -1,0 +1,279 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Net
+
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject TransactionStateService TransactionState
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<EditForm Model="@model" OnValidSubmit="@Initiate">
+
+    <h3 class="mb-2">Dividend Payable List</h3>
+    <hr class="mt-0" />
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">@model.Member_No - @model.Member_Name </h5>
+        </div>
+        <div class="card-body">
+            <button type="button" class="btn btn-secondary rounded-pill mb-3" @onclick="GetDividendPayable">
+                <i class="oi oi-list-rich"></i> Get Dividend Payable
+            </button>
+        </div>
+    </div>
+
+    @if (model.DivideneList != null && model.DivideneList.Any())
+    {
+       
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Dividend Payable List</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <td>Id</td>
+                                <td>Ledger Id</td>
+                                <td>Year</td>
+                                <td>Dividend Payable</td>
+                                <td>Dividend Payment</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(var div in model.DivideneList)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-primary ms-2">@div.PbleMaster_Id</span></td>
+                                    <td><span class="badge bg-secondary ms-2">@div.Led_Id</span></td>
+                                    <td>@div.FromDate.ToString("dd-MM-yyyy") - @div.ToDate.ToString("dd-MM-yyyy")</td>
+                                    <td>@div.Int_Bal </td>
+                                    <td>@div.Dividend_Paid</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-3">
+                        <div class="form-floating mb-3">
+                            <input type="number" class="form-control" id="totalDividendPayable"
+                                         value="@model.DividendPayable" disabled />
+                            <label for="totalDividendPayable">Total Dividend Payable</label>
+
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-floating mb-3">
+                            <input type="number" class="form-control" id="totalDividendPaid"
+                                         @bind="model.DividendPaid"
+                                         @bind:event="oninput"
+                                         @onchange="()=>ValidateDividendPayment()"/>
+                            <label for="totalDividendPaid">Total Dividend Paid</label>
+                        </div>
+                    </div>
+                    <!-- Right-aligned submit button -->
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary" disabled="@(!IsValid())">
+                            <i class="oi oi-check"></i>
+                            Initiate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</EditForm>
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnDividendPaymentComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoDividendPayment> OnDividendPaymentInitiate { get; set; }
+    #endregion
+
+    private DtoDividendPayment model = new DtoDividendPayment();
+    private List<DividendOrIntOnTDPaymentVM> dividendList = new();
+    private DtoStaging_Details stagingDetails = new();
+    private int TotalDividendPayable = 0;
+    private int TotalDividendPaid = 0;
+    private string brCode = "";
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender )
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            model.BrCode  = userInfoDto.BrCode!;
+            model.Created_By = userInfoDto.UserId;
+
+            model.AccountId = AccountId;
+            model.CashOrAdjustment = CashOrAdjustment;
+            model.Mem_Id = MemberId;
+            model.Member_No = MemberNumber;
+            model.Member_Name = MemberName;
+            model.Transaction_Date = TransactionDate;
+
+            model.DivideneList = null;
+            model.DividendPayable = 0;
+            model.DividendPaid = 0;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GetDividendPayable()
+    {
+        string asOnDate = model.Transaction_Date.ToString("dd-MM-yyyy");
+        var result = await _httpClient.GetFromJsonAsync<List<DividendOrIntOnTDPaymentVM>>($"api/Member/MemTrn/DividendPayableByMemId/{model.Mem_Id}/{asOnDate}/{model.BrCode }");
+        if(result != null && result.Any())
+        {
+            dividendList = new();
+            dividendList = result.ToList();
+            var payable = dividendList.Sum(x => x.Int_Bal);
+            model.DividendPayable = payable;
+            model.DivideneList = new();
+            model.DivideneList = dividendList;
+        }
+        StateHasChanged();
+    }
+
+    private void ValidateDividendPayment()
+    {
+        if (model.DividendPayable  > model.DividendPaid )
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Total paid amount is greater than total payable amount");
+            model.DividendPaid  = model.DividendPayable ;
+            AppropriatePayment();
+        }
+        else
+        {
+            AppropriatePayment();
+        }
+    }
+
+    private void AppropriatePayment()
+    {
+        int totalPaid = model.DividendPaid;
+        foreach (var rec in model.DivideneList!.OrderBy(x => x.PbleMaster_Id))
+        {
+            rec.Dividend_Paid = 0;
+        }
+        foreach (var rec in model.DivideneList!.OrderBy(x => x.PbleMaster_Id))
+        {
+            if (totalPaid > 0)
+            {
+                if (totalPaid >= rec.Int_Bal)
+                {
+                    rec.Dividend_Paid = rec.Int_Bal ;
+                    totalPaid -= rec.Int_Bal;
+                }
+                else
+                {
+                    rec.Dividend_Paid = totalPaid;
+                    totalPaid = 0;
+                }
+            }
+        }
+    }
+
+    private bool IsValid()
+    {
+        if (model.DivideneList == null || !model.DivideneList.Any())
+        {
+            return false;
+        }
+
+        // Check if any recovery amount is greater than outstanding
+        if (model.DividendPaid > model.DividendPayable )
+        {
+            return false;
+        }
+
+        // Check if total recovery is greater than zero
+        if (model.DivideneList.Sum(l => l.Dividend_Paid ) <= 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task Initiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+
+        string dividendJsonData = ConvertToJson(model);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = MemberId,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = 0,
+            Payment_Amount = model.DividendPaid ,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = dividendJsonData,
+            Created_By = model.Created_By,
+            Created_Date = TransactionDate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = model.BrCode,
+            CashReceipt_Amount =  0,
+            AdjustmentReceipt_Amount =0,
+            CashPayment_Amount = CashOrAdjustment == 1 ? model.DividendPaid : 0,
+            AdjustmentPayment_Amount = CashOrAdjustment == 2 ? model.DividendPaid : 0,
+            Transaction_Type = "Member Transaction"
+        };
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
+        await OnDividendPaymentInitiate.InvokeAsync(model);
+    }
+
+    private string ConvertToJson(DtoDividendPayment dividendPayment)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(dividendPayment, options);
+    }
+}

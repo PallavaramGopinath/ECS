@@ -21,7 +21,6 @@ namespace Infin8.Coapp.BusinessLogic
             decimal stagingId = 0;
             try
             {
-                stagingId = 
                 stagingId = await _unitOfWork.StagingMaster.AddStagingMaster(stagingMaster);
                 await _unitOfWork.CompleteAsync();
             }

@@ -435,6 +435,17 @@ namespace Infin8.Coapp.Utility
             }
             return finVocList;
         }
+        #endregion
+
+        #region Dividend Payment
+        public static DtoDividendPayment ConvertFromJsonForDividendPayment(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+            return JsonSerializer.Deserialize<DtoDividendPayment>(jsonData, options)!;
+        }
         #endregion 
     }
 }

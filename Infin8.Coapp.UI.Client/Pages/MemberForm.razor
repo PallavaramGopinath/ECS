@@ -493,7 +493,10 @@
         // member.brcode = "11001";
         var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
         // brCode = userInfoDto?.BrCode!;
+
         member.brcode = userInfoDto?.BrCode!;
+        member.usr_id = userInfoDto!.UserId;
+        member.yr_id = userInfoDto.YrId;
         createdBy = userInfoDto!.UserId;
 
         var religion = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/6/{member.brcode}/false");
@@ -603,7 +606,8 @@
 
     private async Task HandleValidSubmit()
     {
-        var response = await _httpClient.PostAsJsonAsync<MemberRegistration>("api/Member", member);
+        // var response = await _httpClient.PostAsJsonAsync<MemberRegistration>("api/Member", member);
+        var response = await _httpClient.PostAsJsonAsync("api/Member", member);
         if (response.IsSuccessStatusCode)
         {
             // statusMessage = "success";
@@ -613,15 +617,18 @@
 
             member.isnewmember = true;
             member.isexistingmember = false;
-            // member.brcode = member.brcode;
 
             StateHasChanged();
         }
         else
         {
-            // statusMessage = $"Request failed with status code: {response.StatusCode}";
-            await JSRuntime.InvokeVoidAsync("alert", $"Request failed with status code: {response.StatusCode}");
+            var errorContent = await response.Content.ReadAsStringAsync();
+            await JSRuntime.InvokeVoidAsync("alert", $"Request failed: {response.StatusCode} - {errorContent}");
             isSucceeded = false;
+
+            //// statusMessage = $"Request failed with status code: {response.StatusCode}";
+            // await JSRuntime.InvokeVoidAsync("alert", $"Request failed with status code: {response.StatusCode}");
+            // isSucceeded = false;
         }
     }
 

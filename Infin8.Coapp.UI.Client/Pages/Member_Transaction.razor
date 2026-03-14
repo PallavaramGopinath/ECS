@@ -387,6 +387,7 @@
     private DtoTermDepositFixedDepositLoan FDLoan = new();
     private DtoTermDepositLoanRecovery FDLoanRecovery = new();
     private DtoLedgerBalance LedgerBalance = new();
+    private DtoDividendPayment DividendPayment = new();
     #endregion
 
     #region cheque details class
@@ -1007,7 +1008,7 @@
             CashPayment_Amount = transaction.Cash_Adjustment == 1 ? payment : 0,
             AdjustmentPayment_Amount = transaction.Cash_Adjustment == 2 ? payment : 0,
             Transaction_Type = "Member Transaction"
-            
+
         };
         var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
 
@@ -1384,6 +1385,25 @@
             case 27:    /// member deposit payment
                 break;
             case 29:   /// member dividend payment
+                #region Dividend Payment
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Member"}.{componentName}";
+                Type? type29 = Type.GetType(fullyQualifiedName);
+                if (type29 != null) currentComponent = type29;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnDividendPaymentComponentClose", EventCallback.Factory.Create<bool>(this, CloseDividendPaymentComponent) },
+                    { "OnDividendPaymentInitiate",EventCallback.Factory.Create<DtoDividendPayment>(this,DividendPaymentInitiate)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion 
                 break;
             case 30: /// Member int on TD payment
                 break;
@@ -1860,9 +1880,9 @@
             transaction.Account_Id = 0;
             transaction.Ledger_Id = 0;
             isComponentLoaded = false;
-                // StateHasChanged();
-                return;
-            }
+            // StateHasChanged();
+            return;
+        }
         // }
 
         switch (transaction.Account_Id)
@@ -2276,7 +2296,7 @@
     {
         string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
         var cashBalance = await _httpClient.GetFromJsonAsync<double>($"api/Accounts/GetCashBalanceAsOnDate?yrId={transaction.Yr_Id}&asonDate={formatedDate}&brCode={brCode}");
-       
+
         transaction.Member_Id =0;
         transaction.Member_No = "";
         transaction.Member_Name = "";
@@ -3398,6 +3418,69 @@
             CashPayment = FDLoanRecovery.CashOrAdjustment == 2 ? FDLoanRecovery.Total_Collection : 0
         };
         transactionAccountsList.Add(trn);
+    }
+    #endregion
+
+    #region Dividend Payment
+    private void CloseDividendPaymentComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private void DividendPaymentInitiate(DtoDividendPayment initiate)
+    {
+        DividendPayment  = new();
+        int payable = initiate.DivideneList!.Sum(x => x.IntCalc_Amt) - initiate.DivideneList!.Sum(x => x.IntPaid_Amt);
+        int paid = initiate.DivideneList!.Sum(x => x.Dividend_Paid);
+
+        DividendPayment.Mem_Id = initiate.Mem_Id;
+        DividendPayment.Member_No = initiate.Member_No;
+        DividendPayment.Member_Name = initiate.Member_Name;
+        DividendPayment.Transaction_Date = initiate.Transaction_Date;
+        DividendPayment.DividendPayable = initiate.DividendPayable ;
+        DividendPayment.DividendPaid = initiate.DividendPaid ;
+        DividendPayment.DivideneList = new();
+        DividendPayment.DivideneList =  initiate.DivideneList;
+        DividendPayment.BrCode = brCode;
+        DividendPayment.Created_By = createdBy;
+
+        UpdateDividendPaymentTransaction();
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
+    private void UpdateDividendPaymentTransaction()
+    {
+        string accountName = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Name!).First();
+        string status = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Status!).First();
+
+        AccountTransactionVM trn = new()
+        {
+            CashAdjId = transaction.Cash_Adjustment,
+            LedId = 0,
+            AccountId = transaction.Account_Id,
+            AccountName = accountName,
+            ReceiptAmount = 0,
+            PaymentAmount = DividendPayment.DividendPaid,
+            ChequeNo = string.Empty,
+            ChequeDate = null,
+            IssueBankName = string.Empty,
+            Status = status,
+            Member_Id = transaction.Member_Id,
+            Member_No = transaction.Member_No,
+            PerNo = string.Empty,
+            Member_Name = transaction.Member_Name,
+            CashReceipt =  0,
+            CashPayment = transaction.Cash_Adjustment == 1 ? DividendPayment.DividendPaid : 0,
+        };
+        transactionAccountsList.Add(trn);
+        transaction.Account_Id = 0;
     }
     #endregion
 

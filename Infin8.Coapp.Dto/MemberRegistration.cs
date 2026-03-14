@@ -149,8 +149,8 @@ namespace Infin8.Coapp.Dto
         public string? memberphoto { get; set; }
         public string? memberesignature { get; set; }
         public int constituency_id { get; set; }
-
         public string? brcode { get; set; }
-
+        public decimal usr_id { get; set; }
+        public decimal yr_id { get; set; }
     }
 }
