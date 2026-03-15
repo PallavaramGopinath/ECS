@@ -1,4 +1,4 @@
-﻿@page "/pf-Int-Cal"
+﻿@page "/pf-Int-Calc"
 
 @using Infin8.Coapp.Dto
 @inject IJSRuntime JSRuntime
@@ -10,6 +10,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Checker")]
 
 <div class="card mt-2 border-0 shadow-sm">
     <div class="card-header">

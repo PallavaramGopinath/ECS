@@ -1,0 +1,206 @@
+﻿@page "/dividend-Calc"
+
+@using Infin8.Coapp.Dto
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@using System.Net
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Checker")]
+
+<div class="card mt-2 border-0 shadow-sm">
+    <div class="card-header">
+        <h3>Dividend Calculation</h3>
+        <h5>Date: @model.CurrentDate.ToString("dd-MM-yyyy")</h5>
+    </div>
+    <div class="card-body">
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <InputSelect id="account" class="form-select shadow-none" @bind-Value="model.PbleType">
+                        <option value="">Select Account</option>
+                        <option value="1">Dividend</option>
+                    </InputSelect>
+                    <label for="account">From Date</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <InputSelect id="action" class="form-select shadow-none"
+                                 @bind-Value="model.Action" 
+                                 @bind-Value:after =" DdlActionChange">
+                        <option value="">Select Action</option>
+                        <option value="1">Calculate</option>
+                        <option value="2">Transfer to Member Account</option>
+                        <option value="3">Delete Calculation</option>
+                        <option value="4">Delete Transfered Data</option>
+                    </InputSelect>
+                    <label for="action">From Date</label>
+                </div>
+            </div>
+            @if (ledgerList != null && ledgerList.Any())
+            {
+                <div class="col-md-4">
+                    <div class="form-floating mb-3">
+                        <InputSelect id="ledger" class="form-select shadow-none" @bind-Value="model.Ledger_Id">
+                            <option value="">Select Ledger</option>
+                            @foreach (var led in ledgerList)
+                            {
+                                <option value="@led.Led_Id">@led.Led_Name</option>
+                            }
+                        </InputSelect>
+                        <label for="ledger">Select Ledger</label>
+                    </div>
+                </div>
+            }
+
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <InputDate id="fromDate" class="form-select shadow-none" @bind-Value="model.FromDate" />
+                    <label for="fromDate">From Date</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <InputDate id="toDate" class="form-select shadow-none" @bind-Value="model.ToDate" />
+                    <label for="toDate">To Date</label>
+                </div>
+
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <InputNumber id="roi" class="form-select shadow-none" @bind-Value="model.Roi" />
+                    <label for="roi">Rate of Interest</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <InputDate id="calcDate" class="form-select shadow-none" @bind-Value="model.CalculatedDate" />
+                    <label for="calcDate">Calculated Date</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <InputDate id="transferedDate" class="form-select shadow-none" @bind-Value="model.TransferedDate" />
+                    <label for="transferedDate">To Date</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Step 4: Button group -->
+<div class="d-flex justify-content-between mt-4 mb-4">
+    <div>
+        <!-- Left-aligned buttons -->
+        <button type="button" class="btn btn-danger me-2" @onclick="Delete">
+            <i class="bi bi-trash"></i>
+            Delete
+        </button>
+        <button type="button" class="btn btn-success" @onclick="Transfer">
+            <i class="bi bi-arrow-right"></i>
+            Transfer
+        </button>
+    </div>
+
+    <!-- Right-aligned submit button -->
+    <button type="button" class="btn btn-primary" @onclick="Calculate">
+        <i class="bi bi-calculator"></i>
+        Calculate
+    </button>
+</div>
+
+@code {
+
+    List<Map_SuspenseAccounts> ledgerList = new();
+
+    DtoDividendCalculation model = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            model.CurrentDate = userInfoDto.CurrentDate;
+            model.FromDate = userInfoDto.YrBeginningDate;
+            model.ToDate = userInfoDto.YrEndDate;
+            model.CalculatedDate = userInfoDto.CurrentDate;
+            model.TransferedDate = userInfoDto.YrEndDate;
+            model.CreatedBy = userInfoDto.UserId;
+            model.YrId = userInfoDto.YrId;
+            model.BrCode = userInfoDto.BrCode;
+
+            var result = await _httpClient.GetFromJsonAsync<List<Map_SuspenseAccounts>>($"api/Mapping/GetMapSuspenseAccountsForIntCalc/{model.BrCode}");
+            if (result != null && result.Any())
+            {
+                ledgerList = result.ToList();
+            }
+            var result2 = await _httpClient.GetFromJsonAsync<Mem_Payable_Master>($"api/Dividend/GetLastPayableData/{model.PbleType}/{"C"}/{model.BrCode}");
+            if (result2 == null && result2!.ROI_Pble == 0)
+            {
+                model.FromDate = ((DateTime)result2.FromDate!).AddYears(1);
+                model.ToDate  = ((DateTime)result2.ToDate!).AddYears(1);
+                model.Roi = result2.ROI_Pble;
+            }
+            else
+            {
+                var result3 = await _httpClient.GetFromJsonAsync<Mem_Payable_Master>($"api/Dividend/GetLastPayableData/{model.PbleType}/{"T"}/{model.BrCode}");
+                if (result3 == null && result3!.ROI_Pble == 0)
+                {
+                    model.FromDate = ((DateTime)result3.FromDate!).AddYears(1);
+                    model.ToDate = ((DateTime)result3.ToDate!).AddYears(1);
+                    model.Roi = result3.ROI_Pble;
+                }
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task DdlActionChange()
+    {
+        var result2 = await _httpClient.GetFromJsonAsync<Mem_Payable_Master>($"api/Dividend/GetLastPayableData/{model.PbleType}/{"C"}/{model.BrCode}");
+        if (result2 == null && result2!.ROI_Pble == 0)
+        {
+            model.FromDate = ((DateTime)result2.FromDate!).AddYears(1);
+            model.ToDate = ((DateTime)result2.ToDate!).AddYears(1);
+            model.Roi = result2.ROI_Pble;
+        }
+        else
+        {
+            var result3 = await _httpClient.GetFromJsonAsync<Mem_Payable_Master>($"api/Dividend/GetLastPayableData/{model.PbleType}/{"T"}/{model.BrCode}");
+            if (result3 == null && result3!.ROI_Pble == 0)
+            {
+                model.FromDate = ((DateTime)result3.FromDate!).AddYears(1);
+                model.ToDate = ((DateTime)result3.ToDate!).AddYears(1);
+                model.Roi = result3.ROI_Pble;
+            }
+        }
+    }
+
+    private void Delete()
+    {
+
+    }
+    private void Calculate()
+    {
+
+    }
+
+    private void Transfer()
+    {
+
+    }
+
+}

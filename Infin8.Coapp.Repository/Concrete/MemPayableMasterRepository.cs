@@ -50,5 +50,29 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
+        public async Task<Mem_Payable_Master> GetDividendLastCalculatedData(int pbleType, string status, string brCode)
+        {
+            Mem_Payable_Master master = new();
+            var latestDate = CSISContext.Mem_Payable_Master
+            .Where(m => !m.Master_Delete && m.Master_Status == status && m.PbleType == pbleType)
+            .Max(m => m.FromDate);
+
+            var query = await  CSISContext.Mem_Payable_Master
+                .Where(m => !m.Master_Delete
+                         && m.Master_Status == status
+                         && m.PbleType == pbleType
+                         && m.FromDate == latestDate)
+                .Select(m => new Mem_Payable_Master 
+                {   
+                    FromDate =  m.FromDate, 
+                    ToDate =  m.ToDate, 
+                    ROI_Pble =  m.ROI_Pble, 
+                    ROI_Trnble = m.ROI_Trnble,
+                }).FirstOrDefaultAsync ();
+            if (query != null && query.ROI_Pble > 0)
+                master = query;
+            return master;
+        }
     }
 }

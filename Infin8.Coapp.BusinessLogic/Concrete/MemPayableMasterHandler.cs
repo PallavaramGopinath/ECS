@@ -49,5 +49,10 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+
+        public async Task<Mem_Payable_Master> GetDividendLastCalculatedData(int pbleType, string status, string brCode)
+        {
+            return await _unitOfWork.MemPayableMaster.GetDividendLastCalculatedData(pbleType , status, brCode);
+        }
     }
 }

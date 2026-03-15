@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +12,7 @@ namespace Infin8.Coapp.Repository
     {
         Task<bool> AddMemPayableAsync(Mem_Payable memPayable);
         Task<bool> EditMemPayableAsync(Mem_Payable memPayable);
+
+        Task<bool> Calculate_Dividend(DtoDividendCalculation dividendCalculate);
     }
 }

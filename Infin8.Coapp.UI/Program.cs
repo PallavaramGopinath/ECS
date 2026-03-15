@@ -123,6 +123,12 @@ builder.Services.AddScoped<IMapSuspenseAccountsHandler, MapSuspenseAccountsHandl
 builder.Services.AddScoped<IMapBanksHandler, MapBanksHandler>();
 #endregion 
 
+#region Payable
+builder.Services.AddScoped<IMemPayableMasterHandler, MemPayableMasterHandler>();
+builder.Services.AddScoped<IMemPayableHandler, MemPayableHandler>();
+builder.Services.AddScoped<IMemPayableNotNEFTHandler, MemPayableNotNEFTHandler>();
+#endregion 
+
 #region accounts
 builder.Services.AddScoped<IAccountsHandler, AccountsHandler>();
 builder.Services.AddScoped<IFinVoucherTrnHandler, FinVoucherTrnHandler>();

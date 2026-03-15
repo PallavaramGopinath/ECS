@@ -102,5 +102,20 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
+        public async Task<List<Map_SuspenseAccounts>> GetLedgerOnWhichInterestCalculate(string  brCode)
+        {
+            List<Map_SuspenseAccounts> list = new List<Map_SuspenseAccounts>();
+            try
+            {
+                var suspenseList = await CSISContext.Map_SuspenseAccounts.Where(x => x.BrCode == brCode && x.IntCalc_Application == 1).ToListAsync();
+                if (suspenseList != null && suspenseList.Count > 0) list = suspenseList;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching  suspense ledger items");
+            }
+            return list;
+        }
     }
 }

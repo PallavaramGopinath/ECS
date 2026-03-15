@@ -11,5 +11,6 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<bool> AddMemPayableMasterAsync(Mem_Payable_Master memPayableMaster);
         Task<bool> EditMemPayableMasterAsync(Mem_Payable_Master memPayableMaster);
+        Task<Mem_Payable_Master> GetDividendLastCalculatedData(int pbleType, string status, string brCode);
     }
 }

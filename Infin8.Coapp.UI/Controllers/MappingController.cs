@@ -55,6 +55,21 @@ namespace Infin8.Coapp.UI.Controllers
             return Ok(mapSusenseAccounts);
         }
 
+        [HttpGet]
+        [Route("GetMapSuspenseAccountsForIntCalc/{brCode}")]
+        public async Task<ActionResult<List<Map_SuspenseAccounts>>> GetMapSuspenseAccountsForIntCalc(string brCode)
+        {
+            List<Map_SuspenseAccounts> mapSusenseAccounts = new List<Map_SuspenseAccounts>();
+
+            var result = await _mapSuspenseAccountsHandler.GetLedgerOnWhichInterestCalculate(brCode);
+
+            if (result != null && result!.Any())
+            {
+                mapSusenseAccounts = result.ToList();
+            }
+            return Ok(mapSusenseAccounts);
+        }
+
         [HttpPost]
         [Route("UpdateMapGeneral")]
         public async Task<ActionResult<Map_General>> UpdateMapGeneralAsync([FromBody] Map_General mapGeneral)
