@@ -11,6 +11,7 @@ namespace Infin8.Coapp.Repository
     public interface IEmpPFRepository
     {
         Task<bool> AddEmployeePFAsync(Emp_Pf empPf);
+        Task<bool> AddEmployeePFListAsync(List<Emp_Pf> empPfList);
         Task<bool> EditEmployeePFAsync(Emp_Pf empPf);
         Task<List<DtoEmpPf>> CalculatePFInterestYearEnd(List<EmployeeMasterDto> empList, DateTime fromDate, DateTime toDate, 
             decimal usrId, decimal Yrid, string brCode);

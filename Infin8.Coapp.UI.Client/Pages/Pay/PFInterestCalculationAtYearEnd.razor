@@ -1,0 +1,305 @@
+﻿@page "/pf-Int-Cal"
+
+@using Infin8.Coapp.Dto
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="card mt-2 border-0 shadow-sm">
+    <div class="card-header">
+        <h3>Interest Calculation of Providend Fund at the year end</h3>
+        <h5>Date: @PF.CurrentDate.ToString("dd-MM-yyyy")</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <InputDate id="fromDate" class="form-control shadow-none"
+                               @bind-Value="PF.FromDate" />
+                    <label for="fromDate">From Date</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating mb-3">
+                    <InputDate id="toDate" class="form-control shadow-none"
+                               @bind-Value="PF.ToDate" />
+                    <label for="toDate">To Date</label>
+                </div>
+            </div>
+                
+        </div>
+
+        <div class="row">
+            @if (PF.RoiList != null && PF.RoiList.Any())
+            {
+                <div class="col-md-4">
+                    <div class="form-floating mb-3">
+                        <div class="table-responsive">
+                            <div class="table table-hover align-middle">
+                                <table>
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>W.E.F</th>
+                                            <th>Rate of Interest</th>
+                                        </tr>
+                                    </thead>
+                                    @foreach (var roi in PF.RoiList)
+                                    {
+                                        <tr>
+                                            <td><span class="badge bg-primary ms-2">@roi.Roi_Wef.ToString("dd-MM-yyyy")</span></td>
+                                            <td>@roi.Roi </td>
+                                        </tr>
+                                    }
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">Rate of Interest for Providend Fund not found!</div>
+            }
+ 
+            <div class="col-md-4">
+                <button type="button" class="btn btn-primary mt-3" disabled="@(!_isMarch31st)" @onclick="Calculate">
+                @if (_isCalculating)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" area-hidden="true"></span>
+                    <span class="ps-2">Loading....</span>
+                }
+                else
+                {
+                    <i class="oi bi-calculator" aria-hidden="true"></i>
+                    <span class="ps-2">Calculate</span>
+                }
+            </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!_isMarch31st) 
+    {
+        <div class="alert alert-danger">It can be calculated as of 31st March</div>
+    }
+
+</div>
+
+@code {
+    private bool _isCalculating = false;
+    private bool _isMarch31st = false;
+    private double rateOfInterest = 0;
+    private byte[] fileBytes;
+    DtoVoucher? voucherData = new();
+    private DtoPayPFCalculation PF = new();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            PF.CurrentDate = userInfoDto.CurrentDate;
+            PF.FromDate = userInfoDto.YrBeginningDate;
+            PF.ToDate = userInfoDto.YrEndDate;
+            PF.BrCode = userInfoDto.BrCode!;
+
+            List<RateOfInterestVM> roiList = new();
+
+            var result = await _httpClient.GetFromJsonAsync<List<RateOfInterestVM>>($"api/PF/GetPfRateOfInterest/{PF.FromDate.ToString("dd-MM-yyyy")}/{PF.ToDate.ToString("dd-MM-yyyy")}/{PF.BrCode}");
+            if (result != null && result.Any())
+            {
+                roiList = result.ToList();
+                PF.RoiList = new();
+                PF.RoiList = result.ToList();
+            }
+            if (PF.CurrentDate.Day == 31 && PF.CurrentDate.Month == 3) _isMarch31st = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Calculate()
+    {
+        _isCalculating = true;
+        try
+        {
+
+            var response = await _httpClient.PostAsJsonAsync("api/PF/Calculate-Pf-Interest", PF);
+            if (response.IsSuccessStatusCode)
+            {
+                voucherData = await response.Content.ReadFromJsonAsync<DtoVoucher>();
+                await HandlePrint();
+            }
+        }
+        catch (Exception)
+        {
+            _isCalculating = false;
+        }
+        _isCalculating = false;
+    }
+
+    private async Task HandlePrint()
+    {
+        List<rptReceiptAndPaymentAmount> rptPmtList = new();
+        try
+        {
+            var rptPmtResponse = await _httpClient.GetFromJsonAsync<List<rptReceiptAndPaymentAmount>>($"api/Print/GetReceiptAndPaymentData/{voucherData!.Voc_Id}/{voucherData.brCode}");
+            if (rptPmtResponse!.Count > 0)
+            {
+                rptPmtList = rptPmtResponse.ToList();
+            }
+            else
+            {
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            string msg = ex.Message;
+            return;
+        }
+
+        rptReceiptObject rpt = new()
+        {
+            vocId = voucherData.Voc_Id ,
+            receiptAmt = voucherData.Transactions.Sum(l => l.Voc_Rpt),
+            brCode = voucherData.brCode,
+            vocTrnType = voucherData.Transactions.Select(x => x.Voc_Trn_Type).FirstOrDefault()
+        };
+        rptReportObject rptObject = new()
+        {
+            Voc_Id = voucherData.Voc_Id,
+            BrCode = voucherData.brCode,
+            VocTrnType = voucherData.Transactions.Select(x => x.Voc_Trn_Type).FirstOrDefault()
+        };
+
+        // Stream A: Collect receipt print tasks (run in parallel instead of sequential)
+        List<Task> receiptPrintTasks = new();
+        foreach (var receipt in rptPmtList)
+        {
+            if (receipt.Voc_Rpt > 0)
+            {
+                if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 14 || receipt.Voc_Type == 50)    /// voc_Type 5 = member transaction,Voc_Type 11 = decreed loan issue)
+                {
+                    if (receipt.Voc_Type == 5 || receipt.Voc_Type == 11 || receipt.Voc_Type == 50)
+                    {
+                        receiptPrintTasks.Add(Print_Member_Receipt(rpt));
+                    }
+                    if (receipt.Voc_Type == 14) /// Voc_type 14 = tsis loan disbursement by ecs
+                    {
+
+                    }
+                }
+                else  /// receipt general (other than member receipt)
+                {
+                    receiptPrintTasks.Add(Print_General_Receipt(rpt));
+                }
+
+            }
+        }
+
+        // Stream B: Voucher print task
+        foreach (var payment in rptPmtList)
+        {
+            if (payment.Voc_Pmt > 0)
+            {
+                rptObject.VocTrnType = payment.Voc_Trn_Type;
+                break;
+            }
+        }
+        double pmtAmt = 0;
+        pmtAmt = rptPmtList.Sum(x => x.Voc_Pmt);
+        Task? voucherTask = null;
+        if (pmtAmt > 0)
+        {
+            rptObject.ReportId = 89;
+            voucherTask = Print_Voucher(rptObject);
+        }
+        // Run all three streams concurrently
+        var allTasks = new List<Task>(receiptPrintTasks);
+        if (voucherTask != null) allTasks.Add(voucherTask);
+        await Task.WhenAll(allTasks);
+
+    }
+
+    private async Task Print_Member_Receipt(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            /// 2. Render in iframe commented
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 3. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_General_Receipt(rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReceiptObject>($"api/Print/print-receipt-general", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            /// 2. Render in iframe commented
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 3. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+
+    private async Task Print_Voucher(rptReportObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync<rptReportObject>($"api/Print/print-voucher", rptObject);
+        if (response.IsSuccessStatusCode)
+        {
+            fileBytes = await response.Content.ReadAsByteArrayAsync();
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // If fileBytes is null or empty, the API returned nothing.
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                Console.WriteLine("Error: API returned a success status code but with no content.");
+                return; // Stop here
+            }
+            // 3. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        else
+        {
+            // Log or show error
+            Console.WriteLine($"Error: {response.StatusCode}");
+        }
+    }
+}

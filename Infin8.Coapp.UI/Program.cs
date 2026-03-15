@@ -198,7 +198,9 @@ builder.Services.AddScoped<ITermDepositFCTemplateHandler, TermDepositFCTemplateH
 #region Pay
 builder.Services.AddScoped<IPayInitHandler, PayInitHandler>();
 builder.Services.AddScoped<IPaySlipHandler, PaySlipHandler>();
+builder.Services.AddScoped<IEmpPFHandler, EmpPFHandler>();
 builder.Services.AddScoped<IPayPFTemplateHandler, PayPFTemplateHandler>();
+builder.Services.AddScoped<IPayPFRoiTemplateHandler, PayPFRoiTemplateHandler>();
 #endregion 
 
 builder.Services.AddScoped<INewAccountNoHandler, NewAccountNoHandler>();

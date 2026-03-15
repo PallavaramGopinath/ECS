@@ -73,5 +73,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.ReportsLoan.GetLoanLedger(loanIdList, fromDate, toDate, brCode);
         }
+
+        public async Task<List<RateOfInterestVM>> GetPFRoi(DateTime fromDate, DateTime toDate,string brCode)
+        {
+            return await _unitOfWork.ReportsEmployee.GetPFRoi (fromDate, toDate, brCode);
+        }
     }
 }

@@ -195,7 +195,7 @@ namespace Infin8.Coapp.Repository
                         Mem_Id = empId,
                         Pay_Id = payId,
                         Pay_Component_Type = i < allowances.Count ? allowances[i].Pay_Component_Type : (i < deductions.Count ? deductions[i].Pay_Component_Type : 0),
-                        Display_Order = i < allowances.Count ? allowances[i].Display_Order : (i < deductions.Count ? deductions[i].Display_Order : 0),  
+                        Display_Order = i < allowances.Count ? allowances[i].Display_Order : (i < deductions.Count ? deductions[i].Display_Order : 0),
                         AllowanceName = i < allowances.Count ? allowances[i].ItemName : "",
                         AllowanceAmount = i < allowances.Count ? allowances[i].Amount : 0,
                         DeductionName = i < deductions.Count ? deductions[i].ItemName : "",
@@ -205,40 +205,40 @@ namespace Infin8.Coapp.Repository
                 }
 
                 var empPayBillItems = (from item in payBillItems
-                                      join emp in CSISContext.Emp_Master on item.Mem_Id equals emp.Mem_Id
-                                      join mem in CSISContext.mem_master on emp.Mem_Id equals mem.mem_id
-                                      join pay in CSISContext.Pay_Slip on new { item.Pay_Id, item.Mem_Id } equals new { pay.Pay_Id, pay.Mem_Id }
-                                      join payInit in CSISContext.Pay_Init on item.Pay_Id equals payInit.Pay_Id
-                                      join info in CSISContext.Pay_Gen_Info on emp.Emp_Desgn_Id equals info.Pay_Info_Id
-                                      orderby item.Pay_Component_Type ascending, item.Display_Order ascending
-                                      select new rptEmpPayBill
-                                      {
-                                          Mem_Id = item.Mem_Id,
-                                          MemberName = mem.membername,
-                                          Emp_Desgn = info.Pay_Info_Name,
-                                          Doj = mem.doj,
-                                          Emp_Scale = emp.Emp_Scale,
-                                          Pay_Month = payInit.Pay_Month,
-                                          Pay_Year = payInit.Pay_Year,
-                                          Dob = mem.dob,
-                                          Dor = mem.dor,
-                                          Pay_Basic_Earned = pay.Pay_Basic_Earned,
-                                          Pay_GradePay_Earned = pay.Pay_GradePay_Earned,
-                                          Pay_DA_Earned = pay.Pay_DA_Earned,
-                                          Pay_PF = pay.Pay_PF,
-                                          Pay_VPF = pay.Pay_VPF,
-                                          Pay_Tot_Allowance = pay.Pay_Tot_Allowance,
-                                          Pay_Tot_Deductions = pay.Pay_Tot_Deductions,
-                                          Pay_Net = pay.Pay_Net,
-                                          Allowance_Amt = item.AllowanceAmount,
-                                          All_Name = item.AllowanceName,
-                                          Deduction_Amt = item.DeductionAmount,
-                                          Decution_Name = item.DeductionName,
-                                          Pay_Component_Type = item.Pay_Component_Type
-                                      }).ToList();
-                if(empPayBillItems != null && empPayBillItems.Any())
+                                       join emp in CSISContext.Emp_Master on item.Mem_Id equals emp.Mem_Id
+                                       join mem in CSISContext.mem_master on emp.Mem_Id equals mem.mem_id
+                                       join pay in CSISContext.Pay_Slip on new { item.Pay_Id, item.Mem_Id } equals new { pay.Pay_Id, pay.Mem_Id }
+                                       join payInit in CSISContext.Pay_Init on item.Pay_Id equals payInit.Pay_Id
+                                       join info in CSISContext.Pay_Gen_Info on emp.Emp_Desgn_Id equals info.Pay_Info_Id
+                                       orderby item.Pay_Component_Type ascending, item.Display_Order ascending
+                                       select new rptEmpPayBill
+                                       {
+                                           Mem_Id = item.Mem_Id,
+                                           MemberName = mem.membername,
+                                           Emp_Desgn = info.Pay_Info_Name,
+                                           Doj = mem.doj,
+                                           Emp_Scale = emp.Emp_Scale,
+                                           Pay_Month = payInit.Pay_Month,
+                                           Pay_Year = payInit.Pay_Year,
+                                           Dob = mem.dob,
+                                           Dor = mem.dor,
+                                           Pay_Basic_Earned = pay.Pay_Basic_Earned,
+                                           Pay_GradePay_Earned = pay.Pay_GradePay_Earned,
+                                           Pay_DA_Earned = pay.Pay_DA_Earned,
+                                           Pay_PF = pay.Pay_PF,
+                                           Pay_VPF = pay.Pay_VPF,
+                                           Pay_Tot_Allowance = pay.Pay_Tot_Allowance,
+                                           Pay_Tot_Deductions = pay.Pay_Tot_Deductions,
+                                           Pay_Net = pay.Pay_Net,
+                                           Allowance_Amt = item.AllowanceAmount,
+                                           All_Name = item.AllowanceName,
+                                           Deduction_Amt = item.DeductionAmount,
+                                           Decution_Name = item.DeductionName,
+                                           Pay_Component_Type = item.Pay_Component_Type
+                                       }).ToList();
+                if (empPayBillItems != null && empPayBillItems.Any())
                 {
-                    payList =  empPayBillItems.ToList();
+                    payList = empPayBillItems.ToList();
                 }
                 else
                 {
@@ -270,21 +270,21 @@ namespace Infin8.Coapp.Repository
 
             return query.ToList();
         }
-        private async  Task<List<PayItem>> GetDeductions(decimal payId, decimal memId)
+        private async Task<List<PayItem>> GetDeductions(decimal payId, decimal memId)
         {
             var componentDeductions = await (from trn in CSISContext.Pay_Slip_Trn
-                                      join comp in CSISContext.Pay_Components on trn.Component_Id equals comp.Component_Id
-                                      where trn.Pay_Id == payId
-                                          && trn.Mem_Id == memId
-                                          && trn.Pay_Component_Type == 2
-                                          && trn.PayTr_Delete == false
-                                      select new PayItem
-                                      {
-                                          Pay_Component_Type = trn.Pay_Component_Type,
-                                          Display_Order = comp.Display_Order,
-                                          ItemName = comp.Component_Name,
-                                          Amount = trn.Deduction_Amt
-                                      }).ToListAsync ();
+                                             join comp in CSISContext.Pay_Components on trn.Component_Id equals comp.Component_Id
+                                             where trn.Pay_Id == payId
+                                                 && trn.Mem_Id == memId
+                                                 && trn.Pay_Component_Type == 2
+                                                 && trn.PayTr_Delete == false
+                                             select new PayItem
+                                             {
+                                                 Pay_Component_Type = trn.Pay_Component_Type,
+                                                 Display_Order = comp.Display_Order,
+                                                 ItemName = comp.Component_Name,
+                                                 Amount = trn.Deduction_Amt
+                                             }).ToListAsync();
             int dispayOrder = 100;
             var loanDeductions = await (from trn in CSISContext.Pay_Slip_Trn
                                         join loan in CSISContext.Loan_Master on trn.Loan_Id equals loan.Loan_Id
@@ -300,41 +300,41 @@ namespace Infin8.Coapp.Repository
                                             ItemName = scheme.Scheme_Name,
                                             Amount = trn.Deduction_Amt,
 
-                                        }).ToListAsync() ;
+                                        }).ToListAsync();
             dispayOrder += 1;
             var ledgerDeductions = await (from trn in CSISContext.Pay_Slip_Trn
-                                   join ledger in CSISContext.Fin_Ledger on trn.Led_Id equals ledger.Led_Id
-                                   where trn.Pay_Id == payId
-                                       && trn.Mem_Id == memId
-                                       && trn.Pay_Component_Type == 5
-                                       && trn.PayTr_Delete == false
-                                   select new PayItem
-                                   {
-                                       Pay_Component_Type = trn.Pay_Component_Type,
-                                       Display_Order = dispayOrder,
-                                       ItemName = ledger.Led_Name,
-                                       Amount = trn.Deduction_Amt
-                                   }).ToListAsync();
+                                          join ledger in CSISContext.Fin_Ledger on trn.Led_Id equals ledger.Led_Id
+                                          where trn.Pay_Id == payId
+                                              && trn.Mem_Id == memId
+                                              && trn.Pay_Component_Type == 5
+                                              && trn.PayTr_Delete == false
+                                          select new PayItem
+                                          {
+                                              Pay_Component_Type = trn.Pay_Component_Type,
+                                              Display_Order = dispayOrder,
+                                              ItemName = ledger.Led_Name,
+                                              Amount = trn.Deduction_Amt
+                                          }).ToListAsync();
 
             return componentDeductions
                 .Concat(loanDeductions)
                 .Concat(ledgerDeductions)
                 .OrderBy(x => x.Pay_Component_Type)
-                .ThenBy (x=> x.Display_Order)
+                .ThenBy(x => x.Display_Order)
                 .ToList();
         }
-        public async Task<(List<rptEmpPF> pfList, string rateList)> GetEmpPFLedger(decimal empId, DateTime fromDate, DateTime toDate,string brCode)
+        public async Task<(List<rptEmpPF> pfList, string rateList)> GetEmpPFLedger(decimal empId, DateTime fromDate, DateTime toDate, string brCode)
         {
             List<rptEmpPF> pfList = new List<rptEmpPF>();
             string rateList = "";
             try
             {
-                if (!Update_PFBalance(empId, fromDate, toDate,brCode ))
+                if (!Update_PFBalance(empId, fromDate, toDate, brCode))
                 {
 
                 }
                 List<RateOfInterestVM> roiList = new List<RateOfInterestVM>();
-                roiList = GetPFRoi(fromDate, toDate);
+                roiList = await GetPFRoi(fromDate, toDate, brCode);
 
                 foreach (var roi in roiList)
                 {
@@ -385,15 +385,15 @@ namespace Infin8.Coapp.Repository
                         && empPf.Voc_Status == "V"
                         && empPf.Pf_Date >= fromDate.Date
                         && empPf.Pf_Date <= toDate.Date
-                        && empPf.BrCode == brCode 
+                        && empPf.BrCode == brCode
                     orderby empPf.Pf_Date ascending, empPf.Status ascending, empPf.SlNo ascending
                     select new rptEmpPF
                     {
                         MemberName = memMaster.membername,
                         Pf_Date = (DateTime)empPf.Pf_Date!,
                         Pf_Subscription = (empPf.Pf_Subscription) + (empPf.Vpf_Contribution),
-                        Pf_Withdrawn = (empPf.Pf_Withdrawn ) + (empPf.Vpf_Withdrawn),
-                        Pf_Balance = (empPf.Pf_Balance ) + (empPf.Vpf_Balance),
+                        Pf_Withdrawn = (empPf.Pf_Withdrawn) + (empPf.Vpf_Withdrawn),
+                        Pf_Balance = (empPf.Pf_Balance) + (empPf.Vpf_Balance),
                         Epf_Interest = empPf.Epf_Interest,
                         No_Of_Days = empPf.No_Of_Days,
                         Pf_Product = empPf.Pf_Product,
@@ -409,11 +409,11 @@ namespace Infin8.Coapp.Repository
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message );
+                Console.WriteLine(ex.Message);
             }
             return (pfList, rateList);
         }
-        private bool Update_PFBalance(decimal empId, DateTime fromDate, DateTime toDate,string brCode)
+        private bool Update_PFBalance(decimal empId, DateTime fromDate, DateTime toDate, string brCode)
         {
             bool result = true;
             double PFOS = 0, VPFOS = 0, SocPFOS = 0;
@@ -434,21 +434,21 @@ namespace Infin8.Coapp.Repository
                 //    , new NpgsqlParameter("@empId", empId)).FirstOrDefault();
                 #endregion 
 
-                var pf =  (from e in CSISContext.Emp_Pf
-                               where e.Pf_Date < fromDate.Date
-                                     && e.Pf_Delete == false
-                                     && e.Voc_Status == "V"
-                                     && e.Mem_Id == empId
-                                     && e.BrCode == brCode 
-                               group e by 1 into g
-                               select new rptEmpPFOB
-                               {
-                                   Pf_Balance = g.Sum(x => x.Pf_Subscription) - g.Sum(x => x.Pf_Withdrawn),
-                                   Vpf_Balance = g.Sum(x => x.Vpf_Contribution) - g.Sum(x => x.Vpf_Withdrawn),
-                                   Bpf_Balance = g.Sum(x => x.Bpf_Contribution) - g.Sum(x => x.Bpf_Withdrawn),
-                                   Epf_Int_Balance = g.Sum(x => x.Epf_Interest) + g.Sum(x => x.Vpf_Interest) - g.Sum(x => x.Epf_Int_Withdrawn),
-                                   Bpf_Int_Balance = g.Sum(x => x.Bpf_Interest) - g.Sum(x => x.Bpf_Int_Withdrawn)
-                               }).FirstOrDefault();
+                var pf = (from e in CSISContext.Emp_Pf
+                          where e.Pf_Date < fromDate.Date
+                                && e.Pf_Delete == false
+                                && e.Voc_Status == "V"
+                                && e.Mem_Id == empId
+                                && e.BrCode == brCode
+                          group e by 1 into g
+                          select new rptEmpPFOB
+                          {
+                              Pf_Balance = g.Sum(x => x.Pf_Subscription) - g.Sum(x => x.Pf_Withdrawn),
+                              Vpf_Balance = g.Sum(x => x.Vpf_Contribution) - g.Sum(x => x.Vpf_Withdrawn),
+                              Bpf_Balance = g.Sum(x => x.Bpf_Contribution) - g.Sum(x => x.Bpf_Withdrawn),
+                              Epf_Int_Balance = g.Sum(x => x.Epf_Interest) + g.Sum(x => x.Vpf_Interest) - g.Sum(x => x.Epf_Int_Withdrawn),
+                              Bpf_Int_Balance = g.Sum(x => x.Bpf_Interest) - g.Sum(x => x.Bpf_Int_Withdrawn)
+                          }).FirstOrDefault();
 
                 if (pf != null)
                 {
@@ -477,32 +477,32 @@ namespace Infin8.Coapp.Repository
                 #endregion 
 
                 var pfList = (from e in CSISContext.Emp_Pf
-                                   where !e.Pf_Delete
-                                         && e.Voc_Status == "V"
-                                         && e.Mem_Id == empId
-                                         && e.Pf_Date >= fromDate.Date
-                                         && e.Pf_Date <= toDate.Date
-                                         && e.BrCode == brCode 
-                                   orderby e.Pf_Date ascending, e.Status ascending, e.SlNo ascending
-                                   select new rptEmpPF
-                                   {
-                                       Pf_Id = e.Pf_Id,
-                                       Pf_Date = (DateTime)e.Pf_Date!,
-                                       Pf_Subscription = e.Pf_Subscription,
-                                       Pf_Withdrawn = e.Pf_Withdrawn,
-                                       Pf_Balance = e.Pf_Balance,
-                                       No_Of_Days = e.No_Of_Days,
-                                       Pf_Product = e.Pf_Product,
-                                       Vpf_Contribution = e.Vpf_Contribution,
-                                       Vpf_Withdrawn = e.Vpf_Withdrawn,
-                                       Vpf_Balance = e.Vpf_Balance,
-                                       Bpf_Contribution = e.Bpf_Contribution,
-                                       Bpf_Withdrawn = e.Bpf_Withdrawn,
-                                       Bpf_Balance = e.Bpf_Balance,
-                                       Bpf_Product = e.Bpf_Product,
-                                       Epf_Interest = e.Epf_Interest,
-                                       Bpf_Interest = e.Bpf_Interest
-                                   }).ToList();
+                              where !e.Pf_Delete
+                                    && e.Voc_Status == "V"
+                                    && e.Mem_Id == empId
+                                    && e.Pf_Date >= fromDate.Date
+                                    && e.Pf_Date <= toDate.Date
+                                    && e.BrCode == brCode
+                              orderby e.Pf_Date ascending, e.Status ascending, e.SlNo ascending
+                              select new rptEmpPF
+                              {
+                                  Pf_Id = e.Pf_Id,
+                                  Pf_Date = (DateTime)e.Pf_Date!,
+                                  Pf_Subscription = e.Pf_Subscription,
+                                  Pf_Withdrawn = e.Pf_Withdrawn,
+                                  Pf_Balance = e.Pf_Balance,
+                                  No_Of_Days = e.No_Of_Days,
+                                  Pf_Product = e.Pf_Product,
+                                  Vpf_Contribution = e.Vpf_Contribution,
+                                  Vpf_Withdrawn = e.Vpf_Withdrawn,
+                                  Vpf_Balance = e.Vpf_Balance,
+                                  Bpf_Contribution = e.Bpf_Contribution,
+                                  Bpf_Withdrawn = e.Bpf_Withdrawn,
+                                  Bpf_Balance = e.Bpf_Balance,
+                                  Bpf_Product = e.Bpf_Product,
+                                  Epf_Interest = e.Epf_Interest,
+                                  Bpf_Interest = e.Bpf_Interest
+                              }).ToList();
 
 
                 if (pfList != null)
@@ -528,7 +528,7 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
-        private List<RateOfInterestVM> GetPFRoi(DateTime fromDate, DateTime toDate)
+        public async Task<List<RateOfInterestVM>> GetPFRoi(DateTime fromDate, DateTime toDate, string brCode)
         {
             List<RateOfInterestVM> roiList = new List<RateOfInterestVM>();
             try
@@ -550,33 +550,44 @@ namespace Infin8.Coapp.Repository
                 #endregion
 
                 #region linq
-                var maxWef =  CSISContext.Pay_PF_ROITemplate
+                var maxWef = CSISContext.Pay_PF_ROITemplate
                     .Where(r => r.Roi_Wef < fromDate.Date)
                     .Max(r => r.Roi_Wef); // nullable to avoid exception if empty
 
-                                var query1 = CSISContext.Pay_PF_ROITemplate
-                                    .Where(r => r.Roi_Wef == maxWef)
-                                    .Select(r => new RateOfInterestVM
-                                    {
-                                        Roi_Wef = r.Roi_Wef.Date,
-                                        Roi = r.Roi
-                                    });
+                var query1 = await CSISContext.Pay_PF_ROITemplate
+                    .Where(r => r.Roi_Wef == maxWef && r.BrCode == brCode)
+                    .Select(r => new RateOfInterestVM
+                    {
+                        Roi_Wef = r.Roi_Wef.Date,
+                        Roi = r.Roi
+                    }).FirstAsync();
 
-                                var query2 = CSISContext.Pay_PF_ROITemplate
-                                    .Where(r => r.Roi_Delete == false
-                                                && r.Roi_Wef >= fromDate.Date
-                                                && r.Roi_Wef <= toDate.Date)
-                                    .Select(r => new RateOfInterestVM
-                                    {
-                                        Roi_Wef = (DateTime)r.Roi_Wef!,
-                                        Roi = r.Roi
-                                    });
+                var query2 = await CSISContext.Pay_PF_ROITemplate
+                    .Where(r => r.Roi_Delete == false
+                                && r.Roi_Wef >= fromDate.Date
+                                && r.Roi_Wef <= toDate.Date
+                                && r.BrCode == brCode)
+                    .Select(r => new RateOfInterestVM
+                    {
+                        Roi_Wef = (DateTime)r.Roi_Wef!,
+                        Roi = r.Roi
+                    }).ToListAsync();
 
-                var result =  query1
-                    .Union(query2)
-                    .OrderBy(r => r.Roi_Wef)
-                    .ToList();
+                //var result = query1
+                //    .Union(query2)
+                //    .OrderBy(r => r.Roi_Wef)
+                //    .ToList();
+                var result = new List<RateOfInterestVM>();
+
+                if (query1 != null)
+                {
+                    result.Add(query1);
+                }
+
+                result.AddRange(query2);
+                result = result.OrderBy(r => r.Roi_Wef).ToList();
                 if (result != null && result.Any()) roiList = result.ToList();
+
                 #endregion 
             }
             catch (Exception ex)

@@ -38,6 +38,31 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+        public async Task<bool> AddEmployeePFListAsync(List<Emp_Pf> empPfList)
+        {
+            bool result = false;
+            try
+            {
+                decimal maxId = await CSISContext.Emp_Pf.MaxAsync(x => x.Pf_Id);
+                foreach(var pf in empPfList )
+                {
+                    maxId++;
+                    pf.Pf_Id = maxId;
+                    await AddAsync(pf);
+                    CSISContext.SaveChanges();
+                }
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Employee PF not saved");
+            }
+            return result;
+        }
+
+
+
 
         public async Task<bool> EditEmployeePFAsync(Emp_Pf empPf)
         {
