@@ -25,5 +25,18 @@ namespace Infin8.Coapp.UI.Controllers
                 master = result;
             return Ok(master);
         }
+
+        [HttpGet]
+        [Route("GetPbleMasterData/{pbleType:int}/{status}/{brCode}")]
+        public async Task<ActionResult<List<Mem_Payable_Master>>> GetPbleMasterDataList(int pbleType, string status, string brCode)
+        {
+            List<Mem_Payable_Master> masterList = new();
+            var result = await _memPayableMasterHandler.GetCalculatedDataList(pbleType, status, brCode);
+            if(result != null && result.Any())
+            {
+                masterList = result.ToList();
+            }
+            return Ok(masterList);
+        }
     }
 }

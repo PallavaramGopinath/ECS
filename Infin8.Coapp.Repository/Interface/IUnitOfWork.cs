@@ -1,4 +1,5 @@
 ﻿
+using Infin8.Coapp.Repository.Interface;
 using Microsoft.AspNetCore.Connections.Abstractions;
 using System.Net;
 
@@ -113,6 +114,7 @@ namespace Infin8.Coapp.Repository
         IReportsTermDepositsRepository ReportsTermDeposits { get; }
         IReportsFinalAccountsRepository ReportsFinalAccounts { get; }
         IReportsEmployeeRepository ReportsEmployee { get; }
+        IReportsGBRepository ReportsGB { get; }
         #endregion
 
         #region staging

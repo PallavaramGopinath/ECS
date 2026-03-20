@@ -91,5 +91,22 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.FinVoucherTrn.GetTransactionByNo(rptNo, pmtNo, yrId,brCode);
         }
+
+        public async Task<List<FinBal>> GetLedgerBalanceMonthWise(decimal ledId, decimal yrId, string brCode)
+        {
+            return await _unitOfWork.FinVoucherTrn.GetLedgerBalanceMonthWise(ledId, yrId, brCode);
+        }
+
+        public async Task<List<FinBalGL>> GetLedgerBalanceDateWise(decimal ledId, decimal yrId, int month, int year, string brCode)
+        {
+            return await _unitOfWork.FinVoucherTrn.GetLedgerBalanceDateWise(ledId,yrId,month,year, brCode);
+        }
+
+        public async Task<List<FinBalVoucherTrn>> GetLedgerBalanceSlipWise(decimal ledId, decimal yrId, DateTime vocDate, string brCode)
+        {
+            return await _unitOfWork.FinVoucherTrn.GetLedgerBalanceSlipWise(ledId, yrId,vocDate , brCode);
+        }
+
+        
     }
 }

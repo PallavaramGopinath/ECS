@@ -84,7 +84,7 @@ namespace Infin8.Coapp.Repository
         public async Task<List<DtoEmpPf>> CalculatePFInterestYearEnd(List<EmployeeMasterDto> empList, DateTime fromDate, 
             DateTime toDate,decimal usrId, decimal Yrid, string brCode)
         {
-            decimal vocId = 0;
+            //decimal vocId = 0;
             string sql = "";
             //double intCalc = 0;
             double  PFIntCalc =0, SPFIntCalc = 0;

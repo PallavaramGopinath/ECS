@@ -100,5 +100,42 @@ namespace Infin8.Coapp.Repository
             }
             return list;
         }
+
+        public async Task<List<FinBal>> GetGroupLedgerBalance(decimal yrId, string brCode)
+        {
+            List<FinBal> list = new List<FinBal>();
+            try
+            {
+                var query = await  (from flt in CSISContext.Fin_Ledger_Trn
+                              join fl in CSISContext.Fin_Ledger on flt.Led_Id equals fl.Led_Id
+                              join flg in CSISContext.Fin_Ledger_Grp on fl.Grp_Id equals flg.Grp_Id
+                              join flf in CSISContext.Fin_Ledger_Fnl on flg.Fnl_Id equals flf.Fnl_Id
+                              where flt.Yr_Id == yrId && flt.LedgerTrn_Delete == false
+                              && flt.BrCode == brCode 
+                              && fl.BrCode == brCode 
+                              && flg.BrCode == brCode 
+                              group new { flt, flg, flf } by new { flf.Fnl_Id, flg.Grp_Id, flg.Grp_Name } into g
+                              orderby g.Key.Fnl_Id
+                              select new FinBal
+                              {
+                                  Fnl_Id = g.Key.Fnl_Id,
+                                  Grp_Id = g.Key.Grp_Id,
+                                  Grp_Name = g.Key.Grp_Name ,
+                                  OB_Amt = g.Sum(x => x.flt.OB_Amt),
+                                  TotalReceipts = g.Sum(x => x.flt.Tot_Rpt_Amt),
+                                  TotalPayments = g.Sum(x => x.flt.Tot_Pmt_Amt),
+                                  CB_Amt = g.Sum(x => x.flt.CB_Amt)
+                              }).ToListAsync();
+                if(query != null && query.Count > 0)
+                {
+                    list = query.ToList();
+                }
+            }
+            catch (Exception)
+            {
+                list = new();
+            }
+            return list;
+        }
     }
 }

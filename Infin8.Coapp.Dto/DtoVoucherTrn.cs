@@ -15,5 +15,6 @@ namespace Infin8.Coapp.Dto
         public double Voc_Rpt { get; set; } = 0; // Receipt amount
         public double Voc_Pmt { get; set; } = 0; // Payment amount
         public string? Voc_Narr { get; set; }
+        public string? BrCode { get; set; }
     }
 }

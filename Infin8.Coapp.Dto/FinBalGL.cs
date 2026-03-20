@@ -3,7 +3,7 @@
     public class FinBalGL
     {
         public string? GL_Month { get; set; }
-        public int Led_Id { get; set; }
+        public decimal Led_Id { get; set; }
         public string? Led_Name { get; set; }
         public DateTime GL_Date { get; set; }
         public double GL_OB { get; set; }

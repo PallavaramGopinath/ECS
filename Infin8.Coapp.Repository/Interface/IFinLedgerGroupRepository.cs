@@ -15,6 +15,7 @@ namespace Infin8.Coapp.Repository
         Task<List<DropdownItem>> GetFinLedgerGroupItemsAsync();
         Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(int fnlId, string brCode);
         Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(string brCode);
+        Task<List<FinBal>> GetGroupLedgerBalance(decimal yrId, string brCode);
 
     }
 }

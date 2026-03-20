@@ -1,0 +1,153 @@
+﻿@page "/glDate/{id:decimal}/{month:int}/{year:int}"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.UI.Client.Components.Voucher
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<div class="container-fluid mt-4">
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 50vh;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <strong class="ms-3">Loading dashboard data...</strong>
+        </div>
+    }
+    else
+    {
+        @if (ledgerList != null && ledgerList.Count > 0)
+        {
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-view-list me-2" aria-hidden="true"></i>
+                        Date-Wise General Ledger :->  @ledgerList.Where(x => x.Led_Id == Id).Select(x => x.Led_Name).FirstOrDefault()
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Receipts</th>
+                                <th>Payments</th>
+                                <th>Closing Balance</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var led in ledgerList)
+                            {
+                                <tr>
+                                    <td>@led.GL_Date.ToString("dd-MM-yyyy")</td>
+                                    <td>@led.GL_Receipts  </td>
+                                    <td>@led.GL_Payments  </td>
+                                    <td>0 </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                @onclick="() => ViewLedger(led.Led_Id, led.GL_Date)"
+                                                title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <i class="oi oi-warning me-2" aria-hidden="true"></i>@errorMessage
+        </div>
+    }
+</div>
+@code {
+    bool isLoading = true;
+    string errorMessage = "";
+    private List<FinBalGL> ledgerList = new();
+    private decimal yrId = 110050000030;
+    private string fromDate = "2025-04-01";
+    private string toDate = "2026-03-31";
+    private string brCode = "11005";
+
+    [Parameter] public decimal? Id { get; set; }
+    [Parameter] public int? Month { get; set; }
+    [Parameter] public int? Year { get; set; }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            yrId = userInfoDto.YrId;
+            brCode = userInfoDto.BrCode!;
+            StateHasChanged();
+            await LoadDashboardDataAsync();
+        }
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            // var result = await _httpClient.GetFromJsonAsync<List<FinBalVoucherTrn>>($"api/AccountsDashboard/GetGeneralLedgerBalanceSlipWise/{Id}/{yrId}/{Month}/{Year}/{brCode}");
+            var result = await _httpClient.GetFromJsonAsync<List<FinBalGL>>($"api/AccountsDashboard/GetGeneralLedgerBalanceDateWise/{Id}/{yrId}/{Month}/{Year}/{brCode}");
+            if (result != null && result.Count > 0)
+            {
+                ledgerList = result.ToList();
+            }
+            else
+            {
+                errorMessage = "error in updation of ledger balance!";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+            errorMessage = "Failed to load dashboard data. Please try again later.";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged(); // Update UI to hide loading state and show data/error
+        }
+    }
+
+    private string GetMonthName(int monthA, int year)
+    {
+        errorMessage = "";
+        try
+        {
+            DateTime date = new DateTime(1900, monthA, 1);
+            return date.ToString("MMM") + " " + year.ToString();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            return string.Empty;
+        }
+    }
+
+    private async Task ViewLedger(decimal ledgerId, DateTime vocDate)
+    {
+        // Navigation.NavigateTo($"glSlip/{vocDate.ToString("dd-MM-yyyy")}");
+        var url = $"glSlip/{ledgerId}/{vocDate.ToString("dd-MM-yyyy")}";
+        await JSRuntime.InvokeVoidAsync("openInNewTab", url);
+    }
+}

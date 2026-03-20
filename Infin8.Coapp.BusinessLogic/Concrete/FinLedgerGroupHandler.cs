@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
 using System;
 using System.Collections.Generic;
@@ -58,6 +59,11 @@ namespace Infin8.Coapp.BusinessLogic
         public async Task<List<Fin_Ledger_Grp>> GetFinLedgerGroupListAsync(string brCode)
         {
             return await _unitOfWork.FinLedgerGroup.GetFinLedgerGroupListAsync(brCode);
+        }
+
+        public async Task<List<FinBal>> GetGroupLedgerBalance(decimal yrId, string brCode)
+        {
+            return await _unitOfWork.FinLedgerGroup.GetGroupLedgerBalance(yrId,brCode);
         }
     }
 }

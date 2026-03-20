@@ -137,22 +137,17 @@
     private string modalTitle = "Add Day";
     private string financialYear = $"{DateTime.Now.Year}-{DateTime.Now.Year + 1}";
 
-    protected override async Task OnInitializedAsync()
-    // protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        // if (firstRender)
-        // {
-            // Load current calendar (you might have logic to determine which calendar to load)
-            // currentCalendar = await CalendarService.GetActiveCalendarAsync();
+    // protected override async Task OnInitializedAsync()
+    // // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
 
-            if (currentCalendar != null)
-            {
-                // calendarDays = await CalendarService.GetCalendarDaysAsync(currentCalendar.CalendarId);
-            }
-        // }
-    }
+    //         if (currentCalendar != null)
+    //         {
+    //             // calendarDays = await CalendarService.GetCalendarDaysAsync(currentCalendar.CalendarId);
+    //         }
+    // }
     
-    private async Task SaveCalendar()
+    private void SaveCalendar()
     {
         if (currentCalendar.Calendar_Id == 0)
         {
@@ -164,7 +159,7 @@
         }
     }
     
-    private async Task GenerateWorkingDays()
+    private void GenerateWorkingDays()
     {
         var year = DateTime.Now.Year;
         var startDate = new DateTime(year, 4, 1); // Financial year starts April 1
@@ -203,7 +198,7 @@
         dayModal.Show();
     }
     
-    private async Task SaveDay()
+    private void SaveDay()
     {
         if (currentDay.Day_Id == 0)
         {
@@ -227,13 +222,13 @@
         }
     }
     
-    private async Task ToggleDayBegin(CalendarDay day, bool isDayBegin)
+    private void ToggleDayBegin(CalendarDay day, bool isDayBegin)
     {
         day.Is_Day_Begin = isDayBegin;
         // await CalendarService.UpdateCalendarDayAsync(day);
     }
     
-    private async Task ToggleDayEnd(CalendarDay day, bool isDayEnd)
+    private void ToggleDayEnd(CalendarDay day, bool isDayEnd)
     {
         day.Is_Day_End = isDayEnd;
         // await CalendarService.UpdateCalendarDayAsync(day);

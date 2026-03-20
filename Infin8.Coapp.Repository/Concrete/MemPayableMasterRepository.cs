@@ -51,6 +51,15 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<Mem_Payable_Master> GetMemPayableMasterByPbleMasterId(decimal pbleMasterId, string brCode)
+        {
+            Mem_Payable_Master master = new();
+
+            var result =  await CSISContext.Mem_Payable_Master.Where(x=> x.PbleMaster_Id == pbleMasterId && x.BrCode ==  brCode && x.Master_Delete == false).FirstAsync();
+            if (result != null && result.PbleMaster_Id > 0)
+                master = result;
+            return master;
+        }
         public async Task<Mem_Payable_Master> GetDividendLastCalculatedData(int pbleType, string status, string brCode)
         {
             Mem_Payable_Master master = new();
@@ -74,5 +83,17 @@ namespace Infin8.Coapp.Repository
                 master = query;
             return master;
         }
+
+        public async Task<List<Mem_Payable_Master>> GetCalculatedDataList(int pbleType,string status, string brCode)
+        {
+            List<Mem_Payable_Master> masterList = new();
+            var result = await  CSISContext.Mem_Payable_Master
+                .Where(x=> x.PbleType == pbleType && x.BrCode == brCode && x.Master_Delete==false)
+                .OrderBy(x=> x.FromDate).ToListAsync ();
+            if(result != null && result.Any()) masterList = result;
+            return masterList;
+        }
+
+       
     }
 }

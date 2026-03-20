@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
 using System;
 using System.Collections.Generic;
@@ -53,6 +54,16 @@ namespace Infin8.Coapp.BusinessLogic
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Ledger subgroup name not deleted");
             }
             return result;
+        }
+
+        public async Task<bool> UpdateLedgerBalance(decimal yrId, DateTime fromDate, DateTime toDate, string brCode)
+        {
+            return await _unitOfWork.FinLedgerTrn.UpdateLedgerBalance(yrId, fromDate, toDate, brCode);
+        }
+
+        public async Task<List<FinBal>> GetGeneralLedgerBalance(int grpId, decimal yrId, string brCode)
+        {
+            return await _unitOfWork.FinLedgerTrn.GetGeneralLedgerBalance(grpId, yrId, brCode);
         }
     }
 }

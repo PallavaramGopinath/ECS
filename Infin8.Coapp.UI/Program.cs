@@ -1,10 +1,13 @@
 ﻿using Infin8.Coapp.BusinessLogic;
+using Infin8.Coapp.BusinessLogic.Concrete;
+using Infin8.Coapp.BusinessLogic.Interface;
 using Infin8.Coapp.Dto;
 using Infin8.Coapp.Reporting;
 using Infin8.Coapp.ReportServices.Concrete;
 using Infin8.Coapp.ReportServices.Interface;
 using Infin8.Coapp.Repository;
 using Infin8.Coapp.Repository.Entities;
+using Infin8.Coapp.Repository.Interface;
 using Infin8.Coapp.UI.Client.Pages;
 using Infin8.Coapp.UI.Client.Providers;
 using Infin8.Coapp.UI.Components;
@@ -188,6 +191,7 @@ builder.Services.AddScoped<IReportsFinalAccountsHandler, ReportsFinalAccountsHan
 builder.Services.AddScoped<IReportsAccountHandler, ReportsAccountHandler>();
 builder.Services.AddScoped<IReportsEmployeeHandler, ReportsEmployeeHandler>();
 //builder.Services.AddScoped<IReportsAudit, ReportsAudit>();
+builder.Services.AddScoped<IReportsGBHandler , ReportsGBHandler>();
 #endregion 
 
 #region TermDeposit

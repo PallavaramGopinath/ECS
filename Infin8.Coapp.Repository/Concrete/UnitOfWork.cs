@@ -1,5 +1,7 @@
 ﻿using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
+using Infin8.Coapp.Repository.Concrete;
+using Infin8.Coapp.Repository.Interface;
 using System.Xml.Linq;
 
 namespace Infin8.Coapp.Repository
@@ -123,6 +125,7 @@ namespace Infin8.Coapp.Repository
         private ReportsTermDepositsRepository? _reportsTermDepositsRepository;
         private ReportsFinalAccountsRepository? _reportsFinalAccountsRepository;
         private ReportsEmployeeRepository? _reportsEmployeeRepository;
+        private ReportsGBRepository? _reportsGBRepository;
         #endregion
 
         #region staging
@@ -231,6 +234,7 @@ namespace Infin8.Coapp.Repository
         #region Menu
         public IMenuMainRepository MenuMain => _menuMainRepository ??= new MenuMainRepository(_context);
         #endregion
+
         #region Termdeposit
         public ITermDepositFCTemplateRepository TermDepositFCTemplate => _termDepositFCTemplateRepository ??= new TermDepositFCTemplateRepository(_context);    
         public ITermDepositIntCalcCalendarRepository TermDepositIntCalcCalendar => _termDepositIntCalcCalendarRepository ??= new TermDepositIntCalcCalendarRepository(_context);
@@ -256,6 +260,7 @@ namespace Infin8.Coapp.Repository
         public IReportsTermDepositsRepository ReportsTermDeposits => _reportsTermDepositsRepository ??= new ReportsTermDepositsRepository(_context);
         public IReportsFinalAccountsRepository ReportsFinalAccounts => _reportsFinalAccountsRepository ??= new ReportsFinalAccountsRepository(_context);
         public IReportsEmployeeRepository ReportsEmployee => _reportsEmployeeRepository ??= new ReportsEmployeeRepository(_context);
+        public IReportsGBRepository ReportsGB => _reportsGBRepository ??= new ReportsGBRepository(_context);
         #endregion
 
         public ITransactionsRepository TransactionsRepository => _transactionsRepository ??= new TransactionsRepository(_context);

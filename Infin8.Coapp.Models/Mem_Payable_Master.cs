@@ -12,8 +12,8 @@ namespace Infin8.Coapp.Models
         public decimal Led_Id { get; set; }
         public Nullable<System.DateTime> Calculate_Date { get; set; }
         public Nullable<System.DateTime> Transfered_Date { get; set; }
-        public Nullable<System.DateTime> FromDate { get; set; }
-        public Nullable<System.DateTime> ToDate { get; set; }
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
         public double ROI_Pble { get; set; }
         public double ROI_Trnble { get; set; }
         public decimal Calc_YrId { get; set; }

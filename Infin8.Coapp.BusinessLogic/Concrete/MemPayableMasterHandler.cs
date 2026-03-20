@@ -50,9 +50,21 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
+        public async Task<Mem_Payable_Master> GetMemPayableMasterByPbleMasterId(decimal pbleMasterId, string brCode)
+        {
+            return await _unitOfWork.MemPayableMaster.GetMemPayableMasterByPbleMasterId(pbleMasterId, brCode);
+        }
+
         public async Task<Mem_Payable_Master> GetDividendLastCalculatedData(int pbleType, string status, string brCode)
         {
             return await _unitOfWork.MemPayableMaster.GetDividendLastCalculatedData(pbleType , status, brCode);
         }
+
+        public async Task<List<Mem_Payable_Master>> GetCalculatedDataList(int pbleType, string status, string brCode)
+        {
+            return await _unitOfWork.MemPayableMaster.GetCalculatedDataList(pbleType , status, brCode);
+        }
+
+       
     }
 }

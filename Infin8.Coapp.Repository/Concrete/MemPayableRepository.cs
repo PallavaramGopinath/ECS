@@ -72,7 +72,7 @@ namespace Infin8.Coapp.Repository
             try
             {
                 /// Insert Mem Payable Master for Dividend
-                PbleMasterId = CSISContext.Mem_Payable_Master.Max(x => x.PbleMaster_Id);
+                PbleMasterId = await  CSISContext.Mem_Payable_Master.MaxAsync(x => x.PbleMaster_Id);
                 PbleMasterId++;
                 master.PbleMaster_Id = PbleMasterId;
                 master.PbleType = dividendCalculate.PbleType;
