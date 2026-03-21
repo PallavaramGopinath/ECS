@@ -40,5 +40,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.TermDepositROITemplate.GetPIForRDAsync(depositDate,schemeId, prdInMonths,brCode );
         }
+
+        public async Task<List<TermDeposit_Roi_Template>> GetTermDepositRateOfInterestList(string SchemeType, string brCode)
+        {
+            return await _unitOfWork.TermDepositROITemplate.GetTermDepositRateOfInterestList(SchemeType, brCode);
+        }
     }
 }

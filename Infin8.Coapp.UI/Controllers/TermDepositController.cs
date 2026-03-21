@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.FileProviders;
@@ -146,6 +147,36 @@ namespace Infin8.Coapp.API.Controllers
                 Console.Write(ex.Message);
             }
             return Ok(sd);
+        }
+
+        [HttpGet]
+        [Route("GetTDRateOfInterestList")]
+        public async Task<ActionResult<List<TDRateOfInterstDto>>> GetTDRateOfInterestList ([FromQuery] string[] tdSchemeTypeList)
+        {
+            List<TDRateOfInterstDto> roiList = new();
+            var details = await _termDepositROITemplateHandler.GetTermDepositROITemplateListAsync(tdSchemeTypeList);
+            if (details != null && details.Count >0) roiList = details.ToList();
+            return Ok(roiList);
+        }
+
+        [HttpGet]
+        [Route("GetTDRateOfInterestList/{SchemeType}/{brCode}")]
+        public async Task<ActionResult<List<TermDeposit_Roi_Template>>> GetTDRateOfInterestList(string SchemeType, string brCode)
+        {
+            List<TermDeposit_Roi_Template> roiList = new();
+            var details = await _termDepositROITemplateHandler.GetTermDepositRateOfInterestList(SchemeType, brCode);
+            if (details != null && details.Count > 0) roiList = details.ToList();
+            return Ok(roiList);
+        }
+
+        [HttpGet]
+        [Route("GetTermDepositSchemeList/{brCode}")]
+        public async Task<ActionResult<List<TermDeposit_Schemes>>> GetTermDepositSchemeListAsync(string brCode)
+        {
+            List<TermDeposit_Schemes > schemeList = new();
+            var query = await _termDepositSchemeHandler.GetTermDepositSchemeListAsync(brCode);
+            if(query != null && query.Count > 0) schemeList = query.ToList();
+            return Ok(schemeList);
         }
     }
 }

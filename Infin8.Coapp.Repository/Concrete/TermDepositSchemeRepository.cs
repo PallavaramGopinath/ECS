@@ -68,12 +68,12 @@ namespace Infin8.Coapp.Repository
             return  await Task.FromResult(schemeList);
         }
 
-        public async Task<List<TermDeposit_Schemes>> GetTermDepositSchemeListAsync()
+        public async Task<List<TermDeposit_Schemes>> GetTermDepositSchemeListAsync(string brCode)
         {
             List<TermDeposit_Schemes> schemeList = new List<TermDeposit_Schemes>();
             try
             {
-                schemeList = await CSISContext.TermDeposit_Schemes.Where(x => x.TDScheme_Delete == false).ToListAsync();
+                schemeList = await CSISContext.TermDeposit_Schemes.Where(x => x.BrCode == brCode && x.TDScheme_Delete == false).ToListAsync();
             }
             catch (Exception ex)
             {

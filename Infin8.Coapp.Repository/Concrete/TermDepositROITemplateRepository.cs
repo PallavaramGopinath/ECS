@@ -227,5 +227,37 @@ namespace Infin8.Coapp.Repository
             }
             return piRate;
         }
+
+        public async Task<List<TermDeposit_Roi_Template>> GetTermDepositRateOfInterestList (string SchemeType, string brCode)
+        {
+            List<TermDeposit_Roi_Template> result = new();
+            try
+            {
+                var roiList = await (from roi in CSISContext.TermDeposit_Roi_Template
+                                     join scheme in CSISContext.TermDeposit_Schemes on roi.TDScheme_Id equals scheme.TDScheme_Id
+                                     where scheme.TDSchemeType == SchemeType && scheme.TDScheme_Delete == false
+                                     && roi.BrCode == brCode && roi.BrCode == brCode  && roi.TDRoi_Delete == false
+                                     orderby roi.TDScheme_Id, roi.Wef, roi.PeriodType, roi.PeriodBegin
+                                     select new TermDeposit_Roi_Template
+                                     {
+                                         Roi_Id = roi.Roi_Id,
+                                         TDScheme_Id = roi.TDScheme_Id,
+                                         TDHolderType = roi.TDHolderType,
+                                         Wef = (DateTime)roi.Wef,
+                                         PeriodType = roi.PeriodType,
+                                         PeriodBegin = roi.PeriodBegin,
+                                         PeriodEnd = roi.PeriodEnd,
+                                         Roi = roi.Roi,
+                                         PenalRateForRD = roi.PenalRateForRD,
+                                         BrCode = roi.BrCode 
+                                     }).ToListAsync();
+                if (roiList != null && roiList.Count > 0) result = roiList;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching Termdeposit rate of interst list");
+            }
+            return result;
+        }
     }
 }

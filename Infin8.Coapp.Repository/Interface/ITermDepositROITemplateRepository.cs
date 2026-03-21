@@ -15,5 +15,6 @@ namespace Infin8.Coapp.Repository
         Task<List<TDRateOfInterstDto>> GetTermDepositROITemplateListAsync(string[] tdSchemeTypeList);
         Task<double> GetROIForTermDepositAsync(DateTime depositDate, int schemeId, int prdInMonths, int prdInDays,string brCode);
         Task<double> GetPIForRDAsync(DateTime depositDate, int schemeId, int prdInMonths, string brCode);
+        Task<List<TermDeposit_Roi_Template>> GetTermDepositRateOfInterestList(string SchemeType, string brCode);
     }
 }
