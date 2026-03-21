@@ -152,5 +152,23 @@ namespace Infin8.Coapp.Repository
             }
             return roi;
         }
+
+        public async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestTemplateList(int schemeId,string brCode)
+        {
+            List<Loan_Roi_Template> roiList = new();
+            try
+            {
+                var query = await  CSISContext.Loan_Roi_Template
+                    .Where(x => x.Scheme_Id == schemeId && x.RoiTemplate_Delete == false && x.BrCode == brCode  && x.Agency  == "S")
+                    .OrderBy(x => x.Wef)
+                    .ToListAsync();
+                if (query != null & query!.Count > 0) roiList = query.ToList();
+            }
+            catch (Exception)
+            {
+                roiList = new();
+            }
+            return roiList;
+        }
     }
 }

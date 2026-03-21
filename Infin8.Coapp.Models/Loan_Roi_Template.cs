@@ -7,9 +7,12 @@ namespace Infin8.Coapp.Models
     {
         [Key]
         public decimal Roi_Id { get; set; }
+        [Required(ErrorMessage = "Select Product.")]
         public int Scheme_Id { get; set; }
         public string? Agency { get; set; }
+        [Required(ErrorMessage = "With effect from is required.")]
         public DateTime Wef { get; set; }
+        [Required(ErrorMessage = "Rate of interest is required.")]
         public double Roi { get; set; }
         public double Pi { get; set; }
         public bool Updt { get; set; }

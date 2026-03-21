@@ -277,6 +277,30 @@ namespace Infin8.Coapp.API.Controllers
             }
             return Ok(roi);
         }
+
+        [HttpGet]
+        [Route("GetLoanRateOfInterestList/{schemeId:int}/{brCode}")]
+        public async Task<ActionResult<List<Loan_Roi_Template>>> GetLoanRateOfInterestTemplateList(int schemeId, string brCode)
+        {
+            List<Loan_Roi_Template> roiList = new();
+            var query = await  _loanROITemplateHandler.GetLoanRateOfInterestTemplateList(schemeId, brCode);
+            if (query != null && query.Count > 0) roiList = query.ToList();
+            return Ok(roiList);
+        }
+
+        [HttpPost]
+        [Route("AddRateOfInterest")]
+        public async Task<ActionResult<List<Loan_Roi_Template>>> AddRateOfInterest([FromBody] Loan_Roi_Template roiTemplate)
+        {
+            List<Loan_Roi_Template > roiList = new();
+            var result = await _loanROITemplateHandler.AddLoanROIAsync(roiTemplate);
+            if(result == true)
+            {
+                roiList = await _loanROITemplateHandler.GetLoanRateOfInterestTemplateList(roiTemplate.Scheme_Id, roiTemplate.BrCode!);
+            }
+            return Ok(roiList .ToArray());
+        }
+
         #endregion
 
         #region Term Deposit Loans

@@ -55,7 +55,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await  _unitOfWork.LoanROITemplate.GetLoanRateOfInterestListAsync(schemeId);
         }
-
+       
         public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef)
         {
             return await _unitOfWork.LoanROITemplate.GetLoanROIAndPIFromTemplateAsync(schemeId, agency, wef);
@@ -65,5 +65,11 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return  await _unitOfWork.LoanROITemplate.GetLoanROIAndPIFromTemplateAsync(schemeId, agency,wef,brCode);
         }
+
+        public async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestTemplateList(int schemeId,string brCode)
+        {
+            return await _unitOfWork.LoanROITemplate.GetLoanRateOfInterestTemplateList(schemeId,brCode);
+        }
+
     }
 }

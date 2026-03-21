@@ -1,0 +1,258 @@
+﻿@page "/roitemplate-loan"
+@using Coapp.Dto
+@using Infin8.Coapp.Models
+
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@using System.Globalization
+
+@using Infin8.Coapp.Utility
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin")]
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Header Section -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1 text-primary">
+                                <i class="bi bi-percent me-2"></i>Rate on Interest for Loan Products Management
+                            </h2>
+                            <p class="text-muted mb-0">Manage rate of interest for all loan products</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loan Products Dropdown list -->
+<div class="container mt-2">
+    <div class="row justify-content-center g-0">
+
+        <EditForm Model="@model" OnValidSubmit="@CreateLoanTemplate" FormName="roiTemplate">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-secondary text-white py-3">
+                        <h5>Rate of Interest for Loan Products List</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (allLoans != null && allLoans.Any())
+                        {
+                            <div class="form-floating">
+                                <InputSelect id="schemeId" class="form-select" @bind-Value="model.Scheme_Id"
+                                             @bind-Value:after="fetchTemplateList">
+                                    <option value="">Select Loan Product</option>
+                                    @foreach (var loan in allLoans)
+                                    {
+                                        <option value="@loan.Scheme_Id">@loan.Scheme_Name</option>
+                                    }
+                                </InputSelect>
+                                <label for="schemeId">Select loan product</label>
+                                <ValidationMessage For="@(() => model.Scheme_Id )" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-floating mt-2">
+                                        <InputDate class="form-control" id="wef" @bind-Value="model.Wef" />
+                                        <label for="wef">With Effect From </label>
+                                        <ValidationMessage For="@(() => model.Wef )" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="form-floating mt-2">
+                                        <InputNumber class="form-control" id="roi"
+                                                     @bind-Value="model.Roi" />
+                                        <label for="roi">Rate of Interest </label>
+                                        <ValidationMessage For="@(() => model.Roi )" />
+                                    </div>
+                                </div>
+
+                                @if (_isPIVisible)
+                                {
+                                    <div class="col-md-4">
+                                        <div class="form-floating mt-2">
+                                            <InputNumber class="form-control" id="pi"
+                                                         @bind-Value="model.Pi" />
+                                            <label for="pi">Penal Rate of Interest </label>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="col-md-4 mt-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-plus-circle me-2"></i>Create
+                                    </button>
+                                </div>
+                                @if (_isAdditionalRate)
+                                {
+                                    <div class="col-md-8 mt-2">
+                                        <div class="card-header bg-warning text-white">
+                                            <h5>Additional to existing rate for FD/RD</h5>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-inbox display-1 text-muted"></i>
+                                <h5 class="mt-3 text-muted">No loan products found</h5>
+                                <p class="text-muted">Click "Create New Rate of Interest" to add your first rate of interest loan product.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+
+        <div class="col-md-8">
+            <!-- List rate of interest template for selected loan  Products -->
+            @if (roiList != null && roiList.Count > 0)
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>With effect from</th>
+                                        <th>Rate of interest</th>
+                                        <th>Penal Interest Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var roi in roiList)
+                                    {
+                                        <tr>
+                                            <td><span class="badge bg-secondary">@roi.Wef.ToString("dd-MM-yyyy")</span></td>
+                                            <td>@roi.Roi </td>
+                                            <td>@roi.Pi</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Loan_Schemes> allLoans = new();
+    private Loan_Roi_Template model = new();
+    List<Loan_Roi_Template> roiList = new();
+
+    private bool _isPIVisible = true;
+    private bool _isAdditionalRate = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            model.BrCode = userInfoDto.BrCode!;
+            model.Usr_Id = userInfoDto.UserId;
+            model.Yr_Id = userInfoDto.YrId;
+            model.Wef = userInfoDto.CurrentDate;
+
+            var result = await _httpClient.GetFromJsonAsync<List<Loan_Schemes>>($"api/Loan/GetAllLoanProducts/{model.BrCode}");
+            if (result != null && result.Count > 0)
+            {
+                allLoans = result.ToList();
+            }
+            StateHasChanged();
+        }
+    }
+
+    // private async Task fetchTemplateList(ChangeEventArgs e)
+    private async Task fetchTemplateList()
+    {
+        await Task.Yield();
+        var result = await _httpClient.GetFromJsonAsync<List<Loan_Roi_Template>>($"api/Loan/GetLoanRateOfInterestList/{model.Scheme_Id}/{model.BrCode}");
+        if (result != null && result.Count > 0)
+        {
+            roiList = result.ToList();
+        }
+        int loanType = allLoans.Where(x => x.Scheme_Id == model.Scheme_Id).Select(x => x.Loan_Type).FirstOrDefault();
+        switch (loanType)
+        {
+            case 1:
+            case 2:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+                _isPIVisible = true;
+                _isAdditionalRate = false;
+                break;
+            case 3:
+            case 4:
+                _isPIVisible = false;
+                _isAdditionalRate = true;
+                break;
+            case 5:
+                _isPIVisible = false;
+                _isAdditionalRate = false;
+                break;
+        }
+        StateHasChanged();
+    }
+
+    private async Task CreateLoanTemplate()
+    {
+        try
+        {
+            model.Agency = "S";
+            model.Updt = true;
+            model.RoiTemplate_Delete = false;
+            model.Voc_Status = "V";
+            var response = await _httpClient.PostAsJsonAsync("api/Loan/AddRateOfInterest", model);
+            if (response.IsSuccessStatusCode)
+            {
+                var result  = await response.Content.ReadFromJsonAsync<List<Loan_Roi_Template>>();
+                if (result != null && result.Count > 0) roiList = result.ToList();
+                StateHasChanged();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Addition of new rate of interest template failed!");
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    private void ViewLoan(int schemeId)
+    {
+
+    }
+
+    private void EditLoan(int schemeId)
+    {
+
+    }
+
+    private void DeleteTemplate(decimal roiId)
+    {
+
+    }
+
+}

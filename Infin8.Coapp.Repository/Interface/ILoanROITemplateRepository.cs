@@ -15,5 +15,7 @@ namespace Infin8.Coapp.Repository
         Task<bool> EditLoanROIAsync(Loan_Roi_Template roiTemplate);
         Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId,string agency,DateTime wef);
         Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef, string brCode);
+        Task<List<Loan_Roi_Template>> GetLoanRateOfInterestTemplateList(int schemeId,string brCode);
+
     }
 }
