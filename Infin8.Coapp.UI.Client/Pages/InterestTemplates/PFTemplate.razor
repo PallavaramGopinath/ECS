@@ -1,5 +1,7 @@
-﻿@page "/pf-roi-templates"
+﻿@page "/roi-template-pf"
 @using Infin8.Coapp.Models
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 
 @using Infin8.Coapp.Utility
@@ -291,10 +293,9 @@
         Loading = true;
         try
         {
-            // using var context = DbFactory.CreateDbContext();
-            // RoiTemplates = await context.Pay_PF_ROITemplate
-            //     .OrderByDescending(x => x.Roi_Wef)
-            //     .ToListAsync();
+            var query = await _httpClient.GetFromJsonAsync<List<Pay_PF_ROITemplate>>($"api/PF/GetPFRoiTemplateList/{BrCode}");
+            if (query != null && query.Count > 0)
+                RoiTemplates = query!.ToList();
         }
         catch (Exception ex)
         {
@@ -312,49 +313,49 @@
         // Validate before saving
         if (!ValidateTemplate())
             return;
-
-        // using var context = DbFactory.CreateDbContext();
-
         try
         {
-            if (IsEditMode)
+            if (!IsEditMode)
             {
-                // Update existing template
-                // var existing = await context.Pay_PF_ROITemplate.FindAsync(CurrentTemplate.roi_Id);
-                // if (existing != null)
-                // {
-                //     existing.Roi_Wef = CurrentTemplate.Roi_Wef;
-                //     existing.Roi = CurrentTemplate.Roi;
-                //     existing.Roi_Delete = CurrentTemplate.Roi_Delete;
-
-                //     await context.SaveChangesAsync();
-                //     await JSRuntime.InvokeVoidAsync("alert", "Template updated successfully");
-                // }
+                // Check for duplicate effective date
+                if (IsDuplicateEffectiveDate(CurrentTemplate.Roi_Wef))
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "A template with this effective date already exists!");
+                    return;
+                }
+                var response = await _httpClient.PostAsJsonAsync("api/PF/AddPFRoiTemplate", CurrentTemplate);
+                if (response.IsSuccessStatusCode)
+                {
+                    RoiTemplates = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<Pay_PF_ROITemplate>>();
+                    if (result != null && result.Count > 0) RoiTemplates = result.ToList();
+                    StateHasChanged();
+                    await JSRuntime.InvokeVoidAsync("alert", "Template added successfully!");
+                }
             }
             else
             {
-                // Check for duplicate effective date
-                // if (await IsDuplicateEffectiveDate(CurrentTemplate.Roi_Wef))
-                // {
-                //     await JSRuntime.InvokeVoidAsync("alert", "A template with this effective date already exists!");
-                //     return;
-                // }
-
-                // Create new template
-                var newTemplate = new Pay_PF_ROITemplate
+                var response = await _httpClient.PostAsJsonAsync("api/PF/EditPFRoiTemplate", CurrentTemplate);
+                if (response.IsSuccessStatusCode)
                 {
-                    Roi_Wef = CurrentTemplate.Roi_Wef,
-                    Roi = CurrentTemplate.Roi,
-                    Roi_Delete = false,
-                    Usr_Id = GetCurrentUserId(),
-                    Yr_Id = GetCurrentYearId()
-                };
-
-                // await context.Pay_PF_ROITemplate.AddAsync(newTemplate);
-                // await context.SaveChangesAsync();
-                await JSRuntime.InvokeVoidAsync("alert", "Template created successfully");
+                    RoiTemplates = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<Pay_PF_ROITemplate>>();
+                    if (result != null && result.Count > 0) RoiTemplates = result.ToList();
+                    StateHasChanged();
+                    await JSRuntime.InvokeVoidAsync("alert", "Template updated successfully!");
+                }
             }
 
+            // Create new template
+            var newTemplate = new Pay_PF_ROITemplate
+            {
+                Roi_Wef = CurrentTemplate.Roi_Wef,
+                Roi = CurrentTemplate.Roi,
+                Roi_Delete = false,
+                Usr_Id = UserId,
+                Yr_Id = YrId,
+                BrCode = BrCode
+            };
             await LoadData();
             await CloseModal();
             StateHasChanged();
@@ -365,27 +366,19 @@
         }
     }
 
-    // private async Task<bool> IsDuplicateEffectiveDate(DateTime effectiveDate)
-    // {
-        
-    //     if (!effectiveDate)
-    //         return false;
-
-    //     using var context = DbFactory.CreateDbContext();
-    //     return await context.Pay_PF_ROITemplate
-    //         .AnyAsync(x => x.roi_wef.HasValue &&
-    //                       x.roi_wef.Value.Date == effectiveDate.Value.Date &&
-    //                       !x.roi_delete);
-    // }
+    private bool IsDuplicateEffectiveDate(DateTime effectiveDate)
+    {
+        bool isFind = false;
+        var result = RoiTemplates.Where(x => x.Roi_Wef == effectiveDate && x.Roi_Delete == false).ToList();
+        if (result != null && result.Count > 0)
+        {
+            isFind = true;
+        }
+        return isFind;
+    }
 
     private bool ValidateTemplate()
     {
-        // if (CurrentTemplate.Roi_Wef.HasValue)
-        // {
-        //     JSRuntime.InvokeVoidAsync("alert", "Please select effective from date");
-        //     return false;
-        // }
-
         if (CurrentTemplate.Roi == 0)
         {
             JSRuntime.InvokeVoidAsync("alert", "Please enter rate of interest");
@@ -397,7 +390,6 @@
             JSRuntime.InvokeVoidAsync("alert", "Rate of interest must be between 0% and 100%");
             return false;
         }
-
         return true;
     }
 
@@ -408,15 +400,16 @@
 
         if (confirmed)
         {
-            // using var context = DbFactory.CreateDbContext();
-            // var item = await context.Pay_PF_ROITemplate.FindAsync(template.roi_Id);
-            // if (item != null)
-            // {
-            //     item.roi_delete = true;
-            //     await context.SaveChangesAsync();
-            //     await LoadData();
-            //     await JSRuntime.InvokeVoidAsync("alert", "Template deleted successfully");
-            // }
+            CurrentTemplate.Roi_Delete = true;
+            var response = await _httpClient.PostAsJsonAsync("api/PF/EditPFRoiTemplate", CurrentTemplate);
+            if (response.IsSuccessStatusCode)
+            {
+                RoiTemplates = new();
+                var result = await response.Content.ReadFromJsonAsync<List<Pay_PF_ROITemplate>>();
+                if (result != null && result.Count > 0) RoiTemplates = result.ToList();
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("alert", "Template deleted successfully!");
+            }
         }
     }
 
@@ -425,9 +418,12 @@
         IsEditMode = false;
         CurrentTemplate = new Pay_PF_ROITemplate
         {
-            Roi_Wef = DateTime.Today,
+            Roi_Wef = currentDate,
             Roi = 0,
-            Roi_Delete = false
+            Roi_Delete = false,
+            Usr_Id = UserId,
+            BrCode = BrCode ,
+            Yr_Id = YrId 
         };
         await ShowModal();
     }
@@ -442,7 +438,8 @@
             Roi = template.Roi,
             Roi_Delete = template.Roi_Delete,
             Usr_Id = template.Usr_Id,
-            Yr_Id = template.Yr_Id
+            Yr_Id = template.Yr_Id,
+            BrCode =  template.BrCode 
         };
         await ShowModal();
     }
@@ -468,19 +465,5 @@
         FilterWefDate = null;
         FilterStatus = "all";
         StateHasChanged();
-    }
-
-    private int GetCurrentUserId()
-    {
-        // Implement your logic to get current user ID
-        // This could come from authentication state
-        return 1; // Placeholder
-    }
-
-    private int GetCurrentYearId()
-    {
-        // Implement your logic to get current financial year
-        // Example: 2024 for financial year 2024-25
-        return DateTime.Now.Year;
     }
 }

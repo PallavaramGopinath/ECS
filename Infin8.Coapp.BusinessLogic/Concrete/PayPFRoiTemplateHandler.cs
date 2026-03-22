@@ -15,43 +15,43 @@ namespace Infin8.Coapp.BusinessLogic
         {
             _unitOfWork = unitOfWork;
         }
-        public async Task<bool> AddPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate)
+        public async Task<List<Pay_PF_ROITemplate>> AddPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate)
         {
-            bool result = false;
+            List<Pay_PF_ROITemplate> roiList = new();
             try
             {
-                result = await _unitOfWork.PayPFRoiTemplate.AddPayPFRoiTemplateAsync(payPFROITemplate);
+                var result = await _unitOfWork.PayPFRoiTemplate.AddPayPFRoiTemplateAsync(payPFROITemplate);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if (result != null && result.Count > 0) roiList = result.ToList();
             }
             catch (Exception ex)
             {
-                result = false;
+                roiList = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! PF rate of interest template not saved");
             }
-            return result;
+            return roiList;
         }
 
-        public async Task<bool> EditPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate)
+        public async Task<List<Pay_PF_ROITemplate>> EditPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate)
         {
-            bool result = false;
+            List<Pay_PF_ROITemplate> roiList = new();
             try
             {
-                result = await _unitOfWork.PayPFRoiTemplate.EditPayPFRoiTemplateAsync(payPFROITemplate);
+                var result = await _unitOfWork.PayPFRoiTemplate.EditPayPFRoiTemplateAsync(payPFROITemplate);
+                if(result != null && result.Count > 0) roiList = result.ToList();
                 await _unitOfWork.CompleteAsync();
-                result = true;
             }
             catch (Exception ex)
             {
-                result = false;
+                roiList = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! PF rate of interest template not deleted");
             }
-            return result;
+            return roiList;
         }
 
-        public async Task<List<Pay_PF_ROITemplate>> GetPayPFROITemplateListAsync()
+        public async Task<List<Pay_PF_ROITemplate>> GetPayPFROITemplateListAsync(string brCode)
         {
-            return await _unitOfWork.PayPFRoiTemplate.GetPayPFROITemplateListAsync();
+            return await _unitOfWork.PayPFRoiTemplate.GetPayPFROITemplateListAsync(brCode);
         }
         public async Task<Pay_PF_ROITemplate> GetPayPFRoiTemplateByDate(DateTime salaryDate, string brCode)
         {

@@ -1,6 +1,8 @@
 ﻿using Infin8.Coapp.Models;
+using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,48 +17,52 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate)
+        public async Task<List<Pay_PF_ROITemplate>> AddPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate)
         {
-            bool result = false;
+            List<Pay_PF_ROITemplate> roiList = new();
             try
             {
                 decimal maxId = await CSISContext.Pay_PF_ROITemplate.MaxAsync(x => x.Roi_Id);
                 maxId++;
                 payPFROITemplate.Roi_Id = maxId;
                 await AddAsync(payPFROITemplate);
-                result = true;
+                await CSISContext.SaveChangesAsync();
+                var query = await CSISContext.Pay_PF_ROITemplate.Where(x => x.BrCode == payPFROITemplate.BrCode).ToListAsync();
+                if (query != null && query.Count > 0) roiList = query.ToList();
+
             }
             catch (Exception ex)
             {
-                result = false;
+                roiList = new();
                 throw new InvalidOperationException(ex.Message + " PF rate of interest not saved");
             }
-            return result;
+            return roiList;
         }
 
-        public async  Task<bool> EditPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate)
+        public async  Task<List<Pay_PF_ROITemplate>> EditPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate)
         {
-            bool result = false;
+            List<Pay_PF_ROITemplate> roiList = new();
             try
             {
-                payPFROITemplate.Roi_Delete  = true;
                 await EditAsync(payPFROITemplate);
-                result = true;
+                await CSISContext.SaveChangesAsync();
+                var query = await CSISContext.Pay_PF_ROITemplate.Where(x => x.BrCode == payPFROITemplate.BrCode).ToListAsync();
+                if (query != null && query.Count > 0) roiList = query.ToList();
             }
             catch (Exception ex)
             {
-                result = false;
+                roiList = new();
                 throw new InvalidOperationException(ex.Message + " PF rate of interest not modified");
             }
-            return result;
+            return roiList;
         }
 
-        public async Task<List<Pay_PF_ROITemplate>> GetPayPFROITemplateListAsync()
+        public async Task<List<Pay_PF_ROITemplate>> GetPayPFROITemplateListAsync(string brCode)
         {
             List<Pay_PF_ROITemplate> list = new List<Pay_PF_ROITemplate>();
             try
             {
-                var pfroiList = await CSISContext.Pay_PF_ROITemplate.Where(x => x.Roi_Delete == false).ToListAsync();
+                var pfroiList = await CSISContext.Pay_PF_ROITemplate.Where(x => x.BrCode  == brCode ).ToListAsync();
                 if(pfroiList != null && pfroiList.Count > 0) list = pfroiList;
             }
             catch (Exception ex)

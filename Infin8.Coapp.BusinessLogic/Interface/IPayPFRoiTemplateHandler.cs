@@ -9,9 +9,9 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface IPayPFRoiTemplateHandler
     {
-        Task<bool> AddPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate);
-        Task<bool> EditPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate);
-        Task<List<Pay_PF_ROITemplate>> GetPayPFROITemplateListAsync();
+        Task<List<Pay_PF_ROITemplate>> AddPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate);
+        Task<List<Pay_PF_ROITemplate>> EditPayPFRoiTemplateAsync(Pay_PF_ROITemplate payPFROITemplate);
+        Task<List<Pay_PF_ROITemplate>> GetPayPFROITemplateListAsync(string brCode);
         Task<Pay_PF_ROITemplate> GetPayPFRoiTemplateByDate(DateTime salaryDate,string brCode);
     }
 }

@@ -61,5 +61,35 @@ namespace Infin8.Coapp.UI.Controllers
             return Ok(voucherData);
             
         }
+
+        [HttpGet]
+        [Route("GetPFRoiTemplateList/{brCode}")]
+        public async Task<ActionResult<List<Pay_PF_ROITemplate>>> GetPayPFRoiTemplateList(string brCode)
+        {
+            List<Pay_PF_ROITemplate> pfTemplateList = new();
+            var result = await _payPFRoiTemplateHandler.GetPayPFROITemplateListAsync(brCode);
+            if(result != null && result.Any()) pfTemplateList = result.ToList();
+            return Ok(pfTemplateList);
+        }
+
+        [HttpPost]
+        [Route("AddPFRoiTemplate")]
+        public async Task<ActionResult<List<Pay_PF_ROITemplate>>> AddPFRoiTemplate([FromBody] Pay_PF_ROITemplate pfTemplate)
+        {
+            List<Pay_PF_ROITemplate> roiList = new();
+            var result = await  _payPFRoiTemplateHandler.AddPayPFRoiTemplateAsync(pfTemplate);
+            if (result != null && result.Count >0)  roiList = result.ToList();
+            return Ok(roiList);
+        }
+
+        [HttpPost]
+        [Route("EditPFRoiTemplate")]
+        public async Task<ActionResult<List<Pay_PF_ROITemplate>>> EditPfRoiTemplate(Pay_PF_ROITemplate pfTemplate)
+        {
+            List<Pay_PF_ROITemplate> roiList = new();
+            var result = await _payPFRoiTemplateHandler.EditPayPFRoiTemplateAsync(pfTemplate);
+            if (result != null && result.Count > 0) roiList = result.ToList();
+            return Ok(roiList);
+        }
     }
 }
