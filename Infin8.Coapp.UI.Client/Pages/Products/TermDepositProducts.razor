@@ -1,0 +1,773 @@
+﻿@page "/td-schemes"
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+@using Infin8.Coapp.Utility
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Term Deposit Schemes</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-bank2"></i> Term Deposit Schemes Management
+                        </h5>
+                        <button class="btn btn-light btn-sm" @onclick="ShowCreateModal">
+                            <i class="bi bi-plus-circle"></i> New Scheme
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filters -->
+                    <div class="row mb-3 g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Scheme Type</label>
+                            <select @bind="FilterSchemeType" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="F">Fixed Deposits</option>
+                                <option value="R">Recurring Deposits</option>
+                                <option value="C">Cash Certificates</option>
+                                <option value="S">Security Deposits</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Search Scheme</label>
+                            <input type="text" @bind="SearchText" @bind:event="oninput"
+                                   class="form-control" placeholder="Search by name..." />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select @bind="FilterStatus" class="form-select">
+                                <option value="all">All</option>
+                                <option value="active">Active</option>
+                                <option value="deleted">Deleted</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button class="btn btn-secondary btn-sm" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i> Clear Filters
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4 g-3">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Schemes</h6>
+                                    <h3 class="mb-0">@TotalSchemes</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">Fixed Deposits</h6>
+                                    <h3 class="mb-0">@FixedDepositCount</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">Recurring Deposits</h6>
+                                    <h3 class="mb-0">@RecurringDepositCount</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">Active Schemes</h6>
+                                    <h3 class="mb-0">@ActiveSchemes</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Scheme Name</th>
+                                    <th>Type</th>
+                                    <th>Period Range</th>
+                                    <th>Principal GL</th>
+                                    <th>Interest GL</th>
+                                    <th>Penal Interest GL</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Loading)
+                                {
+                                    <tr>
+                                        <td colspan="9" class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                else if (!FilteredSchemes.Any())
+                                {
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted">
+                                            No schemes found
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var item in FilteredSchemes.OrderBy(x=> x.TDScheme_Id))
+                                    {
+                                        <tr class="@(item.TDScheme_Delete ? "table-danger" : "")">
+                                            <td>@item.TDScheme_Id</td>
+                                            <td class="fw-bold">@item.TDScheme_Name</td>
+                                            <td>
+                                                @if (item.TDSchemeType == "F")
+                                                {
+                                                    <span class="badge bg-primary">Fixed Deposit</span>
+                                                }
+                                                else if (item.TDSchemeType == "R")
+                                                {
+                                                    <span class="badge bg-info">Recurring Deposit</span>
+                                                }
+                                                else if(item.TDSchemeType == "S")
+                                                {
+                                                    <span class="badge bg-secondary">Security Deposit</span>
+                                                }
+                                                else if(item.TDSchemeType == "C")
+                                                {
+                                                    <span class="badge bg-warning">Cash Certificate</span>
+                                                }
+
+                                            </td>
+                                            <td>
+                                                @item.MinimumPeriod - @item.MaximumPeriod @GetPeriodTypeDisplay(item.PeriodType)
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">@item.Led_Id</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">@item.IntLed_Id</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">@item.PiLed_Id</span>
+                                            </td>
+                                            <td>
+                                                @if (item.TDScheme_Delete)
+                                                {
+                                                    <span class="badge bg-danger">Deleted</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary"
+                                                            @onclick="() => ShowEditModal(item)">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    @if (!item.TDScheme_Delete)
+                                                    {
+                                                        <button class="btn btn-outline-danger"
+                                                                @onclick="() => ConfirmDelete(item)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    }
+                                                    <button class="btn btn-outline-info"
+                                                            @onclick="() => ShowDetailsModal(item)">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal fade" id="schemeModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi @(IsEditMode ? "bi-pencil-square" : "bi-plus-circle")"></i>
+                    @(IsEditMode ? "Edit Term Deposit Scheme" : "Create Term Deposit Scheme")
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@CurrentScheme" OnValidSubmit="@SaveScheme">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert alert-danger" />
+
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Scheme Name *</label>
+                            <InputText @bind-Value="CurrentScheme.TDScheme_Name" class="form-control" />
+                            <ValidationMessage For="@(() => CurrentScheme.TDScheme_Name)" />
+                            <small class="text-muted">Example: Fixed Deposit General, Fixed Deposit Senior Citizen, etc.</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Scheme Type *</label>
+                            <InputSelect @bind-Value="CurrentScheme.TDSchemeType" class="form-control">
+                                <option value="">Select Type</option>
+                                <option value="F">Fixed Deposit (FD)</option>
+                                <option value="R">Recurring Deposit (RD)</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => CurrentScheme.TDSchemeType)" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Period Type *</label>
+                            <InputSelect @bind-Value="CurrentScheme.PeriodType" class="form-control">
+                                <option value="">Select Period Type</option>
+                                <option value="Days">Days</option>
+                                <option value="Months">Months</option>
+                                <option value="Years">Years</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => CurrentScheme.PeriodType)" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Minimum Period *</label>
+                            <InputNumber @bind-Value="CurrentScheme.MinimumPeriod" class="form-control" />
+                            <ValidationMessage For="@(() => CurrentScheme.MinimumPeriod)" />
+                            <small class="text-muted">Minimum tenure for this scheme</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Maximum Period *</label>
+                            <InputNumber @bind-Value="CurrentScheme.MaximumPeriod" class="form-control" />
+                            <ValidationMessage For="@(() => CurrentScheme.MaximumPeriod)" />
+                            <small class="text-muted">Maximum tenure for this scheme</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Principal GL *</label>
+                            <InputNumber @bind-Value="CurrentScheme.Led_Id" class="form-control" />
+                            <ValidationMessage For="@(() => CurrentScheme.Led_Id)" />
+                            <small class="text-muted">General Ledger for principal amount</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Interest GL *</label>
+                            <InputNumber @bind-Value="CurrentScheme.IntLed_Id" class="form-control" />
+                            <ValidationMessage For="@(() => CurrentScheme.IntLed_Id)" />
+                            <small class="text-muted">General Ledger for interest payment</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Penal Interest GL *</label>
+                            <InputNumber @bind-Value="CurrentScheme.PiLed_Id" class="form-control" />
+                            <ValidationMessage For="@(() => CurrentScheme.PiLed_Id)" />
+                            <small class="text-muted">General Ledger for penal interest</small>
+                        </div>
+
+                        @if (IsEditMode)
+                        {
+                            <div class="col-md-12">
+                                <div class="form-check">
+                                    <InputCheckbox @bind-Value="CurrentScheme.TDScheme_Delete" class="form-check-input" />
+                                    <label class="form-check-label text-danger">
+                                        Mark as Deleted
+                                    </label>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Validation Rules:</strong>
+                                <ul class="mb-0 mt-1">
+                                    <li>Minimum period must be less than maximum period</li>
+                                    <li>For Fixed Deposits (FD), typical period: 7 days to 10 years</li>
+                                    <li>For Recurring Deposits (RD), typical period: 6 months to 10 years</li>
+                                    <li>GL codes must be valid ledger accounts</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" @onclick="SaveScheme">
+                    <i class="bi bi-save"></i> Save Scheme
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-info-circle"></i> Scheme Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @if (SelectedScheme != null)
+                {
+                    <dl class="row">
+                        <dt class="col-sm-4">Scheme ID:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.TDScheme_Id</dd>
+
+                        <dt class="col-sm-4">Scheme Name:</dt>
+                        <dd class="col-sm-8 fw-bold">@SelectedScheme.TDScheme_Name</dd>
+
+                        <dt class="col-sm-4">Scheme Type:</dt>
+                        <dd class="col-sm-8">
+                            @if (SelectedScheme.TDSchemeType == "F")
+                            {
+                                <span class="badge bg-primary">Fixed Deposit</span>
+                            }
+                            else if (SelectedScheme.TDSchemeType == "R")
+                            {
+                                <span class="badge bg-info">Recurring Deposit</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Period:</dt>
+                        <dd class="col-sm-8">
+                            @SelectedScheme.MinimumPeriod - @SelectedScheme.MaximumPeriod
+                            @GetPeriodTypeDisplay(SelectedScheme.PeriodType)
+                        </dd>
+
+                        <dt class="col-sm-4">Principal GL:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.Led_Id</dd>
+
+                        <dt class="col-sm-4">Interest GL:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.IntLed_Id</dd>
+
+                        <dt class="col-sm-4">Penal Interest GL:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.PiLed_Id</dd>
+
+                        <dt class="col-sm-4">Status:</dt>
+                        <dd class="col-sm-8">
+                            @if (SelectedScheme.TDScheme_Delete)
+                            {
+                                <span class="badge bg-danger">Deleted</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Created By:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.Usr_Id</dd>
+
+                        <dt class="col-sm-4">Financial Year:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.Yr_Id</dd>
+
+                        <dt class="col-sm-4">Branch Code:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.BrCode</dd>
+                    </dl>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<TermDeposit_Schemes> Schemes = new();
+    private List<Fin_Ledger> GlAccounts = new(); // For GL selection dropdown
+    private TermDeposit_Schemes CurrentScheme = new();
+    private TermDeposit_Schemes SelectedScheme = new();
+    private bool IsEditMode = false;
+    private bool Loading = true;
+
+    // Filters
+    private string FilterSchemeType = "";
+    private string SearchText = "";
+    private string FilterStatus = "all";
+
+    // Statistics
+    private int TotalSchemes => Schemes.Count;
+    private int FixedDepositCount => Schemes.Count(x => x.TDSchemeType == "F" && !x.TDScheme_Delete);
+    private int RecurringDepositCount => Schemes.Count(x => x.TDSchemeType == "R" && !x.TDScheme_Delete);
+    private int ActiveSchemes => Schemes.Count(x => !x.TDScheme_Delete);
+
+    // Filtered schemes
+    private IEnumerable<TermDeposit_Schemes> FilteredSchemes
+    {
+        get
+        {
+            var query = Schemes.AsQueryable();
+
+            // Apply scheme type filter
+            if (!string.IsNullOrEmpty(FilterSchemeType))
+                query = query.Where(x => x.TDSchemeType == FilterSchemeType);
+
+            // Apply search filter
+            if (!string.IsNullOrEmpty(SearchText))
+                query = query.Where(x => x.TDScheme_Name != null &&
+                                        x.TDScheme_Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+
+            // Apply status filter
+            if (FilterStatus == "active")
+                query = query.Where(x => !x.TDScheme_Delete);
+            else if (FilterStatus == "deleted")
+                query = query.Where(x => x.TDScheme_Delete);
+
+            // Order by scheme name
+            return query.OrderBy(x => x.TDScheme_Name).ToList();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            CurrentScheme.BrCode  = userInfoDto.BrCode!;
+            CurrentScheme.Usr_Id = userInfoDto.UserId;
+            CurrentScheme.Yr_Id  = userInfoDto.YrId;
+            StateHasChanged();
+            await LoadData();
+            await LoadGLAccounts();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        Loading = true;
+        try
+        {
+            var query = await _httpClient.GetFromJsonAsync<List<TermDeposit_Schemes>>($"api/TermDeposit/GetTermDepositSchemeList/{CurrentScheme.BrCode}");
+            if (query != null && query.Count > 0)
+                Schemes = query!.ToList();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            Loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadGLAccounts()
+    {
+        Loading = true;
+        try
+        {
+            var query = await _httpClient.GetFromJsonAsync<List<Fin_Ledger>>($"api/Accounts/GetLedgerListAsync/{CurrentScheme.BrCode}");
+            if (query != null && query.Count > 0)
+                GlAccounts = query!.ToList();
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't block UI
+            Console.WriteLine($"Error loading GL accounts: {ex.Message}");
+        }
+        finally
+        {
+            Loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveScheme()
+    {
+        // Validate before saving
+        if (!ValidateScheme())
+            return;
+
+        if (!ValidatePeriodRange())
+            return;
+
+        try
+        {
+            if (IsEditMode)
+            {
+                // Update existing scheme
+                // var existing = await context.TermDeposit_Schemes.FindAsync(CurrentScheme.TDScheme_Id);
+                // if (existing != null)
+                // {
+                //     existing.TDScheme_Name = CurrentScheme.TDScheme_Name;
+                //     existing.TDSchemeType = CurrentScheme.TDSchemeType;
+                //     existing.MinimumPeriod = CurrentScheme.MinimumPeriod;
+                //     existing.MaximumPeriod = CurrentScheme.MaximumPeriod;
+                //     existing.PeriodType = CurrentScheme.PeriodType;
+                //     existing.Led_Id = CurrentScheme.Led_Id;
+                //     existing.IntLed_Id = CurrentScheme.IntLed_Id;
+                //     existing.PiLed_Id = CurrentScheme.PiLed_Id;
+                //     existing.TDScheme_Delete = CurrentScheme.TDScheme_Delete;
+
+                //     await context.SaveChangesAsync();
+                //     await JSRuntime.InvokeVoidAsync("alert", "Scheme updated successfully");
+                // }
+            }
+            else
+            {
+                // Check for duplicate scheme name
+                if (IsDuplicateSchemeName(CurrentScheme.TDScheme_Name!))
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "A scheme with this name already exists!");
+                    return;
+                }
+
+                // Create new scheme
+                var newScheme = new TermDeposit_Schemes
+                {
+                    TDScheme_Name = CurrentScheme.TDScheme_Name,
+                    TDSchemeType = CurrentScheme.TDSchemeType,
+                    MinimumPeriod = CurrentScheme.MinimumPeriod,
+                    MaximumPeriod = CurrentScheme.MaximumPeriod,
+                    PeriodType = CurrentScheme.PeriodType,
+                    Led_Id = CurrentScheme.Led_Id,
+                    IntLed_Id = CurrentScheme.IntLed_Id,
+                    PiLed_Id = CurrentScheme.PiLed_Id,
+                    TDScheme_Delete = false,
+                    Usr_Id = CurrentScheme.Usr_Id,
+                    Yr_Id = CurrentScheme.Yr_Id,
+                    BrCode = CurrentScheme.BrCode 
+                };
+
+                // await context.TermDeposit_Schemes.AddAsync(newScheme);
+                // await context.SaveChangesAsync();
+                // await JSRuntime.InvokeVoidAsync("alert", "Scheme created successfully");
+            }
+
+            await LoadData();
+            await CloseModal();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving scheme: {ex.Message}");
+        }
+    }
+
+    private bool IsDuplicateSchemeName(string schemeName)
+    {
+        bool result = true;
+        if (string.IsNullOrEmpty(schemeName))
+            return false;
+        var query = Schemes.Where(x => x.TDScheme_Name!.ToLower() == schemeName.ToLower()
+            && !x.TDScheme_Delete).ToList ();
+        if (query != null && query.Count > 0)
+        {
+            result= false;
+        }
+        return result;
+        // return await context.TermDeposit_Schemes
+        //     .AnyAsync(x => x.TDScheme_Name != null &&
+        //                   x.TDScheme_Name.ToLower() == schemeName.ToLower() &&
+        //                   !x.TDScheme_Delete);
+    }
+
+    private bool ValidateScheme()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentScheme.TDScheme_Name))
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please enter scheme name");
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(CurrentScheme.TDSchemeType))
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please select scheme type");
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(CurrentScheme.PeriodType))
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please select period type");
+            return false;
+        }
+
+        if (CurrentScheme.Led_Id <= 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please select valid Principal GL");
+            return false;
+        }
+
+        if (CurrentScheme.IntLed_Id <= 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please select valid Interest GL");
+            return false;
+        }
+
+        if (CurrentScheme.PiLed_Id <= 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please select valid Penal Interest GL");
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ValidatePeriodRange()
+    {
+        if (CurrentScheme.MinimumPeriod >= CurrentScheme.MaximumPeriod)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Minimum period must be less than maximum period");
+            return false;
+        }
+
+        // Scheme type specific validations
+        if (CurrentScheme.TDSchemeType == "F") // Fixed Deposit
+        {
+            if (CurrentScheme.PeriodType == "Days" && CurrentScheme.MinimumPeriod < 7)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Fixed Deposit minimum period should be at least 7 days");
+                return false;
+            }
+        }
+        else if (CurrentScheme.TDSchemeType == "R") // Recurring Deposit
+        {
+            if (CurrentScheme.PeriodType == "Months" && CurrentScheme.MinimumPeriod < 6)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Recurring Deposit minimum period should be at least 6 months");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private string GetPeriodTypeDisplay(string periodType)
+    {
+        return periodType switch
+        {
+            "Days" => "Days",
+            "Months" => "Months",
+            "Years" => "Years",
+            _ => periodType ?? "N/A"
+        };
+    }
+
+    private async Task ConfirmDelete(TermDeposit_Schemes scheme)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+            $"Are you sure you want to delete the scheme '{scheme.TDScheme_Name}'?\n\n" +
+            "This action will mark the scheme as deleted. Existing accounts using this scheme will not be affected.");
+
+        if (confirmed)
+        {
+            // using var context = DbFactory.CreateDbContext();
+            // var item = await context.TermDeposit_Schemes.FindAsync(scheme.TDScheme_Id);
+            // if (item != null)
+            // {
+            //     item.TDScheme_Delete = true;
+            //     await context.SaveChangesAsync();
+            //     await LoadData();
+            //     await JSRuntime.InvokeVoidAsync("alert", "Scheme deleted successfully");
+            // }
+        }
+    }
+
+    private async Task ShowCreateModal()
+    {
+        IsEditMode = false;
+        CurrentScheme = new TermDeposit_Schemes
+        {
+            MinimumPeriod = 0,
+            MaximumPeriod = 0,
+            PeriodType = "Months",
+            TDSchemeType = "F"
+        };
+        await ShowModal();
+    }
+
+    private async Task ShowEditModal(TermDeposit_Schemes scheme)
+    {
+        IsEditMode = true;
+        CurrentScheme = new TermDeposit_Schemes
+        {
+            TDScheme_Id = scheme.TDScheme_Id,
+            TDScheme_Name = scheme.TDScheme_Name,
+            TDSchemeType = scheme.TDSchemeType,
+            MinimumPeriod = scheme.MinimumPeriod,
+            MaximumPeriod = scheme.MaximumPeriod,
+            PeriodType = scheme.PeriodType,
+            Led_Id = scheme.Led_Id,
+            IntLed_Id = scheme.IntLed_Id,
+            PiLed_Id = scheme.PiLed_Id,
+            TDScheme_Delete = scheme.TDScheme_Delete,
+            Usr_Id = scheme.Usr_Id,
+            Yr_Id = scheme.Yr_Id,
+            BrCode = scheme.BrCode
+        };
+        await ShowModal();
+    }
+
+    private async Task ShowDetailsModal(TermDeposit_Schemes scheme)
+    {
+        SelectedScheme = scheme;
+        await JSRuntime.InvokeVoidAsync("modalHelpers.showModal", "detailsModal");
+    }
+
+    private async Task ShowModal()
+    {
+        await JSRuntime.InvokeVoidAsync("modalHelpers.showModal", "schemeModal");
+    }
+
+    private async Task CloseModal()
+    {
+        await JSRuntime.InvokeVoidAsync("modalHelpers.hideModal", "schemeModal");
+    }
+
+    private void ClearFilters()
+    {
+        FilterSchemeType = "";
+        SearchText = "";
+        FilterStatus = "all";
+        StateHasChanged();
+    }
+
+    private int GetCurrentUserId()
+    {
+        // Implement your logic to get current user ID
+        return 1; // Placeholder
+    }
+
+    private int GetCurrentYearId()
+    {
+        // Implement your logic to get current financial year
+        return DateTime.Now.Year;
+    }
+
+    private string GetBranchCode()
+    {
+        // Implement your logic to get branch code
+        return "BR001"; // Placeholder
+    }
+}
