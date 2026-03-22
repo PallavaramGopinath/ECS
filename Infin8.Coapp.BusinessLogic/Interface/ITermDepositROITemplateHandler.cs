@@ -12,7 +12,7 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<bool> AddTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate);
         Task<List<TermDeposit_Roi_Template>> AddTermDepositROITemplateList(List<TermDeposit_Roi_Template> termDepositList);
-        Task<bool> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate);
+        Task<List<TermDeposit_Roi_Template>> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate);
         Task<List<TDRateOfInterstDto>> GetTermDepositROITemplateListAsync(string[] tdSchemeTypeList);
         Task<double> GetROIForTermDepositAsync(DateTime depositDate, int schemeId, int prdInMonths, int prdInDays, string brCode);
         Task<double> GetPIForRDAsync(DateTime depositDate, int schemeId, int prdInMonths, int prdInDays, string brCode);

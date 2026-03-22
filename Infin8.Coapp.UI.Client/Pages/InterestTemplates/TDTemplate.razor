@@ -145,7 +145,7 @@
                                                             @onclick="() => ShowEditModal(item)">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                     @if (!item.TDRoi_Delete)
+                                                    @if (!item.TDRoi_Delete)
                                                     {
                                                         <button class="btn btn-outline-danger"
                                                                 @onclick="() => ConfirmDelete(item)">
@@ -243,11 +243,12 @@
                             <InputNumber @bind-Value="CurrentTemplate.PenalRateForRD" class="form-control" step="0.01" />
                             <ValidationMessage For="@(() => CurrentTemplate.PenalRateForRD)" />
                         </div>
-
-                        <div class="col-md-6">
-                            <button type="button" class="btn btn-secondary mt-2" @onclick="AddTemplate">Add</button>
-                        </div>
-
+                        @if (!IsEditMode)
+                        {
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-secondary mt-2" @onclick="AddTemplate">Add</button>
+                            </div>
+                        }
                         <div class="col-md-12">
                             <div class="alert alert-info">
                                 <i class="bi bi-info-circle"></i>
@@ -264,7 +265,7 @@
                         </div>
                     </div>
                 </EditForm>
-                
+
                 @if (CurrentTemplateList != null && CurrentTemplateList.Count > 0)
                 {
                     <div class="row g-3">
@@ -311,9 +312,18 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary" disabled="@(!CurrentTemplateList!.Any())" @onclick="SaveTemplate">
-                    <i class="bi bi-save"></i> Save
-                </button>
+                @if (!IsEditMode)
+                {
+                    <button type="submit" class="btn btn-primary" disabled="@(!CurrentTemplateList!.Any())" @onclick="SaveTemplate">
+                        <i class="bi bi-save"></i> Save
+                    </button>
+                }
+                else
+                {
+                    <button type="submit" class="btn btn-warning" @onclick="SaveTemplate">
+                        <i class="bi bi-save"></i> Modify
+                    </button>
+                }
             </div>
         </div>
     </div>
@@ -476,13 +486,13 @@
         {
             periodType = "M";
         }
-        else if(CurrentTemplate.PeriodType == "D" && CurrentTemplate.PeriodEnd <364)
+        else if (CurrentTemplate.PeriodType == "D" && CurrentTemplate.PeriodEnd < 364)
         {
             periodType = CurrentTemplate.PeriodType!;
             beginPeriod = CurrentTemplate.PeriodEnd + 1;
             endPeriod = CurrentTemplate.PeriodEnd + 90;
         }
-        else if(CurrentTemplate.PeriodType == "M")
+        else if (CurrentTemplate.PeriodType == "M")
         {
             periodType = CurrentTemplate.PeriodType!;
             beginPeriod = CurrentTemplate.PeriodEnd + 1;
@@ -493,10 +503,10 @@
         {
             TDScheme_Id = CurrentTemplate?.TDScheme_Id ?? 0, // Preserve scheme if needed
             Wef = currentDate,
-            PeriodType = periodType ,
-            PeriodBegin = beginPeriod ,
-            PeriodEnd = endPeriod ,
-            Roi = CurrentTemplate!.Roi +0.5,
+            PeriodType = periodType,
+            PeriodBegin = beginPeriod,
+            PeriodEnd = endPeriod,
+            Roi = CurrentTemplate!.Roi + 0.5,
             PenalRateForRD = 0
         };
     }
@@ -533,8 +543,8 @@
             PeriodEnd = CurrentTemplate.PeriodEnd,
             PenalRateForRD = CurrentTemplate.PenalRateForRD,
             TDRoi_Delete = false,
-            BrCode = BrCode ,
-            Usr_Id = UserId ,
+            BrCode = BrCode,
+            Usr_Id = UserId,
             Yr_Id = YrId
         };
         CurrentTemplateList.Add(templateToAdd);
@@ -554,33 +564,46 @@
 
     private async Task SaveTemplate()
     {
-        // if (!ValidatePeriod())
-        if(CurrentTemplateList == null || CurrentTemplateList.Count == 0)
+        if (!IsEditMode)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Template date is empty");
-            return;
+            if (CurrentTemplateList == null || CurrentTemplateList.Count == 0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Template date is empty");
+                return;
+            }
+            var response = await _httpClient.PostAsJsonAsync("api/TermDeposit/AddTDTemplates", CurrentTemplateList);
+            if (response.IsSuccessStatusCode)
+            {
+                // isSubmitted = true;
+                // submittedMessage = "Transaction approved successfully!";
+                RoiTemplates = new();
+                var result = await response.Content.ReadFromJsonAsync<List<TermDeposit_Roi_Template>>();
+                if (result != null && result.Count > 0) RoiTemplates = result.ToList();
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("alert", "Template added successfully!");
+            }
         }
-        var response = await _httpClient.PostAsJsonAsync("api/TermDeposit/AddTDTemplates", CurrentTemplateList );
-        if (response.IsSuccessStatusCode)
+        else if (IsEditMode)
         {
-            // isSubmitted = true;
-            // submittedMessage = "Transaction approved successfully!";
-            RoiTemplates = new();
-            var result  = await response.Content.ReadFromJsonAsync<List<TermDeposit_Roi_Template>>();
-            if (result != null && result.Count > 0) RoiTemplates = result.ToList();
-            StateHasChanged();
-            await JSRuntime.InvokeVoidAsync("alert", "Template updated successfully!");
-        }
-
-        if (IsEditMode)
-        {
-            // var existing = await context.TermDeposit_Roi_Templates.FindAsync(CurrentTemplate.Roi_Id);
-            // if (existing != null)
-            // {
-            //     context.Entry(existing).CurrentValues.SetValues(CurrentTemplate);
-            //     await context.SaveChangesAsync();
-            //     await JSRuntime.InvokeVoidAsync("alert", "Template updated successfully");
-            // }
+            string errorMessage = "";
+            if (CurrentTemplate.TDScheme_Id == 0) errorMessage = "Scheme name not selected";
+            if (CurrentTemplate.PeriodEnd == 0) errorMessage += " Period end is missing";
+            if (errorMessage.Length > 0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", errorMessage);
+                return;
+            }
+            var response = await _httpClient.PostAsJsonAsync("api/TermDeposit/EditTDTemplate", CurrentTemplate);
+            if (response.IsSuccessStatusCode)
+            {
+                // isSubmitted = true;
+                // submittedMessage = "Transaction approved successfully!";
+                RoiTemplates = new();
+                var result = await response.Content.ReadFromJsonAsync<List<TermDeposit_Roi_Template>>();
+                if (result != null && result.Count > 0) RoiTemplates = result.ToList();
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("alert", "Template updated successfully!");
+            }
         }
         else
         {
@@ -605,16 +628,41 @@
     {
         if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete template for period {template.PeriodBegin}-{template.PeriodEnd} {template.PeriodType}?"))
         {
-            // using var context = DbFactory.CreateDbContext();
-            // var item = await context.TermDeposit_Roi_Templates.FindAsync(template.Roi_Id);
+
             var item = RoiTemplates.Find(x => x.Roi_Id == template.Roi_Id);
-            if (item != null)
+            if (item != null && item.TDScheme_Id > 0)
             {
-                item.TDRoi_Delete = true;
-                // await context.SaveChangesAsync();
-                await LoadData();
-                await JSRuntime.InvokeVoidAsync("alert", "Template deleted successfully");
+                CurrentTemplate = new TermDeposit_Roi_Template
+                    {
+                        Roi_Id = item!.Roi_Id,
+                        TDScheme_Id = item.TDScheme_Id,
+                        Wef = item.Wef,
+                        Roi = item.Roi,
+                        PeriodType = item.PeriodType,
+                        PeriodBegin = item.PeriodBegin,
+                        PeriodEnd = item.PeriodEnd,
+                        PenalRateForRD = item.PenalRateForRD,
+                        TDRoi_Delete = true,
+                        Usr_Id = UserId,
+                        BrCode = item.BrCode,
+                        Yr_Id = item.Yr_Id
+                    };
+                var response = await _httpClient.PostAsJsonAsync("api/TermDeposit/EditTDTemplate", CurrentTemplate);
+                if (response.IsSuccessStatusCode)
+                {
+                    RoiTemplates = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<TermDeposit_Roi_Template>>();
+                    if (result != null && result.Count > 0) RoiTemplates = result.ToList();
+                    StateHasChanged();
+                    await JSRuntime.InvokeVoidAsync("alert", "Template updated successfully!");
+                }
             }
+            // if (item != null)
+            // {
+            //     item.TDRoi_Delete = true;
+            //     await LoadData();
+            //     await JSRuntime.InvokeVoidAsync("alert", "Template deleted successfully");
+            // }
         }
     }
 
@@ -683,21 +731,22 @@
     }
 
     private async Task ShowEditModal(TermDeposit_Roi_Template template)
-    // private void ShowEditModal(TermDeposit_Roi_Template template)
     {
         IsEditMode = true;
         CurrentTemplate = new TermDeposit_Roi_Template
         {
             Roi_Id = template.Roi_Id,
             TDScheme_Id = template.TDScheme_Id,
-            TDHolderType = template.TDHolderType,
             Wef = template.Wef,
             Roi = template.Roi,
             PeriodType = template.PeriodType,
             PeriodBegin = template.PeriodBegin,
             PeriodEnd = template.PeriodEnd,
             PenalRateForRD = template.PenalRateForRD,
-            TDRoi_Delete = template.TDRoi_Delete
+            TDRoi_Delete = template.TDRoi_Delete,
+            Usr_Id = UserId,
+            BrCode = template.BrCode,
+            Yr_Id = template.Yr_Id
         };
         // ShowModal();
         await ShowModal();

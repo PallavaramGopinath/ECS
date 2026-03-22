@@ -27,7 +27,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositROITemplate.AddTermDepositROITemplateList(termDepositList);
         }
 
-        public async Task<bool> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate)
+        public async Task<List<TermDeposit_Roi_Template>> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate)
         {
             return await _unitOfWork.TermDepositROITemplate.EditTermDepositROITemplateAsync(termDepositROITemplate);
         }

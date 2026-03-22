@@ -2,6 +2,7 @@
 using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -60,21 +61,22 @@ namespace Infin8.Coapp.Repository
             return roiList;
         }
 
-        public async Task<bool> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate)
+        public async Task<List<TermDeposit_Roi_Template>> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate)
         {
-            bool result = false;
+            List<TermDeposit_Roi_Template> roiList = new();
             try
             {
-                termDepositROITemplate.TDRoi_Delete = true;
+                //termDepositROITemplate.TDRoi_Delete = true;
                 await EditAsync(termDepositROITemplate);
-                result = true;
+                await CSISContext.SaveChangesAsync();
+                var query = await CSISContext.TermDeposit_Roi_Template.Where(x => x.TDScheme_Id == termDepositROITemplate.TDScheme_Id).ToListAsync();
+                if (query != null && query.Count > 0) roiList = query.ToList();
             }
             catch (Exception ex)
             {
-                result = false;
-                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while modifing Term deposit scheme");
+                roiList = new();
             }
-            return result;
+            return roiList;
         }
 
         public async Task<List<TDRateOfInterstDto>> GetTermDepositROITemplateListAsync(string[] tdSchemeTypeList)
@@ -261,7 +263,7 @@ namespace Infin8.Coapp.Repository
                 var roiList = await (from roi in CSISContext.TermDeposit_Roi_Template
                                      join scheme in CSISContext.TermDeposit_Schemes on roi.TDScheme_Id equals scheme.TDScheme_Id
                                      where scheme.TDSchemeType == SchemeType && scheme.TDScheme_Delete == false
-                                     && roi.BrCode == brCode && roi.BrCode == brCode  && roi.TDRoi_Delete == false
+                                     && roi.BrCode == brCode && roi.BrCode == brCode  
                                      orderby roi.TDScheme_Id, roi.Wef, roi.PeriodType, roi.PeriodBegin
                                      select new TermDeposit_Roi_Template
                                      {
@@ -274,7 +276,10 @@ namespace Infin8.Coapp.Repository
                                          PeriodEnd = roi.PeriodEnd,
                                          Roi = roi.Roi,
                                          PenalRateForRD = roi.PenalRateForRD,
-                                         BrCode = roi.BrCode 
+                                         BrCode = roi.BrCode ,
+                                         Usr_Id = roi.Usr_Id,
+                                         Yr_Id = roi.Yr_Id,
+                                         TDRoi_Delete = roi.TDRoi_Delete,
                                      }).ToListAsync();
                 if (roiList != null && roiList.Count > 0) result = roiList;
             }

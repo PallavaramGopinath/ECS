@@ -11,7 +11,7 @@ namespace Infin8.Coapp.Repository
     public interface ITermDepositROITemplateRepository
     {
         Task<bool> AddTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate);
-        Task<bool> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate);
+        Task<List<TermDeposit_Roi_Template>> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate);
         Task<List<TDRateOfInterstDto>> GetTermDepositROITemplateListAsync(string[] tdSchemeTypeList);
         Task<double> GetROIForTermDepositAsync(DateTime depositDate, int schemeId, int prdInMonths, int prdInDays,string brCode);
         Task<double> GetPIForRDAsync(DateTime depositDate, int schemeId, int prdInMonths, string brCode);
