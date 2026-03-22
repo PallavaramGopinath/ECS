@@ -45,6 +45,16 @@
                             </select>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label">Filter by Date</label>
+                            <select @bind="FilterDate" class="form-select">
+                                <option value="">All Dates</option>
+                                @foreach (var dt in distinctWefDates)
+                                {
+                                    <option value="@dt.Value">@dt.Text </option>
+                                }
+                            </select>
+                        </div>
+                        @* <div class="col-md-3">
                             <label class="form-label">Holder Type</label>
                             <select @bind="FilterHolderType" class="form-select">
                                 <option value="">All Types</option>
@@ -53,13 +63,13 @@
                                 <option value="Corporate">Corporate</option>
                                 <option value="Trust">Trust</option>
                             </select>
-                        </div>
+                        </div> *@
                         <div class="col-md-3">
                             <label class="form-label">Period Type</label>
                             <select @bind="FilterPeriodType" class="form-select">
                                 <option value="">All</option>
-                                <option value="Days">Days</option>
-                                <option value="Months">Months</option>
+                                <option value="D">Days</option>
+                                <option value="M">Months</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -78,7 +88,7 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th>Scheme</th>
-                                    <th>Holder Type</th>
+                                    @* <th>Holder Type</th> *@
                                     <th>WEF</th>
                                     <th>Period</th>
                                     <th>ROI (%)</th>
@@ -112,7 +122,7 @@
                                     {
                                         <tr class="@(item.TDRoi_Delete ? "table-danger" : "")">
                                             <td>@GetSchemeName(item.TDScheme_Id)</td>
-                                            <td>@item.TDHolderType</td>
+                                            @* <td>@item.TDHolderType</td> *@
                                             <td>@item.Wef.ToString("dd-MMM-yyyy")</td>
                                             <td>
                                                 @item.PeriodBegin - @item.PeriodEnd @item.PeriodType
@@ -135,7 +145,7 @@
                                                             @onclick="() => ShowEditModal(item)">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                    @if (!item.TDRoi_Delete)
+                                                     @if (!item.TDRoi_Delete)
                                                     {
                                                         <button class="btn btn-outline-danger"
                                                                 @onclick="() => ConfirmDelete(item)">
@@ -191,18 +201,6 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Holder Type *</label>
-                            <InputSelect @bind-Value="CurrentTemplate.TDHolderType" class="form-control">
-                                <option value="">Select Type</option>
-                                <option value="Individual">Individual</option>
-                                <option value="Joint">Joint</option>
-                                <option value="Corporate">Corporate</option>
-                                <option value="Trust">Trust</option>
-                            </InputSelect>
-                            <ValidationMessage For="@(() => CurrentTemplate.TDHolderType)" />
-                        </div>
-
-                        <div class="col-md-6">
                             <label class="form-label">Effective From *</label>
                             <InputDate @bind-Value="CurrentTemplate.Wef" class="form-control" />
                             <ValidationMessage For="@(() => CurrentTemplate.Wef)" />
@@ -213,8 +211,8 @@
                             <InputSelect @bind-Value="CurrentTemplate.PeriodType"
                                          @onchange="OnPeriodTypeChange" class="form-control">
                                 <option value="">Select Type</option>
-                                <option value="Days">Days (0-364)</option>
-                                <option value="Months">Months (12-36)</option>
+                                <option value="D">Days (0-364)</option>
+                                <option value="M">Months (12-60)</option>
                             </InputSelect>
                             <ValidationMessage For="@(() => CurrentTemplate.PeriodType)" />
                         </div>
@@ -246,6 +244,10 @@
                             <ValidationMessage For="@(() => CurrentTemplate.PenalRateForRD)" />
                         </div>
 
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-secondary mt-2" @onclick="AddTemplate">Add</button>
+                        </div>
+
                         <div class="col-md-12">
                             <div class="alert alert-info">
                                 <i class="bi bi-info-circle"></i>
@@ -256,16 +258,60 @@
                                 }
                                 else if (CurrentTemplate.PeriodType == "Months")
                                 {
-                                    <span>Period must be between 12 and 36 months</span>
+                                    <span>Period must be between 12 and 60 months</span>
                                 }
                             </div>
                         </div>
                     </div>
                 </EditForm>
+                
+                @if (CurrentTemplateList != null && CurrentTemplateList.Count > 0)
+                {
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>With effect from</th>
+                                                    <th>Period Type</th>
+                                                    <th>Rate of interest</th>
+                                                    <th>Penal Interest Rate</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var roi in CurrentTemplateList)
+                                                {
+                                                    <tr>
+                                                        <td><span class="badge bg-secondary">@roi.Wef.ToString("dd-MM-yyyy")</span></td>
+                                                        <td>@roi.PeriodBegin - @roi.PeriodEnd @roi.PeriodType</td>
+                                                        <td>@roi.Roi</td>
+                                                        <td>@roi.PenalRateForRD</td>
+                                                        <td>
+                                                            <button class="btn btn-outline-danger"
+                                                                    @onclick="() => DeleteTemplate(roi)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                }
+
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary" @onclick="SaveTemplate">
+                <button type="submit" class="btn btn-primary" disabled="@(!CurrentTemplateList!.Any())" @onclick="SaveTemplate">
                     <i class="bi bi-save"></i> Save
                 </button>
             </div>
@@ -334,23 +380,34 @@
 
 @code {
     private List<TermDeposit_Roi_Template> RoiTemplates = new();
-    // private List<TDRateOfInterstDto> RoiTemplates = new();
+    private List<TermDeposit_Roi_Template> CurrentTemplateList = new();
     private List<TermDeposit_Schemes> Schemes = new();
     private TermDeposit_Roi_Template CurrentTemplate = new();
     private TermDeposit_Roi_Template SelectedTemplate = new();
     private bool IsEditMode = false;
     private bool Loading = true;
     private string BrCode = "11005";
+    private decimal UserId = 0;
+    private decimal YrId = 0;
+    private DateTime currentDate = DateTime.UtcNow;
 
     // private bool _isShowModal = false;
     private bool _isDetailedModal = false;
     private bool _isRoiModal = false;
+
+    // DTO for dropdown
+    public class DistinctDateDto
+    {
+        public DateTime Value { get; set; }
+        public string? Text { get; set; }
+    }
 
     // Filters
     private int FilterSchemeId = 0;
     private string FilterHolderType = "";
     private string FilterPeriodType = "";
     private string FilterStatus = "all";
+    private DateTime? FilterDate = null;
 
     private IEnumerable<TermDeposit_Roi_Template> FilteredTemplates =>
         RoiTemplates.Where(x =>
@@ -358,8 +415,21 @@
             (string.IsNullOrEmpty(FilterHolderType) || x.TDHolderType == FilterHolderType) &&
             (string.IsNullOrEmpty(FilterPeriodType) || x.PeriodType == FilterPeriodType) &&
             (FilterStatus == "all" || (FilterStatus == "active" && !x.TDRoi_Delete) ||
-             (FilterStatus == "deleted" && x.TDRoi_Delete))
+            (FilterStatus == "deleted" && x.TDRoi_Delete)) &&
+            (!FilterDate.HasValue || x.Wef.Date == FilterDate.Value.Date)
         );
+
+    private IEnumerable<DistinctDateDto> distinctWefDates =>
+            RoiTemplates
+            .Select(t => t.Wef)
+            .Distinct()
+            .OrderByDescending(d => d)   /// Most recent first
+            .Select(d => new DistinctDateDto
+            {
+                Value = d,
+                Text = d.ToString("dd-MMM-yyyy")
+            })
+            .ToList();
 
     // protected override async Task OnInitializedAsync()
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -368,7 +438,10 @@
         {
             var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
             BrCode = userInfoDto.BrCode!;
-
+            UserId = userInfoDto.UserId;
+            YrId = userInfoDto.YrId;
+            currentDate = userInfoDto.CurrentDate;
+            StateHasChanged();
             await LoadData();
         }
     }
@@ -387,15 +460,117 @@
         StateHasChanged();
     }
 
-    private async Task SaveTemplate()
+    private bool IsDuplicatePeriod()
     {
-        if (!ValidatePeriod())
+        return CurrentTemplateList.Any(x =>
+            x.PeriodType == CurrentTemplate.PeriodType &&
+            x.PeriodBegin == CurrentTemplate.PeriodBegin &&
+            x.PeriodEnd == CurrentTemplate.PeriodEnd);
+    }
+
+    private void ResetCurrentTemplate()
+    {
+        int beginPeriod = 0, endPeriod = 0;
+        string periodType = "";
+        if (CurrentTemplate.PeriodType == "D" && CurrentTemplate.PeriodEnd == 364)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Invalid period range for selected period type");
-            return;
+            periodType = "M";
+        }
+        else if(CurrentTemplate.PeriodType == "D" && CurrentTemplate.PeriodEnd <364)
+        {
+            periodType = CurrentTemplate.PeriodType!;
+            beginPeriod = CurrentTemplate.PeriodEnd + 1;
+            endPeriod = CurrentTemplate.PeriodEnd + 90;
+        }
+        else if(CurrentTemplate.PeriodType == "M")
+        {
+            periodType = CurrentTemplate.PeriodType!;
+            beginPeriod = CurrentTemplate.PeriodEnd + 1;
+            endPeriod = CurrentTemplate.PeriodEnd + 12;
         }
 
-        // using var context = DbFactory.CreateDbContext();
+        CurrentTemplate = new TermDeposit_Roi_Template
+        {
+            TDScheme_Id = CurrentTemplate?.TDScheme_Id ?? 0, // Preserve scheme if needed
+            Wef = currentDate,
+            PeriodType = periodType ,
+            PeriodBegin = beginPeriod ,
+            PeriodEnd = endPeriod ,
+            Roi = CurrentTemplate!.Roi +0.5,
+            PenalRateForRD = 0
+        };
+    }
+
+    private void AddTemplate()
+    {
+        // Validate scheme selection
+        if (CurrentTemplate.TDScheme_Id == 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please select a scheme first");
+            return;
+        }
+        // Validate period
+        if (!ValidatePeriod())
+        {
+            JSRuntime.InvokeVoidAsync("alert", GetPeriodValidationMessage());
+            return;
+        }
+        // Check for duplicate
+        if (IsDuplicatePeriod())
+        {
+            JSRuntime.InvokeVoidAsync("alert", "This period range already exists in the list!");
+            return;
+        }
+        // Create a copy of current template
+        var templateToAdd = new TermDeposit_Roi_Template
+        {
+            TDScheme_Id = CurrentTemplate.TDScheme_Id,
+            TDHolderType = null,
+            Wef = CurrentTemplate.Wef,
+            Roi = CurrentTemplate.Roi,
+            PeriodType = CurrentTemplate.PeriodType,
+            PeriodBegin = CurrentTemplate.PeriodBegin,
+            PeriodEnd = CurrentTemplate.PeriodEnd,
+            PenalRateForRD = CurrentTemplate.PenalRateForRD,
+            TDRoi_Delete = false,
+            BrCode = BrCode ,
+            Usr_Id = UserId ,
+            Yr_Id = YrId
+        };
+        CurrentTemplateList.Add(templateToAdd);
+        // Reset form for next entry
+        ResetCurrentTemplate();
+
+        // Show success message
+        // JSRuntime.InvokeVoidAsync("alert", "Template added to list successfully!");
+    }
+
+    private void DeleteTemplate(TermDeposit_Roi_Template template)
+    {
+        if (template.TDScheme_Id > 0)
+            CurrentTemplateList.Remove(template);
+        StateHasChanged();
+    }
+
+    private async Task SaveTemplate()
+    {
+        // if (!ValidatePeriod())
+        if(CurrentTemplateList == null || CurrentTemplateList.Count == 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Template date is empty");
+            return;
+        }
+        var response = await _httpClient.PostAsJsonAsync("api/TermDeposit/AddTDTemplates", CurrentTemplateList );
+        if (response.IsSuccessStatusCode)
+        {
+            // isSubmitted = true;
+            // submittedMessage = "Transaction approved successfully!";
+            RoiTemplates = new();
+            var result  = await response.Content.ReadFromJsonAsync<List<TermDeposit_Roi_Template>>();
+            if (result != null && result.Count > 0) RoiTemplates = result.ToList();
+            StateHasChanged();
+            await JSRuntime.InvokeVoidAsync("alert", "Template updated successfully!");
+        }
 
         if (IsEditMode)
         {
@@ -411,9 +586,9 @@
         {
             CurrentTemplate.Roi_Id = 0;
             CurrentTemplate.TDRoi_Delete = false;
-            // CurrentTemplate.Usr_Id = GetCurrentUserId();
-            // CurrentTemplate.Yr_Id = GetCurrentYearId();
-            // CurrentTemplate.BrCode = GetBranchCode();
+            CurrentTemplate.Usr_Id = UserId;
+            CurrentTemplate.Yr_Id = YrId;
+            CurrentTemplate.BrCode = BrCode;
 
             // await context.TermDeposit_Roi_Templates.AddAsync(CurrentTemplate);
             // await context.SaveChangesAsync();
@@ -448,16 +623,16 @@
         if (string.IsNullOrEmpty(CurrentTemplate.PeriodType))
             return false;
 
-        if (CurrentTemplate.PeriodType == "Days")
+        if (CurrentTemplate.PeriodType == "D")
         {
             return CurrentTemplate.PeriodBegin >= 0 &&
                    CurrentTemplate.PeriodEnd <= 364 &&
                    CurrentTemplate.PeriodBegin <= CurrentTemplate.PeriodEnd;
         }
-        else if (CurrentTemplate.PeriodType == "Months")
+        else if (CurrentTemplate.PeriodType == "M")
         {
             return CurrentTemplate.PeriodBegin >= 12 &&
-                   CurrentTemplate.PeriodEnd <= 36 &&
+                   CurrentTemplate.PeriodEnd <= 60 &&
                    CurrentTemplate.PeriodBegin <= CurrentTemplate.PeriodEnd;
         }
         return false;
@@ -468,7 +643,7 @@
         if (CurrentTemplate.PeriodType == "Days")
             return "Valid range: 0 to 364 days";
         if (CurrentTemplate.PeriodType == "Months")
-            return "Valid range: 12 to 36 months";
+            return "Valid range: 12 to 60 months";
         return "Select period type first";
     }
 
@@ -483,7 +658,7 @@
         else if (periodType == "Months")
         {
             CurrentTemplate.PeriodBegin = 12;
-            CurrentTemplate.PeriodEnd = 24;
+            CurrentTemplate.PeriodEnd = 60;
         }
     }
 
@@ -496,7 +671,7 @@
         IsEditMode = false;
         CurrentTemplate = new TermDeposit_Roi_Template
         {
-            Wef = DateTime.Today,
+            Wef = currentDate,
             PeriodBegin = 0,
             PeriodEnd = 90,
             PeriodType = "Days",

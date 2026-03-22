@@ -35,6 +35,31 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<List<TermDeposit_Roi_Template>> AddTermDepositROITemplateList(List<TermDeposit_Roi_Template> termDepositList)
+        {
+            List<TermDeposit_Roi_Template> roiList = new();
+            int schemeId = termDepositList.Select(x=> x.TDScheme_Id).FirstOrDefault();
+            try
+            {
+                decimal maxId = await CSISContext.TermDeposit_Roi_Template.MaxAsync(x => x.Roi_Id);
+                maxId++;
+                foreach(var td in termDepositList)
+                {
+                    td.Roi_Id = maxId;
+                    maxId++;
+                }
+                await CSISContext.TermDeposit_Roi_Template.AddRangeAsync(termDepositList);
+                await CSISContext.SaveChangesAsync();
+                var query = await CSISContext.TermDeposit_Roi_Template.Where(x => x.TDScheme_Id == schemeId).ToListAsync();
+                if (query != null && query.Count > 0) roiList = query.ToList();
+            }
+            catch (Exception)
+            {
+                roiList = new();
+            }
+            return roiList;
+        }
+
         public async Task<bool> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate)
         {
             bool result = false;
@@ -259,5 +284,6 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
     }
 }

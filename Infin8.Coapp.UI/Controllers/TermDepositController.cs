@@ -178,5 +178,15 @@ namespace Infin8.Coapp.API.Controllers
             if(query != null && query.Count > 0) schemeList = query.ToList();
             return Ok(schemeList);
         }
+
+        [HttpPost]
+        [Route("AddTDTemplates")]
+        public async Task<ActionResult<List<TermDeposit_Roi_Template>>> AddTDTemplates([FromBody] List<TermDeposit_Roi_Template > templateList)
+        {
+            List<TermDeposit_Roi_Template> roiList = new();
+            var query = await  _termDepositROITemplateHandler.AddTermDepositROITemplateList(templateList);
+            if (query != null && query.Count > 0) roiList = query.ToList();
+            return Ok(roiList);
+        }
     }
 }

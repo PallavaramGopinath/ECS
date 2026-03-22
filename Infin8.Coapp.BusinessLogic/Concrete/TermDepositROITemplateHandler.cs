@@ -22,6 +22,11 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositROITemplate.AddTermDepositROITemplateAsync(termDepositROITemplate);
         }
 
+        public async Task<List<TermDeposit_Roi_Template>> AddTermDepositROITemplateList(List<TermDeposit_Roi_Template> termDepositList)
+        {
+            return await _unitOfWork.TermDepositROITemplate.AddTermDepositROITemplateList(termDepositList);
+        }
+
         public async Task<bool> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate)
         {
             return await _unitOfWork.TermDepositROITemplate.EditTermDepositROITemplateAsync(termDepositROITemplate);
@@ -45,5 +50,6 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.TermDepositROITemplate.GetTermDepositRateOfInterestList(SchemeType, brCode);
         }
+
     }
 }
