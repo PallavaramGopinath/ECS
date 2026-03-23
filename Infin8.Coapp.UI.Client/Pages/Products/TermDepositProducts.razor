@@ -1,4 +1,5 @@
 ﻿@page "/td-schemes"
+@using Infin8.Coapp.Dto
 @using Infin8.Coapp.Models
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
@@ -134,7 +135,7 @@
                                 }
                                 else
                                 {
-                                    @foreach (var item in FilteredSchemes.OrderBy(x=> x.TDScheme_Id))
+                                    @foreach (var item in FilteredSchemes.OrderBy(x => x.TDScheme_Id))
                                     {
                                         <tr class="@(item.TDScheme_Delete ? "table-danger" : "")">
                                             <td>@item.TDScheme_Id</td>
@@ -148,11 +149,11 @@
                                                 {
                                                     <span class="badge bg-info">Recurring Deposit</span>
                                                 }
-                                                else if(item.TDSchemeType == "S")
+                                                else if (item.TDSchemeType == "S")
                                                 {
                                                     <span class="badge bg-secondary">Security Deposit</span>
                                                 }
-                                                else if(item.TDSchemeType == "C")
+                                                else if (item.TDSchemeType == "C")
                                                 {
                                                     <span class="badge bg-warning">Cash Certificate</span>
                                                 }
@@ -249,9 +250,9 @@
                             <label class="form-label">Period Type *</label>
                             <InputSelect @bind-Value="CurrentScheme.PeriodType" class="form-control">
                                 <option value="">Select Period Type</option>
-                                <option value="Days">Days</option>
-                                <option value="Months">Months</option>
-                                <option value="Years">Years</option>
+                                <option value="D">Days</option>
+                                <option value="M">Months</option>
+                                <option value="Y">Years</option>
                             </InputSelect>
                             <ValidationMessage For="@(() => CurrentScheme.PeriodType)" />
                         </div>
@@ -272,25 +273,47 @@
 
                         <div class="col-md-4">
                             <label class="form-label">Principal GL *</label>
-                            <InputNumber @bind-Value="CurrentScheme.Led_Id" class="form-control" />
+                            @* <InputNumber @bind-Value="CurrentScheme.Led_Id" class="form-control" /> *@
+                            <InputSelect class="form-select" id="prlLedId" @bind-Value="CurrentScheme.Led_Id">
+                                <option value="0">--Principal GL--</option>
+                                @foreach (var account in prlLedgerList)
+                                {
+                                    <option value="@account.Value">@account.Text</option>
+                                }
+                            </InputSelect>
                             <ValidationMessage For="@(() => CurrentScheme.Led_Id)" />
                             <small class="text-muted">General Ledger for principal amount</small>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label">Interest GL *</label>
-                            <InputNumber @bind-Value="CurrentScheme.IntLed_Id" class="form-control" />
+                            @* <InputNumber @bind-Value="CurrentScheme.IntLed_Id" class="form-control" /> *@
+                            <InputSelect class="form-select" id="intLedId" @bind-Value="CurrentScheme.IntLed_Id">
+                                <option value="0">--Interest GL--</option>
+                                @foreach (var account in intLedgerList)
+                                {
+                                    <option value="@account.Value">@account.Text</option>
+                                }
+                            </InputSelect>
                             <ValidationMessage For="@(() => CurrentScheme.IntLed_Id)" />
                             <small class="text-muted">General Ledger for interest payment</small>
                         </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Penal Interest GL *</label>
-                            <InputNumber @bind-Value="CurrentScheme.PiLed_Id" class="form-control" />
-                            <ValidationMessage For="@(() => CurrentScheme.PiLed_Id)" />
-                            <small class="text-muted">General Ledger for penal interest</small>
-                        </div>
-
+                        @if (CurrentScheme.TDSchemeType == "R")
+                        {
+                            <div class="col-md-4">
+                                <label class="form-label">Penal Interest GL *</label>
+                                @* <InputNumber @bind-Value="CurrentScheme.PiLed_Id" class="form-control" /> *@
+                                <InputSelect class="form-select" id="piLedId" @bind-Value="CurrentScheme.PiLed_Id">
+                                    <option value="0">--Penal Interest GL--</option>
+                                    @foreach (var account in piLedgerList)
+                                    {
+                                        <option value="@account.Value">@account.Text</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => CurrentScheme.PiLed_Id)" />
+                                <small class="text-muted">General Ledger for penal interest</small>
+                            </div>
+                        }
                         @if (IsEditMode)
                         {
                             <div class="col-md-12">
@@ -407,6 +430,16 @@
     private List<Fin_Ledger> GlAccounts = new(); // For GL selection dropdown
     private TermDeposit_Schemes CurrentScheme = new();
     private TermDeposit_Schemes SelectedScheme = new();
+
+    private List<DropdownItem> prlLedgerList = new List<DropdownItem>();
+    private List<DropdownItem> intLedgerList = new List<DropdownItem>();
+    private List<DropdownItem> piLedgerList = new List<DropdownItem>();
+
+    private string BrCode ="";
+    private decimal UserId =0;
+    private decimal YrId = 0;
+    private DateTime CurrentDate = DateTime.UtcNow;
+
     private bool IsEditMode = false;
     private bool Loading = true;
 
@@ -453,12 +486,18 @@
         if (firstRender)
         {
             var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
-            CurrentScheme.BrCode  = userInfoDto.BrCode!;
+            BrCode = userInfoDto.BrCode!;
+            UserId = userInfoDto.UserId;
+            YrId = userInfoDto.YrId;
+            CurrentDate = userInfoDto.CurrentDate;
+
+            CurrentScheme.BrCode = userInfoDto.BrCode!;
             CurrentScheme.Usr_Id = userInfoDto.UserId;
-            CurrentScheme.Yr_Id  = userInfoDto.YrId;
+            CurrentScheme.Yr_Id = userInfoDto.YrId;
             StateHasChanged();
             await LoadData();
             await LoadGLAccounts();
+            await GetLedgerList(BrCode);
         }
     }
 
@@ -467,7 +506,7 @@
         Loading = true;
         try
         {
-            var query = await _httpClient.GetFromJsonAsync<List<TermDeposit_Schemes>>($"api/TermDeposit/GetTermDepositSchemeList/{CurrentScheme.BrCode}");
+            var query = await _httpClient.GetFromJsonAsync<List<TermDeposit_Schemes>>($"api/TermDeposit/GetTermDepositSchemeList/{BrCode}");
             if (query != null && query.Count > 0)
                 Schemes = query!.ToList();
         }
@@ -487,7 +526,7 @@
         Loading = true;
         try
         {
-            var query = await _httpClient.GetFromJsonAsync<List<Fin_Ledger>>($"api/Accounts/GetLedgerListAsync/{CurrentScheme.BrCode}");
+            var query = await _httpClient.GetFromJsonAsync<List<Fin_Ledger>>($"api/Accounts/GetLedgerListAsync/{BrCode}");
             if (query != null && query.Count > 0)
                 GlAccounts = query!.ToList();
         }
@@ -514,27 +553,9 @@
 
         try
         {
-            if (IsEditMode)
-            {
-                // Update existing scheme
-                // var existing = await context.TermDeposit_Schemes.FindAsync(CurrentScheme.TDScheme_Id);
-                // if (existing != null)
-                // {
-                //     existing.TDScheme_Name = CurrentScheme.TDScheme_Name;
-                //     existing.TDSchemeType = CurrentScheme.TDSchemeType;
-                //     existing.MinimumPeriod = CurrentScheme.MinimumPeriod;
-                //     existing.MaximumPeriod = CurrentScheme.MaximumPeriod;
-                //     existing.PeriodType = CurrentScheme.PeriodType;
-                //     existing.Led_Id = CurrentScheme.Led_Id;
-                //     existing.IntLed_Id = CurrentScheme.IntLed_Id;
-                //     existing.PiLed_Id = CurrentScheme.PiLed_Id;
-                //     existing.TDScheme_Delete = CurrentScheme.TDScheme_Delete;
 
-                //     await context.SaveChangesAsync();
-                //     await JSRuntime.InvokeVoidAsync("alert", "Scheme updated successfully");
-                // }
-            }
-            else
+
+            if (!IsEditMode)
             {
                 // Check for duplicate scheme name
                 if (IsDuplicateSchemeName(CurrentScheme.TDScheme_Name!))
@@ -542,7 +563,6 @@
                     await JSRuntime.InvokeVoidAsync("alert", "A scheme with this name already exists!");
                     return;
                 }
-
                 // Create new scheme
                 var newScheme = new TermDeposit_Schemes
                 {
@@ -555,17 +575,33 @@
                     IntLed_Id = CurrentScheme.IntLed_Id,
                     PiLed_Id = CurrentScheme.PiLed_Id,
                     TDScheme_Delete = false,
-                    Usr_Id = CurrentScheme.Usr_Id,
-                    Yr_Id = CurrentScheme.Yr_Id,
-                    BrCode = CurrentScheme.BrCode 
+                    Usr_Id = UserId,
+                    Yr_Id = YrId,
+                    BrCode = BrCode
                 };
-
-                // await context.TermDeposit_Schemes.AddAsync(newScheme);
-                // await context.SaveChangesAsync();
-                // await JSRuntime.InvokeVoidAsync("alert", "Scheme created successfully");
+                var response = await _httpClient.PostAsJsonAsync("api/TermDeposit/AddTermDepositScheme", newScheme);
+                if (response.IsSuccessStatusCode)
+                {
+                    Schemes = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<TermDeposit_Schemes>>();
+                    if (result != null && result.Count > 0) Schemes = result.ToList();
+                    StateHasChanged();
+                    await JSRuntime.InvokeVoidAsync("alert", "Term deposit product added successfully!");
+                }
             }
-
-            await LoadData();
+            else
+            {
+                // Update existing scheme
+                var response = await _httpClient.PostAsJsonAsync("api/TermDeposit/EditTermDepositScheme", CurrentScheme);
+                if (response.IsSuccessStatusCode)
+                {
+                    Schemes = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<TermDeposit_Schemes>>();
+                    if (result != null && result.Count > 0) Schemes = result.ToList();
+                    StateHasChanged();
+                    await JSRuntime.InvokeVoidAsync("alert", "Term deposit scheme updated successfully!");
+                }
+            }
             await CloseModal();
             StateHasChanged();
         }
@@ -577,14 +613,14 @@
 
     private bool IsDuplicateSchemeName(string schemeName)
     {
-        bool result = true;
+        bool result = false;
         if (string.IsNullOrEmpty(schemeName))
             return false;
         var query = Schemes.Where(x => x.TDScheme_Name!.ToLower() == schemeName.ToLower()
-            && !x.TDScheme_Delete).ToList ();
+            && !x.TDScheme_Delete).ToList();
         if (query != null && query.Count > 0)
         {
-            result= false;
+            result = true;
         }
         return result;
         // return await context.TermDeposit_Schemes
@@ -624,13 +660,14 @@
             JSRuntime.InvokeVoidAsync("alert", "Please select valid Interest GL");
             return false;
         }
-
-        if (CurrentScheme.PiLed_Id <= 0)
+        if (CurrentScheme.TDSchemeType == "R")
         {
-            JSRuntime.InvokeVoidAsync("alert", "Please select valid Penal Interest GL");
-            return false;
+            if (CurrentScheme.PiLed_Id <= 0)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Please select valid Penal Interest GL");
+                return false;
+            }
         }
-
         return true;
     }
 
@@ -682,15 +719,16 @@
 
         if (confirmed)
         {
-            // using var context = DbFactory.CreateDbContext();
-            // var item = await context.TermDeposit_Schemes.FindAsync(scheme.TDScheme_Id);
-            // if (item != null)
-            // {
-            //     item.TDScheme_Delete = true;
-            //     await context.SaveChangesAsync();
-            //     await LoadData();
-            //     await JSRuntime.InvokeVoidAsync("alert", "Scheme deleted successfully");
-            // }
+            scheme.TDScheme_Delete = true;
+            var response = await _httpClient.PostAsJsonAsync("api/TermDeposit/EditTermDepositScheme", scheme);
+            if (response.IsSuccessStatusCode)
+            {
+                Schemes = new();
+                var result = await response.Content.ReadFromJsonAsync<List<TermDeposit_Schemes>>();
+                if (result != null && result.Count > 0) Schemes = result.ToList();
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("alert", "Term deposit product deleted successfully!");
+            }
         }
     }
 
@@ -751,6 +789,32 @@
         SearchText = "";
         FilterStatus = "all";
         StateHasChanged();
+    }
+
+    private async Task GetLedgerList(string brCode)
+    {
+        try
+        {
+            var prlLedger = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetLedgerList/2/{brCode}");
+            if (prlLedger != null && prlLedger.Any())
+            {
+                prlLedgerList = prlLedger.ToList();
+            }
+            var intLedger = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetLedgerList/4/{brCode}");
+            if (intLedger != null && intLedger.Any())
+            {
+                intLedgerList = intLedger.ToList();
+                piLedgerList = intLedger.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
     }
 
     private int GetCurrentUserId()

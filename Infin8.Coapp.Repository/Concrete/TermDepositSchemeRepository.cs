@@ -17,40 +17,43 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme)
+        public async Task<List<TermDeposit_Schemes>> AddTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme)
         {
-            bool result = false;
+            List<TermDeposit_Schemes> schemes = new();
             try
             {
                 int maxId = await CSISContext.TermDeposit_Schemes.MaxAsync(x => x.TDScheme_Id);
                 maxId++;
                 termDepositScheme.TDScheme_Id = maxId;
                 await AddAsync(termDepositScheme);
-                result = true;
+                await CSISContext.SaveChangesAsync();
+                var query = CSISContext.TermDeposit_Schemes.Where(x=> x.BrCode == termDepositScheme.BrCode ).ToList();
+                if (query != null && query.Count > 0) schemes = query.ToList();
             }
             catch (Exception ex)
             {
-                result = false;
+                schemes = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit scheme not saved");
             }
-            return result;
+            return schemes;
         }
 
-        public async Task<bool> EditTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme)
+        public async Task<List<TermDeposit_Schemes>> EditTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme)
         {
-            bool result = false;
+            List<TermDeposit_Schemes> schemes = new();
             try
             {
-                //termDepositFCTemplate.TDfc_Delete = true;
                 await EditAsync(termDepositScheme);
-                result = true;
+                await CSISContext.SaveChangesAsync();
+                var query = CSISContext.TermDeposit_Schemes.Where(x => x.BrCode == termDepositScheme.BrCode).ToList();
+                if (query != null && query.Count > 0) schemes = query.ToList();
             }
             catch (Exception ex)
             {
-                result = false;
+                schemes = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit scheme not deleted");
             }
-            return result;
+            return schemes;
         }
 
         public async Task<List<DropdownItem>> GetTermDepositSchemeTypesAsync()

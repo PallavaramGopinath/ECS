@@ -28,6 +28,27 @@ namespace Infin8.Coapp.API.Controllers
             _termDepositMasterHandler = termDepositMasterHandler;
             _termDepositLoanEligibleTemplateHandler = termDepositLoanEligibleTemplateHandler; 
         }
+
+        [HttpPost]
+        [Route("AddTermDepositScheme")]
+        public async Task<ActionResult<List<TermDeposit_Schemes>>> AddTermpositScheme([FromBody] TermDeposit_Schemes scheme)
+        {
+            List<TermDeposit_Schemes> schemes = new();
+            var query = await _termDepositSchemeHandler.AddTermDepositSchemeAsync(scheme);
+            if (query != null && query.Count > 0) schemes = query.ToList();
+            return Ok(schemes);
+        }
+
+        [HttpPost]
+        [Route("EditTermDepositScheme")]
+        public async Task<ActionResult<List<TermDeposit_Schemes>>> EditTermpositScheme([FromBody] TermDeposit_Schemes scheme)
+        {
+            List<TermDeposit_Schemes> schemes = new();
+            var query = await _termDepositSchemeHandler.EditTermDepositSchemeAsync(scheme);
+            if (query != null && query.Count > 0) schemes = query.ToList();
+            return Ok(schemes);
+        }
+
         [HttpGet]
         [Route("GetTDScheme/{schemeTypes}/{brCode}")]
         public async Task<ActionResult<List<DropdownItem>>> GetTermDepositSchemeList(string schemeTypes, string brCode)
@@ -38,6 +59,7 @@ namespace Infin8.Coapp.API.Controllers
             if(schList != null) {schemeList = schList.ToList();}
             return Ok(schemeList);
         }
+        
         [HttpGet]
         [Route("GetTDROI")]
         public async Task<ActionResult<double>> GetTDROI([FromQuery] DateTime depositDate, [FromQuery] int  schemeId, [FromQuery] int prdInMonths, [FromQuery] int prdInDays, string brCode)
@@ -56,6 +78,7 @@ namespace Infin8.Coapp.API.Controllers
             if(fdNos != null) fdNosList = fdNos.ToList();
             return Ok(fdNosList);
         }
+        
         [HttpGet]
         [Route("GetFDPayable")]
         public async Task<ActionResult<List<FDDetailsVM>>> GetFDPayable([FromQuery] decimal[] fdNos, [FromQuery] DateTime toDate, [FromQuery] int accountId,  [FromQuery] string brCode)
@@ -65,6 +88,7 @@ namespace Infin8.Coapp.API.Controllers
             if(details != null) fdDetails = details.ToList();
             return Ok(fdDetails);
         }
+        
         [HttpGet]
         [Route("GetFDDetailsForLoan")]
         public async Task<ActionResult<List<FDDataForLoan>>> GetFDDetailsForLoan([FromQuery] decimal[] fdIds)
@@ -74,6 +98,7 @@ namespace Infin8.Coapp.API.Controllers
             if (deatils != null) fdDetails = deatils.ToList();
             return Ok(fdDetails);
         }
+        
         [HttpGet]
         [Route("GetTDLoanEligiblePercentage/{tdSchemeType:int}/{brCode}")]
         public async Task<ActionResult<double>> GetTDLoanEligiblePercentage(int tdSchemeType, string brCode)
@@ -188,7 +213,6 @@ namespace Infin8.Coapp.API.Controllers
             if (query != null && query.Count > 0) roiList = query.ToList();
             return Ok(roiList);
         }
-
 
         [HttpPost]
         [Route("EditTDTemplate")]

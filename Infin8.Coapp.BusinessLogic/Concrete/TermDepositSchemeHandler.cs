@@ -17,38 +17,38 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme)
+        public async Task<List<TermDeposit_Schemes>> AddTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme)
         {
-            bool result = false;
+            List<TermDeposit_Schemes> schemes = new();
             try
             {
-                result = await _unitOfWork.TermDepositScheme.AddTermDepositSchemeAsync(termDepositScheme);
+                var result = await _unitOfWork.TermDepositScheme.AddTermDepositSchemeAsync(termDepositScheme);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if (result != null && result.Count > 0) schemes = result.ToList();
             }
             catch (Exception ex)
             {
-                result = false;
+                schemes = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit scheme not saved");
             }
-            return result;
+            return schemes;
         }
 
-        public async Task<bool> EditTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme)
+        public async Task<List<TermDeposit_Schemes>> EditTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme)
         {
-            bool result = false;
+            List<TermDeposit_Schemes> schemes = new();
             try
             {
-                result = await _unitOfWork.TermDepositScheme.EditTermDepositSchemeAsync(termDepositScheme);
+                var result = await _unitOfWork.TermDepositScheme.EditTermDepositSchemeAsync(termDepositScheme);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if (result != null && result.Count > 0) schemes = result.ToList();
             }
             catch (Exception ex)
             {
-                result = false;
+                schemes = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Term deposit scheme not deleted");
             }
-            return result;
+            return schemes;
         }
 
         public async Task<TermDeposit_Schemes> GetTermDepositSchemeByIdAsync(int schemeId)
