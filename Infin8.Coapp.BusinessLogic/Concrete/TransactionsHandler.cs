@@ -79,6 +79,7 @@ namespace Infin8.Coapp.BusinessLogic
             Fin_Voucher_Trn vocTrn = new();
             List<Loan_Trn> loanTrnList = new();
             List<Mem_Trn>memberTrnList = new();
+            List<Fin_Voucher_Bank> finVocBankList = new();
             try
             {
                 _unitOfWork.BeginTransaction();
@@ -515,7 +516,8 @@ namespace Infin8.Coapp.BusinessLogic
                             finVocBank = Utility.GetModalObject.GetFinVocBankObject(trns.Transacted_Date, chequeData.Member_Id, trns.Receipt_Amount > 0 ? "C" : "O", chequeData.Issue_Bank_Name!, vocId, trns.Ledger_Id, trns.Receipt_Amount > 0 ? trns.Receipt_Amount : trns.Payment_Amount, chequeData.Cheque_No!, chequeData.Cheque_Date!, null, 0, false, null, "", null, 0, Checked_By, yrId, false, brCode);
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Narration, false, Checked_By, yrId, Status, "", trns.Transacted_Member_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
-                            result = await _unitOfWork.FinVoucherBank.AddFinVoucherBankAsync(finVocBank);
+                            finVocBankList.Add(finVocBank);
+                            //result = await _unitOfWork.FinVoucherBank.AddFinVoucherBankAsync(finVocBank);
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
                             #endregion 
                             break;
@@ -1385,6 +1387,11 @@ namespace Infin8.Coapp.BusinessLogic
                 }
                 /// Insert all the voucher transactions
                 result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
+                /// Insert all bank transactions
+                if (finVocBankList != null && finVocBankList.Any())
+                {
+                    result = await _unitOfWork.FinVoucherBank.AddFinVoucherBankListAsync(finVocBankList);
+                }
                 /// update staging_master with checked by and checked date
                 result = await _unitOfWork.StagingMaster.CheckerStateStaging(stagingId, vocId, Checked_By, "V");
                 result = await _unitOfWork.StagingDetails.CheckerStateStaging(stagingId, vocId, Checked_By, "V");

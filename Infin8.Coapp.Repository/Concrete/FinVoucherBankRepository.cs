@@ -35,6 +35,28 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<bool> AddFinVoucherBankListAsync(List<Fin_Voucher_Bank> finVoucherBankList)
+        {
+            bool result = false;
+            try
+            {
+                decimal maxId = CSISContext.Fin_Voucher_Bank.Max(x => x.Fvb_Id);
+                foreach (var finBankTrn in finVoucherBankList)
+                {
+                    maxId++;
+                    finBankTrn.Fvb_Id  = maxId;
+                }
+                await CSISContext.Fin_Voucher_Bank.AddRangeAsync(finVoucherBankList);
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Bank transaction not saved");
+            }
+            return result;
+        }
+
         public async Task<bool> EditFinVoucherBankAsync(Fin_Voucher_Bank finVoucherBank)
         {
             bool result = false;

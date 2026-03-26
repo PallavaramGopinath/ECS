@@ -202,19 +202,27 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="form-check form-switch">
+                            <InputCheckbox class="form-check-input" id="appraisal" 
+                                        @bind-Value="isApplyAppraisalFee" 
+                                           @bind-Value:after="CalculateEligibleAmount" />
+                            <label class="form-check-label" for="appraisal">Apply Appraisal Fee</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="grossWeight">Gross Weight (grams):</label>
                             <InputNumber id="grossWeight" class="form-control" @bind-Value="loanDetails.Gross_Weight" @bind-Value:after="CalculateEligibleAmount" />
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="wastage">Wastage (grams):</label>
                             <InputNumber id="wastage" class="form-control" @bind-Value="loanDetails.Wasgate" @bind-Value:after="CalculateEligibleAmount" />
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label for="netWeight">Net Weight (grams):</label>
                             <InputNumber id="netWeight" class="form-control" disabled="true" @bind-Value="loanDetails.Net_Weight" readonly />
@@ -366,6 +374,8 @@
     private string errorMessage = "";
     private DtoStaging_Details stagingDetails = new();
     private bool isCameraInitialized = false;
+
+    private bool isApplyAppraisalFee = true;
     #endregion
 
     protected override async Task OnInitializedAsync()
@@ -540,16 +550,24 @@
 
     private void CalculateAppraisalFee()
     {
-        if (loanDetails.Loan_Amount <= 0) 
+        if (isApplyAppraisalFee)
+        {
+            if (loanDetails.Loan_Amount <= 0)
+            {
+                loanDetails.AppraisalFee = 0;
+                loanDetails.BankCharges = 0;
+                return;
+            }
+            DtoAppraisalFee fee = new DtoAppraisalFee();
+            fee = AppraisalFee.GetAppraisalFee(loanDetails.Loan_Amount);
+            loanDetails.AppraisalFee = fee.AppraisalFee;
+            loanDetails.BankCharges = fee.BankCharges;
+        }
+        else
         {
             loanDetails.AppraisalFee = 0;
             loanDetails.BankCharges = 0;
-            return;
         }
-        DtoAppraisalFee fee = new DtoAppraisalFee();
-        fee = AppraisalFee.GetAppraisalFee(loanDetails.Loan_Amount);
-        loanDetails.AppraisalFee = fee.AppraisalFee;
-        loanDetails.BankCharges = fee.BankCharges;
     }
 
     private void CalculateEligibleAmount()

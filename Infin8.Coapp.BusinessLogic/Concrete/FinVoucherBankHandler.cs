@@ -33,6 +33,11 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
+        public async Task<bool> AddFinVoucherBankListAsync(List<Fin_Voucher_Bank> finVoucherBankList)
+        {
+            return await _unitOfWork.FinVoucherBank.AddFinVoucherBankListAsync(finVoucherBankList);
+        }
+
         public async Task<bool> EditFinVoucherBankAsync(Fin_Voucher_Bank finVoucherBank)
         {
             bool result = false;
