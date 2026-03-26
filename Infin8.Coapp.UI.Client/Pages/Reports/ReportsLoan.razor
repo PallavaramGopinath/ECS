@@ -1,6 +1,6 @@
 ﻿@page "/reports-loan"
 
-<h3>Loan Reports</h3>
+
 @using Infin8.Coapp.Dto
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
@@ -12,6 +12,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
+<h3>Loan Reports</h3>
 <!-- loading spinner -->
 @if (_isLoading)
 {

@@ -1,4 +1,5 @@
 ﻿using Infin8.Coapp.BusinessLogic;
+using Infin8.Coapp.BusinessLogic.Interface;
 using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Microsoft.AspNetCore.Http;
@@ -15,11 +16,94 @@ namespace Infin8.Coapp.UI.Controllers
         readonly IPaySlipHandler _paySlipHandler;
         readonly IEmpMasterHandler _empMasterHandler;
         readonly IPayInitHandler _payInitHandler;
-        public PayController( IPaySlipHandler paySlipHandler, IEmpMasterHandler empMasterHandler,IPayInitHandler payInitHandler)
+        readonly IPayComponentHandler _payComponentHandler;
+        readonly IPayComponentAssignmentsHandler _payComponentAssignmentsHandler;
+
+        public PayController( IPaySlipHandler paySlipHandler, IEmpMasterHandler empMasterHandler,
+            IPayInitHandler payInitHandler,IPayComponentHandler payComponentHandler,
+            IPayComponentAssignmentsHandler payComponentAssignmentsHandler  )
         {
             _paySlipHandler = paySlipHandler;
             _empMasterHandler = empMasterHandler;
             _payInitHandler = payInitHandler;
+            _payComponentHandler = payComponentHandler;
+            _payComponentAssignmentsHandler = payComponentAssignmentsHandler;
+        }
+
+        [HttpPost]
+        [Route("AddPayComponent")]
+        public async Task<ActionResult <List<Pay_Components>>> AddPayComponent([FromBody] Pay_Components component)
+        {
+            List<Pay_Components> list = new();
+            var result = await _payComponentHandler.AddPayComponent(component);
+            if (result != null && result.Count > 0) list = result.ToList();
+            if (result != null) list = result;
+            return Ok(list);
+        }
+
+        [HttpPost]
+        [Route("AddPayComponentAssignments")]
+        public async Task<ActionResult<List<Pay_Component_Assignments>>> AddPayComponentAssignments([FromBody] Pay_Component_Assignments component)
+        {
+            List<Pay_Component_Assignments> list = new();
+            var result = await _payComponentAssignmentsHandler.AddPayComponentAssignments(component);
+            if (result != null && result.Count > 0) list = result.ToList();
+            if (result != null)  list = result;
+            return Ok(list);
+        }
+
+
+        [HttpPost]
+        [Route("NewPayComponentAssignments")]
+        public async Task<ActionResult<List<Pay_Component_Assignments>>> NewPayComponentAssignments([FromBody] List<Pay_Component_Assignments> components)
+        {
+            List<Pay_Component_Assignments> list = new();
+            var result = await _payComponentAssignmentsHandler.AddPayComponentAssignments(components);
+            if (result != null && result.Count > 0) list = result.ToList();
+            if (result != null) list = result;
+            return Ok(list);
+        }
+
+        [HttpGet]
+        [Route("GetPayComponents/{brCode}")]
+        public async Task<ActionResult<List<Pay_Components>>> GetPayComponents(string brCode)
+        {
+            List<Pay_Components> list = new();
+            var result = await _payComponentHandler.GetPayComponents(brCode);
+            if (result != null && result.Count > 0) list = result.ToList();
+            if (result != null) list = result;
+            return Ok(list);
+        }
+
+        [HttpGet]
+        [Route("GetPayEmployeesComponents/{brCode}")]
+        public async Task<ActionResult<DtoPayComponents>> GetPayEmployeesComponents(string brCode)
+        {
+            DtoPayComponents comp = new();
+            List<Pay_Components> componentList = new();
+            var result = await _payComponentHandler.GetPayComponents(brCode);
+            if (result != null && result.Count > 0) componentList = result.ToList();
+            List<Pay_Component_Assignments> assignmentList = new();
+            var query = await _payComponentAssignmentsHandler.GetPayComponentAssignments(brCode);
+            if (query != null) assignmentList = query.ToList ();
+            List<EmployeeMasterDto> employees = new();
+            var empList = await _empMasterHandler.GetEmployeeMasterListAsync(brCode);
+            if(employees != null && employees.Count > 0) empList = employees.ToList ();
+            comp.Employees = empList; 
+            comp.AllComponents = componentList;
+            comp.AllEmployeesAssignments = assignmentList;
+            return Ok(comp);
+        }
+
+        [HttpGet]
+        [Route("GetPayComponentAssignments/{brCode}")]
+        public async Task<ActionResult<List<Pay_Component_Assignments>>> GetPayComponentAssignments(string brCode)
+        {
+            List<Pay_Component_Assignments> list = new();
+            var result = await _payComponentAssignmentsHandler.GetPayComponentAssignments(brCode);
+            if (result != null && result.Count > 0) list = result.ToList();
+            if (result != null) list = result;
+            return Ok(list);
         }
 
         [HttpGet]
@@ -28,15 +112,8 @@ namespace Infin8.Coapp.UI.Controllers
         {
             List<EmployeeMasterDto> list = new List<EmployeeMasterDto>();
             var result = await _empMasterHandler.GetEmployeeMasterListAsync(brCode);
-            if (result != null) 
-            { 
-                list = result; 
-                return Ok(list);
-            }
-            else
-            {
-                return NotFound("No Data Found");
-            }
+            if (result != null)  list = result; 
+            return Ok(list);
         }
         [HttpGet]
         [Route("GetEmployee/{empId:decimal}/{brCode}")]

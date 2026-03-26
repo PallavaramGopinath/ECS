@@ -1,0 +1,298 @@
+﻿@page "/pay-assignment-deductions/{employeeid:decimal}"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+@using Infin8.Coapp.Utility
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin")]
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container justify-content-center mt-2">
+        <div class="mt-1">
+            <div class="card shadow mask">
+                
+                    <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-around">
+                        <h3 class="mb-0">New deduction assignments for @employee.MemberNo - @employee.MemberName </h3>
+                        <button class="btn btn-light mt-3"
+                                @onclick="() => GoBack()">
+                            <i class="bi bi-arrow-left-circle"></i>
+                            Go to assignments
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mt-2">
+                            <div class="form-floating">
+                                <InputDate id="wef" class="form-control" @bind-Value="newAssignment.Effective_Date" />
+                                <label for="wef">With effect from </label>
+                            </div>
+                        </div>
+                        @if (AllComponents != null && AllComponents.Count > 0)
+                        {
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <InputSelect class="form-select"
+                                                 id="componentName"
+                                                 @bind-Value="newAssignment.Component_Id">
+                                        <option value=""> Select Component</option>
+                                        @foreach (var comp in AllComponents.OrderBy(x => x.Display_Order))
+                                        {
+                                            <option value="@comp.Component_Id">@comp.Component_Name (@comp.Component_Code) </option>
+                                        }
+                                    </InputSelect>
+                                    <label for="componentName">Select Componene Name </label>
+                                </div>
+                            </div>
+                        }
+
+
+                        <div class="col-md-6 mt-2">
+                            <div class="form-floating" id="fixed">
+                                <InputNumber class="form-control" @bind-Value="newAssignment.Assigned_Value" />
+                                <label for="fixed">Enter Fixed Amount</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-primary mt-3" @onclick="Add">
+                                <i class="bi bi-plus" aria-hidden="true"></i>
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (newAssignmentList != null && newAssignmentList.Count > 0)
+    {
+        <div class="container-fluid mt-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-secondary text-white">
+                    <h5 mb-0>
+                        <i class="bi bi-view-list me-2" aria-hidden="true"></i>
+                        New assigned items
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Component Name</th>
+                                <th>Assigned Value</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var comp in newAssignmentList)
+                            {
+                                <tr>
+                                    <td>@comp.Component_Name </td>
+                                    <td>@comp.Assigned_Value </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-warning"
+                                                @onclick="() => Delete(comp)"
+                                                title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <button class="btn btn-primary mt-3" disabled="@(!newAssignmentList.Any())"
+                            @onclick="() => SaveNewAssignments()">
+                        <i class="bi bi-send"></i>
+                        Save New Assignements
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    }
+    else
+    {
+        <div class="alert alert-warning mt-4">
+            <h5>New assignments not made</h5>
+        </div>
+    }
+
+    @if (_isError)
+    {
+        <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+            <strong>Failed!</strong> @errorMessage
+            <button type="button" class="close" @onclick="() => _isError = false">
+                <span>&times;</span>
+            </button>
+        </div>
+    }
+
+}
+
+
+@code {
+    [Parameter] public decimal? employeeid { get; set; }
+    bool _isLoading = true;
+    bool _isError = false;
+    string errorMessage = "";
+    private decimal YrId = 110050000030;
+    private DateTime CurrentDate = DateTime.UtcNow;
+    decimal UserId = 0;
+    private string BrCode = "11005";
+    private string CalculationMethod = "";
+    private NewAssignment newAssignment = new();
+    // private List<Pay_Component_Assignments> newAssignmentList = new();
+    private List<NewAssignment> newAssignmentList = new();
+
+    private DtoPayComponents payComponents = new();
+    private EmployeeMasterDto employee = new();
+    private List<Pay_Components> AllComponents = new();
+
+    private class NewAssignment
+    {
+        public decimal Employee_Id { get; set; }
+        public DateTime Effective_Date { get; set; }
+        public decimal Component_Id { get; set; }
+        public string? Component_Name { get; set; }
+        public string? Calculation_Method { get; set; }
+        public double Assigned_Value { get; set; }
+        public double Percentage { get; set; }
+        public double Maximum_Amount { get; set; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            UserId = userInfoDto.UserId;
+            YrId = userInfoDto.YrId;
+            BrCode = userInfoDto.BrCode!;
+            CurrentDate = userInfoDto.CurrentDate;
+            newAssignment.Effective_Date = CurrentDate;
+            // newAssignment.BrCode = BrCode;
+            // newAssignment.Created_By = UserId;
+            // newAssignment.Created_Date = CurrentDate;
+            await LoadAssignmentDataAsync();
+        }
+    }
+
+    private async Task LoadAssignmentDataAsync()
+    {
+        try
+        {
+            List<string> creteria = new List<string>();
+            creteria.Add("PF");
+            var result = await _httpClient.GetFromJsonAsync<DtoPayComponents>($"api/Pay/GetPayEmployeesComponents/{BrCode}");
+            if (result != null && result.AllComponents!.Count > 0)
+            {
+                payComponents.Employees = result.Employees;
+                var filtered = result.AllComponents
+               .Where(x => x.Component_Type == 2 && !creteria.Contains(x.Component_Code!.Trim())).ToList();
+                AllComponents = filtered.ToList();
+
+                payComponents.AllComponents = filtered.ToList();
+                // result.AllComponents
+                // .Where(x => x.Component_Type == 1 && !creteria.Contains(x.Component_Code!)).ToList();
+                payComponents.AllEmployeesAssignments = result.AllEmployeesAssignments;
+                var emp = payComponents.Employees!.Where(x => x.Mem_Id == employeeid).FirstOrDefault();
+                if (emp != null && emp.Mem_Id > 0) employee = emp;
+            }
+        }
+        catch (Exception)
+        {
+            _isLoading = false;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+
+    }
+
+    private void Add()
+    {
+        NewAssignment assignment = new()
+        {
+            Employee_Id = (decimal)employeeid!,
+            Effective_Date = newAssignment.Effective_Date,
+            Component_Id = newAssignment.Component_Id,
+            Component_Name = AllComponents.Where(x => x.Component_Id == newAssignment.Component_Id).Select(x => x.Component_Name).FirstOrDefault(),
+            Calculation_Method = newAssignment.Calculation_Method,
+            Assigned_Value = newAssignment.Assigned_Value,
+            Percentage = newAssignment.Percentage,
+            Maximum_Amount = newAssignment.Maximum_Amount
+        };
+        newAssignmentList.Add(assignment);
+    }
+
+    private void Delete(NewAssignment assignment)
+    {
+        newAssignmentList.Remove(assignment);
+    }
+
+    private async Task SaveNewAssignments()
+    {
+        List<Pay_Component_Assignments> pay_Components = new();
+        foreach (var item in newAssignmentList)
+        {
+            Pay_Component_Assignments component = new()
+            {
+                Id = 0,
+                Employee_Id = item.Employee_Id,
+                Component_Id = item.Component_Id,
+                Assigned_Value = item.Assigned_Value,
+                Effective_Date = item.Effective_Date,
+                End_Date = null,
+                Is_Overridden = false,
+                Created_By = UserId,
+                Created_Date = item.Effective_Date,
+                Is_Active = true,
+                BrCode = BrCode,
+                Percentage = 0,
+                Maximum_Amount = 0
+            };
+            pay_Components.Add(component);
+        }
+
+        var response = await _httpClient.PostAsJsonAsync("api/Pay/NewPayComponentAssignments", pay_Components);
+        if (response.IsSuccessStatusCode)
+        {
+            _isError = false;
+            Navigation.NavigateTo($"pay-component-assignments/{employeeid}", true);
+        }
+        else
+        {
+            _isError = true;
+            errorMessage = "";
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"pay-component-assignments/{employeeid}", true);
+    }
+}

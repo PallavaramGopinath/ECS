@@ -68,7 +68,7 @@ namespace Infin8.Coapp.Repository
         IMemPayableNotNEFTRepository MemPayableNotNEFT { get; }
         IMemTrnRepository MemTrn { get; }
 
-
+        #region Pay
         IPayAllDedRepository PayAllDed { get; }
         IPayAllDedMasterRepository PayAllDedMaster { get; }
         IPayAttanceRepository PayAttance { get; }
@@ -85,7 +85,9 @@ namespace Infin8.Coapp.Repository
         IPaySlipTrnRepository PaySlipTrn { get; }
         IPayTemplateRepository PayTemplate { get; }
         IPayVPFRepository PayVPF { get; }
-
+        IPayComponentRepository PayComponent { get; }
+        IPayComponentAssignmentsRepository PayComponentAssignments { get; }
+        #endregion 
         IReferenceConstituencyRepository ReferenceConstituency { get; }
         ISBCAMasterRepository SBCAMaster { get; }
         ISBCASchemesRepository SBCASchemes { get; }

@@ -1,0 +1,257 @@
+﻿@page "/component-basicpay/{employeeid:decimal}"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.UI.Client.Components.Voucher
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    @if (newAssignmentsBPItems != null && newAssignmentsBPItems.Count > 0)
+    {
+        <div class="container mt-2">
+            <div class="row justify-content-center g-0">
+                <div class="col-md-6">
+                    <div class="card shadow mask">
+                        <div class="card-header bg-info text-white">
+                            <h3 class="mb-0">Basic pay association @employee.MemberNo - @employee.MemberName </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class ="bg-info justify-content-center mt-1">
+                                <h3 >Existing component assigned details </h3>
+                            </div>
+                            
+                            @if (componentBPItems != null && componentBPItems.Count > 0)
+                            {
+                                <table class="table table-hover table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>With Effection From</th>
+                                            <th>Component Name</th>
+                                            <th>Assignment Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in componentBPItems)
+                                        {
+                                            <tr>
+                                                <td>@item.Effective_Date.ToString("dd-MM-yyyy")</td>
+                                                <td>@item.Component_Name (@item.Component_Code)</td>
+                                                <td>@item.Assigned_Value</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            <EditForm Model="@componentBPItems" OnValidSubmit="@HandleValidSubmit" FormName="compBP">
+
+                                @foreach (var comp in newAssignmentsBPItems.OrderBy(x => x.Display_Order))
+                                {
+                                    <div class="row">
+                                        <h5 class="bg-secondary text-white mt-1">@comp.Component_Name (@comp.Component_Code )</h5>
+                                        <div class="col-md-6 mt-2 mb-2">
+                                            <div class="form-floating">
+                                                <InputDate class="form-control shadow-none" id="wef"
+                                                           @bind-Value="comp.Effective_Date" />
+                                                <label for="wef">With Effect From</label>
+                                            </div>
+                                        </div>
+                                        @switch (comp.Component_Code)
+                                        {
+                                            case "BP":
+                                                <div class="col-md-6 mt-2">
+                                                    <div class="form-floating">
+                                                        <InputNumber class="form-control" id="bp"
+                                                                     @bind-Value="comp.Assigned_Value"
+                                                                     placeholder="Enter Basic Pay" />
+                                                        <label for="bp">Enter Basic Pay (₹)</label>
+                                                    </div>
+                                                </div>
+                                                break;
+                                            case "PP":
+                                                <div class="col-md-6 mt-2">
+                                                    <div class="form-floating">
+                                                        <InputNumber class="form-control" id="pp"
+                                                                     @bind-Value="comp.Assigned_Value"
+                                                                     placeholder="Enter Personal Pay" />
+                                                        <label for="pp">Enter Personal Pay (₹)</label>
+                                                    </div>
+                                                </div>
+                                                break;
+                                            case "GP":
+                                                <div class="col-md-6 mt-2">
+                                                    <div class="form-floating">
+                                                        <InputNumber class="form-control" id="gp"
+                                                                     @bind-Value="comp.Assigned_Value"
+                                                                     placeholder="Enter Grade Pay" />
+                                                        <label for="gp">Enter Grade Pay (₹)</label>
+                                                    </div>
+                                                </div>
+                                                break;
+                                        }
+                                    </div>
+                                }
+
+                                <div class="row p-3">
+                                    <div class="col-md-6">
+                                        <button type="submit" class="btn btn-primary mt-3">
+                                            <i class="bi bi-send" aria-hidden="true"></i>
+                                            Submit
+                                        </button>
+                                    </div>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public decimal? employeeid { get; set; }
+
+    bool _isLoading = true;
+    private decimal YrId = 110050000030;
+    private DateTime CurrentDate = DateTime.UtcNow;
+    decimal UserId = 0;
+    private string BrCode = "11005";
+    EmployeeMasterDto employee = new();
+    List<Pay_Components> AllComponents = new();
+    List<DtoPayComponentAssignments> componentAssignments = new();
+    List<DtoPayComponentAssignments> componentBPItems = new();
+    List<New_Component_AssignmentsDto> newAssignmentsBPItems = new();
+
+    private class New_Component_AssignmentsDto
+    {
+        public decimal Employee_Id { get; set; }
+        public decimal Component_Id { get; set; }
+        public string? Component_Name { get; set; }
+        public string? Component_Code { get; set; }
+        public double Assigned_Value { get; set; }
+        public DateTime Effective_Date { get; set; }
+        public int Display_Order { get; set; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            UserId = userInfoDto.UserId;
+            YrId = userInfoDto.YrId;
+            BrCode = userInfoDto.BrCode!;
+            CurrentDate = userInfoDto.CurrentDate;
+            await LoadDashboardDataAsync();
+        }
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var emp = await _httpClient.GetFromJsonAsync<EmployeeMasterDto>($"api/Pay/GetEmployee/{employeeid}/{BrCode}");
+            if (emp != null && emp.Mem_Id > 0) employee = emp;
+
+            var components = await _httpClient.GetFromJsonAsync<List<Pay_Components>>($"api/Pay/GetPayComponents/{BrCode}");
+            if (components != null && components.Any())
+            {
+                AllComponents = components.ToList();
+            }
+
+            var pay = await _httpClient.GetFromJsonAsync<List<DtoPayComponentAssignments>>($"api/Pay/GetPayComponentAssignmentsByEmployeeId/{employeeid}/{BrCode}");
+            if (pay != null && pay.Count > 0)
+            {
+                componentAssignments = pay.ToList();
+                List<string> creteria = new List<string>();
+                creteria.Add("BP");
+                creteria.Add("PP");
+                creteria.Add("GP");
+                componentBPItems = componentAssignments.Where(x => creteria.Contains(x.Component_Code!)).ToList();
+            }
+            var bpComponent = AllComponents.FirstOrDefault(x => x.Component_Code == "BP");
+            var ppComponent = AllComponents.FirstOrDefault(x => x.Component_Code == "PP");
+            var gpComponent = AllComponents.FirstOrDefault(x => x.Component_Code == "GP");
+
+            var bpItem = componentBPItems.FirstOrDefault(x => x.Component_Code == "BP");
+            var ppItem = componentBPItems.FirstOrDefault(x => x.Component_Code == "PP");
+            var gpItem = componentBPItems.FirstOrDefault(x => x.Component_Code == "GP");
+
+            if (bpComponent == null || ppComponent == null || gpComponent == null)
+            {
+                // Log error or handle missing components (e.g., throw or skip)
+                throw new InvalidOperationException("Required components BP/PP/GP not found in AllComponents.");
+            }
+            else
+            {
+                newAssignmentsBPItems.AddRange(
+                    new New_Component_AssignmentsDto
+                        {
+                            Employee_Id = (decimal)employeeid!,
+                            Component_Id = bpComponent.Component_Id,
+                            Component_Name = bpComponent.Component_Name,
+                            Assigned_Value = bpItem?.Assigned_Value ?? 0,
+                            Component_Code = "BP",
+                            Effective_Date = CurrentDate,
+                            Display_Order = bpComponent.Display_Order,
+                        },
+                    new New_Component_AssignmentsDto
+                        {
+                            Employee_Id = (decimal)employeeid!,
+                            Component_Id = ppComponent.Component_Id,
+                            Component_Name = ppComponent.Component_Name,
+                            Assigned_Value = ppItem?.Assigned_Value ?? 0,
+                            Component_Code = "PP",
+                            Effective_Date = CurrentDate,
+                            Display_Order = ppComponent.Display_Order,
+                        },
+                     new New_Component_AssignmentsDto
+                         {
+                             Employee_Id = (decimal)employeeid!,
+                             Component_Id = gpComponent.Component_Id,
+                             Component_Name = gpComponent.Component_Name,
+                             Assigned_Value = gpItem?.Assigned_Value ?? 0,
+                             Component_Code = "GP",
+                             Effective_Date = CurrentDate,
+                             Display_Order = gpComponent.Display_Order,
+                         });
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+            // errorMessage = "Failed to load dashboard data. Please try again later.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged(); // Update UI to hide loading state and show data/error
+        }
+    }
+
+    private void HandleValidSubmit()
+    {
+        Navigation.NavigateTo($"pay-component-assignments/{employeeid}", true);
+    }
+
+}

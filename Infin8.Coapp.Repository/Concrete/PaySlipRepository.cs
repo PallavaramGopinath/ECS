@@ -369,7 +369,8 @@ namespace Infin8.Coapp.Repository
                                         Percentage = assig.Percentage,
                                         Is_DA_Applicable = component.Is_DA_Applicable,
                                         Is_Overridden = assig.Is_Overridden, // Assuming this is from the assignment, not the component
-                                        Display_Order = component.Display_Order
+                                        Display_Order = component.Display_Order,
+                                        Effective_Date = assig.Effective_Date 
                                     }).ToListAsync();
 
 

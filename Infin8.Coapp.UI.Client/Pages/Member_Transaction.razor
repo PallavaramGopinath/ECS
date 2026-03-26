@@ -672,7 +672,7 @@
             else
                 isVerify = true;
             /// 3 = mem due by, 4 = mem due to, 11 = bank account, 21= ledger entry. These accounts require multiple transactions
-            if(isVerify )
+            if (isVerify)
             {
                 var count = await _httpClient.GetFromJsonAsync<int>($"api/Staging/VerifyTransactionExistsInStagingDetails/{transaction.Member_Id}/{transaction.Transaction_Date.ToString("yyyy-MM-dd")}/{transaction.Account_Id}/0");
                 if (count > 0)
@@ -1403,7 +1403,7 @@
                 };
                 isComponentLoaded = true;
                 StateHasChanged();
-                #endregion 
+                #endregion
                 break;
             case 30: /// Member int on TD payment
                 break;
@@ -1871,19 +1871,19 @@
     {
         await Task.Yield(); // <-- add this line
         string accountName = accountItems.FirstOrDefault(a => a.Value == transaction.Account_Id.ToString())?.Text ?? string.Empty;
-        // if (transaction.Account_Id != 3 && transaction.Account_Id != 4 && transaction.Account_Id != 11 && transaction.Account_Id != 21)
-        // {
-        var count = await _httpClient.GetFromJsonAsync<int>($"api/Staging/VerifyTransactionExistsInStagingDetails/{transaction.Member_Id}/{transaction.Transaction_Date.ToString("yyyy-MM-dd")}/{transaction.Account_Id}/{transaction.Ledger_Id}");
-        if (count > 0)
+        if (transaction.Account_Id != 3 && transaction.Account_Id != 4 && transaction.Account_Id != 11 && transaction.Account_Id != 21)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Transaction already exists but not either approved or rejected of the account " + accountName + " for this member for this date");
-            transaction.Account_Id = 0;
-            transaction.Ledger_Id = 0;
-            isComponentLoaded = false;
-            // StateHasChanged();
-            return;
+            var count = await _httpClient.GetFromJsonAsync<int>($"api/Staging/VerifyTransactionExistsInStagingDetails/{transaction.Member_Id}/{transaction.Transaction_Date.ToString("yyyy-MM-dd")}/{transaction.Account_Id}/{transaction.Ledger_Id}");
+            if (count > 0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Transaction already exists but not either approved or rejected of the account " + accountName + " for this member for this date");
+                transaction.Account_Id = 0;
+                transaction.Ledger_Id = 0;
+                isComponentLoaded = false;
+                // StateHasChanged();
+                return;
+            }
         }
-        // }
 
         switch (transaction.Account_Id)
         {
@@ -2084,12 +2084,12 @@
 
     private async Task RemoveAccountRow(AccountTransactionVM account)
     {
-        await DeleteTransactedAccount(account.Staging_Id, account.AccountId,account.LedId, brCode);
+        await DeleteTransactedAccount(account.Staging_Id, account.AccountId, account.LedId, brCode);
         // transactionAccountsList.Remove(account);
         await UpdateJLRecoveryTransactionFromStaging("I");
     }
 
-    private async Task DeleteTransactedAccount(decimal stagingId, int relatedAccountId,decimal ledgerId, string brCode)
+    private async Task DeleteTransactedAccount(decimal stagingId, int relatedAccountId, decimal ledgerId, string brCode)
     {
         #region common accounts
         switch (relatedAccountId)
@@ -2297,14 +2297,14 @@
         string formatedDate = transaction.Transaction_Date.ToString("yyyy-MM-dd");
         var cashBalance = await _httpClient.GetFromJsonAsync<double>($"api/Accounts/GetCashBalanceAsOnDate?yrId={transaction.Yr_Id}&asonDate={formatedDate}&brCode={brCode}");
 
-        transaction.Member_Id =0;
+        transaction.Member_Id = 0;
         transaction.Member_No = "";
         transaction.Member_Name = "";
-        transaction.Father_Name ="";
+        transaction.Father_Name = "";
         transaction.Address = "";
-        transaction.Receipt_Payment =1;
+        transaction.Receipt_Payment = 1;
         transaction.Cash_Adjustment = 1;
-        transaction.Cash_Led_Balance = cashBalance ;
+        transaction.Cash_Led_Balance = cashBalance;
 
         isDdlCashAdjustmentDisable = false;
         isMemberNoDisable = false;
@@ -3433,7 +3433,7 @@
 
     private void DividendPaymentInitiate(DtoDividendPayment initiate)
     {
-        DividendPayment  = new();
+        DividendPayment = new();
         int payable = initiate.DivideneList!.Sum(x => x.IntCalc_Amt) - initiate.DivideneList!.Sum(x => x.IntPaid_Amt);
         int paid = initiate.DivideneList!.Sum(x => x.Dividend_Paid);
 
@@ -3441,10 +3441,10 @@
         DividendPayment.Member_No = initiate.Member_No;
         DividendPayment.Member_Name = initiate.Member_Name;
         DividendPayment.Transaction_Date = initiate.Transaction_Date;
-        DividendPayment.DividendPayable = initiate.DividendPayable ;
-        DividendPayment.DividendPaid = initiate.DividendPaid ;
+        DividendPayment.DividendPayable = initiate.DividendPayable;
+        DividendPayment.DividendPaid = initiate.DividendPaid;
         DividendPayment.DivideneList = new();
-        DividendPayment.DivideneList =  initiate.DivideneList;
+        DividendPayment.DivideneList = initiate.DivideneList;
         DividendPayment.BrCode = brCode;
         DividendPayment.Created_By = createdBy;
 
@@ -3476,7 +3476,7 @@
             Member_No = transaction.Member_No,
             PerNo = string.Empty,
             Member_Name = transaction.Member_Name,
-            CashReceipt =  0,
+            CashReceipt = 0,
             CashPayment = transaction.Cash_Adjustment == 1 ? DividendPayment.DividendPaid : 0,
         };
         transactionAccountsList.Add(trn);

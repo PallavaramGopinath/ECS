@@ -77,6 +77,7 @@ namespace Infin8.Coapp.Repository
         private MemPayableNotNEFTRepository? _memPayableNotNEFTRepository;
         private MemTrnRepository? _memTrnRepository;
 
+        #region Pay
         private PayAllDedRepository? _payAllDedRepository;
         private PayAllDedMasterRepository? _payAllDedMasterRepository;
         private PayAttanceRepository? _payAttanceRepository;
@@ -93,6 +94,9 @@ namespace Infin8.Coapp.Repository
         private PaySlipTrnRepository? _paySlipTrnRepository;
         private PayTemplateRepository? _payTemplateRepository;
         private PayVPFRepository? _payVPFRepository;
+        private PayComponentRepository? _payComponentRepository;
+        private PayComponentAssignmentsRepository? _payComponentAssignmentsRepository;
+        #endregion 
 
         private ReferenceConstituencyRepository? _referenceConstituencyRepository;
 
@@ -202,6 +206,8 @@ namespace Infin8.Coapp.Repository
         public IMemPayableMasterRepository MemPayableMaster => _memPayableMasterRepository ??= new MemPayableMasterRepository(_context);
         public IMemPayableNotNEFTRepository MemPayableNotNEFT => _memPayableNotNEFTRepository ??= new MemPayableNotNEFTRepository(_context);
         public IMemTrnRepository MemTrn => _memTrnRepository ??= new MemTrnRepository(_context);
+
+        #region pay
         public IPayAllDedRepository PayAllDed => _payAllDedRepository ??= new PayAllDedRepository(_context);
         public IPayAllDedMasterRepository PayAllDedMaster => _payAllDedMasterRepository ??= new PayAllDedMasterRepository(_context);
         public IPayAttanceRepository PayAttance => _payAttanceRepository ??= new PayAttanceRepository(_context);
@@ -218,7 +224,9 @@ namespace Infin8.Coapp.Repository
         public IPaySlipTrnRepository PaySlipTrn => _paySlipTrnRepository ??= new PaySlipTrnRepository(_context);
         public IPayTemplateRepository PayTemplate => _payTemplateRepository ??= new PayTemplateRepository(_context);
         public IPayVPFRepository PayVPF => _payVPFRepository ??= new PayVPFRepository(_context);
-
+        public IPayComponentRepository PayComponent => _payComponentRepository ??= new PayComponentRepository(_context);
+        public IPayComponentAssignmentsRepository PayComponentAssignments => _payComponentAssignmentsRepository ??= new PayComponentAssignmentsRepository(_context);
+        #endregion 
         public IReferenceConstituencyRepository ReferenceConstituency => _referenceConstituencyRepository ??= new ReferenceConstituencyRepository(_context);
 
         public ISBCAMasterRepository SBCAMaster => _sbCAMasterRepository ??= new SBCAMasterRepository(_context);

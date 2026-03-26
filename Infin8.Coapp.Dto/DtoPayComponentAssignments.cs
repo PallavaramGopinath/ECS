@@ -25,5 +25,6 @@ namespace Infin8.Coapp.Dto
         public string? Calculation_Basis { get; set; }
         public bool Is_Overridden { get; set; }
         public double Percentage { get; set; }
+        public DateTime Effective_Date { get; set; }
     }
 }
