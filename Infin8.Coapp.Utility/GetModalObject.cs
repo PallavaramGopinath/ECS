@@ -10,14 +10,18 @@ namespace Infin8.Coapp.Utility
     public static class GetModalObject
     {
         #region Member
-        public static mem_master GetMemberMasterObjectNew(int mem_Id, string memberNo, int memberType, string PerNo, string ResolutionNo, DateTime? ResolutionDate, byte[] PhotoImage, byte[] SignatureImage, byte[] AadharImage, string memberName, string FatherName, int Gender, int casteId, DateTime? dob, int age, string Alternative_Mobileno,
-            string OfficePhoneNo, string mobileNo, string EMailId, DateTime? DOJ, DateTime? DOR, int DesignationId, bool IsPermanent, int OfficeId, string TicketTokenGangNo,
-            string PreAdd1, string PreAdd2, string PreAdd3, string PrePin, int PreCity, string PerAdd1, string PerAdd2, string PerAdd3, string PerPin,
-            int PerCity, double BasicPay, int MemberStatus, bool IsAccountClosed, DateTime? AccountClosedDate, bool IsExistingMember, int ExistingMemberId, string ExistingMemberNo,
-            DateTime? ExistingDoc, bool IsMember_OtherSociety, string NomineeName, int NomineeAge, string NomineeRelationShip, bool MemberDelete, bool IsNewMember, int SurityMem_Id,
-            int usr_Id, int Yr_Id, double Income, int Comm_id, int Occ_id, int religion_id, bool Member_Oe, string SectionCode, string InActiveStatus, bool IsMemExpired, DateTime? ExpiredDate,
-            string Designation, string Section, int FactorySection_Id, int FactoryTrade_Id, string SBAccountNo, string BankName, string IFCCode, DateTime? AdmissionDate, string Token_PersonNo,
-            int GrossPay, string GPF_No, string PANNo, string AadharNo, string SmartCardNo,string brCode)
+        public static mem_master GetMemberMasterObjectNew(decimal mem_Id, string memberNo, int memberType, string PerNo, string ResolutionNo, 
+            DateTime? ResolutionDate,string MemberPhotoPath, string MemberSignaturePath, string AadharCardPath, string memberName, string FatherName, 
+            int Gender, decimal casteId, DateTime? dob, int age, string Alternative_Mobileno, string OfficePhoneNo, string mobileNo, string EMailId, 
+            DateTime? DOJ, DateTime? DOR, int DesignationId, bool IsPermanent, int OfficeId, string TicketTokenGangNo, string PreAdd1, 
+            string PreAdd2, string PreAdd3, string PrePin, int PreCity, string PerAdd1, string PerAdd2, string PerAdd3, string PerPin,
+            int PerCity, double BasicPay, int MemberStatus, bool IsAccountClosed, DateTime? AccountClosedDate, bool IsExistingMember, 
+            int ExistingMemberId, string ExistingMemberNo, DateTime? ExistingDoc, bool IsMember_OtherSociety, string NomineeName, 
+            int NomineeAge, string NomineeRelationShip, bool MemberDelete, bool IsNewMember, decimal SurityMem_Id, decimal usr_Id, decimal Yr_Id, 
+            double Income, decimal Comm_id, decimal Occ_id, decimal religion_id, bool Member_Oe, string SectionCode, string InActiveStatus,
+            bool IsMemExpired, DateTime? ExpiredDate,string Designation, string Section, int FactorySection_Id, int FactoryTrade_Id, 
+            string SBAccountNo, string BankName, string IFCCode, DateTime? AdmissionDate, string Token_PersonNo,int GrossPay, 
+            string GPF_No, string PANNo, string AadharNo, string SmartCardNo,string brCode)
         {
             mem_master memMaster = new mem_master();
             try
@@ -28,8 +32,8 @@ namespace Infin8.Coapp.Utility
                 memMaster.perno = PerNo;
                 memMaster.resolutionno = ResolutionNo;
                 memMaster.resolutiondate = ResolutionDate;
-                memMaster.memberphoto = null;
-                memMaster.memberesignature = null;
+                memMaster.memberphoto = MemberPhotoPath ;
+                memMaster.memberesignature = MemberSignaturePath ;
 
                 memMaster.membername = memberName;
                 memMaster.fathername = FatherName;
@@ -111,7 +115,7 @@ namespace Infin8.Coapp.Utility
                 memMaster.gpf_no = GPF_No;
                 memMaster.panno = PANNo;
                 memMaster.aadharno = AadharNo;
-                memMaster.aadharcardpath = null;
+                memMaster.aadharcardpath = AadharCardPath ;
                 memMaster.smartcardno = SmartCardNo;
                 memMaster.brcode = brCode;
                 
@@ -1025,6 +1029,44 @@ namespace Infin8.Coapp.Utility
         #endregion
 
         #region Employee
+        public static Emp_Master GetEmpMasterObject(decimal Mem_Id, DateTime? Emp_Incremet_Date, int Emp_Maritial_Status,  
+           decimal Emp_Status_Id, int Emp_Height, int Emp_Weight, decimal Emp_BloodGrp, int Emp_Leses, string Emp_Desgn, 
+           String Emp_Scale, decimal Emp_Desgn_Id, decimal Emp_Category_Id, decimal Emp_Grade_Id, 
+           double Emp_Basic, double Emp_PerPay, double Emp_GradePay, double Emp_VPF, bool Emp_Delete, 
+           decimal Usr_Id, decimal Yr_Id,string BrCode)
+        {
+            Emp_Master empMaster = new Emp_Master();
+            try
+            {
+                {
+                    empMaster.Mem_Id = Mem_Id;
+                    empMaster.Emp_Increment_Date = Emp_Incremet_Date;
+                    empMaster.Emp_Marital_Status = Emp_Maritial_Status;
+                    empMaster.Emp_Status_Id = Emp_Status_Id;
+                    empMaster.Emp_Height = Emp_Height;
+                    empMaster.Emp_Weight = Emp_Weight;
+                    empMaster.Emp_BloodGrp = Emp_BloodGrp;
+                    empMaster.Emp_Lenses = Emp_Leses;
+                    empMaster.Emp_Desgn = Emp_Desgn;
+                    empMaster.Emp_Desgn_Id = Emp_Desgn_Id;
+                    empMaster.Emp_Scale = Emp_Scale;
+                    empMaster.Emp_Category_Id = Emp_Category_Id;
+                    empMaster.Emp_Grade_Id = Emp_Grade_Id;
+                    empMaster.Emp_Basic = Emp_Basic;
+                    empMaster.Emp_PerPay = Emp_PerPay;
+                    empMaster.Emp_GradePay = Emp_GradePay;
+                    empMaster.Emp_VPF = Emp_VPF;
+                    empMaster.Emp_Delete = false;
+                    empMaster.Usr_Id = Usr_Id;
+                    empMaster.Yr_Id = Yr_Id;
+                    empMaster.BrCode = BrCode;
+                };
+            }
+            catch (Exception ex)
+            {
+            }
+            return empMaster;
+        }
         public static Emp_Pf GetEmpPFObject(decimal pf_id, decimal Emp_Id, DateTime pf_date, double pf_subscription, double vpf_contribution, double bpf_contribution, double epf_Interest,
             double bpf_Interest, double pf_balance, double vpf_balance, double bpf_balance, double pf_withdrawn, double vpf_withdrawn, double bpf_withdrawn, double epf_Int_withdrawn,
             double bpf_Int_withdrawn, DateTime? int_Calc_Upto, bool pf_Delete, bool pf_oe, DateTime? Last_Int_ApplicationDate, decimal Voc_Id, decimal Usr_id, decimal yr_id, int SlNo,

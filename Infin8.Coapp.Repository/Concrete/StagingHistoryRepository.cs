@@ -22,19 +22,19 @@ namespace Infin8.Coapp.Repository
             decimal maxId = 0;
             try
             {
+                // Step 2: Get the maximum ID from staging_history to generate new IDs
+                maxId = await CSISContext.Staging_History.AnyAsync()
+                    ? await CSISContext.Staging_History.MaxAsync(sh => sh.Id)
+                    : 0;
                 foreach (var staging in stagingHistoryList)
                 {
-                    // Step 2: Get the maximum ID from staging_history to generate new IDs
-                    maxId = await CSISContext.Staging_History.AnyAsync()
-                        ? await CSISContext.Staging_History.MaxAsync(sh => sh.Id)
-                        : 0;
                     maxId++;
                     staging.Id = maxId;
-                    await AddAsync(staging);
-                    CSISContext.SaveChanges();
-                    result = true;
+                    //await AddAsync(staging);
                 }
-
+                await  AddRangeAsync(stagingHistoryList);
+                await CSISContext.SaveChangesAsync();
+                result = true;
             }
             catch (Exception ex)
             {

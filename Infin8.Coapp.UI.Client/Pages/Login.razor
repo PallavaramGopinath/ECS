@@ -95,7 +95,7 @@
                                     </button>
                                 </div>
                             </div> *@
-                            @* <div class="mb-3" style="width:300px;">
+                        @* <div class="mb-3" style="width:300px;">
                                 <InputText class="form-control"
                                            placeholder="Enter captcha"
                                            @bind-Value="UserCaptchaInput"
@@ -167,7 +167,7 @@
                                        value="@CaptchaCode"
                                        disabled />
 
-                                <button type="button" class="btn btn-outline-secondary" 
+                                <button type="button" class="btn btn-outline-secondary"
                                         @onclick="GenerateCaptcha">
                                     ↻
                                 </button>
@@ -331,7 +331,7 @@
             // var url = _httpClient.BaseAddress!.ToString();
             // var request = new HttpRequestMessage(HttpMethod.Post, "api/Auth/login")
             var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}api/Auth/login")
-        {
+            {
                 Content = JsonContent.Create(loginModel)
             };
             request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
@@ -373,16 +373,16 @@
     }
 }
 <style>
-   .input-group {
+    .input-group {
         display: flex;
     }
 
-    .input-group .form-control {
-        flex: 1 1 auto;
-    }
+        .input-group .form-control {
+            flex: 1 1 auto;
+        }
 
-    .input-group .btn {
-        flex: 0 0 auto;
-    }
+        .input-group .btn {
+            flex: 0 0 auto;
+        }
 
 </style>

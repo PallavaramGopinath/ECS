@@ -1,0 +1,995 @@
+﻿@page "/emp-master"
+@page "/emp-master/{employeeid:decimal}"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@using System.Text.Json.Serialization;
+@using System.Net
+
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+@using Infin8.Coapp.Utility
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
+
+<div class="container-fluid p-4">
+    <EditForm Model="@member" method="post" OnValidSubmit="@HandleValidSubmit" FormName="member-create">
+        <DataAnnotationsValidator />
+
+        <!-- Basic Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Basic Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Member No</label>
+                        <InputText @bind-Value="member.Member!.memberno" disabled class="form-control shadow-none" />
+                    </div>
+
+                    <div class="col-md-1 mb-1">
+                        <label class="form-label">Salutation</label>
+                        <InputSelect @bind-Value="member.Member.salutation" class="form-select shadow-none">
+                            <option value="0">Select Salutation</option>
+                            <option value="1">Mr</option>
+                            <option value="2">Mrs</option>
+                            <option value="2">Miss</option>
+                            <option value="3">Dr</option>
+                            <option value="3">Er</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Member.salutation)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Member Name</label>
+                        <InputText @bind-Value="member.Member.membername" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.membername)" />
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <label class="form-label">Relation Type</label>
+                        <InputSelect @bind-Value="member.Member.relation_type" class="form-select shadow-none">
+                            <option value="0">Select Salutation</option>
+                            <option value="1">F/o</option>
+                            <option value="2">S/o</option>
+                            <option value="2">D/o</option>
+                            <option value="3">W/o</option>
+                            <option value="3">H/o</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Member.relation_type)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Father's Name</label>
+                        <InputText @bind-Value="member.Member.fathername" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.fathername)" />
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Gender</label>
+                        <InputSelect @bind-Value="member.Member.gender" class="form-select shadow-none">
+                            <option value="0">Select Gender</option>
+                            <option value="1">Male</option>
+                            <option value="2">Female</option>
+                            <option value="3">Other</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Member.gender)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Date of Birth</label>
+                        <InputDate class="form-control shadow-none"
+                                   @bind-Value="member.Member.dob"
+                                   @bind-Value:after="Calculate_Age" />
+                        <ValidationMessage For="@(() => member.Member.dob)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Age</label>
+                        <InputNumber @bind-Value="member.Member.age" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.age)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Height</label>
+                        <InputNumber @bind-Value="member.Employee!.Emp_Height" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Employee!.Emp_Height)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Weight</label>
+                        <InputNumber @bind-Value="member.Employee!.Emp_Weight" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Employee!.Emp_Weight)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Blood Group</label>
+                        <InputSelect @bind-Value="member.Employee!.Emp_BloodGrp" class="form-control shadow-none">
+                            <option value="0">Select Blood Group</option>
+                            @foreach (var blood in bloodGroupList )
+                            {
+                                <option value="@blood.Pay_Info_Id">@blood.Pay_Info_Name </option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Employee!.Emp_BloodGrp)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Wearing Glass</label>
+                        <InputSelect @bind-Value="member.Employee.Emp_Lenses" class="form-control shadow-none">
+                            <option value="">Select</option>
+                            <option value="1">Yes</option>
+                            <option value="2">No</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Employee!.Emp_Lenses)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Marital Status</label>
+                        <InputSelect @bind-Value="member.Employee.Emp_Marital_Status" class="form-control shadow-none">
+                            <option value="">Select</option>
+                            <option value="1">Married</option>
+                            <option value="2">Un Married</option>
+                            <option value="3">Wiondow</option>
+                            <option value="4">Windower</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Employee!.Emp_Marital_Status)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Religion</label>
+                        <InputSelect @bind-Value="member.Member.religion_id" class="form-select shadow-none">
+                            <option value="0">Select Religion</option>
+                            @foreach (var religion in religions)
+                            {
+                                <option value="@religion.Value">@religion.Text</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Member.religion_id)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Community</label>
+                        <InputSelect @bind-Value="member.Member.comm_id" class="form-select shadow-none">
+                            <option value="0">Select Community</option>
+                            @foreach (var community in communities)
+                            {
+                                <option value="@community.Value">@community.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Caste</label>
+                        <InputSelect @bind-Value="member.Member.caste_id" class="form-select shadow-none">
+                            <option value="0">Select Caste</option>
+                            @foreach (var caste in castes)
+                            {
+                                <option value="@caste.Value">@caste.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Joining Date</label>
+                        <InputDate @bind-Value="member.doj" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.doj)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Employee Profile-->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Employee Profile</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!--Designation name-->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Designation</label>
+                        <InputSelect @bind-Value="member.Employee.Emp_Desgn" class="form-select shadow-none">
+                            <option value="0">Select Designation</option>
+                            @foreach (var desgn in DesignationList)
+                            {
+                                <option value="@desgn.Pay_Info_Name">@desgn.Pay_Info_Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Employee.Emp_Desgn)" />
+                    </div>
+                    <!--Designation Id-->
+                    <!--Status id-->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Employee Status</label>
+                        <InputSelect @bind-Value="member.Employee.Emp_Status_Id" class="form-select shadow-none">
+                            <option value="0">Select</option>
+                            <option value="110050000001">On Probation Period</option>
+                            <option value="110050000002">Permanent</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Employee.Emp_Status_Id)" />
+                    </div>
+                    <!--category id-->
+                    <!--Grade Id-->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Grade</label>
+                        <InputSelect @bind-Value="member.Employee.Emp_Grade_Id" class="form-select shadow-none">
+                            <option value="0">Select Grade</option>
+                            @foreach (var grade in GradeList )
+                            {
+                                <option value="@grade.Pay_Info_Id">@grade.Pay_Info_Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => member.Employee.Emp_Grade_Id)" />
+                    </div>
+                    <!--Increament Date-->
+                    <!--Scale of pay-->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Scale of pay</label>
+                        <InputText @bind-Value="member.Employee.Emp_Scale" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Employee.Emp_Scale)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Contact Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Mobile No</label>
+                        <InputText @bind-Value="member.Member.mobileno" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.mobileno)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Alternative Mobile No</label>
+                        <InputText @bind-Value="member.Member.alternative_mobileno" class="form-control shadow-none" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Email ID</label>
+                        <InputText @bind-Value="member.Member.emailid" class="form-control shadow-none" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Present Address -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Present Address</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 1</label>
+                        <InputText @bind-Value="member.Member.preadd1" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.preadd1)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 2</label>
+                        <InputText @bind-Value="member.Member.preadd2" class="form-control shadow-none" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 3</label>
+                        <InputText @bind-Value="member.Member.preadd3" class="form-control shadow-none" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">PIN Code</label>
+                        <InputText @bind-Value="member.Member.prepin" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.prepin)" />
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+
+        <!-- Permanent Address -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Permanent Address</h5>
+                    <div class="form-check">
+                        <InputCheckbox @bind-Value="sameAsPresent" @onclick="CopyPresentAddress" class="form-check-input" id="sameAsPresent" />
+                        <label class="form-check-label text-white" for="sameAsPresent">Same as Present Address</label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 1</label>
+                        <InputText @bind-Value="member.Member.peradd1" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.peradd1)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 2</label>
+                        <InputText @bind-Value="member.Member.peradd2" class="form-control shadow-none" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Address Line 3</label>
+                        <InputText @bind-Value="member.Member.peradd3" class="form-control shadow-none" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">PIN Code</label>
+                        <InputText @bind-Value="member.Member.perpin" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.perpin)" />
+                    </div>
+                   
+                </div>
+            </div>
+        </div>
+
+        <!-- Nominee Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Nominee Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Nominee Name</label>
+                        <InputText @bind-Value="member.Member.nomineename" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.nomineename)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Nominee Age</label>
+                        <InputNumber @bind-Value="member.Member.nomineeage" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.nomineeage)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Relationship</label>
+                        <InputText @bind-Value="member.Member.nomineerelationship" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.nomineerelationship)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Qualifications-->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Qualifications</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Qualification</label>
+                        <InputText @bind-Value="Qualification.Qua_Emp_Degree" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => Qualification.Qua_Emp_Degree)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Institution</label>
+                        <InputText @bind-Value="Qualification.Qua_Institution" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => Qualification.Qua_Institution)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Medium</label>
+                        <InputText @bind-Value="Qualification.Qua_Medium" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => Qualification.Qua_Medium)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Grade</label>
+                        <InputText @bind-Value="Qualification.Qua_Grade" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => Qualification.Qua_Grade)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Percentage %</label>
+                        <InputNumber @bind-Value="Qualification.Qua_Percentage" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => Qualification.Qua_Percentage)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Start Date</label>
+                        <InputDate class="form-control shadow-none"
+                                   @bind-Value="Qualification.Qua_Start_Date" />
+                        <ValidationMessage For="@(() => Qualification.Qua_Start_Date)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">End Date</label>
+                        <InputDate class="form-control shadow-none"
+                                   @bind-Value="Qualification.Qua_End_Date" />
+                        <ValidationMessage For="@(() => Qualification.Qua_End_Date)" />
+                    </div>
+                    
+                    <div class="col-md-3 mt-5">
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                @onclick="() => AddQualification()">
+                            <i class="bi bi-plus"></i>
+                            Add Qualification
+                        </button>
+
+                    </div>
+                </div>
+
+                <table class="table table-hover table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Qualification</th>
+                            <th>Institution</th>
+                            <th>Medium</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Grade</th>
+                            <th>Percentage %</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach(var item in QualificationList )
+                        {
+                            <tr>
+                                <td>@item.Qua_Emp_Degree</td>
+                                <td>@item.Qua_Institution</td>
+                                <td>@item.Qua_Medium </td>
+                                <td>@item.Qua_Start_Date.ToString("dd-MM-yyyy")</td>
+                                <td>@item.Qua_End_Date.ToString("dd-MM-yyyy")</td>
+                                <td>@item.Qua_Grade </td>
+                                <td>@item.Qua_Percentage % </td>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => DeleteQualification(item)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bank and Identity Information -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Bank and Identity Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Bank Account No</label>
+                        <InputText @bind-Value="member.Member.sbaccountno" class="form-control shadow-none" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Bank Name</label>
+                        <InputSelect @bind-Value="member.Member.bankname" class="form-select shadow-none">
+                            <option value="0">Select Bank Name</option>
+                            @foreach (var bank in banks)
+                            {
+                                <option value="@bank.Value">@bank.Text</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">IFSC Code</label>
+                        <InputText @bind-Value="member.Member.ifsccode" class="form-control shadow-none" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">PAN No</label>
+                        <InputText @bind-Value="member.Member.panno" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.panno)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Aadhar No</label>
+                        <InputText @bind-Value="member.Member.aadharno" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.aadharno)" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Smart Card No</label>
+                        <InputText @bind-Value="member.Member.smartcardno" class="form-control shadow-none" />
+                        <ValidationMessage For="@(() => member.Member.smartcardno)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Photo and Documentation -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Photo and Documentation</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    @* <div class="col-md-4 mb-3">
+                        <label class="form-label">Member Photo</label>
+                        <InputFile OnChange="@OnMemberPhotoSelected" class="form-control shadow-none" accept="image/*" />
+                        @if (member?.Member != null && !string.IsNullOrEmpty(member.Member.memberphoto!))
+                        {
+                            <img src="@member.Member.memberphoto" class="mt-2" style="max-width: 150px;" />
+                        }
+                    </div> *@
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">E-Signature</label>
+                        <InputFile OnChange="@OnSignatureSelected" class="form-control shadow-none" accept="image/*" />
+                        @if (member?.Member != null && !string.IsNullOrEmpty(member.Member.memberesignature!))
+                        {
+                            <img src="@member.Member.memberesignature" class="mt-2" style="max-width: 150px;" />
+                        }
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Aadhar Card</label>
+                        <InputFile OnChange="@OnAadharCardSelected" class="form-control shadow-none" accept="image/*,application/pdf" />
+                        @if (member?.Member != null && !string.IsNullOrEmpty(member.Member.aadharcardpath!))
+                        {
+                            <div class="mt-2">
+                                <a href="@member.Member.aadharcardpath" target="_blank">View Aadhar Card</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 6: Take Employee Photo -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Take Employee Photo</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-secondary rounded-pill -3" @onclick="InitCamera">
+                            <i class="oi oi-camera-slr"></i> Start Camera
+                        </button>
+                        <button type="button" class="btn btn-info rounded-pill ml-2" @onclick="CapturePhoto" style="margin-left: 10px;">
+                            <i class="oi oi-aperture"></i> Capture
+                        </button>
+
+                        <div class="mt-2">
+                            <video id="cameraFeed" style="width: 100%; display: none;" autoplay></video>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Captured Image:</h6>
+                        <div class="mt-2 border p-2" style="min-height: 200px;">
+                            @if (!string.IsNullOrEmpty(capturedImageData))
+                            {
+                                <img src="@capturedImageData" style="max-width: 100%;" />
+                            }
+                            else
+                            {
+                                <div class="text-center text-muted">
+                                    <i class="oi oi-image" style="font-size: 3rem;"></i>
+                                    <p>No image captured yet</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" @onclick="Reset">Reset</button>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public decimal? employeeid { get; set; }
+
+    #region camera
+    private string capturedImageData = "";
+    private bool isCameraInitialized = false;
+    #endregion
+
+    private bool isSucceeded = false;
+    private decimal YrId = 110050000030;
+    private DateTime CurrentDate = DateTime.UtcNow;
+    decimal UserId = 0;
+    private string BrCode = "11005";
+    private decimal CreatedBy = 0;
+    private string statusMessage = "";
+    private bool sameAsPresent = false;
+    // private  mem_master MemberMaster = new();
+    // private Emp_Master EmployeeMaster = new();
+
+    private DtoEmpMaster member = new();
+    private Emp_Qualification Qualification = new();
+    private List<Emp_Qualification> QualificationList = new();
+
+    private List<DropdownItem> memberType = new();
+    private List<DropdownItem> religions = new();
+    private List<DropdownItem> communities = new();
+    private List<DropdownItem> castes = new();
+    // private List<DropdownItem> occupations = new();
+    // private List<DropdownItem> areas = new();
+    private List<DropdownItem> banks = new();
+    // private List<DropdownItem> constituencies = new();
+    private List<Pay_Gen_Info> payGenInfos = new();
+
+    private List<Pay_Gen_Info> DesignationList = new();
+    private List<Pay_Gen_Info> GradeList = new();
+    private List<Pay_Gen_Info> bloodGroupList = new();
+
+    // protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadLookups();
+        }
+    }
+
+    private async Task LoadLookups()
+    {
+        member.Member!.membertype = 4;
+        member.Member.admissiondate = CurrentDate;
+        member.doj = CurrentDate;
+        member.Member.resolutionno = null;
+        member.Member.resolutiondate = CurrentDate;
+        member.Member.occ_id = 0;
+        member.Member.constituency_id = 0;
+        member.Member!.isnewmember = true;
+        member.Member.isexistingmember = false;
+        member.Member.isnewmember = false;
+        member.Member.isexistingmember = false;
+        member.Member.existing_memberno = "";
+        member.Member.ismember_othersociety = false;
+        member.Member.existing_memberno = null;
+        member.Member.prearea_id = 0;
+        member.Member.perarea_id = 0;
+
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+        CreatedBy  = userInfoDto.UserId;
+        YrId  = userInfoDto.YrId;
+        BrCode = userInfoDto.BrCode!;
+
+        member.Employee!.Usr_Id = userInfoDto.UserId;
+        member.Employee.Yr_Id = userInfoDto.YrId;
+        member.Employee.BrCode = userInfoDto.BrCode;
+
+
+        member.Member.brcode = userInfoDto?.BrCode!;
+        member.Member.usr_id = userInfoDto!.UserId;
+        member.Member.yr_id = userInfoDto.YrId;
+        CreatedBy = userInfoDto!.UserId;
+
+        try
+        {
+            await OnMemberTypeChanged();
+
+            var religion = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/6/{member.Member.brcode}/false");
+            if (religion != null) religions = religion.ToList();
+            var community = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/1/{member.Member.brcode}/false");
+            if (community != null) communities = community.ToList();
+            var caste = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Reference/4/{member.Member.brcode}/false");
+            if (caste != null) castes = caste.ToList();
+            var bank = await _httpClient.GetFromJsonAsync<List<DropdownItem>>("api/Reference/BankItems");
+            if (bank != null) banks = bank.ToList();
+            var genInfo = await _httpClient.GetFromJsonAsync<List<Pay_Gen_Info>>($"api/Pay/GetGeneralInfoList/{member.Member.brcode}");
+            if (genInfo != null && genInfo.Count > 0) 
+            {
+                // payGenInfos = genInfo.ToList();
+                DesignationList = genInfo.Where(x=> x.Pay_Info_Type ==1).ToList ();
+                GradeList = genInfo.Where(x => x.Pay_Info_Type == 2).ToList();
+                bloodGroupList = genInfo.Where(x => x.Pay_Info_Type == 3).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnMemberTypeChanged()
+    {
+        try
+        {
+            string memberNo = "";
+            int memType = member.Member!.membertype;
+            var url = $"api/NewAccountNo/NewMemberNo/{memType}/{member.Member!.brcode}";
+            Console.WriteLine($"Calling API: {url}"); // Debug URL
+            using var response = await _httpClient.GetAsync(url);
+            var jsonString = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Raw JSON response: {jsonString}");
+            if (response.IsSuccessStatusCode)
+            {
+                memberNo = jsonString;
+            }
+            else
+            {
+                Console.WriteLine($"API Error: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
+            }
+            member.Member.memberno = memberNo;
+        }
+        catch (Exception ex)
+        {
+
+            string errormessage = ex.Message;
+        }
+    }
+
+    private DateTime? DateOfBirth
+    {
+        get => member.Member!.dob;
+        set
+        {
+            member.Member!.dob = value;
+            if (value.HasValue)
+            {
+                var today = DateTime.Today;
+                var birthDate = value.Value;
+
+                var age = today.Year - birthDate.Year;
+                if (birthDate.Month > today.Month ||
+                    (birthDate.Month == today.Month && birthDate.Day > today.Day))
+                {
+                    age--;
+                }
+
+                member.Member.age = age;
+            }
+            else
+            {
+                member.Member.age = 0;
+            }
+        }
+    }
+
+    private void CalculateAge()
+    {
+        if (member.Member!.dob.HasValue)
+        {
+            member.Member.age = DateTime.Today.Year - member.Member.dob.Value.Year;
+            if (member.Member.dob.Value.Date > DateTime.Today.AddYears(-member.Member.age))
+                member.Member.age--;
+        }
+    }
+
+    private void CopyPresentAddress()
+    {
+        member.Member!.peradd1 = member.Member.preadd1;
+        member.Member.peradd2 = member.Member.preadd2;
+        member.Member.peradd3 = member.Member.preadd3;
+        member.Member.perpin = member.Member.prepin;
+        member.Member.perarea_id = member.Member.prearea_id;
+
+    }
+
+    private void AddQualification()
+    {
+        if(Qualification != null && !string.IsNullOrWhiteSpace(Qualification.Qua_Emp_Degree))
+            QualificationList.Add(Qualification);
+    }
+
+    private void DeleteQualification(Emp_Qualification qualification)
+    {
+        QualificationList.Remove(qualification);
+        StateHasChanged();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        Emp_Master empMaster = new();
+        empMaster = Utility.GetModalObject.GetEmpMasterObject(0, member.Employee!.Emp_Increment_Date,
+            member.Employee.Emp_Marital_Status,
+           member.Employee.Emp_Status_Id, member.Employee.Emp_Height, member.Employee.Emp_Weight,
+           member.Employee.Emp_BloodGrp, member.Employee.Emp_Lenses, member.Employee.Emp_Desgn!,
+           member.Employee.Emp_Scale!, member.Employee.Emp_Desgn_Id, member.Employee.Emp_Category_Id,
+           member.Employee.Emp_Grade_Id, member.Employee.Emp_Basic, member.Employee.Emp_PerPay,
+           member.Employee.Emp_GradePay, member.Employee.Emp_VPF, member.Employee.Emp_Delete,
+           member.Employee.Usr_Id, member.Employee.Yr_Id, member.Employee.BrCode!);
+
+        mem_master mem = new();
+        mem = Utility.GetModalObject.GetMemberMasterObjectNew(0, member.Member!.memberno!, member.Member.membertype,
+            member.Member!.memberno!, member.Member!.resolutionno!, member.Member.resolutiondate,
+            member.Member!.memberphoto!, member.Member!.memberesignature!, member.Member!.aadharcardpath!,
+            member.Member!.membername!, member.Member!.fathername!, member.Member.gender,
+                member.Member.caste_id, member.Member.dob, member.Member.age, member.Member!.alternative_mobileno!,
+            member.Member!.officephoneno!, member.Member!.mobileno!, member.Member!.emailid!, null, null,
+            0, true, 0, "",
+            member.Member!.preadd1!, member.Member!.preadd2!, member.Member!.preadd3!, member.Member!.prepin!, 0,
+            member.Member!.peradd1!, member.Member!.peradd2!, member.Member!.peradd3!, member.Member!.perpin!,
+            0, 0, 1, false,
+            null, member.Member.isexistingmember, 0, member.Member!.existing_memberno!,
+            null, member.Member.ismember_othersociety, member.Member!.nomineename!, member.Member.nomineeage,
+            member.Member!.nomineerelationship!, false, member.Member.isnewmember, 0,
+            member.Member.usr_id, member.Member.yr_id, 0, member.Member.comm_id, member.Member.occ_id,
+            member.Member.religion_id, false, "", "", false, null, "", "", 0, 0,
+            member.Member!.sbaccountno!, member.Member!.bankname!, member.Member!.ifsccode!, member.Member.admissiondate,
+            null, 0, member.Member!.gpf_no!, member.Member!.panno!, member.Member!.aadharno!,
+            member.Member!.smartcardno!, member.Member.brcode!);
+        DtoEmpMaster newEmpMaster = new();
+        newEmpMaster.Employee = empMaster;
+        newEmpMaster.Member = member.Member;
+        newEmpMaster.MemberMaster = mem;
+        if(QualificationList != null && QualificationList.Count >0)
+        {
+            foreach(var item in QualificationList )
+            {
+                item.Usr_Id = CreatedBy;
+                item.Yr_Id = YrId ;
+                item.BrCode = BrCode;
+            }
+        }
+        newEmpMaster.Qualifications = QualificationList;
+
+        // var response = await _httpClient.PostAsJsonAsync("api/Member", member);
+        var response = await _httpClient.PostAsJsonAsync("api/Member/AddEmployeeMaster", newEmpMaster);
+        if (response.IsSuccessStatusCode)
+        {
+            // statusMessage = "success";
+            await JSRuntime.InvokeVoidAsync("alert", "Member registed successfully!");
+            sameAsPresent = false;
+            Emp_Master emp = new();
+            MemberRegistration memb = new();
+            member = new();
+            member.Employee = emp;
+            member.Member = memb;
+
+            member.Member!.isnewmember = true;
+            member.Member.isexistingmember = false;
+
+            StateHasChanged();
+        }
+        else
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            await JSRuntime.InvokeVoidAsync("alert", $"Request failed: {response.StatusCode} - {errorContent}");
+            isSucceeded = false;
+        }
+    }
+
+    private void Reset()
+    {
+        member = new();
+
+        sameAsPresent = false;
+    }
+
+    private async Task Calculate_Age()
+    {
+        if (member.Member!.dob != null)
+        {
+            string fromDateFormatted = ((DateTime)member.Member!.dob).ToString("yyyy-MM-dd");
+            string toDateFormatted = CurrentDate.ToString("yyyy-MM-dd");
+            var age = await _httpClient.GetFromJsonAsync<int>($"api/Utility/GetAge?fromDate={fromDateFormatted}&toDate={toDateFormatted}");
+            member.Member.age = Convert.ToInt16(age);
+        }
+    }
+
+    private async Task OnMemberPhotoSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                // Create directory if it doesn't exist
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "member-photos");
+                Directory.CreateDirectory(uploadPath);
+
+                // Generate unique filename
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                // Save the file
+                using var stream = file.OpenReadStream(maxAllowedSize: 10485760); // 10MB max
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                await stream.CopyToAsync(fileStream);
+
+                // Update member photo path
+                member.Member!.memberphoto = $"/uploads/member-photos/{fileName}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading photo: {ex.Message}");
+            // Handle error appropriately
+        }
+    }
+
+    private async Task OnSignatureSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "signatures");
+                Directory.CreateDirectory(uploadPath);
+
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                using var stream = file.OpenReadStream(maxAllowedSize: 5242880); // 5MB max
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                await stream.CopyToAsync(fileStream);
+
+                member.Member!.memberesignature = $"/uploads/signatures/{fileName}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading signature: {ex.Message}");
+        }
+    }
+
+    private async Task OnAadharCardSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "aadhar-cards");
+                Directory.CreateDirectory(uploadPath);
+
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                using var stream = file.OpenReadStream(maxAllowedSize: 15728640); // 15MB max
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                await stream.CopyToAsync(fileStream);
+
+                member.Member!.aadharcardpath = $"/uploads/aadhar-cards/{fileName}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading Aadhar card: {ex.Message}");
+        }
+    }
+
+    private async Task InitCamera()
+    {
+        try
+        {
+            // Use InvokeAsync<bool> since we're now returning a proper boolean
+            var success = await JSRuntime.InvokeAsync<bool>("initializeCamera");
+
+            if (!success)
+            {
+                // errorMessage = "Could not access camera";
+                // showErrorMessage = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing camera: {ex.Message}");
+            // errorMessage = $"Camera error: {ex.Message}";
+            // showErrorMessage = true;
+        }
+    }
+
+    private async Task CapturePhoto()
+    {
+        try
+        {
+            // Get base64 image
+            capturedImageData = await JSRuntime.InvokeAsync<string>("captureImage");
+
+            // Upload to server
+            var response = await _httpClient.PostAsJsonAsync("api/Transaction/upload",
+                new { ImageData = capturedImageData });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ImageUploadResult>();
+                member.Member!.memberphoto = result!.Path;
+                // loanDetails.Jewels_Photo_Path = result!.Path;
+            }
+            else
+            {
+                // errorMessage = "Failed to upload image";
+                // showErrorMessage = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            // errorMessage = $"Error: {ex.Message}";
+            // showErrorMessage = true;
+        }
+    }
+}

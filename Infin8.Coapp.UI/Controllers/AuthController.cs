@@ -132,7 +132,7 @@ namespace Infin8.Coapp.API.Controllers
                     authResponse.AuthenticatedUserDetailsDto.Username,
                     authResponse.AuthenticatedUserDetailsDto.Email,
                     authResponse.AuthenticatedUserDetailsDto.Roles,
-                    authResponse.AuthenticatedUserDetailsDto.BrCode
+                    authResponse.AuthenticatedUserDetailsDto.BrCode,
                 });
             }
             catch (UnauthorizedAccessException ex)

@@ -152,7 +152,7 @@
 
     private void ValidateDividendPayment()
     {
-        if (model.DividendPayable  > model.DividendPaid )
+        if (model.DividendPaid > model.DividendPayable   )
         {
             JSRuntime.InvokeVoidAsync("alert", "Total paid amount is greater than total payable amount");
             model.DividendPaid  = model.DividendPayable ;

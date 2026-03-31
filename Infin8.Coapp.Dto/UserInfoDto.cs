@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -17,5 +18,6 @@ namespace Infin8.Coapp.Dto
         public DateTime YrEndDate { get; set; }
         public DateTime  CurrentDate { get; set; }
         public bool IsAuthenticated { get; set; }
+        public string? CalendarStatus { get; set; }
     }
 }

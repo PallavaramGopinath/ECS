@@ -336,117 +336,6 @@ else
             </div>
         }
 
-
-        <!-- Filters Section -->
-        @* <div class="card mb-4 shadow-sm">
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Employee ID</label>
-                        <input type="number" class="form-control" @bind="filterEmployeeId" placeholder="Enter Employee ID" />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Month</label>
-                        <select class="form-select" @bind="filterMonth">
-                            <option value="0">All Months</option>
-                            @for (int i = 1; i <= 12; i++)
-                            {
-                                <option value="@i">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Year</label>
-                        <select class="form-select" @bind="filterYear">
-                            <option value="0">All Years</option>
-                            @for (int year = DateTime.Now.Year - 2; year <= DateTime.Now.Year + 1; year++)
-                            {
-                                <option value="@year">@year</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button class="btn btn-primary w-100" @onclick="ApplyFilters">
-                            <i class="fas fa-search me-1"></i> Search
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div> *@
-
-        <!-- Payslips List -->
-       @*  <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h5 class="mb-0">
-                    <i class="fas fa-list me-2"></i>
-                    Payslips (@filteredPayslips.Count)
-                </h5>
-            </div>
-            <div class="card-body p-0">
-                @if (filteredPayslips.Any())
-                {
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Employee ID</th>
-                                    <th>Designation</th>
-                                    <th>Period</th>
-                                    <th>Working Days</th>
-                                    <th class="text-end">Gross Pay</th>
-                                    <th class="text-end">Deductions</th>
-                                    <th class="text-end">Net Pay</th>
-                                    <th class="text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var payslip in filteredPayslips)
-                                {
-                                    <tr class="@(selectedPayslip?.Pay_Id == payslip.Pay_Id ? "table-info" : "")">
-                                        <td class="fw-medium">@payslip.Employee_Id</td>
-                                        <td>@payslip.Designation</td>
-                                        <td>
-                                            <span class="badge bg-secondary">
-                                                @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(payslip.Pay_Month) @payslip.Pay_Year
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="text-success fw-medium">@payslip.TotalDays</span>
-                                            <small class="text-muted">/@payslip.TotalDaysInMonth</small>
-                                        </td>
-                                        <td class="text-end fw-medium text-success">₹@payslip.GrossPay.ToString("N2")</td>
-                                        <td class="text-end fw-medium text-danger">₹@payslip.TotalDeductions.ToString("N2")</td>
-                                        <td class="text-end fw-bold text-primary fs-6">₹@payslip.NetPay.ToString("N2")</td>
-                                        <td class="text-center">
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" @onclick="() => ViewPayslip(payslip)">
-                                                    <i class="oi oi-eye"></i>
-                                                </button>
-                                                <button class="btn btn-outline-success" @onclick="() => EditPayslip(payslip)">
-                                                    <i class="oi oi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-outline-info" @onclick="() => PrintPayslip(payslip)">
-                                                    <i class="oi oi-print"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <div class="text-center py-5">
-                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No payslips found</h5>
-                        <p class="text-muted">Try adjusting your search criteria or generate a new payslip.</p>
-                    </div>
-                }
-            </div>
-        </div> *@
-
     </div>
 
     <!-- Display Payslip Detail Modal -->
@@ -653,6 +542,7 @@ else
                             </div>
                         }
 
+
                         <!-- Loan Section -->
                         @if (selectedPayslip.LoanList != null && selectedPayslip.LoanList.Any())
                         {
@@ -698,6 +588,7 @@ else
                                 </div>
                             </div>
                         }
+
                         
                         <!-- Suspense Account Section-->
                         @if (selectedPayslip.SuspeneDueToList != null && selectedPayslip.SuspeneDueToList.Any())
@@ -741,6 +632,7 @@ else
                             </div>
                         }
  
+
                         <!-- Summary Section -->
                         <div class="row mt-4">
                             <div class="col-md-12">
@@ -770,6 +662,7 @@ else
                                 </div>
                             </div>
                         </div>
+
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" @onclick="CloseModal">
@@ -789,180 +682,6 @@ else
             </div>
         </div>
     }
-
-
-    <!-- Edit Payslip Modal not used-->
-    @* @if (editingPayslip != null)
-    {
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning text-dark">
-                        <h5 class="modal-title">
-                            <i class="fas fa-edit me-2"></i>
-                            Edit Payslip - @editingPayslip.Designation (ID: @editingPayslip.Employee_Id)
-                        </h5>
-                        <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <EditForm Model="editingPayslip" OnValidSubmit="SavePayslip">
-                            <DataAnnotationsValidator />
-
-                            <!-- Basic Information -->
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Employee ID</label>
-                                        <InputNumber class="form-control" @bind-Value="editingPayslip.Employee_Id" readonly />
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Designation</label>
-                                        <InputText class="form-control" @bind-Value="editingPayslip.Designation" />
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">DA Percentage</label>
-                                        <InputNumber class="form-control" @bind-Value="editingPayslip.DA_Percentage" step="0.01" />
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">PF Percentage</label>
-                                        <InputNumber class="form-control" @bind-Value="editingPayslip.PF_Percentage" step="0.01" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Attendance -->
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Attendance Details</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-3">
-                                            <label class="form-label">Headquarters</label>
-                                            <InputNumber class="form-control" @bind-Value="editingPayslip.HeadQuarters" />
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label">Camp</label>
-                                            <InputNumber class="form-control" @bind-Value="editingPayslip.Camp" />
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label">Casual Leave</label>
-                                            <InputNumber class="form-control" @bind-Value="editingPayslip.CasualLeave" />
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label">Earned Leave</label>
-                                            <InputNumber class="form-control" @bind-Value="editingPayslip.EarnedLeave" />
-                                        </div>
-                                    </div>
-                                    <div class="row g-3 mt-2">
-                                        <div class="col-md-3">
-                                            <label class="form-label">Medical Leave</label>
-                                            <InputNumber class="form-control" @bind-Value="editingPayslip.MedicalLeave" />
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label">Loss of Pay</label>
-                                            <InputNumber class="form-control" @bind-Value="editingPayslip.LossOfPay" />
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label">Festival Holiday</label>
-                                            <InputNumber class="form-control" @bind-Value="editingPayslip.FestivalHoliday" />
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label">Holiday</label>
-                                            <InputNumber class="form-control" @bind-Value="editingPayslip.Holiday" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Component Assignments -->
-                            @if (editingPayslip.ComponentAssignments != null)
-                            {
-                                <div class="card mb-4">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">Pay Components</h6>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddComponent">
-                                            <i class="fas fa-plus me-1"></i> Add Component
-                                        </button>
-                                    </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive">
-                                            <table class="table table-sm mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Component</th>
-                                                        <th>Type</th>
-                                                        <th>Method</th>
-                                                        <th>DA Applicable</th>
-                                                        <th class="text-end">Amount</th>
-                                                        <th>Override</th>
-                                                        <th class="text-center">Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (var component in editingPayslip.ComponentAssignments.OrderBy(c => c.Display_Order))
-                                                    {
-                                                        <tr>
-                                                            <td>
-                                                                <div>
-                                                                    <strong>@component.Component_Name</strong>
-                                                                    <br><small class="text-muted">@component.Component_Code</small>
-                                                                </div>
-                                                            </td>
-                                                            <td>
-                                                                <span class="badge @(component.Component_Type == 1 ? "bg-success" : "bg-danger")">
-                                                                    @(component.Component_Type == 1 ? "Earning" : "Deduction")
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <select class="form-select form-select-sm" @bind="component.Calculation_Method">
-                                                                    <option value="PayCalculationType.Fixed">Fixed</option>
-                                                                    <option value="PayCalculationType.Percentage">Percentage</option>
-                                                                    <option value="PayCalculationType.Formula">Formula</option>
-                                                                </select>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <input type="checkbox" class="form-check-input" @bind="component.Is_DA_Applicable" />
-                                                            </td>
-                                                            <td>
-                                                                <input type="number" class="form-control form-control-sm text-end"
-                                                                       @bind="component.Assigned_Value" step="0.01"
-                                                                       style="max-width: 120px;" />
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <input type="checkbox" class="form-check-input" @bind="component.Is_Overridden" />
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <button type="button" class="btn btn-sm btn-outline-danger"
-                                                                        @onclick="() => RemoveComponent(component)">
-                                                                    <i class="fas fa-trash"></i>
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    }
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-
-                            <ValidationSummary class="text-danger" />
-
-                            <div class="d-flex justify-content-end">
-                                <button type="button" class="btn btn-secondary me-2" @onclick="CloseEditModal">Cancel</button>
-                                <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-save me-1"></i> Save Changes
-                                </button>
-                            </div>
-                        </EditForm>
-                    </div>
-                </div>
-            </div>
-        </div>
-    } *@
 }
 
 

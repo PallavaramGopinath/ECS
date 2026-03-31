@@ -4,7 +4,37 @@
 @using Infin8.Coapp.Models
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.Text.Json.Serialization
+@inject NavigationManager Navigation
+
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
+
+@if (_isProcessed)
+{
+    <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+        <strong>Message!</strong> @statusMessage
+        <button type="button" class="close" @onclick="() => _isProcessed = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
+
+@if (_isError)
+{
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <strong>Error!</strong> @errorMessage
+        <button type="button" class="close" @onclick="() => _isError = false">
+            <span>&times;</span>
+        </button>
+    </div>
+}
 
 @if (model != null)
 {
@@ -125,28 +155,6 @@
 }
 
 
-@if (_isProcessed)
-{
-    <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-        <strong>Error!</strong> @statusMessage
-        <button type="button" class="close" @onclick="() => _isProcessed = false">
-            <span>&times;</span>
-        </button>
-    </div>
-}
-
-
-@if (_isError)
-{
-    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-        <strong>Error!</strong> @errorMessage
-        <button type="button" class="close" @onclick="() => _isError = false">
-            <span>&times;</span>
-        </button>
-    </div>
-}
-
-
 @code {
     private bool _isProcessing = false;
     private bool _isError = false;
@@ -155,27 +163,33 @@
     private string errorMessage = "";
     private DtoDayProcess model = new()
     {
-        ProcessDate = new DateTime(2025, 09, 7),
-        FromDate = new DateTime (2024,4,1),
-        ToDate = new DateTime (2024,3,31),
-        Created_By = 110010000002,
-        YrId = 110010000023,
-        BrCode = "11001",
+        ProcessDate = DateTime.UtcNow,
+        FromDate = DateTime.UtcNow,
+        ToDate = DateTime.UtcNow,
+        Created_By = 0,
+        YrId = 0,
+        BrCode = "",
         Message = string.Empty 
     };
 
+    public class ErrorResponseDto
+    {
+        [JsonPropertyName("errorMessage")]
+        public string? ErrorMessage { get; set; }
+    }
+
     private List<DtoAccountsBalance> accountsList = new();
-    private List<UiFinalGroup> groupedLedgers; // Data structured for UI
+    private List<UiFinalGroup>? groupedLedgers; // Data structured for UI
     public class UiLedgerGroup
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public bool IsExpanded { get; set; } = true; // Start expanded
         public List<DtoAccountsBalance> Ledgers { get; set; } = new List<DtoAccountsBalance>();
     }
 
     public class UiFinalGroup
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public bool IsExpanded { get; set; } = true; // Start expanded
         public List<UiLedgerGroup> Groups { get; set; } = new List<UiLedgerGroup>();
     }
@@ -186,6 +200,16 @@
         {
             try
             {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+                model.ProcessDate = userInfoDto.CurrentDate;
+                model.FromDate = userInfoDto.YrBeginningDate;
+                model.ToDate = userInfoDto.YrEndDate;
+                model.Created_By = userInfoDto.UserId;
+                model.YrId = userInfoDto.YrId;
+                model.BrCode = userInfoDto.BrCode;
+                StateHasChanged();
+
                 string currentDateString = model.ProcessDate.ToString("yyyy-MM-dd");
                 string fromDateString = model.FromDate.ToString("yyyy-MM-dd");
                 string toDateString = model.ToDate.ToString("yyyy-MM-dd");
@@ -246,12 +270,24 @@
             statusMessage = "success";
             _isProcessing = false;
             StateHasChanged();
+            // redirect to login page
+            Navigation.NavigateTo("/login", true);
         }
         else
         {
+            // _isError = true;
+            // errorMessage = $"Request failed with status code: {response.StatusCode}";
+            // _isProcessing = false;
+
             _isError = true;
-            errorMessage = $"Request failed with status code: {response.StatusCode}";
+            var errorResult = await response.Content.ReadFromJsonAsync<ErrorResponseDto>();
+            errorMessage = errorResult?.ErrorMessage ?? $"Request failed with status code: {response.StatusCode}";
             _isProcessing = false;
+        }
+
+        _isProcessing = false;
+        StateHasChanged();
+
         }
     }
 }

@@ -20,7 +20,15 @@ namespace Infin8.Coapp.Repository
             Add(member);
             return true;
         }
-
+        public async Task<decimal> AddMemberMaster(mem_master member)
+        {
+            decimal maxId = await CSISContext.mem_master.MaxAsync(x => x.mem_id);
+            maxId++;
+            member.mem_id = maxId;
+            await AddAsync  (member);
+            CSISContext.SaveChanges();
+            return maxId;
+        }
         public async Task<mem_master> GetMemberById(decimal mem_id)
         {
             mem_master mem = new();

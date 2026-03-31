@@ -39,7 +39,10 @@ namespace Infin8.Coapp.API.Controllers
         public async Task<ActionResult<bool>> DayEndProcess([FromBody] DtoDayProcess dayProcess)
         {
             var result = await _calendarHandler.DayEndProcess(dayProcess);
-            return Ok(result);
+            if(result )
+                return Ok(result);
+            else 
+               return StatusCode(500, new { errorMessage = "error in day end process" });
         }
 
         [HttpPut]

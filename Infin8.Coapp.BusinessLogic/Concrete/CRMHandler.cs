@@ -10,6 +10,44 @@ namespace Infin8.Coapp.BusinessLogic
         {
             _unitOfWork = unitOfWork;
         }
+
+        public async Task<bool> AddEmployeeMaster(DtoEmpMaster empMaster)
+        {
+            bool result = false;
+            try
+            {
+                Emp_Master emp = new();
+                mem_master mem = new();
+                List<Emp_Qualification> qualifications = new();
+                emp = empMaster.Employee!;
+                mem = empMaster.MemberMaster! ;
+                qualifications.AddRange(empMaster.Qualifications!);
+                _unitOfWork.BeginTransaction();
+                var memMaxId = await _unitOfWork.Members.AddMemberMaster(mem);
+                emp.Mem_Id = memMaxId;
+                if (empMaster.Qualifications != null && empMaster.Qualifications.Count > 0)
+                {
+                    foreach (var qua in qualifications)
+                    {
+                        qua.Mem_Id = memMaxId;
+                    }
+                }
+                var empResult = await _unitOfWork.EmployeeMaster.AddEmployeeMasterAsync(emp);
+               
+                var quaResult = await _unitOfWork.EmployeeQualification.AddEmployeeQualificationListAsync(qualifications);
+                _unitOfWork.CommitTransaction();
+
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.RollBack();
+                result = false;
+                Console.Write(ex.Message);
+            }
+            return result;
+        }
+
         public async Task<bool> AddMember(mem_master member)
         {
             bool result = false;
@@ -30,7 +68,6 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
-
         public async Task<List<DropdownItem>> GetAllMembers(int memType, int memStatus, bool isMemNo,string brCode)
         {
             List<DropdownItem> items = new List<DropdownItem>();

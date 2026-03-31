@@ -48,5 +48,10 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+
+        public async Task<List<Pay_Gen_Info>> GetPayGenInfoListAsync(string brCode)
+        {
+            return await _unitOfWork.PayGenInfo.GetPayGenInfoListAsync(brCode);
+        }
     }
 }

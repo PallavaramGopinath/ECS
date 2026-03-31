@@ -28,7 +28,7 @@ namespace Infin8.Coapp.Utility
 
         public CookieOptions GetCookieDeleteOptions();
         public ClaimsPrincipal ValidateToken(string token);
-        public string GenerateAccessToken(decimal userId, string username, string roles, string brCode, decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate);
+        public string GenerateAccessToken(decimal userId, string username, string roles, string brCode, decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate, string calendarStatus);
         public string GenerateRefreshToken();
         //public UserInfoDto GetUserInfoDto();
     }
@@ -64,7 +64,7 @@ namespace Infin8.Coapp.Utility
             return _accessTokenExpireMinutes;
         }
 
-        public string GenerateAccessToken(decimal userId, string username, string roles,string brCode,decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate)
+        public string GenerateAccessToken(decimal userId, string username, string roles,string brCode,decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate,string calendarStatus)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -82,10 +82,9 @@ namespace Infin8.Coapp.Utility
                     new Claim("YrEndDate", yrEndDate.ToString("o")),
                     new Claim("CurrentDate", currentDate.ToString("o")),
                     new Claim("Roles", roles!.ToString()),
-
                     new Claim("UserName", username.ToString()),
-                    new Claim("UserId", userId.ToString())
-
+                    new Claim("UserId", userId.ToString()),
+                    new Claim("CalendarStatus",calendarStatus),
                 };
 
             foreach (var role in userRoles)

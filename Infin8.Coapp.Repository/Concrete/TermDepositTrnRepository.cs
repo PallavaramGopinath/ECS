@@ -76,6 +76,7 @@ namespace Infin8.Coapp.Repository
                 }
 
                 await CSISContext.TermDeposit_Trn.AddRangeAsync(termDepositTrnList);
+                CSISContext.SaveChanges();
                 result = true;
             }
             catch (Exception ex)

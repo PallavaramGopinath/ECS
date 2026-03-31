@@ -336,6 +336,7 @@
     private string stagingStatus = "I";
     private string brCode = "11001"; // Branch code, can be dynamic based on user selection or context
     decimal createdBy = 110010000001;
+    private string calendar_Status = "";
     #region variable declarations
 
     private TransactionBy_Members transaction = new()
@@ -408,6 +409,9 @@
             transaction.Cheque_Date = userInfoDto.CurrentDate;
             transaction.Yr_Id = userInfoDto.YrId;
             createdBy = userInfoDto.UserId;
+            calendar_Status = userInfoDto.CalendarStatus!;
+
+            // calendar_Status = userInfoDto.CalendarStatus;
             // if (! user.Identity!.IsAuthenticated)
             if (userInfoDto.IsAuthenticated == false)
             {

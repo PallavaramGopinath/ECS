@@ -83,7 +83,7 @@ namespace Infin8.Coapp.Repository
         private PayAttanceRepository? _payAttanceRepository;
         private PayBasicPayRepository? _payBasicPayRepository;
         private PayDATemplateRepository? _payDATemplateRepository;
-        private PayGenInfoRepository? _payGenInfoRepository;
+        
         private PayInitRepository? _payInitRepository;
         private PayLeaveEligibleRepository? _payLeaveEligibleRepository;    
         private PayPFRoiTemplateRepository? _payPFRoiTemplateRepository;
@@ -96,6 +96,7 @@ namespace Infin8.Coapp.Repository
         private PayVPFRepository? _payVPFRepository;
         private PayComponentRepository? _payComponentRepository;
         private PayComponentAssignmentsRepository? _payComponentAssignmentsRepository;
+        private PayGenInfoRepository? _payGenInfoRepository;
         #endregion 
 
         private ReferenceConstituencyRepository? _referenceConstituencyRepository;
@@ -226,6 +227,8 @@ namespace Infin8.Coapp.Repository
         public IPayVPFRepository PayVPF => _payVPFRepository ??= new PayVPFRepository(_context);
         public IPayComponentRepository PayComponent => _payComponentRepository ??= new PayComponentRepository(_context);
         public IPayComponentAssignmentsRepository PayComponentAssignments => _payComponentAssignmentsRepository ??= new PayComponentAssignmentsRepository(_context);
+        public IPayGenInfoRepository PayGenInfoRepository => _payGenInfoRepository ??= new PayGenInfoRepository(_context);
+        
         #endregion 
         public IReferenceConstituencyRepository ReferenceConstituency => _referenceConstituencyRepository ??= new ReferenceConstituencyRepository(_context);
 
@@ -272,6 +275,9 @@ namespace Infin8.Coapp.Repository
         #endregion
 
         public ITransactionsRepository TransactionsRepository => _transactionsRepository ??= new TransactionsRepository(_context);
+
+       
+
         public void BeginTransaction()
         {
             try

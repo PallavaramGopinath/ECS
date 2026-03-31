@@ -166,6 +166,16 @@ namespace API.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("AddEmployeeMaster")]
+        public async Task<ActionResult<bool>> AddEmployeeMaster([FromBody]DtoEmpMaster empMaster)
+        {
+            var result = await _memberHandler.AddEmployeeMaster(empMaster);
+            return Ok(result);
+        }
+
+
+
         //[HttpGet("{id:decimal}/{fromDate}/{toDate}")]
         //public ActionResult<List<MemberDashBoardAccountsDto>> GetMemberDashBoardAccounts(decimal id, string fromDate, string toDate)
         //{

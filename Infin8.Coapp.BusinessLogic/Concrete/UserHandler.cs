@@ -70,7 +70,7 @@ namespace Infin8.Coapp.BusinessLogic
                 throw new UnauthorizedAccessException("Invalid credentials.");
             }
             var daybeginInfo = await _unitOfWork.FinYearMaster.GetDayBeginInfo(user.BrCode ?? "");
-            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username! , user.Role!,user.BrCode,daybeginInfo.YearId , daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate );
+            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username! , user.Role!,user.BrCode,daybeginInfo.YearId , daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate,daybeginInfo.CalendarStatus!  );
             var refreshToken = _jwtService.GenerateRefreshToken();
             var userRoles = (user.Role ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
 

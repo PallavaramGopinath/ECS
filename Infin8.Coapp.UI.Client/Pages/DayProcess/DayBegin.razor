@@ -4,7 +4,14 @@
 @using Infin8.Coapp.Models
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@rendermode InteractiveWebAssembly
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin")]
+
 
 @if(model != null)
 {
@@ -46,6 +53,7 @@
     </div>
 }
 
+
 @code {
     private bool _isProcessing = false;
     private bool _isError = false;
@@ -55,14 +63,36 @@
     private DtoDayProcess model = new()
     {
         // ProcessDate = new DateTime(2025, 09, 7),
-        FromDate = new DateTime(2024, 4, 1),
-        ToDate = new DateTime(2025, 3, 31),
-        Created_By = 110010000002,
-        YrId = 110010000023,
-        BrCode = "11001",
+        FromDate = DateTime.UtcNow ,
+        ToDate = DateTime.UtcNow,
+        Created_By = 0,
+        YrId = 0,
+        BrCode = "",
         Message = string.Empty
     };
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+
+                model.ProcessDate = userInfoDto.CurrentDate;
+                model.FromDate = userInfoDto.YrBeginningDate;
+                model.ToDate = userInfoDto.YrEndDate;
+                model.Created_By = userInfoDto.UserId;
+                model.YrId = userInfoDto.YrId;
+                model.BrCode = userInfoDto.BrCode;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
 
     private async Task HandleValidSubmit()
     {

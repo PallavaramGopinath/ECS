@@ -68,7 +68,7 @@ namespace Infin8.Coapp.BusinessLogic
                 else
                 {
                     dayProcess.Message = "Pending staging data not available to day end process";
-                    goto CompleteDayProcess;
+                    goto ErrorDayEndProcess;
                 }
                 #endregion 
 
@@ -81,7 +81,7 @@ namespace Infin8.Coapp.BusinessLogic
                 else
                 {
                     dayProcess.Message = "Pending staging data not available to day end process";
-                    goto CompleteDayProcess;
+                    goto ErrorDayEndProcess;
                 }
                 #endregion
 
@@ -123,7 +123,7 @@ namespace Infin8.Coapp.BusinessLogic
                 if(addHistoryResult == false )
                 {
                     dayProcess.Message = "Push staging data to staging history failed";
-                    goto CompleteDayProcess;
+                    goto ErrorDayEndProcess;
                 }
                 #endregion 
 
@@ -142,7 +142,7 @@ namespace Infin8.Coapp.BusinessLogic
                     if (result == false)
                     {
                         dayProcess.Message = "Calculation if interest payable for fixed deposit(s) failed";
-                        goto CompleteDayProcess;
+                        goto ErrorDayEndProcess;
                     }
                 }
 
@@ -162,7 +162,7 @@ namespace Infin8.Coapp.BusinessLogic
                 if (resultAddStagingBalance == false)
                 {
                     dayProcess.Message = "Addition of staginb balance failed";
-                    goto CompleteDayProcess;
+                    goto ErrorDayEndProcess;
                 }
                 #endregion 
 
@@ -171,7 +171,7 @@ namespace Infin8.Coapp.BusinessLogic
                 if (masterDeleteResult == false)
                 {
                     dayProcess.Message = "Deletetion of staging master data failed";
-                    goto CompleteDayProcess;
+                    goto ErrorDayEndProcess;
                 }
                 #endregion
 
@@ -180,7 +180,7 @@ namespace Infin8.Coapp.BusinessLogic
                 if (detailsDeleteResult == false)
                 {
                     dayProcess.Message = "Deletetion of staging details data failed";
-                    goto CompleteDayProcess;
+                    goto ErrorDayEndProcess;
                 }
                 #endregion
 
@@ -189,12 +189,16 @@ namespace Infin8.Coapp.BusinessLogic
                 if(resultCalendarUpdate  == 0)
                 {
                     dayProcess.Message = "Day not marked on the date " + dayProcess.ProcessDate.ToString("yyyy-MM-dd");
-                    goto CompleteDayProcess;
+                    goto ErrorDayEndProcess;
                 }
                 #endregion
             CompleteDayProcess:
                     _unitOfWork.CommitTransaction();
                     result = true;
+                return result;
+            ErrorDayEndProcess:
+                _unitOfWork.RollBack();
+                result = false;
             }
             catch (Exception ex)
             {

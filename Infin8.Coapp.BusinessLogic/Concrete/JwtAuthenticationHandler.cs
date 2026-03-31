@@ -34,7 +34,7 @@ namespace Infin8.Coapp.BusinessLogic
                 throw new UnauthorizedAccessException("Invalid credentials.");
             }
             
-            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username!, user.Role!,user.BrCode!,daybeginInfo.YearId,daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate  );
+            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username!, user.Role!,user.BrCode!,daybeginInfo.YearId,daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate,daybeginInfo.CalendarStatus! );
             var refreshToken = _jwtService.GenerateRefreshToken();
 
             var userRoles = (user.Role ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -56,14 +56,14 @@ namespace Infin8.Coapp.BusinessLogic
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                ExpiresIn = 15, // Access token expiry in minutes
+                ExpiresIn = 60, // Access token expiry in minutes
                 AuthenticatedUserDetailsDto = new AuthenticatedUserDetailsDto
                 {
                     Id = user.Id,
                     Username = user.Username,
                     Email = user.Email,
                     Roles = userRoles,
-                    BrCode = user.BrCode 
+                    BrCode = user.BrCode,
                 },
             };
         }
@@ -89,7 +89,7 @@ namespace Infin8.Coapp.BusinessLogic
             if(member == null || member.MemberName==null) throw new UnauthorizedAccessException("Invalid member.");
             var daybeginInfo = await _unitOfWork.FinYearMaster.GetDayBeginInfo(member.BrCode ?? "");
             // Pass proper role from DB or from the decision JSON file.
-            var accessToken = _jwtService.GenerateAccessToken(member.Mem_Id, member.MemberName, roles!,member.BrCode!,daybeginInfo.YearId,daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate ); 
+            var accessToken = _jwtService.GenerateAccessToken(member.Mem_Id, member.MemberName, roles!,member.BrCode!,daybeginInfo.YearId,daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate,daybeginInfo.CalendarStatus! ); 
 
             // Optionally, generate a new refresh token and update the database
             var newRefreshToken = _jwtService.GenerateRefreshToken();

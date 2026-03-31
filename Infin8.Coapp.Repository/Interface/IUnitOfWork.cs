@@ -87,7 +87,9 @@ namespace Infin8.Coapp.Repository
         IPayVPFRepository PayVPF { get; }
         IPayComponentRepository PayComponent { get; }
         IPayComponentAssignmentsRepository PayComponentAssignments { get; }
+        IPayGenInfoRepository PayGenInfoRepository { get; }
         #endregion 
+
         IReferenceConstituencyRepository ReferenceConstituency { get; }
         ISBCAMasterRepository SBCAMaster { get; }
         ISBCASchemesRepository SBCASchemes { get; }

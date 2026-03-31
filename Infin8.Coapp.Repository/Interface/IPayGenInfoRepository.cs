@@ -12,5 +12,6 @@ namespace Infin8.Coapp.Repository
         Task<bool> AddPayGenInfoAsync(Pay_Gen_Info payGenInfo);
         Task<bool> EditPayGenInfoAsync(Pay_Gen_Info payGenInfo);
         Task<Pay_Gen_Info> GetPayGenInfoAsync(decimal infoId);
+        Task<List<Pay_Gen_Info>> GetPayGenInfoListAsync(string brCode);
     }
 }

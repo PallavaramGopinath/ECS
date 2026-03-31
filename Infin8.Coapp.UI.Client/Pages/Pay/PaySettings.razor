@@ -1,0 +1,199 @@
+﻿@page "/pay-setting"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+@using Infin8.Coapp.Utility
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Pay setting</PageTitle>
+<EditForm Model="@payTemplate" method="post" OnValidSubmit="@HandleValidSubmit" FormName="PayTemplate">
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-people"></i> Pay setting
+                            </h5>
+                        </div>
+                    </div>
+                    <div class="card-body">
+
+                        <!-- Salary ledger -->
+                        <label class="form-label mt-4">Salary Ledger</label>
+                        <InputSelect @bind-Value="payTemplate.Salary_Led_Id" class="form-select">
+                            <option value="">Select salary ledger</option>
+                            @foreach (var item in GlAccounts.Where(x => x.Fnl_Id == 4))
+                            {
+                                <option value="@item.Led_Id">@item.Led_Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => payTemplate.Salary_Led_Id)" />
+
+                        <!--PF ledger-->
+                        <label class="form-label mt-4">Provident Fund ledger</label>
+                        <InputSelect @bind-Value="payTemplate.Emp_PF_Led_Id" class="form-select">
+                            <option value="">Select provident fund ledger</option>
+                            @foreach (var item in GlAccounts.Where(x => x.Fnl_Id == 2))
+                            {
+                                <option value="@item.Led_Id">@item.Led_Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => payTemplate.Emp_PF_Led_Id)" />
+
+                        <!--Society contribution ledger-->
+                        <label class="form-label mt-4">Society Contribution towards Provident Fund ledger</label>
+                        <InputSelect @bind-Value="payTemplate.Banks_PF_Led_Id" class="form-select">
+                            <option value="">Select society controbution towards provident fund ledger</option>
+                            @foreach (var item in GlAccounts.Where(x => x.Fnl_Id == 4))
+                            {
+                                <option value="@item.Led_Id">@item.Led_Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => payTemplate.Banks_PF_Led_Id)" />
+
+                        <!--Interest on PF ledger-->
+                        <label class="form-label mt-4">Interest on Provident Fund Ledger</label>
+                        <InputSelect @bind-Value="payTemplate.Int_On_PF_Led_Id" class="form-select">
+                            <option value="">Select interest on provident fund ledger</option>
+                            @foreach (var item in GlAccounts.Where(x => x.Fnl_Id == 4))
+                            {
+                                <option value="@item.Led_Id">@item.Led_Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => payTemplate.Int_On_PF_Led_Id)" />
+
+                        <!--Ex-gratia ledger-->
+                        <label class="form-label mt-4">Ex-gratia ledger</label>
+                        <InputSelect @bind-Value="payTemplate.Int_On_PF_Led_Id" class="form-select">
+                            <option value="">Select ex-gratia ledger</option>
+                            @foreach (var item in GlAccounts.Where(x => x.Fnl_Id == 4))
+                            {
+                                <option value="@item.Led_Id">@item.Led_Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => payTemplate.ExGratia_Led_Id)" />
+
+                        <!--Bonus ledger-->
+                        <label class="form-label mt-4">Bonus ledger</label>
+                        <InputSelect @bind-Value="payTemplate.Bonus_Led_Id" class="form-select">
+                            <option value="">Select bonus ledger</option>
+                            @foreach (var item in GlAccounts.Where(x => x.Fnl_Id == 4))
+                            {
+                                <option value="@item.Led_Id">@item.Led_Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => payTemplate.Bonus_Led_Id)" />
+
+                        <!-- Navigation Buttons -->
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="submit" class=" btn btn-success">
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+
+@code {
+
+    private Pay_Template payTemplate = new();
+    List<FinLedgerVM> GlAccounts = new();
+
+    private bool Loading = true;
+    private string BrCode = "";
+    private decimal UserId = 0;
+    private decimal YrId = 0;
+    private DateTime CurrentDate = DateTime.UtcNow;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            BrCode = userInfoDto.BrCode!;
+            UserId = userInfoDto.UserId;
+            YrId = userInfoDto.YrId;
+            CurrentDate = userInfoDto.CurrentDate;
+            await LoadData();
+        }
+    }
+    private async Task LoadData()
+    {
+        Loading = true;
+        try
+        {
+            var query = await _httpClient.GetFromJsonAsync<List<FinLedgerVM>>($"api/Accounts/GetLedgerVMListAsync/{BrCode}");
+            if (query != null && query.Count > 0)
+                GlAccounts = query!.ToList();
+
+            var template = await _httpClient.GetFromJsonAsync<Pay_Template>($"api/Pay/GetPayTemplate/{BrCode}");
+            if (template != null && template.Emp_PF_Led_Id >0)
+            {
+                payTemplate = template;
+                payTemplate.Wef = CurrentDate; // Update Wef to current date for new entries
+                payTemplate.Usr_Id = UserId; // Update Usr_Id to current user for new entries
+                payTemplate.Yr_Id = YrId; // Update Yr_Id to current year for new entries
+            }
+            else
+            {
+                payTemplate = new()
+                {
+                    Wef = CurrentDate,
+                    BrCode = BrCode,
+                    Usr_Id = UserId,
+                    Yr_Id = YrId
+                };
+
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't block UI
+            Console.WriteLine($"Error loading GL accounts: {ex.Message}");
+        }
+        finally
+        {
+            Loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Pay/CreateOrUpdatePayTemplate", payTemplate);
+            if (response.IsSuccessStatusCode)
+            {
+                // Optionally show a success message
+                Console.WriteLine("Pay template saved successfully.");
+                Navigation.NavigateTo("/pay-setting");
+            }
+            else
+            {
+                // Optionally show an error message
+                Console.WriteLine($"Error saving pay template: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't block UI
+            Console.WriteLine($"Error saving pay template: {ex.Message}");
+        }
+    }
+
+}

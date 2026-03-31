@@ -32,6 +32,11 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
+        public async Task<bool> AddEmployeeQualificationListAsync(List<Emp_Qualification> empQualifications)
+        {
+            return await _unitOfWork.EmployeeQualification.AddEmployeeQualificationListAsync(empQualifications);
+        }
+
         public async Task<bool> EditEmployeeQualificationAsyn(Emp_Qualification empQualification)
         {
             bool result = false;

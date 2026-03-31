@@ -18,16 +18,22 @@ namespace Infin8.Coapp.UI.Controllers
         readonly IPayInitHandler _payInitHandler;
         readonly IPayComponentHandler _payComponentHandler;
         readonly IPayComponentAssignmentsHandler _payComponentAssignmentsHandler;
+        readonly IPayGenInfoHandler _payGenInfoHandler;
+        readonly IPayTemplateHandler _payTemplateHandler;
 
         public PayController( IPaySlipHandler paySlipHandler, IEmpMasterHandler empMasterHandler,
             IPayInitHandler payInitHandler,IPayComponentHandler payComponentHandler,
-            IPayComponentAssignmentsHandler payComponentAssignmentsHandler  )
+            IPayComponentAssignmentsHandler payComponentAssignmentsHandler,
+            IPayGenInfoHandler payGenInfoHandler,
+            IPayTemplateHandler payTemplateHandler  )
         {
             _paySlipHandler = paySlipHandler;
             _empMasterHandler = empMasterHandler;
             _payInitHandler = payInitHandler;
             _payComponentHandler = payComponentHandler;
             _payComponentAssignmentsHandler = payComponentAssignmentsHandler;
+            _payGenInfoHandler = payGenInfoHandler;
+            _payTemplateHandler = payTemplateHandler;
         }
 
         [HttpPost]
@@ -526,5 +532,48 @@ namespace Infin8.Coapp.UI.Controllers
             }
         }
 
+        #region Pay Info
+        [HttpGet]
+        [Route("GetGeneralInfoList/{brCode}")]
+        public async Task<ActionResult<List<Pay_Gen_Info>>> GetGeneralInfoList(string brCode)
+        {
+            List<Pay_Gen_Info> list = new();
+            var result = await _payGenInfoHandler.GetPayGenInfoListAsync(brCode);
+            if (result != null)  list = result;
+                return Ok(list);
+        }
+        #endregion
+
+        #region Pay Template
+        [HttpGet]
+        [Route("GetPayTemplate/{brCode}")]
+        public async Task<ActionResult<Pay_Template>> GetPayTemplate(string brCode)
+        {
+            Pay_Template template = new Pay_Template();
+            var result = await _payTemplateHandler.GetPayTemplateAsync(brCode);
+            if (result != null) template = result;
+            return Ok(template);
+        }
+
+        [HttpPost]
+        [Route("CreateOrUpdatePayTemplate")]
+        public async Task<ActionResult<bool>> CreateOrUpdatePayTemplate([FromBody] Pay_Template template)
+        {
+            bool result = false;
+            if (template != null && template.PayTemplate_Id > 0)
+            {
+                result = await _payTemplateHandler.EditPayTemplateAsync(template);
+            }
+            else if (template != null)
+            {
+                result = await _payTemplateHandler.AddPayTemplateAsync(template);
+            }
+            else
+            {
+                return BadRequest("Invalid Pay Template data");
+            }
+            return Ok(result);
+        }
+        #endregion 
     }
 }

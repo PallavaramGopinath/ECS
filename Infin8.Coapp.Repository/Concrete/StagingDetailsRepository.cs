@@ -152,6 +152,7 @@ namespace Infin8.Coapp.Repository
                 var rowsAffected = await CSISContext.Staging_Details
                     .Where(m => idsToDelete.Contains(m.Staging_Id))
                     .ExecuteDeleteAsync();
+                await CSISContext.SaveChangesAsync();
 
                 Console.WriteLine($"Successfully deleted staging details {rowsAffected} records.");
                 return rowsAffected == idsToDelete.Count; // Return true only if all were deleted
@@ -240,13 +241,19 @@ namespace Infin8.Coapp.Repository
             List<Staging_Details> detailsList = new();
             try
             {
+                //var result = await (from detail in CSISContext.Staging_Details
+                //                    join master in CSISContext.Staging_Master on detail.Staging_Id equals master.Staging_Id
+                //                    where detail.BrCode == brCode &&
+                //                    detail.Staging_Status == "V" &&
+                //                    master.BrCode == brCode &&
+                //                    master.Staging_Status == "V" &&
+                //                    master.Created_Date == stagingDate 
+                //                    select detail).ToListAsync();
                 var result = await (from detail in CSISContext.Staging_Details
                                     join master in CSISContext.Staging_Master on detail.Staging_Id equals master.Staging_Id
                                     where detail.BrCode == brCode &&
-                                    detail.Staging_Status == "V" &&
                                     master.BrCode == brCode &&
-                                    master.Staging_Status == "V" &&
-                                    master.Created_Date == stagingDate 
+                                    master.Created_Date == stagingDate
                                     select detail).ToListAsync();
                 if (result != null && result.Any()) detailsList = result.ToList();
 

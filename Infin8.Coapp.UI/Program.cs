@@ -213,6 +213,8 @@ builder.Services.AddScoped<IPayPFTemplateHandler, PayPFTemplateHandler>();
 builder.Services.AddScoped<IPayPFRoiTemplateHandler, PayPFRoiTemplateHandler>();
 builder.Services.AddScoped<IPayComponentHandler, PayComponentHandler>();
 builder.Services.AddScoped<IPayComponentAssignmentsHandler , PayComponentAssignmentsHandler>();
+builder.Services.AddScoped<IPayGenInfoHandler, PayGenInfoHandler>();
+builder.Services.AddScoped<IPayTemplateHandler, PayTemplateHandler>();
 #endregion 
 
 builder.Services.AddScoped<INewAccountNoHandler, NewAccountNoHandler>();

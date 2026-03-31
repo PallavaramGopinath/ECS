@@ -19,7 +19,7 @@ namespace Infin8.Coapp.Repository
 
         public async Task<List<DtoAccountsBalance>> GetStagingBalance(decimal yrId, DateTime accountingDate, decimal created_By, string brCode)
         {
-            bool result = true;
+            //bool result = true;
             List<DtoAccountsBalance> balanceList = new();
             List<Staging_Balance > stagingBalanceList = new();
             try

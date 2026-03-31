@@ -11,5 +11,6 @@ namespace Infin8.Coapp.BusinessLogic
     {
         Task<bool> AddPayGenInfoAsync(Pay_Gen_Info payGenInfo);
         Task<bool> EditPayGenInfoAsync(Pay_Gen_Info payGenInfo);
+        Task<List<Pay_Gen_Info>> GetPayGenInfoListAsync(string brCode);
     }
 }

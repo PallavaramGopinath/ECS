@@ -68,7 +68,8 @@ namespace Infin8.Coapp.Repository
                         YearId = result!.Yr_Id,
                         YearBeginningDate = (DateTime)result.From_Date!,
                         YearEndDate = (DateTime)result.To_Date!,
-                        CurrentDate = currentDate
+                        CurrentDate = currentDate,
+                        CalendarStatus = "N",
                     };
                 }
             }

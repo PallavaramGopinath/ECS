@@ -95,7 +95,6 @@ namespace Infin8.Coapp.Repository
                     Console.WriteLine("No records to delete.");
                     return true;
                 }
-
                 // Replace 'Id' with your actual primary key property name
                 var idsToDelete = masterList.Select(m => m.Staging_Id).ToList();
 

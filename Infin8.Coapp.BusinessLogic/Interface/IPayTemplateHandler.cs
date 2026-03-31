@@ -13,5 +13,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> AddPayTemplateAsync(Pay_Template payTemplate);
         Task<bool> EditPayTemplateAsync(Pay_Template payTemplate);
         Task<Pay_Template> GetPayTemplateAsync();
+        Task<Pay_Template> GetPayTemplateAsync(string brCode);
     }
 }

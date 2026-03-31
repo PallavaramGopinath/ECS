@@ -64,5 +64,20 @@ namespace Infin8.Coapp.Repository
             }
             return genInfo;
         }
+
+        public async Task<List<Pay_Gen_Info>> GetPayGenInfoListAsync(string brCode)
+        {
+            List<Pay_Gen_Info> genInfoList = new();
+            try
+            {
+                var result  = await CSISContext.Pay_Gen_Info.Where(x => x.BrCode  == brCode && x.Pay_Info_Delete == false).ToListAsync();
+                if (result != null && result.Count > 0) genInfoList = result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " An occurred in fetching Payroll Info data not modified");
+            }
+            return genInfoList;
+        }
     }
 }

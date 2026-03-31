@@ -6,5 +6,6 @@
         public DateTime YearBeginningDate { get; set; }
         public DateTime YearEndDate { get; set; }
         public DateTime CurrentDate { get; set; }
+        public string? CalendarStatus { get; set; }
     }
 }

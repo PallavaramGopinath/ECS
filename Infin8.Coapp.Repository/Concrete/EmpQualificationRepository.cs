@@ -33,6 +33,29 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+        public async Task<bool> AddEmployeeQualificationListAsync(List<Emp_Qualification> empQualifications)
+        {
+            bool result = false;
+            try
+            {
+                decimal maxId = await CSISContext.Emp_Qualification.MaxAsync(x => x.Qua_Id);
+                maxId++;
+                foreach (var item in empQualifications)
+                {
+                    item.Qua_Id = maxId;
+                    maxId++;
+                }
+                await AddRangeAsync(empQualifications);
+                CSISContext.SaveChanges();
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                result = false;
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Employee qualification not saved");
+            }
+            return result;
+        }
 
         public async Task<bool> EditEmployeeQualificationAsyn(Emp_Qualification empQualification)
         {

@@ -54,5 +54,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.PayTemplate.GetPayTemplateAsync();
         }
+
+        public async Task<Pay_Template> GetPayTemplateAsync(string brCode)
+        {
+            return await _unitOfWork.PayTemplate.GetPayTemplateAsync(brCode);
+        }
     }
 }

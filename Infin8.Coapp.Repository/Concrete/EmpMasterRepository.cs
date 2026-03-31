@@ -21,10 +21,11 @@ namespace Infin8.Coapp.Repository
             bool result = false;
             try
             {
-                decimal maxId = await CSISContext.Emp_Master.MaxAsync(x => x.Mem_Id);
-                maxId++;
-                empMaster.Mem_Id = maxId;
+                //decimal maxId = await CSISContext.Emp_Master.MaxAsync(x => x.Mem_Id);
+                //maxId++;
+                //empMaster.Mem_Id = maxId;
                 await AddAsync(empMaster);
+                CSISContext.SaveChanges();
                 result = true;
             }
             catch (Exception ex)

@@ -19,7 +19,7 @@ namespace Infin8.Coapp.Dto
         public string? memberno { get; set; }
 
         [Required(ErrorMessage = "Member type is required.")]
-        [Range(1,3)]
+        [Range(1,5)]
         public int membertype { get; set; }
         public string? resolutionno { get; set; }
         public DateTime? resolutiondate { get; set; }
