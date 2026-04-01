@@ -9,8 +9,8 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface IPayPFTemplateHandler
     {
-        Task<bool> AddPayPFTemplateAsync(Pay_PF_Template payPFTemplate);
-        Task<bool> EditPayPFTemplateAsync(Pay_PF_Template payPFTemplate);
-        Task<List<Pay_PF_Template>> GetPayPFTemplateListAsync();
+        Task<List<Pay_PF_Template>> AddPayPFTemplateAsync(Pay_PF_Template payPFTemplate);
+        Task<List<Pay_PF_Template>> EditPayPFTemplateAsync(Pay_PF_Template payPFTemplate);
+        Task<List<Pay_PF_Template>> GetPayPFTemplateListAsync(string brCode);
     }
 }

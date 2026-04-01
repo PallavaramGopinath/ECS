@@ -21,11 +21,11 @@ namespace Infin8.Coapp.UI.Controllers
         readonly IPayGenInfoHandler _payGenInfoHandler;
         readonly IPayTemplateHandler _payTemplateHandler;
 
-        public PayController( IPaySlipHandler paySlipHandler, IEmpMasterHandler empMasterHandler,
-            IPayInitHandler payInitHandler,IPayComponentHandler payComponentHandler,
+        public PayController(IPaySlipHandler paySlipHandler, IEmpMasterHandler empMasterHandler,
+            IPayInitHandler payInitHandler, IPayComponentHandler payComponentHandler,
             IPayComponentAssignmentsHandler payComponentAssignmentsHandler,
             IPayGenInfoHandler payGenInfoHandler,
-            IPayTemplateHandler payTemplateHandler  )
+            IPayTemplateHandler payTemplateHandler)
         {
             _paySlipHandler = paySlipHandler;
             _empMasterHandler = empMasterHandler;
@@ -36,9 +36,10 @@ namespace Infin8.Coapp.UI.Controllers
             _payTemplateHandler = payTemplateHandler;
         }
 
+        #region Pay Component
         [HttpPost]
         [Route("AddPayComponent")]
-        public async Task<ActionResult <List<Pay_Components>>> AddPayComponent([FromBody] Pay_Components component)
+        public async Task<ActionResult<List<Pay_Components>>> AddPayComponent([FromBody] Pay_Components component)
         {
             List<Pay_Components> list = new();
             var result = await _payComponentHandler.AddPayComponent(component);
@@ -54,7 +55,7 @@ namespace Infin8.Coapp.UI.Controllers
             List<Pay_Component_Assignments> list = new();
             var result = await _payComponentAssignmentsHandler.AddPayComponentAssignments(component);
             if (result != null && result.Count > 0) list = result.ToList();
-            if (result != null)  list = result;
+            if (result != null) list = result;
             return Ok(list);
         }
 
@@ -91,11 +92,11 @@ namespace Infin8.Coapp.UI.Controllers
             if (result != null && result.Count > 0) componentList = result.ToList();
             List<Pay_Component_Assignments> assignmentList = new();
             var query = await _payComponentAssignmentsHandler.GetPayComponentAssignments(brCode);
-            if (query != null) assignmentList = query.ToList ();
+            if (query != null) assignmentList = query.ToList();
             List<EmployeeMasterDto> employees = new();
             var empList = await _empMasterHandler.GetEmployeeMasterListAsync(brCode);
-            if(employees != null && employees.Count > 0) empList = employees.ToList ();
-            comp.Employees = empList; 
+            if (employees != null && employees.Count > 0) empList = employees.ToList();
+            comp.Employees = empList;
             comp.AllComponents = componentList;
             comp.AllEmployeesAssignments = assignmentList;
             return Ok(comp);
@@ -113,20 +114,39 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
+        [Route("GetPayComponentAssignmentsByEmployeeId/{empId:decimal}/{brCode}")]
+        public async Task<ActionResult<List<DtoPayComponentAssignments>>> GetPayComponentAssignmentsByEmployeeId(decimal empId, string brCode)
+        {
+            List<DtoPayComponentAssignments> list = new List<DtoPayComponentAssignments>();
+            var result = await _paySlipHandler.GetPayComponentAssignmentsByEmployeeId(empId, brCode);
+            if (result != null)
+            {
+                list = result;
+                return Ok(list);
+            }
+            else
+            {
+                return NotFound("No Data Found");
+            }
+        }
+        #endregion
+
+        #region Employee
+        [HttpGet]
         [Route("GetEmployeeList/{brCode}")]
         public async Task<ActionResult<List<EmployeeMasterDto>>> GetEmployeeList(string brCode)
         {
             List<EmployeeMasterDto> list = new List<EmployeeMasterDto>();
             var result = await _empMasterHandler.GetEmployeeMasterListAsync(brCode);
-            if (result != null)  list = result; 
+            if (result != null) list = result;
             return Ok(list);
         }
         [HttpGet]
         [Route("GetEmployee/{empId:decimal}/{brCode}")]
-        public async Task<ActionResult<EmployeeMasterDto>>GetEmployee(decimal empId,string brCode)
+        public async Task<ActionResult<EmployeeMasterDto>> GetEmployee(decimal empId, string brCode)
         {
             EmployeeMasterDto emp = new EmployeeMasterDto();
-            var result = await _empMasterHandler.GetEmployeeMasterById( empId,brCode);
+            var result = await _empMasterHandler.GetEmployeeMasterById(empId, brCode);
             if (result != null)
             {
                 emp = result;
@@ -137,30 +157,15 @@ namespace Infin8.Coapp.UI.Controllers
                 return NotFound("No Data Found");
             }
         }
+        #endregion
 
+        #region Pay Calculation
         [HttpGet]
         [Route("GetLastPayInfo/{brCode}")]
         public async Task<ActionResult<List<DtoEmployeeLastPayInfo>>> GetLastPayInfo(string brCode)
         {
             List<DtoEmployeeLastPayInfo> list = new List<DtoEmployeeLastPayInfo>();
             var result = await _paySlipHandler.GetEmployeeLastPayInfo(brCode);
-            if(result != null) 
-            { 
-                list = result; 
-                return Ok(list);
-            }
-            else
-            {
-                return NotFound("No Data Found");
-            }
-        }
-
-        [HttpGet]
-        [Route("GetPayComponentAssignmentsByEmployeeId/{empId:decimal}/{brCode}")]
-        public async Task<ActionResult<List<DtoPayComponentAssignments>>> GetPayComponentAssignmentsByEmployeeId(decimal empId, string brCode)
-        {
-            List<DtoPayComponentAssignments> list = new List<DtoPayComponentAssignments>();
-            var result = await _paySlipHandler.GetPayComponentAssignmentsByEmployeeId(empId, brCode);
             if (result != null)
             {
                 list = result;
@@ -201,7 +206,7 @@ namespace Infin8.Coapp.UI.Controllers
                 Console.WriteLine($"Error in CalculatePaySlip: {ex.Message}");
                 return StatusCode(500, "Internal server error occurred");
             }
-            
+
         }
 
         [HttpPost]
@@ -262,13 +267,13 @@ namespace Infin8.Coapp.UI.Controllers
                     return BadRequest("PaySlip data is required");
                 }
                 var result = await _paySlipHandler.DeletePaySlip(paySlip);
-                if (!result.IsError )
+                if (!result.IsError)
                 {
                     return Ok("PaySlip deleted successfully");
                 }
                 else
                 {
-                    return StatusCode(500, "Failed to delete PaySlip, " + result.ErrorMessage );
+                    return StatusCode(500, "Failed to delete PaySlip, " + result.ErrorMessage);
                 }
             }
             catch (Exception ex)
@@ -298,7 +303,7 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpGet]
         [Route("GetPaySlipListForSalaryPaymentByEmpId/{empId:decimal}/{payDescription}/{brCode}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetPaySlipListForSalaryPaymentByEmpId( decimal empId, string payDescription, string brCode)
+        public async Task<ActionResult<List<DropdownItem>>> GetPaySlipListForSalaryPaymentByEmpId(decimal empId, string payDescription, string brCode)
         {
             List<DropdownItem> list = new List<DropdownItem>();
             var result = await _paySlipHandler.GetPaySlipListForSalaryPaymentByEmpId(empId, payDescription, brCode);
@@ -315,7 +320,7 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpGet]
         [Route("GetEmployeeNamesForSalaryPayment/{payId:decimal}/{brCode}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetEmploeeNamesForSalaryPayment(decimal payId,string brCode)
+        public async Task<ActionResult<List<DropdownItem>>> GetEmploeeNamesForSalaryPayment(decimal payId, string brCode)
         {
             List<DropdownItem> list = new List<DropdownItem>();
             var result = await _paySlipHandler.GetEmploeeNamesForSalaryPayment(payId, brCode);
@@ -371,7 +376,7 @@ namespace Infin8.Coapp.UI.Controllers
         {
             decimal payId = 0;
             DateTime.TryParse(fromDate, out DateTime fromDateFormated);
-            DateTime.TryParse(toDate , out DateTime toDateFormated);
+            DateTime.TryParse(toDate, out DateTime toDateFormated);
             payId = await _payInitHandler.GetPaySlipForDAArrears(fromDateFormated, toDateFormated, description, brCode);
             return Ok(payId);
         }
@@ -397,7 +402,7 @@ namespace Infin8.Coapp.UI.Controllers
                 }
 
                 //DtoPayDAArrears daCalc = new ();
-                var result = await _paySlipHandler.CalculateDAArrears (arrears);
+                var result = await _paySlipHandler.CalculateDAArrears(arrears);
                 if (result != null)
                 {
                     //daCalc = result;
@@ -465,7 +470,7 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpGet]
         [Route("GetPFBalance/{empId:decimal}/{asOnDate}/{brCode}")]
-        public async Task<ActionResult<DtoPayPFData>> GetPayPFData(decimal empId, string asOnDate,string brCode)
+        public async Task<ActionResult<DtoPayPFData>> GetPayPFData(decimal empId, string asOnDate, string brCode)
         {
             DtoPayPFData pfData = new();
             DateTime.TryParse(asOnDate, out DateTime asOnDataFormatted);
@@ -483,13 +488,13 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpGet]
         [Route("GetSLSData/{empId:decimal}/{brCode}")]
-        public async Task<ActionResult <List<DtoSLSComponent>>> GetSLSData(decimal empId, string brCode)
+        public async Task<ActionResult<List<DtoSLSComponent>>> GetSLSData(decimal empId, string brCode)
         {
             List<DtoSLSComponent> slsList = new();
             var result = await _paySlipHandler.GetSLSData(empId, brCode);
             if (result != null)
             {
-                slsList = result.ToList ();
+                slsList = result.ToList();
                 return Ok(slsList);
             }
             else
@@ -500,11 +505,11 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpGet]
         [Route("IsSLSPaid/{empId:decimal}/{fromDate}/{toDate}/{payDesc}/{brCode}")]
-        public async Task<ActionResult<bool>> IsSLSAlreadyPaid(decimal empId, string fromDate, string toDate, string payDesc,string brCode)
+        public async Task<ActionResult<bool>> IsSLSAlreadyPaid(decimal empId, string fromDate, string toDate, string payDesc, string brCode)
         {
             DateTime.TryParse(fromDate, out DateTime fromDateFormatted);
-            DateTime.TryParse (toDate , out DateTime toDateFormatted);
-            var response = await _paySlipHandler.IsSLSAlreadyPaid (empId, fromDateFormatted,toDateFormatted , payDesc, brCode);
+            DateTime.TryParse(toDate, out DateTime toDateFormatted);
+            var response = await _paySlipHandler.IsSLSAlreadyPaid(empId, fromDateFormatted, toDateFormatted, payDesc, brCode);
             if (response == true)
             {
                 return Ok(true);
@@ -531,6 +536,7 @@ namespace Infin8.Coapp.UI.Controllers
                 return NotFound("No Data Found");
             }
         }
+        #endregion 
 
         #region Pay Info
         [HttpGet]
@@ -539,8 +545,8 @@ namespace Infin8.Coapp.UI.Controllers
         {
             List<Pay_Gen_Info> list = new();
             var result = await _payGenInfoHandler.GetPayGenInfoListAsync(brCode);
-            if (result != null)  list = result;
-                return Ok(list);
+            if (result != null) list = result;
+            return Ok(list);
         }
         #endregion
 
@@ -574,6 +580,8 @@ namespace Infin8.Coapp.UI.Controllers
             }
             return Ok(result);
         }
-        #endregion 
+        #endregion
+
+        
     }
 }

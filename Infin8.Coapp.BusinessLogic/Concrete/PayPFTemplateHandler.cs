@@ -16,43 +16,49 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddPayPFTemplateAsync(Pay_PF_Template payPFTemplate)
+        public async Task<List<Pay_PF_Template>> AddPayPFTemplateAsync(Pay_PF_Template payPFTemplate)
         {
-            bool result = false;
+            List<Pay_PF_Template> list = new();
             try
             {
-                result = await _unitOfWork.PayPFTemplate.AddPayPFTemplateAsync(payPFTemplate);
+                var result = await _unitOfWork.PayPFTemplate.AddPayPFTemplateAsync(payPFTemplate);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if(result != null && result.Count > 0)
+                {
+                    list = result;
+                }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                result = false;
-                throw new InvalidOperationException(ex.Message + " Something went wrong! PF template not saved");
+                list = new();
+                //throw new InvalidOperationException(ex.Message + " Something went wrong! PF template not saved");
             }
-            return result;
+            return list;
         }
 
-        public async Task<bool> EditPayPFTemplateAsync(Pay_PF_Template payPFTemplate)
+        public async Task<List<Pay_PF_Template>> EditPayPFTemplateAsync(Pay_PF_Template payPFTemplate)
         {
-            bool result = false;
+            List<Pay_PF_Template> list = new();
             try
             {
-                result = await _unitOfWork.PayPFTemplate.EditPayPFTemplateAsync(payPFTemplate);
+                var result = await _unitOfWork.PayPFTemplate.EditPayPFTemplateAsync(payPFTemplate);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if (result != null && result.Count > 0)
+                {
+                    list = result;
+                }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                result = false;
-                throw new InvalidOperationException(ex.Message + " Something went wrong! Pf template not deleted");
+                list = new();
+                //throw new InvalidOperationException(ex.Message + " Something went wrong! Pf template not deleted");
             }
-            return result;
+            return list;
         }
 
-        public async Task<List<Pay_PF_Template>> GetPayPFTemplateListAsync()
+        public async Task<List<Pay_PF_Template>> GetPayPFTemplateListAsync(string brCode)
         {
-            return await _unitOfWork.PayPFTemplate.GetPayPFTemplateListAsync();
+            return await _unitOfWork.PayPFTemplate.GetPayPFTemplateListAsync(brCode);
         }
     }
 }

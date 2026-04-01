@@ -1,0 +1,369 @@
+﻿@page "/pay-pf-calculator-rate"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+@using Infin8.Coapp.Utility
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<PageTitle>Provident Fund Calculator Rate on (Basic Pay/Personal Pay/Grade Pay etc.,)</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">PF Templates Management</h3>
+                <button class="btn btn-success" @onclick="OpenAddModal">
+                    <i class="bi bi-plus-circle"></i> Add New Template
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Effective Date</th>
+                                <th>PF Rate (%)</th>
+                                <th>Branch Code</th>
+                                <th>Year ID</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var template in templates)
+                            {
+                                <tr>
+                                    <td>@template.Pf_Id</td>
+                                    <td>@template.Wef</td>
+                                    <td>@template.PF_Roi.ToString("F2")</td>
+                                    <td>@template.BrCode</td>
+                                    <td>@template.Yr_Id</td>
+                                    <td>
+                                        @if (template.Pf_Delete)
+                                        {
+                                            <span class="badge bg-danger">Deleted</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info me-1"
+                                                @onclick="() => OpenEditModal(template)"
+                                                title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger"
+                                                @onclick="() => ConfirmDelete(template)"
+                                                title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (!templates.Any())
+                {
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> No PF templates found. Click "Add New Template" to create one.
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade @(showModal ? "show d-block" : "")"
+     id="templateModal"
+     tabindex="-1"
+     style="@(showModal ? "background-color: rgba(0,0,0,0.5);" : "display:none;")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    @(isEditMode ? "Edit PF Template" : "Add New PF Template")
+                </h5>
+                <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@currentTemplate" OnValidSubmit="@HandleValidSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+
+                    <div class="row">
+                        @if (isEditMode)
+                        {
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Template ID</label>
+                                <input @bind="currentTemplate.Pf_Id" disabled class="form-control" />
+                            </div>
+                        }
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Effective Date *</label>
+                            <InputDate @bind-Value="currentTemplate.Wef" class="form-control" />
+                            <ValidationMessage For="@(() => currentTemplate.Wef)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">PF Rate (%) *</label>
+                            <InputNumber @bind-Value="currentTemplate.PF_Roi"
+                                         class="form-control"
+                                         step="0.01" />
+                            <ValidationMessage For="@(() => currentTemplate.PF_Roi)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Branch Code</label>
+                            <InputText @bind-Value="currentTemplate.BrCode"
+                                       class="form-control"
+                                       placeholder="Enter branch code" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Year ID *</label>
+                            <InputNumber @bind-Value="currentTemplate.Yr_Id" class="form-control" />
+                            <ValidationMessage For="@(() => currentTemplate.Yr_Id)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">User ID *</label>
+                            <InputNumber @bind-Value="currentTemplate.Usr_Id" class="form-control" />
+                            <ValidationMessage For="@(() => currentTemplate.Usr_Id)" />
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <div class="form-check">
+                                <InputCheckbox @bind-Value="currentTemplate.Pf_Delete" class="form-check-input" />
+                                <label class="form-check-label">Mark as Deleted</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            @(isEditMode ? "Update" : "Save")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Pay_PF_Template> templates = new();
+    private Pay_PF_Template currentTemplate = new();
+    private bool isLoading = true;
+    private bool showModal = false;
+    private bool isEditMode = false;
+    private bool isSubmitting = false;
+
+    private string BrCode = "";
+    private decimal Usr_Id = 0;
+    private decimal Yr_Id = 0;
+    private DateTime CurrentDate = default;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            BrCode = userInfoDto.BrCode!; 
+            Usr_Id = userInfoDto.UserId;
+            Yr_Id = userInfoDto.YrId;
+            CurrentDate = userInfoDto.CurrentDate;
+            currentTemplate.Wef = CurrentDate; 
+            await LoadTemplates();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadTemplates()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await _httpClient.GetFromJsonAsync<List<Pay_PF_Template>>($"api/PF/GetPayPFTemplateList/{BrCode}");
+            if (response != null)
+            {
+                templates = response;
+            }
+            isLoading = false;
+        }
+        catch (Exception)
+        {
+            isLoading = false;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+
+    }
+
+    private void OpenAddModal()
+    {
+        currentTemplate = new Pay_PF_Template
+        {
+            Wef = CurrentDate,
+            PF_Roi = 0,
+            Pf_Delete = false,
+            Usr_Id = Usr_Id, // Set default user ID from session/context
+            Yr_Id = Yr_Id,
+            BrCode = BrCode
+        };
+        isEditMode = false;
+        showModal = true;
+    }
+
+    private void OpenEditModal(Pay_PF_Template template)
+    {
+        currentTemplate = new Pay_PF_Template
+        {
+            Pf_Id = template.Pf_Id,
+            Wef = template.Wef,
+            PF_Roi = template.PF_Roi,
+            Pf_Delete = template.Pf_Delete,
+            Usr_Id = template.Usr_Id,
+            Yr_Id = template.Yr_Id,
+            BrCode = template.BrCode
+        };
+        isEditMode = true;
+        showModal = true;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isSubmitting = true;
+
+        try
+        {
+            if (!isEditMode)
+            {
+                var response = await _httpClient.PostAsJsonAsync($"api/PF/AddPayPFTemplate", currentTemplate);
+                if (response.IsSuccessStatusCode)
+                {
+                    templates = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<Pay_PF_Template>>();
+                    if (result != null && result.Count > 0) templates = result.ToList();
+                    await JSRuntime.InvokeVoidAsync("alert", "Template added successfully!");
+                }
+            }
+            // var updatedList = await TemplateService.UpdatePayPFTemplateAsync(currentTemplate);
+            // if (updatedList != null && updatedList.Any())
+            // {
+            //     templates = updatedList;
+            //     await ShowToast("Success", "PF Template updated successfully!", "success");
+            // }
+
+            else
+            {
+                var response = await _httpClient.PostAsJsonAsync($"api/PF/EditPayPFTemplate", currentTemplate);
+                if (response.IsSuccessStatusCode)
+                {
+                    templates = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<Pay_PF_Template>>();
+                    if (result != null && result.Count > 0) templates = result.ToList();
+
+                    await JSRuntime.InvokeVoidAsync("alert", "Template added successfully!");
+                }
+                // var addedList = await TemplateService.AddPayPFTemplateAsync(currentTemplate);
+                // if (addedList != null && addedList.Any())
+                // {
+                //     templates = addedList;
+                //     await ShowToast("Success", "PF Template added successfully!", "success");
+                // }
+            }
+
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            // await ShowToast("Error", $"Operation failed: {ex.Message}", "danger");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving template: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmDelete(Pay_PF_Template template)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+            $"Are you sure you want to delete PF Template ID: {template.Pf_Id}?");
+
+        if (confirmed)
+        {
+            isLoading = true;
+            template.Pf_Delete = true; // Mark as deleted
+            var response = await _httpClient.PostAsJsonAsync($"api/PF/EditPayPFTemplate", template);
+            if (response.IsSuccessStatusCode)
+            {
+                templates = new();
+                var result = await response.Content.ReadFromJsonAsync<List<Pay_PF_Template>>();
+                if (result != null && result.Count > 0) templates = result.ToList();
+
+                await JSRuntime.InvokeVoidAsync("alert", "Template deleted successfully!");
+            }
+            // var success = await TemplateService.DeletePayPFTemplateAsync(template.Pf_Id);
+
+            // if (success)
+            // {
+            //     await LoadTemplates();
+            //     await ShowToast("Success", "PF Template deleted successfully!", "success");
+            // }
+            // else
+            // {
+            //     await ShowToast("Error", "Failed to delete PF Template", "danger");
+            // }
+
+            isLoading = false;
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentTemplate = new();
+        StateHasChanged();
+    }
+
+    private async Task ShowToast(string title, string message, string type)
+    {
+        await JSRuntime.InvokeVoidAsync("showToast", title, message, type);
+    }
+}

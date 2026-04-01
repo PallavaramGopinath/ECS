@@ -15,52 +15,59 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddPayPFTemplateAsync(Pay_PF_Template payPFTemplate)
+        public async Task<List<Pay_PF_Template>> AddPayPFTemplateAsync(Pay_PF_Template payPFTemplate)
         {
-            bool result = false;
+            List<Pay_PF_Template> list = new();
             try
             {
                 decimal maxId = await CSISContext.Pay_PF_Template.MaxAsync(x => x.Pf_Id);
                 maxId++;
                 payPFTemplate.Pf_Id = maxId;
                 await AddAsync(payPFTemplate);
-                result = true;
+                CSISContext.SaveChanges();
+                
+                var templateList = await CSISContext.Pay_PF_Template.Where(x => x.BrCode == payPFTemplate.BrCode && x.Pf_Delete == false).OrderBy(x => x.Wef).ToListAsync();
+                if (templateList != null && templateList.Count > 0) list = templateList;
             }
             catch (Exception ex)
             {
-                result = false;
-                throw new InvalidOperationException(ex.Message + " PF Template not saved");
+                list = new();
+                //throw new InvalidOperationException(ex.Message + " PF Template not saved");
             }
-            return result;
+            return list;
         }
 
-        public async Task<bool> EditPayPFTemplateAsync(Pay_PF_Template payPFTemplate)
+        public async Task<List<Pay_PF_Template>> EditPayPFTemplateAsync(Pay_PF_Template payPFTemplate)
         {
-            bool result = false;
+            List<Pay_PF_Template> list = new();
             try
             {
                 await EditAsync(payPFTemplate);
-                result = true;
+                CSISContext.SaveChanges();
+
+                var templateList = await CSISContext.Pay_PF_Template.Where(x => x.BrCode == payPFTemplate.BrCode && x.Pf_Delete == false).OrderBy(x => x.Wef).ToListAsync();
+                if (templateList != null && templateList.Count > 0) list = templateList;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                result = false;
-                throw new InvalidOperationException(ex.Message + " Somethis wend wrong! An error occurred while modifying PF Template");
+                list = new();
+                //throw new InvalidOperationException(ex.Message + " Somethis wend wrong! An error occurred while modifying PF Template");
             }
-            return result;
+            return list;
         }
 
-        public async Task<List<Pay_PF_Template>> GetPayPFTemplateListAsync()
+        public async Task<List<Pay_PF_Template>> GetPayPFTemplateListAsync(string brCode)
         {
             List<Pay_PF_Template> list = new List<Pay_PF_Template>();
             try
             {
-                var templateList = await  CSISContext.Pay_PF_Template.Where(x => x.Pf_Delete == false).OrderBy(x => x.Wef).ToListAsync();
-                if (templateList != null && templateList.Count == 0) list = templateList;
+                var templateList = await  CSISContext.Pay_PF_Template.Where(x => x.BrCode == brCode && x.Pf_Delete == false).OrderBy(x => x.Wef).ToListAsync();
+                if (templateList != null && templateList.Count > 0) list = templateList;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new InvalidOperationException(ex.Message + " Somethis wend wrong! An error occurred while fetching PF Template data");
+                list = new();
+                //throw new InvalidOperationException(ex.Message + " Somethis wend wrong! An error occurred while fetching PF Template data");
             }
             return list;
         }
