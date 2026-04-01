@@ -300,13 +300,17 @@ namespace Infin8.Coapp.BusinessLogic
             try
             {
                 /// Step 1: Is Previous Pay Slip Initialised
-                var prevPayInitResult = await _unitOfWork.PaySlip.IsPreviousPaySlipInitialised(paySlip.Pay_Month, paySlip.Pay_Year, paySlip.PayDescription!, paySlip.BrCode!);
-                if (!prevPayInitResult)
+                if (paySlip.PayDescription == "P")
                 {
-                    paySlip.ErrorMessage += "Previous month pay slip not initialised. Please initialise previous month pay slip first.";
-                    paySlip.IsError = true;
-                    return paySlip;
+                    var prevPayInitResult = await _unitOfWork.PaySlip.IsPreviousPaySlipInitialised(paySlip.Pay_Month, paySlip.Pay_Year, paySlip.PayDescription!, paySlip.BrCode!);
+                    if (!prevPayInitResult)
+                    {
+                        paySlip.ErrorMessage += "Previous month pay slip not initialised. Please initialise previous month pay slip first.";
+                        paySlip.IsError = true;
+                        return paySlip;
+                    }
                 }
+
                 /// Step 1 : Verify previous pay slip initiated
                 var payInitResult = await _unitOfWork.PaySlip.Find_PaySlipInit(paySlip.Pay_Month, paySlip.Pay_Year, paySlip.PayDescription!, paySlip.BrCode!);
                 if (payInitResult)
@@ -338,6 +342,7 @@ namespace Infin8.Coapp.BusinessLogic
                 }
 
                 /// Step 4 : Generate payslip
+
                 Pay_Att payAtt = new Pay_Att()
                 {
                     Pay_Id = payId,
@@ -533,7 +538,7 @@ namespace Infin8.Coapp.BusinessLogic
                     Pay_Delete = false,
                     Usr_Id = paySlip.Usr_Id,
                     Yr_Id = paySlip.Yr_Id,
-                    Pay_Des = "P",
+                    Pay_Des = paySlip.PayDescription,
                     From_Date = null,
                     To_Date = null,
                     DA_Id = paySlip.DA_Id,
@@ -849,7 +854,7 @@ namespace Infin8.Coapp.BusinessLogic
                     payInit.DA_Id = 0;
                     payInit.Pay_Des = "D";
                     payInit.BrCode = Arrears.BrCode;
-                    
+
 
                     DATemplate.DA_Id = 0;
                     DATemplate.Wef = Arrears.Transaction_Date.Date;
@@ -869,7 +874,7 @@ namespace Infin8.Coapp.BusinessLogic
                         Pay_Id = payId,
                         Mem_Id = da.Mem_Id,
                         Pay_Basic = da.TotalBasicPay,
-                        Pay_Basic_Earned = da.TotalBasicPay ,
+                        Pay_Basic_Earned = da.TotalBasicPay,
                         Pay_PP = 0,
                         Pay_PP_Earned = 0,
                         Pay_GradePay_Earned = 0,
@@ -888,7 +893,7 @@ namespace Infin8.Coapp.BusinessLogic
                         Voc_Id = 0,
                         Pay_Delete = false,
                         Pay_SLS_Days = 0,
-                        BrCode = Arrears.BrCode ,
+                        BrCode = Arrears.BrCode,
                         Voc_Status = "V"
                     };
                     paySlipList.Add(slip);
@@ -918,7 +923,7 @@ namespace Infin8.Coapp.BusinessLogic
                 {
                     slip.Pay_Id = payId;
                     var slipResult = await _unitOfWork.PaySlip.AddPaySlipAsync(slip);
-                    if(slipResult == false)
+                    if (slipResult == false)
                     {
                         Arrears.IsError = true;
                         Arrears.ErrorMessage = "Error in adding of DA Arrear data";
@@ -944,18 +949,18 @@ namespace Infin8.Coapp.BusinessLogic
 
         public async Task<DtoPayPFData> GetPFBalance(decimal empId, DateTime AsOnDate, string brCode)
         {
-            return await _unitOfWork.PaySlip.GetPFBalance(empId, AsOnDate,brCode);
+            return await _unitOfWork.PaySlip.GetPFBalance(empId, AsOnDate, brCode);
         }
 
         #region SLS
         public async Task<List<DtoSLSComponent>> GetSLSData(decimal empId, string brCode)
         {
-            return await _unitOfWork.PaySlip.GetSLSData(empId,brCode);
+            return await _unitOfWork.PaySlip.GetSLSData(empId, brCode);
         }
 
         public async Task<bool> IsSLSAlreadyPaid(decimal empId, DateTime fromDate, DateTime toDate, string payDesc, string brCode)
         {
-            return await _unitOfWork.PaySlip.IsSLSAlreadyPaid (empId, fromDate, toDate, payDesc,brCode);
+            return await _unitOfWork.PaySlip.IsSLSAlreadyPaid(empId, fromDate, toDate, payDesc, brCode);
         }
         #endregion 
     }
