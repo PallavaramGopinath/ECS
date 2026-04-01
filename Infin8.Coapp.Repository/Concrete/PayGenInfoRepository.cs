@@ -15,40 +15,44 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddPayGenInfoAsync(Pay_Gen_Info payGenInfo)
+        public async Task<List<Pay_Gen_Info>> AddPayGenInfoAsync(Pay_Gen_Info payGenInfo)
         {
-            bool result = false;
+            List<Pay_Gen_Info> genInfoList = new();
             try
             {
                 decimal maxId = await CSISContext.Pay_Gen_Info.MaxAsync(x => x.Pay_Info_Id);
                 maxId++;
                 payGenInfo.Pay_Info_Id  = maxId;
                 await AddAsync(payGenInfo);
-                result = true;
+                CSISContext.SaveChanges();
+                var result = await CSISContext.Pay_Gen_Info.Where(x => x.BrCode == payGenInfo.BrCode  && x.Pay_Info_Delete == false).ToListAsync();
+                if (result != null && result.Count > 0) genInfoList = result.ToList();
             }
             catch (Exception ex)
             {
-                result = false;
+                genInfoList = new();
                 throw new InvalidOperationException(ex.Message + " Payroll Info data not saved");
             }
-            return result;
+            return genInfoList;
         }
 
-        public async Task<bool> EditPayGenInfoAsync(Pay_Gen_Info payGenInfo)
+        public async Task<List<Pay_Gen_Info>> EditPayGenInfoAsync(Pay_Gen_Info payGenInfo)
         {
-            bool result = false;
+            List<Pay_Gen_Info> genInfoList = new();
             try
             {
                 payGenInfo.Pay_Info_Delete = true;
                 await EditAsync(payGenInfo);
-                result = true;
+                CSISContext.SaveChanges();
+                var result = await CSISContext.Pay_Gen_Info.Where(x => x.BrCode == payGenInfo.BrCode && x.Pay_Info_Delete == false).ToListAsync();
+                if (result != null && result.Count > 0) genInfoList = result.ToList();
             }
             catch (Exception ex)
             {
-                result = false;
+                genInfoList = new();
                 throw new InvalidOperationException(ex.Message + " Payroll Info data not modified");
             }
-            return result;
+            return genInfoList;
         }
 
         public async Task<Pay_Gen_Info> GetPayGenInfoAsync(decimal infoId)

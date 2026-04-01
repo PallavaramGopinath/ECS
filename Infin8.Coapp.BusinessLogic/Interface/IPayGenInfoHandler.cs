@@ -9,8 +9,8 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface IPayGenInfoHandler 
     {
-        Task<bool> AddPayGenInfoAsync(Pay_Gen_Info payGenInfo);
-        Task<bool> EditPayGenInfoAsync(Pay_Gen_Info payGenInfo);
+        Task<List<Pay_Gen_Info>> AddPayGenInfoAsync(Pay_Gen_Info payGenInfo);
+        Task<List<Pay_Gen_Info>> EditPayGenInfoAsync(Pay_Gen_Info payGenInfo);
         Task<List<Pay_Gen_Info>> GetPayGenInfoListAsync(string brCode);
     }
 }

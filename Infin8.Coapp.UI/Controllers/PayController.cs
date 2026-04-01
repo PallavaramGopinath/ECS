@@ -548,6 +548,26 @@ namespace Infin8.Coapp.UI.Controllers
             if (result != null) list = result;
             return Ok(list);
         }
+
+        [HttpPost]
+        [Route("AddGeneralInfo")]
+        public async Task<ActionResult<List<Pay_Gen_Info>>> AddGeneralInfo([FromBody] Pay_Gen_Info info)
+        {
+            List<Pay_Gen_Info> list = new();
+            var result = await _payGenInfoHandler.AddPayGenInfoAsync(info);
+            if (result != null) list = result;
+            return Ok(list);
+        }
+
+        [HttpPost]
+        [Route("EditGeneralInfo")]
+        public async Task<ActionResult<List<Pay_Gen_Info>>> EditGeneralInfo([FromBody] Pay_Gen_Info info)
+        {
+            List<Pay_Gen_Info> list = new();
+            var result = await _payGenInfoHandler.EditPayGenInfoAsync(info);
+            if (result != null) list = result;
+            return Ok(list);
+        }
         #endregion
 
         #region Pay Template
@@ -582,6 +602,6 @@ namespace Infin8.Coapp.UI.Controllers
         }
         #endregion
 
-        
+
     }
 }

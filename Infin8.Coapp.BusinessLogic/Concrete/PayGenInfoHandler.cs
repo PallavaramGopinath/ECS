@@ -15,38 +15,44 @@ namespace Infin8.Coapp.BusinessLogic
         {
             _unitOfWork = unitOfWork;
         }
-        public async Task<bool> AddPayGenInfoAsync(Pay_Gen_Info payGenInfo)
+        public async Task<List<Pay_Gen_Info>> AddPayGenInfoAsync(Pay_Gen_Info payGenInfo)
         {
-            bool result = false;
+            List<Pay_Gen_Info> genInfoList = new();
             try
             {
-                result = await _unitOfWork.PayGenInfo.AddPayGenInfoAsync(payGenInfo);
+                var result = await _unitOfWork.PayGenInfo.AddPayGenInfoAsync(payGenInfo);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if(result != null && result.Count > 0)
+                {
+                    genInfoList = result;
+                }
             }
             catch (Exception ex)
             {
-                result = false;
+                genInfoList = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Payroll Info data not saved");
             }
-            return result;
+            return genInfoList;
         }
 
-        public async Task<bool> EditPayGenInfoAsync(Pay_Gen_Info payGenInfo)
+        public async Task<List<Pay_Gen_Info>> EditPayGenInfoAsync(Pay_Gen_Info payGenInfo)
         {
-            bool result = false;
+            List<Pay_Gen_Info> genInfoList = new();
             try
             {
-                result = await _unitOfWork.PayGenInfo.EditPayGenInfoAsync(payGenInfo);
+                var result = await _unitOfWork.PayGenInfo.EditPayGenInfoAsync(payGenInfo);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if (result != null && result.Count > 0)
+                {
+                    genInfoList = result;
+                }
             }
             catch (Exception ex)
             {
-                result = false;
+                genInfoList = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! Payroll Info data not deleted");
             }
-            return result;
+            return genInfoList;
         }
 
         public async Task<List<Pay_Gen_Info>> GetPayGenInfoListAsync(string brCode)

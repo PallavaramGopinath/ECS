@@ -12,7 +12,7 @@ namespace Infin8.Coapp.Models
         public int Pay_Info_Min_Exp { get; set; }
         public string? Pay_Info_Notes { get; set; }
         public decimal Usr_Id { get; set; }
-        public decimal yr_Id { get; set; }
+        public decimal Yr_Id { get; set; }
         public string? BrCode { get; set; }
         public bool Pay_Info_Delete { get; set; }
     }
