@@ -167,6 +167,28 @@ namespace Infin8.Coapp.UI.Controllers
             if (result != null && result.Count >0)   empList = result.ToList ();
             return Ok(empList);
         }
+
+
+        [HttpPost]
+        [Route("AddSeparationEmployee")]
+        public async Task<ActionResult<List<DtoEmployeeExit>>> AddSeparationEmployee([FromBody] DtoEmployeeExit emp)
+        {
+            List<DtoEmployeeExit> list = new();
+            var result = await _empMasterHandler.AddSeparationEmployeeAsync(emp);
+            if (result != null) list = result.ToList ();
+            return Ok(list);
+        }
+
+
+        [HttpPost]
+        [Route("RevertSeparationEmployee")]
+        public async Task<ActionResult<List<DtoEmployeeExit>>> RevertSeparationEmployee([FromBody] DtoEmployeeExit emp)
+        {
+            List<DtoEmployeeExit> list = new();
+            var result = await _empMasterHandler.RevertSeparationEmployeeAsync(emp);
+            if (result != null) list = result.ToList();
+            return Ok(list);
+        }
         #endregion
 
         #region Pay Calculation

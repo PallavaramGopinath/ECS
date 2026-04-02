@@ -158,12 +158,66 @@ namespace Infin8.Coapp.Repository
                                          DateOfExit = master.accountcloseddate,
                                          ReasonForExit = master.inactivestatus,
                                          IsActive = master.memberdelete,
+                                         BrCode = master.brcode
                                      }).ToListAsync();
                 if (empList != null && empList.Count > 0) list = empList;
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching employee exit list.");
+            }
+            return list;
+        }
+
+        public async Task<List<DtoEmployeeExit>> AddSeparationEmployeeAsync(DtoEmployeeExit  emp)
+        {
+            List<DtoEmployeeExit> list = new();
+            mem_master memMaster = new();
+            try
+            {
+                var memResult = await CSISContext.mem_master.Where(m => m.mem_id == emp.EmployeeId).FirstOrDefaultAsync();
+                if(memResult != null && memResult.mem_id > 0)
+                {
+                    memResult.accountcloseddate = emp.DateOfExit;
+                    memResult.inactivestatus = emp.ReasonForExit;
+                    memResult.memberdelete = true;
+                    CSISContext.mem_master.Update(memResult);
+                    CSISContext.SaveChanges();
+                    var empList = await GetEmployeeExitListAsync(emp.BrCode!);
+                    if (empList != null && empList.Count > 0) list = empList;
+                }
+            }
+            catch (Exception ex)
+            {
+                list = new();
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Employee master not deleted");
+            }
+            return list;
+        }
+
+        public async Task<List<DtoEmployeeExit>> RevertSeparationEmployeeAsync(DtoEmployeeExit emp)
+        {
+            List<DtoEmployeeExit> list = new();
+            mem_master memMaster = new();
+            try
+            {
+                var memResult = await CSISContext.mem_master.Where(m => m.mem_id == emp.EmployeeId).FirstOrDefaultAsync();
+                if (memResult != null && memResult.mem_id > 0)
+                {
+                    memResult.accountcloseddate = null;
+                    memResult.inactivestatus = null;
+                    memResult.memberdelete = false;
+                    CSISContext.mem_master.Update(memResult);
+                    CSISContext.SaveChanges();
+                    var empList = await GetEmployeeExitListAsync(emp.BrCode!);
+                    if (empList != null && empList.Count > 0) list = empList;
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                list = new();
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Employee master not deleted");
             }
             return list;
         }

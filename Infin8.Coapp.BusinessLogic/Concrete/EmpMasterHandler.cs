@@ -68,5 +68,15 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.EmployeeMaster.GetEmployeeExitListAsync(brCode);
         }
+
+        public async Task<List<DtoEmployeeExit>> AddSeparationEmployeeAsync(DtoEmployeeExit emp)
+        {
+            return await _unitOfWork.EmployeeMaster.AddSeparationEmployeeAsync(emp);
+        }
+
+        public async Task<List<DtoEmployeeExit>> RevertSeparationEmployeeAsync(DtoEmployeeExit emp)
+        {
+            return await _unitOfWork.EmployeeMaster.RevertSeparationEmployeeAsync(emp);
+        }
     }
 }

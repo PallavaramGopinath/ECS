@@ -16,5 +16,6 @@ namespace Infin8.Coapp.Dto
         public DateTime? DateOfExit { get; set; }
         public string? ReasonForExit { get; set; }
         public bool IsActive { get; set; } /// memberdelete -> delete or not
+        public string? BrCode { get; set; }
     }
 }

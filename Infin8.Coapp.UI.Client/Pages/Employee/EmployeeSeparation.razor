@@ -70,11 +70,11 @@
                                         <td><span class="badge bg-success">Active</span></td>
                                     }
                                     <td>
-                                        <button class="btn btn-sm btn-primary me-2">
-                                            <i class="bi bi-pencil-square"></i> Update Edit
+                                        <button class="btn btn-sm btn-primary me-2" @onclick="() => OpenEditModal(emp)">
+                                            <i class="bi bi-pencil-square"></i>Employee Separation
                                         </button>
-                                        <button class="btn btn-sm btn-danger">
-                                            <i class="bi bi-arrow-counterclockwise"></i> Revert Exit
+                                        <button class="btn btn-sm btn-danger" @onclick="() => ConfirmDelete(emp)">
+                                            <i class="bi bi-arrow-counterclockwise"></i>Revert Separation
                                         </button>
                                     </td>
                                 </tr>
@@ -157,10 +157,10 @@
                             <InputSelect @bind-Value="currentTemplate.ReasonForExit"
                                          class="form-control">
                                 <option value="">--Select Reason--</option>
-                                <option value="1">Retired on superannuation</option>
-                                <option value="2">Resigned from service</option>
-                                <option value="3">Expired</option>
-                                <option value="4">Terminated from service</option>
+                                <option value="Retired on superannuation">Retired on superannuation</option>
+                                <option value="Resigned from service">Resigned from service</option>
+                                <option value="Expired">Expired</option>
+                                <option value="Terminated from service">Terminated from service</option>
                             </InputSelect>
                             <ValidationMessage For="@(() => currentTemplate.ReasonForExit)" />
                         </div>
@@ -253,9 +253,10 @@
             EmployeeName = template.EmployeeName,
             Designation = template.Designation,
             DateOfJoin = template.DateOfJoin,
-            DateOfExit = template.DateOfExit,
+            DateOfExit = CurrentDate,
             ReasonForExit = template.ReasonForExit,
             IsActive = template.IsActive,
+            BrCode = template.BrCode,
         };
         isEditMode = true;
         showModal = true;
@@ -267,31 +268,15 @@
 
         try
         {
-            if (!isEditMode)
+            var response = await _httpClient.PostAsJsonAsync($"api/Pay/AddSeparationEmployee", currentTemplate);
+            if (response.IsSuccessStatusCode)
             {
-                var response = await _httpClient.PostAsJsonAsync($"api/Pay/AddGeneralInfo", currentTemplate);
-                if (response.IsSuccessStatusCode)
-                {
-                    employeeExits = new();
-                    var result = await response.Content.ReadFromJsonAsync<List<DtoEmployeeExit>>();
-                    if (result != null && result.Count > 0) employeeExits = result.ToList();
-                    await JSRuntime.InvokeVoidAsync("alert", "Exit of employee modified successfully!");
-                }
+                employeeExits = new();
+                var result = await response.Content.ReadFromJsonAsync<List<DtoEmployeeExit>>();
+                if (result != null && result.Count > 0) employeeExits = result.ToList();
+
+                await JSRuntime.InvokeVoidAsync("alert", "Employee separation added successfully!");
             }
-
-            else
-            {
-                var response = await _httpClient.PostAsJsonAsync($"api/Pay/EditGeneralInfo", currentTemplate);
-                if (response.IsSuccessStatusCode)
-                {
-                    employeeExits = new();
-                    var result = await response.Content.ReadFromJsonAsync<List<DtoEmployeeExit>>();
-                    if (result != null && result.Count > 0) employeeExits = result.ToList();
-
-                    await JSRuntime.InvokeVoidAsync("alert", "Exit of employee reverted successfully!");
-                }
-            }
-
             CloseModal();
         }
         catch (Exception ex)
@@ -306,23 +291,23 @@
         }
     }
 
-    private async Task ConfirmDelete(Pay_Gen_Info template)
+    private async Task ConfirmDelete(DtoEmployeeExit template)
     {
         var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
-            $"Are you sure you want to delete Pay Info: {template.Pay_Info_Name}?");
+            $"Are you sure you want to revoke separation for: {template.EmployeeName}?");
 
         if (confirmed)
         {
             isLoading = true;
-            template.Pay_Info_Delete = true; // Mark as deleted
-            var response = await _httpClient.PostAsJsonAsync($"api/Pay/EditGeneralInfo", template);
+
+            var response = await _httpClient.PostAsJsonAsync($"api/Pay/RevertSeparationEmployee", template);
             if (response.IsSuccessStatusCode)
             {
                 employeeExits = new();
                 var result = await response.Content.ReadFromJsonAsync<List<DtoEmployeeExit>>();
                 if (result != null && result.Count > 0) employeeExits = result.ToList();
 
-                await JSRuntime.InvokeVoidAsync("alert", "Pay info deleted successfully!");
+                await JSRuntime.InvokeVoidAsync("alert", "Separation revoked successfully!");
             }
             isLoading = false;
         }

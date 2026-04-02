@@ -16,5 +16,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<EmployeeMasterDto>> GetEmployeeMasterListAsync(string brCode);
         Task<EmployeeMasterDto> GetEmployeeMasterById(decimal empId, string brCode);
         Task<List<DtoEmployeeExit>> GetEmployeeExitListAsync(string brCode);
+        Task<List<DtoEmployeeExit>> AddSeparationEmployeeAsync(DtoEmployeeExit emp);
+        Task<List<DtoEmployeeExit>> RevertSeparationEmployeeAsync(DtoEmployeeExit emp);
     }
 }
