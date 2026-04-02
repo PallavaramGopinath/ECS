@@ -56,7 +56,7 @@
                                 <tr>
                                     <td>@template.Pay_Info_Id </td>
                                     <td>@template.Pay_Info_Name</td>
-                                    <td>@template.Pay_Info_Type</td>
+                                    <td>@GetType(template.Pay_Info_Type)</td>
                                     <td>@template.Pay_Info_Notes</td>
                                     <td>@template.Yr_Id</td>
                                     <td>
@@ -133,9 +133,13 @@
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold">Type *</label>
-                            <InputNumber @bind-Value="currentTemplate.Pay_Info_Type"
-                                         class="form-control"
-                                         step="0.01" />
+                            <InputSelect @bind-Value="currentTemplate.Pay_Info_Type"
+                                         class="form-control">
+                                <option value="">--Select Type--</option>
+                                <option value="1">Designation</option>
+                                <option value="2">Grade</option>
+                                <option value="3">Blood Group</option>
+                            </InputSelect>
                             <ValidationMessage For="@(() => currentTemplate.Pay_Info_Type)" />
                         </div>
 
@@ -238,10 +242,10 @@
         {
             Pay_Info_Name = "",
             Pay_Info_Type = 0,
-            Pay_Info_Notes ="",
-            Pay_Info_Min_Exp =0,
+            Pay_Info_Notes = "",
+            Pay_Info_Min_Exp = 0,
             Pay_Info_Delete = false,
-            Usr_Id = Usr_Id, 
+            Usr_Id = Usr_Id,
             Yr_Id = Yr_Id,
             BrCode = BrCode
         };
@@ -257,7 +261,7 @@
             Pay_Info_Name = template.Pay_Info_Name,
             Pay_Info_Type = template.Pay_Info_Type,
             Pay_Info_Min_Exp = template.Pay_Info_Min_Exp,
-            Pay_Info_Notes  = template.Pay_Info_Notes,
+            Pay_Info_Notes = template.Pay_Info_Notes,
             Pay_Info_Delete = template.Pay_Info_Delete,
             Usr_Id = template.Usr_Id,
             Yr_Id = template.Yr_Id,
@@ -332,6 +336,24 @@
             }
             isLoading = false;
         }
+    }
+
+    private string GetType(int infoType)
+    {
+        string typeString = "";
+        switch (infoType)
+        {
+            case 1:
+                typeString = "Designation";
+                break;
+            case 2:
+                typeString = "Grade";
+                break;
+            case 3:
+                typeString = "Bloot Group";
+                break;
+        }
+        return typeString;
     }
 
     private void CloseModal()

@@ -41,7 +41,6 @@ namespace Infin8.Coapp.Repository
             List<Pay_Gen_Info> genInfoList = new();
             try
             {
-                payGenInfo.Pay_Info_Delete = true;
                 await EditAsync(payGenInfo);
                 CSISContext.SaveChanges();
                 var result = await CSISContext.Pay_Gen_Info.Where(x => x.BrCode == payGenInfo.BrCode && x.Pay_Info_Delete == false).ToListAsync();
