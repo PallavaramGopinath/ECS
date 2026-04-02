@@ -157,6 +157,16 @@ namespace Infin8.Coapp.UI.Controllers
                 return NotFound("No Data Found");
             }
         }
+
+        [HttpGet]
+        [Route("GetEmployeeListForExit/{brCode}")]
+        public async Task<ActionResult<DtoEmployeeExit>> GetEmployeeListForExit(string brCode)
+        {
+            List<DtoEmployeeExit> empList = new();
+            var result = await _empMasterHandler.GetEmployeeExitListAsync(brCode);
+            if (result != null && result.Count >0)   empList = result.ToList ();
+            return Ok(empList);
+        }
         #endregion
 
         #region Pay Calculation

@@ -1,0 +1,339 @@
+﻿@page "/emp-separation"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+@using Infin8.Coapp.Utility
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<PageTitle>Employee separation management</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Employee Separation Management</h3>
+            </div>
+        </div>
+
+        <div class="card-body">
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Employee Id</th>
+                                <th>Employee No</th>
+                                <th>Employee Name</th>
+                                <th>Designation</th>
+                                <th>Date of Join</th>
+                                <th>Date of Exit</th>
+                                <th>Reason for Exit</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            @foreach (var emp in employeeExits)
+                            {
+                                <tr>
+                                    <td>@emp.EmployeeId</td>
+                                    <td>@emp.EmployeeNo</td>
+                                    <td>@emp.EmployeeName</td>
+                                    <td>@emp.Designation</td>
+                                    <td>@emp.DateOfJoin</td>
+                                    <td>@emp.DateOfExit</td>
+                                    <td>@emp.ReasonForExit</td>
+                                    @if (emp.IsActive)
+                                    {
+                                        <td><span class="badge bg-warning">In-Active</span></td>
+                                    }
+                                    else
+                                    {
+                                        <td><span class="badge bg-success">Active</span></td>
+                                    }
+                                    <td>
+                                        <button class="btn btn-sm btn-primary me-2">
+                                            <i class="bi bi-pencil-square"></i> Update Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-danger">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Revert Exit
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (!employeeExits.Any())
+                {
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> No Employee data found.
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade @(showModal ? "show d-block" : "")"
+     id="templateModal"
+     tabindex="-1"
+     style="@(showModal ? "background-color: rgba(0,0,0,0.5);" : "display:none;")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    @(isEditMode ? "Add Employee Separation" : "Add Employee Separation")
+                </h5>
+                <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@currentTemplate" OnValidSubmit="@HandleValidSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+
+                    <div class="row">
+                        @if (isEditMode)
+                        {
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Employee Id</label>
+                                <input @bind="currentTemplate.EmployeeId" disabled class="form-control" />
+                            </div>
+                        }
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Employee No</label>
+                            <InputText @bind-Value="currentTemplate.EmployeeNo"
+                                       class="form-control" disabled />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Employee Name</label>
+                            <InputText @bind-Value="currentTemplate.EmployeeName" class="form-control" disabled />
+                            <ValidationMessage For="@(() => currentTemplate.EmployeeName)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Designation</label>
+                            <InputText @bind-Value="currentTemplate.Designation" class="form-control" disabled />
+                            <ValidationMessage For="@(() => currentTemplate.Designation)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Date of Join</label>
+                            <InputDate @bind-Value="currentTemplate.DateOfJoin" class="form-control" disabled />
+                            <ValidationMessage For="@(() => currentTemplate.DateOfJoin)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Date of Exit *</label>
+                            <InputDate @bind-Value="currentTemplate.DateOfExit" class="form-control" />
+                            <ValidationMessage For="@(() => currentTemplate.DateOfExit)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Reason for Exit *</label>
+                            <InputSelect @bind-Value="currentTemplate.ReasonForExit"
+                                         class="form-control">
+                                <option value="">--Select Reason--</option>
+                                <option value="1">Retired on superannuation</option>
+                                <option value="2">Resigned from service</option>
+                                <option value="3">Expired</option>
+                                <option value="4">Terminated from service</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => currentTemplate.ReasonForExit)" />
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            @(isEditMode ? "Exit from service" : "Revert Exit")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isLoading = false;
+    private List<DtoEmployeeExit> employeeExits = new();
+    private DtoEmployeeExit currentTemplate = new();
+
+
+    private bool showModal = false;
+    private bool isEditMode = false;
+    private bool isSubmitting = false;
+
+    private string BrCode = "";
+    private decimal Usr_Id = 0;
+    private decimal Yr_Id = 0;
+    private DateTime CurrentDate = default;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            BrCode = userInfoDto.BrCode!;
+            Usr_Id = userInfoDto.UserId;
+            Yr_Id = userInfoDto.YrId;
+            CurrentDate = userInfoDto.CurrentDate;
+            await LoadEmployeeList();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadEmployeeList()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await _httpClient.GetFromJsonAsync<List<DtoEmployeeExit>>($"api/Pay/GetEmployeeListForExit/{BrCode}");
+            if (response != null && response.Count > 0)
+            {
+                employeeExits = response.ToList();
+            }
+            isLoading = false;
+        }
+        catch (Exception)
+        {
+            isLoading = false;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+
+    }
+
+    private void OpenAddModal()
+    {
+        currentTemplate = new DtoEmployeeExit
+        {
+
+        };
+        isEditMode = false;
+        showModal = true;
+    }
+
+    private void OpenEditModal(DtoEmployeeExit template)
+    {
+        currentTemplate = new DtoEmployeeExit
+        {
+            EmployeeId = template.EmployeeId,
+            EmployeeNo = template.EmployeeNo,
+            EmployeeName = template.EmployeeName,
+            Designation = template.Designation,
+            DateOfJoin = template.DateOfJoin,
+            DateOfExit = template.DateOfExit,
+            ReasonForExit = template.ReasonForExit,
+            IsActive = template.IsActive,
+        };
+        isEditMode = true;
+        showModal = true;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isSubmitting = true;
+
+        try
+        {
+            if (!isEditMode)
+            {
+                var response = await _httpClient.PostAsJsonAsync($"api/Pay/AddGeneralInfo", currentTemplate);
+                if (response.IsSuccessStatusCode)
+                {
+                    employeeExits = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<DtoEmployeeExit>>();
+                    if (result != null && result.Count > 0) employeeExits = result.ToList();
+                    await JSRuntime.InvokeVoidAsync("alert", "Exit of employee modified successfully!");
+                }
+            }
+
+            else
+            {
+                var response = await _httpClient.PostAsJsonAsync($"api/Pay/EditGeneralInfo", currentTemplate);
+                if (response.IsSuccessStatusCode)
+                {
+                    employeeExits = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<DtoEmployeeExit>>();
+                    if (result != null && result.Count > 0) employeeExits = result.ToList();
+
+                    await JSRuntime.InvokeVoidAsync("alert", "Exit of employee reverted successfully!");
+                }
+            }
+
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            // await ShowToast("Error", $"Operation failed: {ex.Message}", "danger");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving pay info: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmDelete(Pay_Gen_Info template)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+            $"Are you sure you want to delete Pay Info: {template.Pay_Info_Name}?");
+
+        if (confirmed)
+        {
+            isLoading = true;
+            template.Pay_Info_Delete = true; // Mark as deleted
+            var response = await _httpClient.PostAsJsonAsync($"api/Pay/EditGeneralInfo", template);
+            if (response.IsSuccessStatusCode)
+            {
+                employeeExits = new();
+                var result = await response.Content.ReadFromJsonAsync<List<DtoEmployeeExit>>();
+                if (result != null && result.Count > 0) employeeExits = result.ToList();
+
+                await JSRuntime.InvokeVoidAsync("alert", "Pay info deleted successfully!");
+            }
+            isLoading = false;
+        }
+    }
+
+
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentTemplate = new();
+        StateHasChanged();
+    }
+}

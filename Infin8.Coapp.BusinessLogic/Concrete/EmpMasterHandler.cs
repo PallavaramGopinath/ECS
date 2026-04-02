@@ -63,5 +63,10 @@ namespace Infin8.Coapp.BusinessLogic
         {
             throw new NotImplementedException();
         }
+
+        public async Task<List<DtoEmployeeExit>> GetEmployeeExitListAsync(string brCode)
+        {
+            return await _unitOfWork.EmployeeMaster.GetEmployeeExitListAsync(brCode);
+        }
     }
 }

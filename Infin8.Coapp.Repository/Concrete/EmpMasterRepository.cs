@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -41,7 +42,6 @@ namespace Infin8.Coapp.Repository
             bool result = false;
             try
             {
-                //termDepositFCTemplate.TDfc_Delete = true;
                 await EditAsync(empMaster);
                 result = true;
             }
@@ -52,6 +52,7 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+
 
         public async Task<List<DropdownItem>> GetPayGenInfoListAsync(int infoType)
         {
@@ -136,6 +137,35 @@ namespace Infin8.Coapp.Repository
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching employee data.");
             }
             return employee;
+        }
+
+        public async Task<List<DtoEmployeeExit>> GetEmployeeExitListAsync(string brCode)
+        {
+            List<DtoEmployeeExit> list = new List<DtoEmployeeExit>();
+            try
+            {
+                var empList = await (from master in CSISContext.mem_master
+                                     join emp in CSISContext.Emp_Master on master.mem_id equals emp.Mem_Id
+                                     where master.membertype == 4
+                                     && master.brcode == brCode
+                                     select new DtoEmployeeExit
+                                     {
+                                         EmployeeId = master.mem_id,
+                                         EmployeeNo = master.memberno,
+                                         EmployeeName = master.membername,
+                                         Designation = emp.Emp_Desgn_Id > 0 ? CSISContext.Pay_Gen_Info.Where(p => p.Pay_Info_Id == emp.Emp_Desgn_Id).Select(p => p.Pay_Info_Name).FirstOrDefault() : string.Empty,
+                                         DateOfJoin = master.doj,
+                                         DateOfExit = master.accountcloseddate,
+                                         ReasonForExit = master.inactivestatus,
+                                         IsActive = master.memberdelete,
+                                     }).ToListAsync();
+                if (empList != null && empList.Count > 0) list = empList;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching employee exit list.");
+            }
+            return list;
         }
     }
 }
