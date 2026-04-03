@@ -1,0 +1,347 @@
+﻿@* @page "/security-deposit-payment" *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Net
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+@using Infin8.Coapp.Utility
+@inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<PageTitle>Security Deposit Payment</PageTitle>
+
+@if (_isLoading)
+{
+    <!-- Show a centered spinner while data is loading -->
+    <div class="d-flex justify-content-center align-items-center" style="height: 250px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container-fluid p-2">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Security Deposit Payment</h5>
+                <!-- You can add action buttons here if needed -->
+            </div>
+            <div class="card-body">
+
+                <!-- Security Balance -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-success bg-opacity-10 rounded">
+                                            <h4 class="text-success mb-1">₹@securityDeposit.DepositAmount.ToString("N2")</h4>
+                                            <small class="text-muted">Security Deposit Amount</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-danger bg-opacity-10 rounded">
+                                            <h4 class="text-danger mb-1">@securityDeposit.RateOfInterest.ToString("N2")%</h4>
+                                            <small class="text-muted">Rate of Interest</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-primary bg-opacity-10 rounded">
+                                            <h4 class="text-primary mb-1">@securityDeposit.InterestAppliedDate.ToString("dd-MM-yyyy")</h4>
+                                            <small class="text-muted">Previous Interest Calculated Date</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-info bg-opacity-10 rounded">
+                                            <h4 class="text-primary mb-1">
+                                                ₹@securityDeposit.InterestCalculatedAmount.ToString("N2")
+                                                --
+                                                ₹@securityDeposit.InterestPaidAmount.ToString("N2")
+                                            </h4>
+                                            <small class="text-muted">Interest Already Calculated and Paid</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-info bg-opacity-10 rounded">
+                                            <h4 class="text-primary mb-1">
+                                                ₹@securityDeposit.CurrentIntCalcAmount.ToString("N2")
+                                                --
+                                                ₹@securityDeposit.IntPayableAmount.ToString("N2")
+                                            </h4>
+                                            <small class="text-muted">Interest Now Calculated and Payable</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-secondary bg-opacity-10 rounded">
+                                            <h4 class="text-primary mb-1">
+                                                @securityDeposit.CurrentIntCalcDate.ToString("dd-MM-yyyy")
+                                            </h4>
+                                            <small class="text-muted">Interest Calculated Date</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 offset-md-2 mt-3">
+                                        <div class="form-check form-switch">
+                                            <InputCheckbox class="form-check-input" id="appraisal"
+                                                           @bind-Value="_onSeperation"
+                                                           @bind-Value:after="Separation" />
+                                            <label class="form-check-label" for="appraisal">Final Settlement</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mt-3">
+                                        <div class="form-floating">
+                                            <input  type ="number" value="@securityDeposit.IntPayableAmount"
+                                                         class="form-control" id="intPayable"  disabled/>
+                                            <label for="intPayable">Interest Payable</label>
+                                        </div>
+                                    </div>
+                                    @if(_onSeperation)
+                                    {
+                                        <div class="col-md-4 mt-3">
+                                            <div class="form-floating">
+                                                <input type="number" value="@securityDeposit.DepositPaidOnSeparation"
+                                                             class="form-control" id="depositPayable" disabled />
+                                                <label for="depositPayable">Deposit Payable</label>
+                                            </div>
+                                        </div>
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buttions Close, Reset and Initiate -->
+    <div class="d-flex justify-content-between mt-4 mb-4">
+        <div>
+            <!-- Left-aligned buttons -->
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle"></i>
+                Close
+            </button>
+            <button type="reset" class="btn btn-outline-secondary" @onclick="ResetForm">
+                <i class="oi oi-action-undo"></i>
+                Reset
+            </button>
+        </div>
+        <div>
+            <!-- Right-aligned submit button -->
+            <button type="button" class="btn btn-primary" @onclick="Calculate" disabled="@(securityDeposit.IntPayableAmount > 0)">
+                <i class="oi oi-check"></i>
+                Calculate
+            </button>
+
+            <button type="button" class="btn btn-primary" @onclick="Initiate" disabled="@(securityDeposit.IntPayableAmount <= 0)">
+                <i class="oi oi-check"></i>
+                Initiate
+            </button>
+        </div>
+    </div>
+}
+
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal Employee_Id { get; set; }
+    [Parameter] public string? Employee_Name { get; set; }
+    [Parameter] public string? Designation { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnSecurityDepositPaymentComponentClose { get; set; }
+    #endregion
+
+    private bool _isLoading = true;
+    private bool _onSeperation = false;
+    private SecurityDepositVM securityDeposit = new();
+
+    private string BrCode = "";
+    private decimal Usr_Id = 0;
+    private decimal Yr_Id = 0;
+    private DateTime CurrentDate = default;
+    private DateTime YrEndDate = default;
+
+    private DtoStaging_Details stagingDetails = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+                BrCode = userInfoDto.BrCode!; // Example branch code
+                Usr_Id = userInfoDto.UserId;
+                Yr_Id = userInfoDto.YrId;
+                CurrentDate = userInfoDto.CurrentDate;
+                YrEndDate = userInfoDto.YrEndDate;
+                DateTime toDate = YrEndDate.AddDays(1);
+                var response = await _httpClient.GetFromJsonAsync<SecurityDepositVM>($"api/TermDeposit/CalculateSecurityDepositInterest/{Employee_Id}/50001/{toDate.ToString("dd-MM-yyyy")}/{BrCode}");
+                if (response != null && response.Mem_Id > 0)
+                {
+                    securityDeposit = response;
+                    securityDeposit.Yr_Id = Yr_Id;
+                    securityDeposit.BrCode = BrCode;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during initialization: {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task Close()
+    {
+        await OnSecurityDepositPaymentComponentClose.InvokeAsync(true);
+    }
+
+    private async Task Calculate()
+    {
+        try
+        {
+            DateTime toDate = YrEndDate.AddDays(1);
+            var response = await _httpClient.GetFromJsonAsync<SecurityDepositVM>($"api/TermDeposit/CalculateSecurityDepositInterest/{Employee_Id}/50001/{toDate.ToString("dd-MM-yyyy")}/{BrCode}");
+            if (response != null && response.Mem_Id > 0)
+            {
+                securityDeposit = response;
+                securityDeposit.Yr_Id = Yr_Id;
+                securityDeposit.BrCode = BrCode;
+                await JSRuntime.InvokeVoidAsync("alert", "Interest calculated successfully!");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Failed to calculate interest. Please try again.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during interest calculation: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "An error occurred while calculating interest. Please try again.");
+        }
+    }
+
+    private void Separation()
+    {
+        if (_onSeperation)
+        {
+            securityDeposit.DepositPaidOnSeparation = securityDeposit.DepositAmount;
+        }
+        else
+        {
+            securityDeposit.DepositPaidOnSeparation = 0;
+        }
+    }
+    private void ResetForm()
+    {
+        securityDeposit = new()
+        {
+            Mem_Id = Employee_Id,
+            TD_Id = 0,
+            TD_No = "",
+            DepositAmount = 0,
+            RateOfInterest = 0,
+            InterestAppliedDate = default,
+            InterestCalculatedAmount = 0,
+            InterestPaidAmount = 0,
+            CurrentIntCalcAmount = 0,
+            IntPayableAmount = 0,
+            CurrentIntCalcDate = default,
+            DepositPaidOnSeparation = 0,
+            Yr_Id = Yr_Id,
+            BrCode = BrCode
+        };
+    }
+
+    private async Task Initiate()
+    {
+        string accountName = "";
+        try
+        {
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+
+        string JsonData = ConvertToJson(securityDeposit);
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = Employee_Id,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = 0,
+            Payment_Amount = securityDeposit.IntPayableAmount + securityDeposit.DepositPaidOnSeparation,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = JsonData,
+            Created_By = Usr_Id,
+            Created_Date = TransactionDate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = securityDeposit.BrCode,
+            CashReceipt_Amount = 0,
+            AdjustmentReceipt_Amount = 0,
+            CashPayment_Amount = CashOrAdjustment == 1 ? securityDeposit.IntPayableAmount+ securityDeposit.DepositPaidOnSeparation : 0,
+            AdjustmentPayment_Amount = CashOrAdjustment == 2 ? securityDeposit.IntPayableAmount + securityDeposit.DepositPaidOnSeparation : 0,
+            Transaction_Type = "Staff Transaction"
+        };
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
+        if (response.IsSuccessStatusCode)
+        {
+            await TransactionState.NotifyIntiate(true);
+            await JSRuntime.InvokeVoidAsync("alert", "Succefully Initiated");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Initiated failure, somethis went wrong!");
+        }
+    }
+
+    private string ConvertToJson(SecurityDepositVM secDeposit)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(secDeposit, options);
+    }
+}

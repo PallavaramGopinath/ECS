@@ -891,6 +891,26 @@ else
                 StateHasChanged();
                 #endregion
                 break;
+            case 43:    /// Staff security deposit payment
+                #region Security Deposit Payment
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Pay"}.{componentName}";
+                Type? typeSecurityDepositPayment = Type.GetType(fullyQualifiedName);
+                if (typeSecurityDepositPayment != null) currentComponent = typeSecurityDepositPayment;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "Employee_Id", transaction.Employee_Id },
+                    { "Employee_Name" , transaction.Employee_Name!},
+                    { "Designation" , transaction.Employee_Designation!},
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnSecurityDepositPaymentComponentClose", EventCallback.Factory.Create<bool>(this, CloseSalaryPaymentComponent)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                break;
+                #endregion
                 #endregion
         }
     }

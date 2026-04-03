@@ -51,5 +51,9 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositROITemplate.GetTermDepositRateOfInterestList(SchemeType, brCode);
         }
 
+        public async Task<double> GetSecurityDepositRoi(int schemeId, DateTime toDate, string brCode)
+        {
+            return await _unitOfWork.TermDepositROITemplate.GetSecurityDepositRoi(schemeId, toDate, brCode);
+        }
     }
 }

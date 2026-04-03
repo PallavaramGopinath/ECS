@@ -333,6 +333,16 @@ namespace Infin8.Coapp.Utility
 
             return JsonSerializer.Deserialize<DtoSecurityDepositData>(jsonData, options)!;
         }
+
+        public static SecurityDepositVM ConvertFromJsonForSecurityDepositPayment(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+
+            return JsonSerializer.Deserialize<SecurityDepositVM>(jsonData, options)!;
+        }
         public static List<Loan_Trn> GetStaffLoanRecovery(DtoLoanRecoveryStaff LoanBalance,
           DateTime transactionDate, decimal checkedBy, decimal vocId, decimal yrId, string brCode)
         {

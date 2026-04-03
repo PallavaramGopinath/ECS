@@ -290,5 +290,13 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
+        public async Task<double> GetSecurityDepositRoi(int schemeId, DateTime toDate, string brCode)
+        {
+            var roi = await  CSISContext.TermDeposit_Roi_Template.Where(x => x.TDScheme_Id == schemeId && x.Wef <= toDate && x.BrCode == brCode)
+                .OrderByDescending(x => x.Wef)
+                .Select(x => x.Roi)
+                .FirstOrDefaultAsync();
+            return roi;
+        }
     }
 }

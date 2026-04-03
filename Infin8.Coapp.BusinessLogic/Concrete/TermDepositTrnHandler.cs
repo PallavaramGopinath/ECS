@@ -87,9 +87,9 @@ namespace Infin8.Coapp.BusinessLogic
                 isMonthEndCalc = map_General.IsFDIntCalcOnMonthBasis;
                 fdDetails = await _unitOfWork.TermDepositTrn.GetFDPayableByTDIdsAsync(fdNos);
                 mapGeneral = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
-                if (fdDetails.Count > 0) 
+                if (fdDetails.Count > 0)
                 {
-                    foreach(var single in fdDetails)
+                    foreach (var single in fdDetails)
                     {
                         IntCalc = 0;
                         TotalIntCalc = 0;
@@ -175,7 +175,7 @@ namespace Infin8.Coapp.BusinessLogic
                                     {
                                         for (int i = 1; i <= NoOfMonths / single.FDIntPayableFrequency; i++)
                                         {
-                                            if ( toDate >= IntNextDate)
+                                            if (toDate >= IntNextDate)
                                             {
                                                 IntCalc = 0;
                                                 IntCalc = utilityHandler.CalculateInterestForFixedDeposit(single.FDAmount, single.FDROI, single.FDIntPayableFrequency, single.FDIsDiscountRate);
@@ -192,7 +192,7 @@ namespace Infin8.Coapp.BusinessLogic
                         }
                         else if (accountId == 8) /// refund 
                         {
-                            FcRate = await _unitOfWork.TermDepositFCTemplate.GetTDForeClosureROIAsync(3,toDate);
+                            FcRate = await _unitOfWork.TermDepositFCTemplate.GetTDForeClosureROIAsync(3, toDate);
                             //FcRate = TsisDataAccess.DatabaseTermDeposit.GetTDForeClosureROI(3, toDate);
                             NoOfDays = utilityHandler.GetNoOfDays(IntToDate, single.FDValueDate);
                             //NoOfDays = GeneralService.GetNoOfDays(IntToDate, single.FDValueDate);
@@ -202,13 +202,13 @@ namespace Infin8.Coapp.BusinessLogic
                             {
                                 if (NoOfDays < 365)
                                 {
-                                    PreROI = await  _unitOfWork.TermDepositROITemplate.GetROIForTermDepositAsync(single.FDValueDate, single.FDSchemeId, 0, NoOfDays,brCode );
+                                    PreROI = await _unitOfWork.TermDepositROITemplate.GetROIForTermDepositAsync(single.FDValueDate, single.FDSchemeId, 0, NoOfDays, brCode);
                                     //PreROI = TsisDataAccess.DatabaseTermDeposit.GetROIFor_TermDeposit(single.FDValueDate, single.FDSchemeId, 0, NoOfDays, out errorMessage);
                                     //if (errorMessage.Length > 0)
                                     //{
                                     //    goto ErrorOuptPut;
                                     //}
-                                    if(PreROI == 0)
+                                    if (PreROI == 0)
                                     {
                                         goto ErrorOuptPut;
                                     }
@@ -224,7 +224,7 @@ namespace Infin8.Coapp.BusinessLogic
                                     PreROI = await _unitOfWork.TermDepositROITemplate.GetROIForTermDepositAsync(single.FDValueDate, single.FDSchemeId, NoOfMonths, 0, brCode);
                                     //PreROI = TsisDataAccess.DatabaseTermDeposit.GetROIFor_TermDeposit(single.FDValueDate, single.FDSchemeId, NoOfMonths, 0, out errorMessage);
                                     //if (errorMessage.Length > 0)
-                                    if(PreROI == 0)
+                                    if (PreROI == 0)
                                     {
                                         goto ErrorOuptPut;
                                     }
@@ -258,7 +258,7 @@ namespace Infin8.Coapp.BusinessLogic
                         }
                         else if (accountId == 9) /// Renewal
                         {
-                            if(utilityHandler.GetNoOfDays(toDate.Date, single.FDMaturityDate.Date) <0)
+                            if (utilityHandler.GetNoOfDays(toDate.Date, single.FDMaturityDate.Date) < 0)
                             //if (GeneralService.GetNoOfDays(toDate.Date, single.FDMaturityDate.Date) < 0)  /// before maturity date
                             {
                                 IntCalc = 0;
@@ -277,14 +277,14 @@ namespace Infin8.Coapp.BusinessLogic
 
                         goto FinalOutPut;
 
-                        ErrorOuptPut:
-                            single.FDIntCalculatedNow = 0;
-                            single.FDIntCalculatedDateNow = null;
+                    ErrorOuptPut:
+                        single.FDIntCalculatedNow = 0;
+                        single.FDIntCalculatedDateNow = null;
 
-                        FinalOutPut:
-                            TotalIntCalc = Math.Round(TotalIntCalc, 0, MidpointRounding.AwayFromZero);
-                            single.FDIntCalculatedNow = TotalIntCalc;
-                            single.FDIntCalculatedDateNow = IntNextDate;
+                    FinalOutPut:
+                        TotalIntCalc = Math.Round(TotalIntCalc, 0, MidpointRounding.AwayFromZero);
+                        single.FDIntCalculatedNow = TotalIntCalc;
+                        single.FDIntCalculatedDateNow = IntNextDate;
                     }
                 }
             }
@@ -305,7 +305,7 @@ namespace Infin8.Coapp.BusinessLogic
         }
         public async Task<List<DropdownItem>> GetTDNosByMemIdForRenewal(decimal memId, string tdSchemeType, DateTime trnDate, string brCode)
         {
-            return await _unitOfWork.TermDepositTrn.GetTDNosByMemIdForRenewal(memId, tdSchemeType,trnDate, brCode);
+            return await _unitOfWork.TermDepositTrn.GetTDNosByMemIdForRenewal(memId, tdSchemeType, trnDate, brCode);
         }
         public async Task<DtoNominee> GetNomineeForTermDeposit(decimal memId, string tdSchemeType, string brCode)
         {
@@ -322,6 +322,38 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositTrn.GetSecurityDepositData(empId, brCode);
         }
 
-        
+        public async Task<SecurityDepositVM> CalculateSecurityDepositInterest(decimal empId, int schemeId, DateTime toDate, string brCode)
+        {
+            SecurityDepositVM securityDeposit = new();
+            try
+            {
+                var Roi = await _unitOfWork.TermDepositROITemplate.GetSecurityDepositRoi(schemeId, toDate, brCode);
+                var response = await _unitOfWork.TermDepositTrn.CalculateSecurityDepositInterest(empId,schemeId, brCode);
+                if (response != null && response.Mem_Id > 0)
+                {
+                    securityDeposit = response;
+                    securityDeposit.RateOfInterest = Roi;
+                    //if (securityDeposit.InterestAppliedDate == null)
+                    //{
+                    //    securityDeposit.InterestAppliedDate = securityDeposit.ValueDate;
+                    //}
+                    int NoOfDays = (toDate - (DateTime)securityDeposit.InterestAppliedDate).Days;
+                    if (NoOfDays > 0)
+                    {
+                        double intCalcAmount = Math.Round((securityDeposit.DepositAmount * securityDeposit.RateOfInterest * NoOfDays) / 36500, 2, MidpointRounding.AwayFromZero);
+                        double intPayableAmount = intCalcAmount + securityDeposit.InterestCalculatedAmount - securityDeposit.InterestPaidAmount;
+                        //securityDeposit.IntCalcAmount = Math.Round((securityDeposit.DepositAmount * securityDeposit.RateOfInterest * NoOfDays) / 36500, 2, MidpointRounding.AwayFromZero);
+                        securityDeposit.CurrentIntCalcAmount = intCalcAmount;
+                        securityDeposit.IntPayableAmount = intPayableAmount;
+                        securityDeposit.CurrentIntCalcDate = toDate;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message + " Something went wrong! An error occurred while calculating the security deposit interest");
+            }
+            return securityDeposit;
+        }
     }
 }

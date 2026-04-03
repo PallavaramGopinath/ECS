@@ -80,6 +80,7 @@ namespace Infin8.Coapp.BusinessLogic
             List<Loan_Trn> loanTrnList = new();
             List<Mem_Trn>memberTrnList = new();
             List<Fin_Voucher_Bank> finVocBankList = new();
+            List<TermDeposit_Trn> termDepositTrnList = new();
             try
             {
                 _unitOfWork.BeginTransaction();
@@ -236,8 +237,8 @@ namespace Infin8.Coapp.BusinessLogic
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapGeneral.FD_Int_Led_Id, 0, fdIntPayment.Total_Interest_Payable, fdIntPayment.CashOrAdjustment, Narration + " FD No :" + fdIntPayment.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), false, Checked_By, yrId, Status, "TD No : " + fdIntPayment.Fixed_Deposit_Datas.Select(x => x.FD_No).First(), fdIntPayment.Mem_Id, brCode, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);
                             /// Save Fixed Depoist interst payment
-                            result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(fdIntPaymentList);
-                            //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
+                            termDepositTrnList.AddRange (fdIntPaymentList);
+                            //result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(fdIntPaymentList);
                             #endregion
                             break;
                         case 8: /// FD Refund
@@ -316,7 +317,8 @@ namespace Infin8.Coapp.BusinessLogic
                             }
                             #endregion
                             /// Save Fixed Depoist interst payment
-                            result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(fdTrnRefundList);
+                            termDepositTrnList.AddRange(fdTrnRefundList);
+                            //result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(fdTrnRefundList);
                             /// update fd refund as closed
                             foreach (var fd in fdRefund.Fixed_Deposit_Datas)
                             {
@@ -493,12 +495,15 @@ namespace Infin8.Coapp.BusinessLogic
                                 }
                             }
                             #endregion
+
                             #region Save FD Renewal
                             result = await _unitOfWork.TermDepositMember.AddTermDepositMemberListAsync(fdRenewalMembers);
-                            result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(fdRenewalTrnList);
-                            //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
+
+                            termDepositTrnList.AddRange(fdRenewalTrnList);
+                            //result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(fdRenewalTrnList);
+                            
                             loanTrnList.AddRange(fdRenewalLoanTrnList);
-                            //result = await _unitOfWork.LoanTrn.AddLoanTrnListAsync(fdRenewalLoanTrnList);
+                            
                             result = await _unitOfWork.TermDepositMaster.UpdateTermDepositMasterAsClosed(renewalTDId);
 
                             #endregion 
@@ -630,6 +635,7 @@ namespace Infin8.Coapp.BusinessLogic
                             tdTrnNew = Utility.GetModalObject.GetTermDepositTrn(0, newFD.Common.Account_Opendate, newTDId, 0,
                                 newFD.Deposit_Amount, newFD.Maturity_Amount, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, false, false,
                                 vocId, Checked_By, yrId, 1, 0, brCode);
+                            termDepositTrnList.Add(tdTrnNew);
 
                             foreach (var memNew in newFD.Members)
                             {
@@ -644,7 +650,7 @@ namespace Infin8.Coapp.BusinessLogic
                             finVoucherTrns.Add(vocTrn);
 
                             /// Save new fixed deposit
-                            result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnAsync(tdTrnNew);
+                            //result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnAsync(tdTrnNew);
                             result = await _unitOfWork.TermDepositMember.AddTermDepositMemberListAsync(tdMembers);
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
 
@@ -1262,9 +1268,10 @@ namespace Infin8.Coapp.BusinessLogic
                                 trns.Receipt_Amount, 0, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, false, false,
                                 vocId, Checked_By, sdemp.Yr_Id, 1, 0, trns.BrCode!);
 
+                            termDepositTrnList.Add(sdTrn);
 
                             sdMember = Utility.GetModalObject.GetTermDepositMembers(0, newTDId, sdemp.Employee_Id, 1, false, vocId, Checked_By, sdemp.Yr_Id, trns.BrCode!);
-                            result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnAsync(sdTrn);
+                            //result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnAsync(sdTrn);
                             result = await _unitOfWork.TermDepositMember.AddTermDepositMemberAsync(sdMember);
 
 
@@ -1277,6 +1284,29 @@ namespace Infin8.Coapp.BusinessLogic
                             #endregion
                             break;
                         case 43:    /// Staff security deposit payment
+                            #region Staff security deposit payment
+                            TermDeposit_Trn sdPmtTrn = new TermDeposit_Trn();
+                            SecurityDepositVM sdPmt = new();
+                            sdPmt = Utility.JsonbObject.ConvertFromJsonForSecurityDepositPayment(trns.Related_Account_Data!);
+                            sdPmtTrn = Utility.GetModalObject.GetTermDepositTrn(0, trns.Transacted_Date, sdPmt.TD_Id , 0,
+                               0, 0, sdPmt.CurrentIntCalcAmount,sdPmt.CurrentIntCalcDate ,sdPmt.IntPayableAmount ,sdPmt.DepositPaidOnSeparation , 0, null, 0, 0, 0, null, null, false, false,
+                               vocId, Checked_By, yrId, 1, 0, trns.BrCode!);
+                            termDepositTrnList.Add(sdPmtTrn);
+                            //result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnAsync(sdPmtTrn);
+                            Narration = Transacted_MemName + "Security Deposit Payment for SD No " + sdPmt.TD_No;
+                            vocTrn = new();
+                            if (sdPmt.DepositPaidOnSeparation > 0)
+                            {
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sdPmt.Led_Id, 0, sdPmt.DepositPaidOnSeparation , trns.Cash_Or_Adjustment, Narration, false, Checked_By, sdPmt.Yr_Id , Status, "SD No : " + sdPmt.TD_Id , Transacted_Member_Id , trns.BrCode!, 0, 0, 0);
+                                finVoucherTrns.Add(vocTrn);
+                            }
+                            if(sdPmt.IntPayableAmount > 0)
+                            {
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sdPmt.IntLed_Id, 0, sdPmt.IntPayableAmount, trns.Cash_Or_Adjustment, "Interest on " + Narration, false, Checked_By, sdPmt.Yr_Id, Status, "SD No : " + sdPmt.TD_Id, Transacted_Member_Id, trns.BrCode!, 0, 0, 0);
+                                finVoucherTrns.Add(vocTrn);
+                            }
+
+                            #endregion 
                             break;
                         case 44:    /// Member due to transaction bulk
                             break;
@@ -1384,6 +1414,11 @@ namespace Infin8.Coapp.BusinessLogic
                 if (memberTrnList != null && memberTrnList.Any())
                 {
                     result = await _unitOfWork.MemTrn.AddMemTrnListAsync(memberTrnList);
+                }
+                /// Insert all the term deposit trn
+                if(termDepositTrnList != null && termDepositTrnList.Any())
+                {
+                    result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnListAsync(termDepositTrnList);
                 }
                 /// Insert all the voucher transactions
                 result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);

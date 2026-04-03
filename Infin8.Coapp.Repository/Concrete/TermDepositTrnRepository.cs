@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Formats.Tar;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -440,6 +441,61 @@ namespace Infin8.Coapp.Repository
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+            }
+            return securityDeposit;
+        }
+
+        public async Task<SecurityDepositVM> CalculateSecurityDepositInterest(decimal empId,int schemeId, string brCode)
+        {
+            SecurityDepositVM securityDeposit = new();
+            try
+            {
+                var result = await (from trn in CSISContext.TermDeposit_Trn
+                                    join master in CSISContext.TermDeposit_Master
+                                        on trn.TD_Id equals master.TD_Id
+                                    join emp in CSISContext.mem_master
+                                        on master.Mem_Id equals emp.mem_id
+                                    join scheme in CSISContext.TermDeposit_Schemes
+                                        on master.TDScheme_Id equals scheme.TDScheme_Id
+                                    where master.Mem_Id == empId
+                                          && master.TD_Delete == false
+                                          && trn.TD_Delete == false
+                                          && master.BrCode == brCode
+                                          && trn.BrCode == brCode
+                                          && emp.brcode == brCode
+                                          && master.TDScheme_Id == schemeId
+                                    group new { trn, master } by new 
+                                    { 
+                                        master.TD_Id, master.TD_No, 
+                                        master.ValueDate ,master.DepositAmount ,
+                                        master.RateOfInterest ,
+                                        scheme.Led_Id ,
+                                        scheme.IntLed_Id,
+                                        emp.mem_id, emp.memberno, emp.membername 
+                                    } into g
+                                    select new SecurityDepositVM
+                                    {
+                                        TD_Id = g.Key.TD_Id ,
+                                        TD_No = g.Key.TD_No,
+                                        Mem_Id = g.Key.mem_id ,
+                                        ValueDate = g.Key.ValueDate ,
+                                        DepositAmount = g.Key.DepositAmount ,
+                                        RateOfInterest = g.Key.RateOfInterest,
+                                        InterestAppliedDate = g.Max(x=> x.trn.InterestAppliedDate)  ??  g.Key.ValueDate,
+                                        InterestCalculatedAmount = g.Sum(x => x.trn.InterestCalculatedAmount),
+                                        InterestPaidAmount = g.Sum(x => x.trn.InterestPaidAmount),
+                                        CurrentIntCalcAmount = 0,
+                                        CurrentIntCalcDate = default,
+                                        Led_Id = g.Key.Led_Id ,
+                                        BrCode = brCode,
+                                        IntLed_Id = g.Key.IntLed_Id,
+                                    }).FirstOrDefaultAsync();
+                if (result != null && result.Mem_Id  > 0) securityDeposit = result;
+            }
+            catch (Exception)
+            {
+                securityDeposit = new();
+                throw;
             }
             return securityDeposit;
         }

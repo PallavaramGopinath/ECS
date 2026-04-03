@@ -20,5 +20,6 @@ namespace Infin8.Coapp.Repository
         Task<List<DropdownItem>> GetTDNosByMemIdForRenewal(decimal memId , string tdSchemeType, DateTime trnDate, string brCode);
         Task<DtoNominee> GetNomineeForTermDeposit(decimal memId, string tdSchemeType, string brCode);
         Task<DtoSecurityDepositData> GetSecurityDepositData(decimal empId, string brCode);
+        Task<SecurityDepositVM> CalculateSecurityDepositInterest(decimal empId, int schemeId, string brCode);
     }
 }
