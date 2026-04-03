@@ -9,9 +9,10 @@ namespace Infin8.Coapp.Repository
 {
     public interface ISBCASchemesRepository
     {
-        Task<bool> AddSBCASchemesAsync(SBCA_Schemes sbcaSchemes,string brCode);
-        Task<bool> EditSBCASchemesAsync(SBCA_Schemes sbcaSchemes, string brCode);
+        Task<List<SBCA_Schemes>> AddSBCASchemesAsync(SBCA_Schemes sbcaSchemes,string brCode);
+        Task<List<SBCA_Schemes>> EditSBCASchemesAsync(SBCA_Schemes sbcaSchemes, string brCode);
         Task<(decimal prlLedId, decimal intledId)> GetSBAccountLedgerIds(string brCode);
         Task<SBCA_Schemes> GetSBCAScheme(string brCode);
+        Task<List<SBCA_Schemes>> GetSBCASchemes(string brCode);
     }
 }

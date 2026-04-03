@@ -19,6 +19,27 @@ namespace Infin8.Coapp.UI.Controllers
             _sbcaMasterHandler = sbcaMasterHandler;
             _sbcaSchemesHandler = sbcaSchemeHandler;
         }
+
+        [HttpPost]
+        [Route("AddSBAccount")]
+        public async Task<ActionResult<List<SBCA_Schemes>>> AddSBAccount([FromBody] SBCA_Schemes scheme)
+        {
+            List<SBCA_Schemes> sbcaSchemes = new();
+            var result = await _sbcaSchemesHandler.AddSBCASchemesAsync(scheme,scheme.BrCode! );
+            if (result != null && result.Count >0) sbcaSchemes = result.ToList();
+            return Ok(sbcaSchemes);
+        }
+
+        [HttpPost]
+        [Route("EditSBAccount")]
+        public async Task<ActionResult<List<SBCA_Schemes>>> EditSBAccount([FromBody] SBCA_Schemes scheme)
+        {
+            List<SBCA_Schemes> schemes = new();
+            var query = await _sbcaSchemesHandler.EditSBCASchemesAsync(scheme, scheme.BrCode!);
+            if (query != null && query.Count > 0) schemes = query.ToList();
+            return Ok(schemes);
+        }
+
         [HttpGet]
         [Route("GetSBAccountBalanceWithIds/{memId:decimal}/{brCode}")]
         public async Task<ActionResult<DtoSBAccountBalanceWithIds>> GetSBAccountBalanceWithIds(decimal memId, string brCode)
@@ -99,6 +120,23 @@ namespace Infin8.Coapp.UI.Controllers
             {
                 throw;
             }
+        }
+
+        [HttpGet]
+        [Route("GetSBCASchemes/{brCode}")]
+        public async Task<ActionResult<List<SBCA_Schemes>>> GetSBCASchemes(string brCode)
+        {
+            List<SBCA_Schemes> sbcaSchemes = new();
+            try
+            {
+                var response = await _sbcaSchemesHandler.GetSBCASchemes(brCode);
+                if (response != null && response.Count >0) sbcaSchemes = response.ToList();
+            }
+            catch (Exception)
+            {
+                sbcaSchemes = new();
+            }
+            return Ok(sbcaSchemes);
         }
     }
 }

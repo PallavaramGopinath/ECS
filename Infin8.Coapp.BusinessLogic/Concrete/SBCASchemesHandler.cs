@@ -16,38 +16,44 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddSBCASchemesAsync(SBCA_Schemes sbcaSchemes, string brCode)
+        public async Task<List<SBCA_Schemes>> AddSBCASchemesAsync(SBCA_Schemes sbcaSchemes, string brCode)
         {
-            bool result = false;
+            List<SBCA_Schemes> schemes = new();
             try
             {
-                result = await _unitOfWork.SBCASchemes.AddSBCASchemesAsync(sbcaSchemes,brCode);
+               var result = await _unitOfWork.SBCASchemes.AddSBCASchemesAsync(sbcaSchemes,brCode);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+               if(result != null && result.Count >0)
+                {
+                    schemes = result.ToList ();
+                }
             }
             catch (Exception ex)
             {
-                result = false;
+                schemes = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while adding new SB account scheme");
             }
-            return result;
+            return schemes;
         }
 
-        public async Task<bool> EditSBCASchemesAsync(SBCA_Schemes sbcaSchemes, string brCode)
+        public async Task<List<SBCA_Schemes>> EditSBCASchemesAsync(SBCA_Schemes sbcaSchemes, string brCode)
         {
-            bool result = false;
+            List<SBCA_Schemes> schemes = new();
             try
             {
-                result = await _unitOfWork.SBCASchemes.EditSBCASchemesAsync(sbcaSchemes,brCode);
+                var result = await _unitOfWork.SBCASchemes.EditSBCASchemesAsync(sbcaSchemes,brCode);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if (result != null && result.Count > 0)
+                {
+                    schemes = result.ToList();
+                }
             }
             catch (Exception ex)
             {
-                result = false;
+                schemes = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred whiel modifying SB account scheme");
             }
-            return result;
+            return schemes;
         }
 
         public async Task<(decimal prlLedId, decimal intledId)> GetSBAccountLedgerIds(string brCode)
@@ -58,6 +64,11 @@ namespace Infin8.Coapp.BusinessLogic
         public Task<SBCA_Schemes> GetSBCAScheme(string brCode)
         {
             return _unitOfWork.SBCASchemes.GetSBCAScheme(brCode);
+        }
+
+        public async Task<List<SBCA_Schemes>> GetSBCASchemes(string brCode)
+        {
+            return await _unitOfWork.SBCASchemes.GetSBCASchemes(brCode);
         }
     }
 }

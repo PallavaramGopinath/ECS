@@ -1,0 +1,508 @@
+﻿@page "/sb-account-product"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@inject IJSRuntime JSRuntime
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+
+@using Infin8.Coapp.Utility
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Savings Bank Account Product</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-piggy-bank"></i> Saving Bank Schemes Management
+                        </h5>
+                        <button class="btn btn-light btn-sm" @onclick="ShowCreateModal">
+                            <i class="bi bi-plus-circle"></i> Create Saving Bank Scheme
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Loading)
+                    {
+                        <div class="text-center my-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (Schemes == null || !Schemes.Any())
+                    {
+                        <div class="alert alert-info text-center">
+                            No savings bank scheme found. Click "Create Saving Bank Scheme" to add a new scheme.
+                        </div>
+                    }
+                    else
+                    {
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Principal Ledger</th>
+                                    <th>Interest Ledger</th>
+                                    <th>Interest Calculation Period</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Schemes)
+                                {
+                                    <tr>
+                                        <td>@item.SBCA_Name</td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                @prlLedgerList.Where(x => x.Led_Id == item.SBCA_Led_Id).Select(x => x.Led_Name).FirstOrDefault()
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                @intLedgerList.Where(x => x.Led_Id == item.SBCA_Int_Led_Id).Select(x => x.Led_Name).FirstOrDefault()
+                                            </span>
+                                        </td>
+                                        <td>@item.InterestCalcPeriod</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary"
+                                                        @onclick="() => ShowEditModal(item)">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                @if (!item.SBCA_Delete)
+                                                {
+                                                    <button class="btn btn-outline-danger"
+                                                            @onclick="() => ConfirmDelete(item)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                }
+                                                <button class="btn btn-outline-info"
+                                                        @onclick="() => ShowDetailsModal(item)">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal fade" id="schemeModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi @(IsEditMode ? "bi-pencil-square" : "bi-plus-circle")"></i>
+                    @(IsEditMode ? "Edit Term Deposit Scheme" : "Create Term Deposit Scheme")
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@CurrentScheme" OnValidSubmit="@SaveScheme">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert alert-danger" />
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Scheme Name *</label>
+                            <InputText @bind-Value="CurrentScheme.SBCA_Name" class="form-control" />
+                            <ValidationMessage For="@(() => CurrentScheme.SBCA_Name)" />
+                            <small class="text-muted">Example: Savings Bank Account, Current Account., etc.</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Principal GL *</label>
+                            <InputSelect class="form-select" id="prlLedId" @bind-Value="CurrentScheme.SBCA_Led_Id">
+                                <option value="0">--Principal GL--</option>
+                                @foreach (var account in prlLedgerList)
+                                {
+                                    <option value="@account.Led_Id">@account.Led_Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => CurrentScheme.SBCA_Led_Id)" />
+                            <small class="text-muted">General Ledger for principal Amount</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Interest GL *</label>
+                            <InputSelect class="form-select" id="prlLedId" @bind-Value="CurrentScheme.SBCA_Int_Led_Id">
+                                <option value="0">--Interest GL--</option>
+                                @foreach (var account in intLedgerList)
+                                {
+                                    <option value="@account.Led_Id">@account.Led_Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => CurrentScheme.SBCA_Int_Led_Id)" />
+                            <small class="text-muted">General Ledger for Interest Amount</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Interest Calculation Period *</label>
+                            <InputNumber @bind-Value="CurrentScheme.InterestCalcPeriod" class="form-control" />
+                            <ValidationMessage For="@(() => CurrentScheme.InterestCalcPeriod)" />
+                            <small class="text-muted">Example: Interest Calculation Period In Months</small>
+                        </div>
+
+                        @if (IsEditMode)
+                        {
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <InputCheckbox @bind-Value="CurrentScheme.SBCA_Delete" class="form-check-input" />
+                                    <label class="form-check-label text-danger">
+                                        Mark as Deleted
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </EditForm>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" @onclick="SaveScheme">
+                    <i class="bi bi-save"></i> Save Savings Bank Scheme
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-info-circle"></i> Scheme Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @if (SelectedScheme != null)
+                {
+                    <dl class="row">
+                        <dt class="col-sm-4">Scheme ID:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.Scheme_Id</dd>
+
+                        <dt class="col-sm-4">Scheme Name:</dt>
+                        <dd class="col-sm-8 fw-bold">@SelectedScheme.SBCA_Name</dd>
+
+
+                        <dt class="col-sm-4">Principal GL:</dt>
+                        <dd class="col-sm-8">@prlLedgerList.Where(x=> x.Led_Id == SelectedScheme.SBCA_Led_Id).Select(x=> x.Led_Name)</dd>
+
+                        <dt class="col-sm-4">Interest GL:</dt>
+                        <dd class="col-sm-8">@intLedgerList.Where(x => x.Led_Id == SelectedScheme.SBCA_Int_Led_Id).Select(x => x.Led_Name)</dd>
+
+                        <dt class="col-sm-4">Interest Calculation Period:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.InterestCalcPeriod</dd>
+
+                        <dt class="col-sm-4">Status:</dt>
+                        <dd class="col-sm-8">
+                            @if (SelectedScheme.SBCA_Delete)
+                            {
+                                <span class="badge bg-danger">Deleted</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Branch Code:</dt>
+                        <dd class="col-sm-8">@SelectedScheme.BrCode</dd>
+                    </dl>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool Loading = false;
+    private bool IsEditMode = false;
+    private List<SBCA_Schemes> Schemes = new();
+    private SBCA_Schemes CurrentScheme = new();
+    private SBCA_Schemes SelectedScheme = new();
+    // private List<Fin_Ledger> GlAccounts = new();
+    private List<Fin_Ledger> prlLedgerList = new();
+    private List<Fin_Ledger> intLedgerList = new();
+    // private List<DropdownItem> prlLedgerList = new List<DropdownItem>();
+    // private List<DropdownItem> intLedgerList = new List<DropdownItem>();
+
+    private string BrCode = "";
+    private decimal UserId = 0;
+    private decimal YrId = 0;
+    private DateTime CurrentDate = DateTime.UtcNow;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            BrCode = userInfoDto.BrCode!;
+            UserId = userInfoDto.UserId;
+            YrId = userInfoDto.YrId;
+            CurrentDate = userInfoDto.CurrentDate;
+
+            CurrentScheme.BrCode = userInfoDto.BrCode!;
+
+            StateHasChanged();
+            await LoadData();
+            // await LoadGLAccounts();
+            await GetLedgerList(BrCode);
+        }
+    }
+
+    private async Task LoadData()
+    {
+        Loading = true;
+        try
+        {
+            var query = await _httpClient.GetFromJsonAsync<List<SBCA_Schemes>>($"api/SBAccount/GetSBCASchemes/{BrCode}");
+            if (query != null && query.Count > 0)
+                Schemes = query!.ToList();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            Loading = false;
+            StateHasChanged();
+        }
+    }
+
+    // private async Task LoadGLAccounts()
+    // {
+    //     Loading = true;
+    //     try
+    //     {
+    //         var query = await _httpClient.GetFromJsonAsync<List<Fin_Ledger>>($"api/Accounts/GetLedgerListAsync/{BrCode}");
+    //         if (query != null && query.Count > 0)
+    //             GlAccounts = query!.ToList();
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         // Log error but don't block UI
+    //         Console.WriteLine($"Error loading GL accounts: {ex.Message}");
+    //     }
+    //     finally
+    //     {
+    //         Loading = false;
+    //         StateHasChanged();
+    //     }
+    // }
+
+    private async Task GetLedgerList(string brCode)
+    {
+        try
+        {
+            var ledgers = await _httpClient.GetFromJsonAsync<List<FinLedgerVM>>($"api/Accounts/GetLedgerVMListAsync/{brCode}");
+            prlLedgerList = ledgers!.Where(x => x.Fnl_Id == 1).Select(x => new Fin_Ledger
+            {
+                Led_Id = x.Led_Id,
+                Led_Name = x.Led_Name
+            }).ToList();
+
+            intLedgerList = ledgers!.Where(x => x.Fnl_Id == 4).Select(x => new Fin_Ledger
+            {
+                Led_Id = x.Led_Id,
+                Led_Name = x.Led_Name
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task ShowModal()
+    {
+        await JSRuntime.InvokeVoidAsync("modalHelpers.showModal", "schemeModal");
+    }
+
+    private async Task CloseModal()
+    {
+        await JSRuntime.InvokeVoidAsync("modalHelpers.hideModal", "schemeModal");
+    }
+
+    private async Task ConfirmDelete(SBCA_Schemes scheme)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+            $"Are you sure you want to delete the scheme '{scheme.SBCA_Name}'?\n\n" +
+            "This action will mark the scheme as deleted. Existing accounts using this scheme will not be affected.");
+
+        if (confirmed)
+        {
+            scheme.SBCA_Delete = true;
+            var response = await _httpClient.PostAsJsonAsync("api/TermDeposit/EditTermDepositScheme", scheme);
+            if (response.IsSuccessStatusCode)
+            {
+                Schemes = new();
+                var result = await response.Content.ReadFromJsonAsync<List<SBCA_Schemes>>();
+                if (result != null && result.Count > 0) Schemes = result.ToList();
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("alert", "Term deposit product deleted successfully!");
+            }
+        }
+    }
+
+    private async Task ShowCreateModal()
+    {
+        IsEditMode = false;
+        CurrentScheme = new SBCA_Schemes
+        {
+            Scheme_Id = 0,
+            SBCA_Name = "",
+            SBCA_Led_Id = 0,
+            SBCA_Int_Led_Id = 0,
+            InterestCalcPeriod = 0,
+            BrCode = BrCode
+        };
+        await ShowModal();
+    }
+
+    private async Task ShowDetailsModal(SBCA_Schemes scheme)
+    {
+        SelectedScheme = scheme;
+        await JSRuntime.InvokeVoidAsync("modalHelpers.showModal", "detailsModal");
+    }
+
+    private async Task ShowEditModal(SBCA_Schemes scheme)
+    {
+        IsEditMode = true;
+        CurrentScheme = new SBCA_Schemes
+        {
+            Scheme_Id = scheme.Scheme_Id,
+            SBCA_Name = scheme.SBCA_Name,
+            SBCA_Led_Id = scheme.SBCA_Led_Id,
+            SBCA_Int_Led_Id = scheme.SBCA_Int_Led_Id,
+            InterestCalcPeriod = scheme.InterestCalcPeriod,
+            BrCode = scheme.BrCode
+        };
+        await ShowModal();
+    }
+
+    private async Task SaveScheme()
+    {
+        // Validate before saving
+        if (!ValidateScheme())
+            return;
+        try
+        {
+            if (!IsEditMode)
+            {
+                // Check for duplicate scheme name
+                if (IsDuplicateSchemeName(CurrentScheme.SBCA_Name!))
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "A scheme with this name already exists!");
+                    return;
+                }
+                // Create new scheme
+                var newScheme = new SBCA_Schemes
+                {
+                    Scheme_Id = 0,
+                    SBCA_Name = CurrentScheme.SBCA_Name,
+                    SBCA_Led_Id = CurrentScheme.SBCA_Led_Id,
+                    SBCA_Int_Led_Id = CurrentScheme.SBCA_Int_Led_Id,
+                    InterestCalcPeriod = CurrentScheme.InterestCalcPeriod, 
+                    SBCA_Delete = false,
+                    BrCode = BrCode
+                };
+                var response = await _httpClient.PostAsJsonAsync("api/SBAccount/AddSBAccount", newScheme);
+                if (response.IsSuccessStatusCode)
+                {
+                    Schemes = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<SBCA_Schemes>>();
+                    if (result != null && result.Count > 0) Schemes = result.ToList();
+                    StateHasChanged();
+                    await JSRuntime.InvokeVoidAsync("alert", "Saving Banks Account product added successfully!");
+                }
+            }
+            else
+            {
+                // Update existing scheme
+                var response = await _httpClient.PostAsJsonAsync("api/SBAccount/EditSBAccount", CurrentScheme);
+                if (response.IsSuccessStatusCode)
+                {
+                    Schemes = new();
+                    var result = await response.Content.ReadFromJsonAsync<List<SBCA_Schemes>>();
+                    if (result != null && result.Count > 0) Schemes = result.ToList();
+                    StateHasChanged();
+                    await JSRuntime.InvokeVoidAsync("alert", "Saving Bank scheme updated successfully!");
+                }
+            }
+            await CloseModal();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving scheme: {ex.Message}");
+        }
+    }
+
+    private bool ValidateScheme()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentScheme.SBCA_Name))
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please enter scheme name");
+            return false;
+        }
+
+        if (CurrentScheme.InterestCalcPeriod == 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please enter interest calculation period");
+            return false;
+        }
+
+        if (CurrentScheme.SBCA_Led_Id <= 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please select valid Principal GL");
+            return false;
+        }
+
+        if (CurrentScheme.SBCA_Int_Led_Id <= 0)
+        {
+            JSRuntime.InvokeVoidAsync("alert", "Please select valid Interest GL");
+            return false;
+        }
+        return true;
+    }
+
+    private bool IsDuplicateSchemeName(string schemeName)
+    {
+        bool result = false;
+        if (string.IsNullOrEmpty(schemeName))
+            return false;
+        var query = Schemes.Where(x => x.SBCA_Name!.ToLower() == schemeName.ToLower()
+            && !x.SBCA_Delete).ToList();
+        if (query != null && query.Count > 0)
+        {
+            result = true;
+        }
+        return result;
+    }
+}

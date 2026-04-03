@@ -15,39 +15,51 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<bool> AddSBCASchemesAsync(SBCA_Schemes sbcaSchemes,string brCode)
+        public async Task<List<SBCA_Schemes>> AddSBCASchemesAsync(SBCA_Schemes sbcaSchemes, string brCode)
         {
-            bool result = false;
+            List<SBCA_Schemes> schemes = new();
             try
             {
-                int maxId = await CSISContext.SBCA_Schemes.Where(x=> x.BrCode == brCode).MaxAsync(x => x.Scheme_Id);
+                //var  maxId = await CSISContext.SBCA_Schemes.Where(x=> x.BrCode == brCode).MaxAsync(x => x.Scheme_Id);
+                var maxId = await CSISContext.SBCA_Schemes
+                .Where(x => x.BrCode == brCode)
+                .Select(x => (int?)x.Scheme_Id)  // Cast to nullable int?
+                .MaxAsync() ?? 0;
                 maxId++;
                 sbcaSchemes.Scheme_Id = maxId;
                 await AddAsync(sbcaSchemes);
-                result = true;
+                var response = await CSISContext.SBCA_Schemes.Where(x => x.BrCode == brCode).ToListAsync();
+                if (response != null && response.Count > 0)
+                {
+                    schemes = response.ToList();
+                }
             }
             catch (Exception ex)
             {
-                result = false;
+                schemes = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while adding new SB Account scheme");
             }
-            return result;
+            return schemes;
         }
 
-        public async Task<bool> EditSBCASchemesAsync(SBCA_Schemes sbcaSchemes,string brCode)
+        public async Task<List<SBCA_Schemes>> EditSBCASchemesAsync(SBCA_Schemes sbcaSchemes, string brCode)
         {
-            bool result = false;
+            List<SBCA_Schemes> schemes = new();
             try
             {
                 await EditAsync(sbcaSchemes);
-                result = true;
+                var response = await CSISContext.SBCA_Schemes.Where(x => x.BrCode == brCode).ToListAsync();
+                if (response != null && response.Count > 0)
+                {
+                    schemes = response.ToList();
+                }
             }
             catch (Exception ex)
             {
-                result = false;
+                schemes = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while modifying SB account scheme");
             }
-            return result;
+            return schemes;
         }
 
         public async Task<(decimal prlLedId, decimal intledId)> GetSBAccountLedgerIds(string brCode)
@@ -57,7 +69,7 @@ namespace Infin8.Coapp.Repository
             try
             {
                 var sbScheme = await CSISContext.SBCA_Schemes.Where(x => x.Scheme_Id == 7).FirstOrDefaultAsync();
-                if (sbScheme != null) 
+                if (sbScheme != null)
                 {
                     prlLedId = sbScheme.SBCA_Led_Id;
                     intledId = sbScheme.SBCA_Int_Led_Id;
@@ -67,7 +79,7 @@ namespace Infin8.Coapp.Repository
             {
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching sb account led id, interest led id");
             }
-            return (prlLedId, intledId);    
+            return (prlLedId, intledId);
         }
 
         public async Task<SBCA_Schemes> GetSBCAScheme(string brCode)
@@ -78,16 +90,36 @@ namespace Infin8.Coapp.Repository
                 var scheme = await CSISContext.SBCA_Schemes
                     .Where(x => x.BrCode == brCode)
                     .FirstOrDefaultAsync();
-                if (scheme !=null)
+                if (scheme != null)
                 {
                     sbcaScheme = scheme;
                 }
             }
             catch (Exception)
             {
-                sbcaScheme = new() ;
+                sbcaScheme = new();
             }
             return sbcaScheme;
+        }
+
+        public async Task<List<SBCA_Schemes>> GetSBCASchemes(string brCode)
+        {
+            List<SBCA_Schemes> sbcaSchemes = new();
+            try
+            {
+                var schemes = await CSISContext.SBCA_Schemes
+                    .Where(x => x.BrCode == brCode)
+                    .ToListAsync();
+                if (schemes != null)
+                {
+                    sbcaSchemes = schemes.ToList();
+                }
+            }
+            catch (Exception)
+            {
+                sbcaSchemes = new();
+            }
+            return sbcaSchemes;
         }
     }
 }
