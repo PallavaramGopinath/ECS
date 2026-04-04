@@ -11,20 +11,25 @@ namespace Infin8.Coapp.BusinessLogic
         {
             _unitOfWork = unitOfWork;
         }
-        public bool AddArea(Refer_Area area)
-        {
-            return _unitOfWork.Area.AddArea(area);
 
+        public async Task<List<Refer_Area>> AddArea(Refer_Area area)
+        {
+            return await _unitOfWork.Area.AddArea(area);
         }
 
-        public bool EditArea(Refer_Area area)
+        public async Task<List<Refer_Area>> EditArea(Refer_Area area)
         {
-            return _unitOfWork.Area.EditArea(area);
+            return await _unitOfWork.Area.EditArea(area);
         }
 
-        public async Task< List<DropdownItem>> GetAreaItems(string brCode)
+        public async Task<List<DropdownItem>> GetAreaItems(string brCode)
         {
-            return await  _unitOfWork.Area.GetAreaItems(brCode);
+            return await _unitOfWork.Area.GetAreaItems(brCode);
+        }
+
+        public async Task<List<Refer_Area>> GetAreas(string brCode)
+        {
+            return await _unitOfWork.Area.GetAreas(brCode);
         }
     }
 }
