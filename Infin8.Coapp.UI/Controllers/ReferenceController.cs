@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 namespace API.Controllers
@@ -47,6 +48,7 @@ namespace API.Controllers
         //    if (items.Count > 0) return Ok(items);
         //    else return NotFound();
         //}
+
         [HttpGet]
         [Route("Area/{brCode}")]
         public async Task<ActionResult<List<DropdownItem>>> GetAreaItems(string brCode)
@@ -77,5 +79,34 @@ namespace API.Controllers
             else return NotFound();
         }
 
+        [HttpGet]
+        [Route("GetReferenceData/{brCode}")]
+        public async Task<ActionResult<List<Refer_Data>>> GetReferenceData(string brCode)
+        {
+            List<Refer_Data> items = new();
+            var response = await _referenceHandler.GetReferences(brCode);
+            if (response != null && response.Count > 0) items = response.ToList();
+            return Ok(items);
+        }
+
+        [HttpPost]
+        [Route("AddReferenceData")]
+        public async Task<ActionResult<List<Refer_Data>>> AddReferenceData([FromBody] Refer_Data referData)
+        {
+            List<Refer_Data> items = new();
+            var response = await _referenceHandler.AddReference(referData);
+             if (response != null && response.Count > 0) items = response.ToList();
+            return Ok(items);
+        }
+
+        [HttpPost]
+        [Route("EditReferenceData")]
+        public async Task<ActionResult<List<Refer_Data>>> EditReferenceData([FromBody] Refer_Data referData)
+        {
+            List<Refer_Data> items = new();
+            var response = await _referenceHandler.EditReference (referData);
+            if (response != null && response.Count > 0) items = response.ToList();
+            return Ok(items);
+        }
     }
 }

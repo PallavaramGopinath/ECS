@@ -12,38 +12,44 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AddReference(Refer_Data referData, string brCode)
+        public async Task<List<Refer_Data>> AddReference(Refer_Data referData)
         {
-            bool result = false;
+            List<Refer_Data> references = new();
             try
             {
-                result = await  _unitOfWork.References.AddReference(referData,brCode);
+                var result = await  _unitOfWork.References.AddReference(referData);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if(result != null && result.Count > 0)
+                {
+                    references = result.ToList ();
+                }   
             }
             catch (Exception ex)
             {
-                result = false;
-                throw new InvalidOperationException(ex.Message + " Something went wrong! Jewel loan eligible not saved");
+                references = new();
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Reference not saved");
             }
-            return result;
+            return references;
         }
 
-        public async Task<bool> EditReference(Refer_Data referData)
+        public async Task<List<Refer_Data>> EditReference(Refer_Data referData)
         {
-            bool result = false;
+            List<Refer_Data> references = new();
             try
             {
-                result = await _unitOfWork.References.EditReference(referData);
+                var result = await _unitOfWork.References.EditReference(referData);
                 await _unitOfWork.CompleteAsync();
-                result = true;
+                if (result != null && result.Count > 0)
+                {
+                    references = result.ToList();
+                }
             }
             catch (Exception ex)
             {
-                result = false;
-                throw new InvalidOperationException(ex.Message + " Something went wrong! Jewel loan eligible not deleted");
+                references = new();
+                throw new InvalidOperationException(ex.Message + " Something went wrong! Reference not deleted");
             }
-            return result;
+            return references;
         }
 
         public async Task<List<DropdownItem>> GetReferenceItems(int refType, string brCode, bool factoryRec)
@@ -53,6 +59,10 @@ namespace Infin8.Coapp.BusinessLogic
             items = await  _unitOfWork.References.GetReferenceItems(refType, brCode, factoryRec);
             return items;
         }
-        
+
+        public async Task<List<Refer_Data>> GetReferences(string brCode)
+        {
+            return await _unitOfWork.References.GetReferences(brCode);
+        }
     }
 }

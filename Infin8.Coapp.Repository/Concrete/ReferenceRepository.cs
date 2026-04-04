@@ -35,39 +35,65 @@ namespace Infin8.Coapp.Repository
             }
             return items;
         }
-        public async Task<bool> AddReference(Refer_Data referData,string brCode)
+        public async Task<List<Refer_Data>> AddReference(Refer_Data referData)
         {
-            bool result = false;
+            List<Refer_Data> references = new();
             try
             {
-                decimal maxId = await CSISContext.Refer_Data.Where(x=> x.BrCode == brCode).MaxAsync(x => x.ReferId);
+                decimal maxId = await CSISContext.Refer_Data.Where(x=> x.BrCode == referData.BrCode ).MaxAsync(x => x.ReferId);
                 maxId++;
                 referData.ReferId = maxId;
                 await AddAsync(referData);
-                result = true;
+                var response = await CSISContext.Refer_Data.Where(x => x.BrCode == referData.BrCode ).ToListAsync();
+                if (response != null && response.Count >0)
+                {
+                    references = response.ToList();
+                }
             }
             catch (Exception ex)
             {
-                result = false;
+                references = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while adding new reference name");
             }
-
-            return result;
+            return references;
         }
-        public async Task<bool> EditReference(Refer_Data referData)
+        public async Task<List<Refer_Data>> EditReference(Refer_Data referData)
         {
-            bool result = false;
+            List<Refer_Data> references = new();
             try
             {
                 await EditAsync(referData);
-                result = true;
+                var response = await CSISContext.Refer_Data.Where(x => x.BrCode == referData.BrCode ).ToListAsync();
+                if (response != null && response.Count > 0)
+                {
+                    references = response.ToList();
+                }
             }
             catch (Exception ex)
             {
-                result = false;
+                references = new();
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while modifying reference data");
             }
-            return result;
+            return references;
+        }
+
+        public async Task<List<Refer_Data>> GetReferences(string brCode)
+        {
+            List<Refer_Data> references = new();
+            try
+            {
+                var response = await CSISContext.Refer_Data.Where(x => x.BrCode == brCode).ToListAsync();
+                if (response != null && response.Count > 0)
+                {
+                    references = response.ToList();
+                }
+            }
+            catch (Exception)
+            {
+                references = new();
+                throw;
+            }
+            return references;
         }
     }
 }

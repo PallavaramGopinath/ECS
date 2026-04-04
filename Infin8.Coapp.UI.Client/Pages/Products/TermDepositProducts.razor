@@ -42,11 +42,13 @@
                                 <option value="S">Security Deposits</option>
                             </select>
                         </div>
+                        <!-- Search by name -->
                         <div class="col-md-3">
                             <label class="form-label">Search Scheme</label>
                             <input type="text" @bind="SearchText" @bind:event="oninput"
                                    class="form-control" placeholder="Search by name..." />
                         </div>
+                        <!-- Select Active or Deleted -->
                         <div class="col-md-3">
                             <label class="form-label">Status</label>
                             <select @bind="FilterStatus" class="form-select">
@@ -55,6 +57,7 @@
                                 <option value="deleted">Deleted</option>
                             </select>
                         </div>
+                        <!-- Clear Filters -->
                         <div class="col-md-3 d-flex align-items-end">
                             <button class="btn btn-secondary btn-sm" @onclick="ClearFilters">
                                 <i class="bi bi-eraser"></i> Clear Filters
