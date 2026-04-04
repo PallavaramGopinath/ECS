@@ -79,6 +79,7 @@ namespace API.Controllers
             else return NotFound();
         }
 
+        #region Reference Data
         [HttpGet]
         [Route("GetReferenceData/{brCode}")]
         public async Task<ActionResult<List<Refer_Data>>> GetReferenceData(string brCode)
@@ -108,5 +109,67 @@ namespace API.Controllers
             if (response != null && response.Count > 0) items = response.ToList();
             return Ok(items);
         }
+        #endregion
+
+        #region Reference Area
+        [HttpGet]
+        [Route("GetReferenceArea/{brCode}")]
+        public async Task<ActionResult<List<Refer_Area>>> GetReferenceArea(string brCode)
+        {
+            List<Refer_Area> items = new();
+            var response = await _areaMasterHandler.GetAreas(brCode);
+            if (response != null && response.Count > 0) items = response.ToList();
+            return Ok(items);
+        }
+
+        [HttpGet]
+        [Route("GetReferenceAreaWithTalukDistrict/{brCode}")]
+        public async Task<ActionResult<List<DtoReferArea>>> GetReferenceAreaWithTalukDistrict(string brCode)
+        {
+            List<DtoReferArea> items = new();
+            var response = await _areaMasterHandler.GetAreasWithTalukDistrictNames(brCode);
+            if (response != null && response.Count > 0) items = response.ToList();
+            return Ok(items);
+        }
+
+        [HttpPost]
+        [Route("AddReferenceArea")]
+        public async Task<ActionResult<List<Refer_Area>>> AddReferenceArea([FromBody] Refer_Area referArea)
+        {
+            List<Refer_Area> items = new();
+            var response = await _areaMasterHandler.AddArea(referArea);
+             if (response != null && response.Count > 0) items = response.ToList();
+            return Ok(items);
+        }
+
+        [HttpPost]
+        [Route("EditReferenceArea")]
+        public async Task<ActionResult<List<Refer_Data>>> EditReferenceArea([FromBody] Refer_Area referArea)
+        {
+            List<Refer_Area> items = new();
+            var response = await _areaMasterHandler.EditArea (referArea);
+            if (response != null && response.Count > 0) items = response.ToList();
+            return Ok(items);
+        }
+
+        [HttpGet]
+        [Route("GetTaluks/{brCode}")]
+        public async Task<ActionResult<List<Refer_Taluk>>> GetTaluks(string brCode)
+        {
+            List<Refer_Taluk> items = new();
+            var response = await _areaMasterHandler.GetTaluks(brCode);
+            if (response != null && response.Count > 0) items = response.ToList();
+            return Ok(items);
+        }
+        [HttpGet]
+        [Route("GetDistricts/{brCode}")]
+        public async Task<ActionResult<List<Refer_District>>> GetDistricts(string brCode)
+        {
+            List<Refer_District> items = new();
+            var response = await _areaMasterHandler.GetDistricts(brCode);
+            if (response != null && response.Count > 0) items = response.ToList();
+            return Ok(items);
+        }
+        #endregion 
     }
 }

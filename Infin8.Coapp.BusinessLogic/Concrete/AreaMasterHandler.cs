@@ -31,5 +31,20 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.Area.GetAreas(brCode);
         }
+
+        public async Task<List<DtoReferArea>> GetAreasWithTalukDistrictNames(string brCode)
+        {
+            return await _unitOfWork.Area.GetAreasWithTalukDistrictNames(brCode);
+        }
+
+        public async Task<List<Refer_District>> GetDistricts(string brCode)
+        {
+            return await _unitOfWork.Area.GetDistricts(brCode);
+        }
+
+        public async Task<List<Refer_Taluk>> GetTaluks(string brCode)
+        {
+            return await _unitOfWork.Area.GetTaluks(brCode);
+        }
     }
 }

@@ -10,6 +10,8 @@ namespace Infin8.Coapp.Models
         public int Taluk_Id { get; set; }
         public string? Area_Name { get; set; }
         public string? Area_Notes { get; set; }
+        public int District_Id { get; set; }
         public string? BrCode { get; set; }
+        public bool Area_Delete { get; set; }
     }
 }

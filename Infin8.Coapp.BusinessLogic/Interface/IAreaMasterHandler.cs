@@ -9,9 +9,8 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<Refer_Area>> AddArea(Refer_Area area);
         Task<List<Refer_Area>> EditArea(Refer_Area area);
         Task<List<Refer_Area>> GetAreas(string brCode);
-
-        //Task<List<DropdownItem>> GetAreaItems(string brCode);
-        //bool AddArea(Refer_Area area);
-        //bool EditArea(Refer_Area area);
+        Task<List<DtoReferArea>> GetAreasWithTalukDistrictNames(string brCode);
+        Task<List<Refer_Taluk>> GetTaluks(string brCode);
+        Task<List<Refer_District>> GetDistricts(string brCode);
     }
 }

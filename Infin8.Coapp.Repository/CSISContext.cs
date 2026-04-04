@@ -62,6 +62,7 @@ namespace Infin8.Coapp.Repository
         #region Refer
         public virtual DbSet<Refer_Data> Refer_Data { get; set; }
         public virtual DbSet<Refer_Area> Refer_Area { get; set; }
+        public virtual DbSet<Refer_Taluk> Refer_Taluk { get; set; }
         public virtual DbSet<Refer_District> Refer_District { get; set; }
         public virtual DbSet<Bank_Master> Bank_Master { get; set; }
         public virtual DbSet<Users> Users { get; set; }
