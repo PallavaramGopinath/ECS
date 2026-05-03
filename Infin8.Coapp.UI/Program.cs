@@ -255,6 +255,18 @@ builder.Services.AddScoped <IUserHandler, UserHandler>();
 
 #region DayProcess
 builder.Services.AddScoped<ICalendarHandler, CalendarHandler>();
+
+#endregion 
+
+#region Locker
+builder.Services.AddScoped<ILockerSizeMasterHandler, LockerSizeMasterHandler>();
+builder.Services.AddScoped<ILockerStatusMasterHandler, LockerStatusMasterHandler>();
+builder.Services.AddScoped<ILockerSettingsHandler, LockerSettingsHandler>();
+builder.Services.AddScoped<ILockerRentTemplateHandler, LockerRentTemplateHandler>();
+builder.Services.AddScoped<ILockersHandler, LockersHandler>();
+builder.Services.AddScoped<ILockerAllotmentsHandler, LockerAllotmentsHandler>();
+builder.Services.AddScoped<ILockerRentAdjustmentsHandler, LockerRentAdjustmentsHandler>();
+builder.Services.AddScoped<ILockerClosuresHandler, LockerClosuresHandler>();
 #endregion 
 
 var app = builder.Build();

@@ -600,6 +600,7 @@ namespace Infin8.Coapp.Repository
                                join scheme in CSISContext.TermDeposit_Schemes on mas.TDScheme_Id equals scheme.TDScheme_Id
                                where trn.TD_Delete == false
                                   && mas.TD_Delete == false
+                                  && mas.AccountClosed == false
                                   && trn.Trn_Date <= asOnDate.Date
                                   && scheme.TDSchemeType == tdSchemeType
                                group trn by new

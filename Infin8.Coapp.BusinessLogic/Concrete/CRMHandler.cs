@@ -68,6 +68,12 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return result;
         }
+
+        public async Task<decimal> AddMemberMaster(mem_master member)
+        {
+            return await _unitOfWork.Members.AddMemberMaster(member);
+        }
+
         public async Task<List<DropdownItem>> GetAllMembers(int memType, int memStatus, bool isMemNo,string brCode)
         {
             List<DropdownItem> items = new List<DropdownItem>();

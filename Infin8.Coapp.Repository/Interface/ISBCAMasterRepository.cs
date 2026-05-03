@@ -11,7 +11,11 @@ namespace Infin8.Coapp.Repository
     public  interface ISBCAMasterRepository
     {
         Task<(bool result,decimal accId, string accNo)> AddSBCAMasterAsync(SBCA_Master sbcaMaster);
+        Task<SBCA_Master> AddNewSBAccount(SBCA_Master sbAccount);
         Task<bool> EditSBCAMasterAsync(SBCA_Master sbcaMaster);
         Task<List<DropdownItem>> GetSBCANosByMemIdAsync(decimal memId,string  brCode);
+        Task<string> GetSBCANoByAccIdAsync(decimal accId, string brCode);
+        Task<string> GetSBCANoByMemIdAsync(decimal memId, string brCode);
+        Task<DtoSBAccountNo> GetSBAccountDataByMemIdAsync(decimal memId, string brCode);
     }
 }

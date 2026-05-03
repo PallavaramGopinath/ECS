@@ -173,6 +173,18 @@ namespace Infin8.Coapp.Repository
         public virtual DbSet<Menu_Main> Menu_Main { get; set; }
         public virtual DbSet<Menu_Sub> Menu_Sub { get; set; }
         public virtual DbSet<Menu_Forms> Menu_Forms { get; set; }
+        #endregion
+
+        #region Locker
+        public virtual DbSet<Locker_Size_Master> Locker_Size_Master { get; set; }
+        public virtual DbSet<Locker_Status_Master> Locker_Status_Master { get; set; }
+        public virtual DbSet<Locker_Settings> Locker_Settings { get; set; }
+        public virtual DbSet<Lockers> Lockers { get; set; }
+        public virtual DbSet<Locker_Allotments> Locker_Allotments { get; set; }
+        public virtual DbSet<Locker_Rent_Adjustments> Locker_Rent_Adjustments { get; set; }
+        public virtual DbSet<Locker_Rent_Template> Locker_Rent_Template { get; set; }
+        public virtual DbSet<Locker_Closures> Locker_Closures { get; set; }
+
         #endregion 
     }
 

@@ -23,39 +23,45 @@ namespace Infin8.Coapp.BusinessLogic
         {
             //string accountType = "";
             decimal stagingId = 0;
-            Staging_Details stagingDetails = new()
-            {
-                Id = dtostagingDetails.Id,
-                Staging_Id = dtostagingDetails.Id,
-                Member_Id = dtostagingDetails.Member_Id ,
-                Ledger_Id = dtostagingDetails.Ledger_Id ,
-                Related_Account_Id = dtostagingDetails.Related_Account_Id ,
-                Receipt_Amount = dtostagingDetails.Receipt_Amount,
-                Payment_Amount = dtostagingDetails.Payment_Amount ,
-                Module_Name = dtostagingDetails.Module_Name ,
-                Cash_Or_Adjustment = dtostagingDetails.Cash_Or_Adjustment ,
-                Related_Account_Data = dtostagingDetails.Related_Account_Data ,
-                Created_By = dtostagingDetails.Created_By ,
-                Created_Date = dtostagingDetails.Created_Date , 
-                Checked_By = dtostagingDetails.Checked_By ,
-                Checked_Date = dtostagingDetails.Checked_Date ,
-                Staging_Status = dtostagingDetails.Staging_Status ,
-                BrCode = dtostagingDetails.BrCode ,
-                Cheque_No = dtostagingDetails.Cheque_No ,
-                Cheque_Date = dtostagingDetails.Cheque_Date ,
-                Issue_Bank_Name = dtostagingDetails.Issue_Bank_Name ,
-                Voc_Id = dtostagingDetails.Voc_Id ,
-                CashReceipt_Amount = dtostagingDetails.CashReceipt_Amount ,
-                CashPayment_Amount = dtostagingDetails.CashPayment_Amount ,
-                AdjustmentReceipt_Amount = dtostagingDetails.AdjustmentReceipt_Amount ,
-                AdjustmentPayment_Amount = dtostagingDetails.AdjustmentPayment_Amount ,
-                Security_Type = dtostagingDetails.Security_Type ,   
-            };
+            string stagingStatus = "";
+            if (dtostagingDetails.Related_Account_Id == 55)
+                stagingStatus = "M";
+            else stagingStatus = "I";
 
-            bool isStagingCreated =  _unitOfWork.StagingMaster.IsStagingMasterCreated(dtostagingDetails.Created_By, dtostagingDetails.Member_Id, "I", dtostagingDetails.Created_Date);
+            Staging_Details stagingDetails = new()
+                {
+                    Id = dtostagingDetails.Id,
+                    Staging_Id = dtostagingDetails.Id,
+                    Member_Id = dtostagingDetails.Member_Id,
+                    Ledger_Id = dtostagingDetails.Ledger_Id,
+                    Related_Account_Id = dtostagingDetails.Related_Account_Id,
+                    Receipt_Amount = dtostagingDetails.Receipt_Amount,
+                    Payment_Amount = dtostagingDetails.Payment_Amount,
+                    Module_Name = dtostagingDetails.Module_Name,
+                    Cash_Or_Adjustment = dtostagingDetails.Cash_Or_Adjustment,
+                    Related_Account_Data = dtostagingDetails.Related_Account_Data,
+                    Created_By = dtostagingDetails.Created_By,
+                    Created_Date = dtostagingDetails.Created_Date,
+                    Checked_By = dtostagingDetails.Checked_By,
+                    Checked_Date = dtostagingDetails.Checked_Date,
+                    Staging_Status = dtostagingDetails.Staging_Status,
+                    BrCode = dtostagingDetails.BrCode,
+                    Cheque_No = dtostagingDetails.Cheque_No,
+                    Cheque_Date = dtostagingDetails.Cheque_Date,
+                    Issue_Bank_Name = dtostagingDetails.Issue_Bank_Name,
+                    Voc_Id = dtostagingDetails.Voc_Id,
+                    CashReceipt_Amount = dtostagingDetails.CashReceipt_Amount,
+                    CashPayment_Amount = dtostagingDetails.CashPayment_Amount,
+                    AdjustmentReceipt_Amount = dtostagingDetails.AdjustmentReceipt_Amount,
+                    AdjustmentPayment_Amount = dtostagingDetails.AdjustmentPayment_Amount,
+                    Security_Type = dtostagingDetails.Security_Type,
+                };
+
+            //bool isStagingCreated =  _unitOfWork.StagingMaster.IsStagingMasterCreated(dtostagingDetails.Created_By, dtostagingDetails.Member_Id, "I", dtostagingDetails.Created_Date);
+            bool isStagingCreated = _unitOfWork.StagingMaster.IsStagingMasterCreated(dtostagingDetails.Created_By, dtostagingDetails.Member_Id, stagingStatus , dtostagingDetails.Created_Date);
             if (isStagingCreated)
             {
-                stagingId = await _unitOfWork.StagingMaster.GetStagingMasterId (dtostagingDetails.Created_By,dtostagingDetails.Member_Id,"I",dtostagingDetails.Created_Date);
+                stagingId = await _unitOfWork.StagingMaster.GetStagingMasterId (dtostagingDetails.Created_By,dtostagingDetails.Member_Id,stagingStatus ,dtostagingDetails.Created_Date);
             }
             else
             {
@@ -69,7 +75,7 @@ namespace Infin8.Coapp.BusinessLogic
                     Created_Date = dtostagingDetails.Created_Date,
                     Checked_By = 0,
                     Checked_Date = null,
-                    Staging_Status = "I",
+                    Staging_Status = stagingStatus ,
                     BrCode = dtostagingDetails.BrCode,
                     Type = dtostagingDetails.Transaction_Type 
                 };

@@ -130,7 +130,19 @@ namespace Infin8.Coapp.Repository
 
         #region Menu
         IMenuMainRepository MenuMain { get; }
-        #endregion 
+        #endregion
+
+        #region Locker
+        ILockerSizeMasterRepository LockerSizeMaster { get; }
+        ILockerStatusMasterRepository LockerStatusMaster { get; }
+        ILockerSettingsRepository LockerSettings { get; }
+        ILockerRentTemplateRepository LockerRentTemplate { get; }
+        ILockersRepository Lockers { get; }
+        ILockerAllotmentsRepository LockerAllotments { get; }
+        ILockerRentAdjustmentsRepository LockerRentAdjustments { get; }
+        ILockerClosuresRepository LockerClosures { get; }
+        #endregion
+
         ITransactionsRepository TransactionsRepository { get; }
         IMaxId MaxId { get; }
         int Complete();

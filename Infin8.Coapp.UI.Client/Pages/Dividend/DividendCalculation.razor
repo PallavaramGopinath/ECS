@@ -11,7 +11,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-@attribute [Authorize(Roles = "Admin,Checker")]
+@attribute [Authorize(Roles = "Admin")]
 
 <div class="card mt-2 border-0 shadow-sm">
     <div class="card-header">
@@ -27,7 +27,7 @@
                         <option value="">Select Account</option>
                         <option value="1">Dividend</option>
                     </InputSelect>
-                    <label for="account">From Date</label>
+                    <label for="account">Dividend</label>
                 </div>
             </div>
             <div class="col-md-4">
@@ -41,7 +41,7 @@
                         <option value="3">Delete Calculation</option>
                         <option value="4">Delete Transfered Data</option>
                     </InputSelect>
-                    <label for="action">From Date</label>
+                    <label for="action">Select</label>
                 </div>
             </div>
             @if (ledgerList != null && ledgerList.Any())
@@ -94,7 +94,7 @@
             <div class="col-md-4">
                 <div class="form-floating mb-3">
                     <InputDate id="transferedDate" class="form-select shadow-none" @bind-Value="model.TransferedDate" />
-                    <label for="transferedDate">To Date</label>
+                    <label for="transferedDate">Transfered Date</label>
                 </div>
             </div>
         </div>
@@ -141,6 +141,7 @@
             model.CreatedBy = userInfoDto.UserId;
             model.YrId = userInfoDto.YrId;
             model.BrCode = userInfoDto.BrCode;
+            model.PbleType = 1;
 
             var result = await _httpClient.GetFromJsonAsync<List<Map_SuspenseAccounts>>($"api/Mapping/GetMapSuspenseAccountsForIntCalc/{model.BrCode}");
             if (result != null && result.Any())

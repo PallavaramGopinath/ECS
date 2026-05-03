@@ -26,10 +26,10 @@ namespace Infin8.Coapp.Repository
             {
                 decimal maxId = await CSISContext.TermDeposit_Master.MaxAsync(x => x.TD_Id);
                 maxId++;
-                var newTDNo = await GetNewTDNo(termDepositMaster.TDScheme_Id);
-                if(newTDNo!= null) {tdNo = newTDNo;}
+                //var newTDNo = await GetNewTDNo(termDepositMaster.TDScheme_Id);
+                //if(newTDNo!= null) {tdNo = newTDNo;}
                 termDepositMaster.TD_Id = maxId;
-                termDepositMaster.TD_No = tdNo;
+                //termDepositMaster.TD_No = tdNo;
                 await AddAsync(termDepositMaster);
                 tdId = maxId;
                 result = true;

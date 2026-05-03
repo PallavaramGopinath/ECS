@@ -456,6 +456,17 @@ namespace Infin8.Coapp.Utility
             };
             return JsonSerializer.Deserialize<DtoDividendPayment>(jsonData, options)!;
         }
+        #endregion
+
+        #region Locker
+        public static LockerAllotmentVM ConvertFromJsonForLockerAllotment(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+            return JsonSerializer.Deserialize<LockerAllotmentVM>(jsonData, options)!;
+        }
         #endregion 
     }
 }

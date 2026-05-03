@@ -337,6 +337,10 @@
     private string brCode = "11001"; // Branch code, can be dynamic based on user selection or context
     decimal createdBy = 110010000001;
     private string calendar_Status = "";
+
+    private decimal sbAccountId = 0;
+    private string sbAccountNo = string.Empty;  
+    public record SBAccountResponse(bool Result, decimal AccId, string AccNo);
     #region variable declarations
 
     private TransactionBy_Members transaction = new()
@@ -597,7 +601,7 @@
         if (transaction.Receipt_Payment == 2)
         {
             var paymentAccountNames = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Transaction/GetAccountNames/P/M");
-            if (paymentAccountNames != null) accountItems = paymentAccountNames.OrderBy(x => x.Text).ToList(); ;
+            if (paymentAccountNames != null) accountItems = paymentAccountNames.OrderBy(x => x.Text).ToList();
         }
         StateHasChanged();
     }
@@ -692,9 +696,90 @@
         {
             throw;
         }
-        /// verify if the member has already a sb account
+
+
+
         try
         {
+            /// verify if the member has already a sb account for jewel loan disbursement
+            if(transaction.Account_Id == 54)
+            {
+                if (transaction.Cash_Adjustment == 1) /// for cash transaction verify jl disbursement to sb account)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Select adjustment for jewel loan disbursement, since, loan amount will credit to sb account");
+                    transaction.Account_Id = 0;
+                    isComponentLoaded = false;
+                    return;
+                }
+                var sbAccountData = await _httpClient.GetFromJsonAsync<DtoSBAccountNo>($"api/SBAccount/GetSBAccountDataByMemId/{transaction.Member_Id}/{brCode}");
+                if (sbAccountData != null && sbAccountData.SBAccountId >0 )
+                {
+                    sbAccountId = sbAccountData.SBAccountId ;
+                    sbAccountNo = sbAccountData.SBAccountNo! ;
+                }
+                else
+                {
+
+                    await JSRuntime.InvokeVoidAsync("alert", "Member does not have SB Account, creating  SB account");
+                    try
+                    {
+                        string schemeCode = brCode + "1";
+                        int.TryParse(schemeCode, out int schemeId);
+                        SBCA_Master sbAccountMaster = new()
+                        {
+                            Acc_Id = 0,
+                            Scheme_Id = schemeId, /// for SB account
+                            Acc_No = string.Empty,
+                            Mem_Id = transaction.Member_Id,
+                            Acc_Status = 1,
+                            Acc_OE = false,
+                            Acc_Delete = false,
+                            Voc_Id = 0,
+                            Usr_Id = createdBy,
+                            Yr_Id = transaction.Yr_Id,
+                            BrCode = brCode,
+                            Voc_Status = "V",
+                        };
+                        var response = await _httpClient.PostAsJsonAsync("api/SBAccount/AddNewSBAccount", sbAccountMaster);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var data = await response.Content.ReadFromJsonAsync<SBCA_Master>();
+                            if (data != null)
+                            {
+                                // Access the values
+                                // bool success = data.Result;
+                                sbAccountId = data.Acc_Id ;
+                                sbAccountNo = data.Acc_No!;
+                                await JSRuntime.InvokeVoidAsync("alert", "SB Account created successfully with account number: " + sbAccountId);
+                            }
+                            else
+                            {
+                                await JSRuntime.InvokeVoidAsync("alert", "Failed to create SB Account");
+                                transaction.Account_Id = 0;
+                                isComponentLoaded = false;
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            await JSRuntime.InvokeVoidAsync("alert", "Error occurred while creating SB Account");
+                            transaction.Account_Id = 0;
+                            isComponentLoaded = false;
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        await JSRuntime.InvokeVoidAsync("alert", "Error in creation of SB Account");
+                        transaction.Account_Id = 0;
+                        isComponentLoaded = false;
+                        return;
+                    }
+                    
+                }
+            }
+            /// verify if the member has already a sb account
             if (transaction.Account_Id == 18)
             {
                 var sbAccountNos = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/SBAccount/GetSBAccountNoByMemId/{transaction.Member_Id}/{brCode}");
@@ -1483,7 +1568,27 @@
                 StateHasChanged();
                 #endregion
                 break;
-
+            case 54:   /// Jewel Loan Disbursement to SB Account
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
+                Type? type54 = Type.GetType(fullyQualifiedName);
+                if (type54 != null) currentComponent = type54;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "SbAccountId", sbAccountId },
+                    { "SbAccountNo", sbAccountNo },
+                    { "OnJLDisbursementComponentClose", EventCallback.Factory.Create<bool>(this, CloseJLDisbursementComponent) },
+                    { "OnJLDisbursementInitiate",EventCallback.Factory.Create<DtoJewelLoanDisbursement>(this,JLDisbursementInitiate)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                break;
                 #endregion
         }
     }
@@ -2306,8 +2411,10 @@
         transaction.Member_Name = "";
         transaction.Father_Name = "";
         transaction.Address = "";
-        transaction.Receipt_Payment = 1;
-        transaction.Cash_Adjustment = 1;
+        transaction.Receipt_Payment = 0;
+        transaction.Cash_Adjustment = 0;
+        transaction.Account_Id = 0;
+        transaction.Ledger_Id = 0;
         transaction.Cash_Led_Balance = cashBalance;
 
         isDdlCashAdjustmentDisable = false;

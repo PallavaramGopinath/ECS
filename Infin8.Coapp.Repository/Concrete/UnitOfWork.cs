@@ -142,7 +142,20 @@ namespace Infin8.Coapp.Repository
 
         #region Menu
         private MenuMainRepository? _menuMainRepository;
+        #endregion
+
+        #region Locker
+        private LockerSizeMasterRepository? _lockerSizeMasterRepository;
+        private LockerStatusMasterRepository? _lockerStatusMasterRepository;
+        private LockerSettingsRepository? _lockerSettingsRepository;
+        private LockerRentTemplateRepository? _lockerRentTemplateRepository;
+        private LockersRepository? _lockersRepository;
+        private LockerAllotmentsRepository? _lockerAllotmentsRepository;
+        private LockerRentAdjustmentsRepository? _lockerRentAdjustmentsRepository;
+        private LockerClosuresRepository? _lockerClosuresRepository;
+
         #endregion 
+
         private TransactionsRepository? _transactionsRepository;
 
         
@@ -273,6 +286,17 @@ namespace Infin8.Coapp.Repository
         public IReportsEmployeeRepository ReportsEmployee => _reportsEmployeeRepository ??= new ReportsEmployeeRepository(_context);
         public IReportsGBRepository ReportsGB => _reportsGBRepository ??= new ReportsGBRepository(_context);
         #endregion
+
+        #region Locker
+        public ILockerSizeMasterRepository LockerSizeMaster => _lockerSizeMasterRepository ??= new LockerSizeMasterRepository(_context);
+        public ILockerStatusMasterRepository LockerStatusMaster => _lockerStatusMasterRepository ??= new LockerStatusMasterRepository(_context);
+        public ILockerSettingsRepository LockerSettings => _lockerSettingsRepository ??= new LockerSettingsRepository(_context);
+        public ILockerRentTemplateRepository LockerRentTemplate => _lockerRentTemplateRepository ??= new LockerRentTemplateRepository(_context);
+        public ILockersRepository Lockers => _lockersRepository ??= new LockersRepository(_context);
+        public ILockerAllotmentsRepository LockerAllotments => _lockerAllotmentsRepository ??= new LockerAllotmentsRepository(_context);
+        public ILockerRentAdjustmentsRepository LockerRentAdjustments => _lockerRentAdjustmentsRepository ??= new LockerRentAdjustmentsRepository(_context);
+        public ILockerClosuresRepository LockerClosures => _lockerClosuresRepository ??= new LockerClosuresRepository(_context);
+        #endregion 
 
         public ITransactionsRepository TransactionsRepository => _transactionsRepository ??= new TransactionsRepository(_context);
 

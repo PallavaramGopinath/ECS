@@ -4,6 +4,7 @@ using Infin8.Coapp.Repository;
 using Infin8.Coapp.Utility;
 using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.ReportingServices.ReportProcessing.ReportObjectModel;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
@@ -359,7 +360,7 @@ namespace Infin8.Coapp.BusinessLogic
                             }
                             #region FD New Account
                             TermDeposit_Master newFDForRenewal = new();
-                            newFDForRenewal = Utility.GetModalObject.GetTermDepositMaster(0, "", fdRenewal.FixedDepositCreate!.Common.Tdscheme_Id, fdRenewal.FixedDepositCreate.Mem_Id, fdRenewal.FixedDepositCreate.Common.Tdh_Name!, fdRenewal.FixedDepositCreate.Members.Select(x => x.Age).First(),
+                            newFDForRenewal = Utility.GetModalObject.GetTermDepositMaster(0, fdRenewal.FixedDepositCreate.Common.Td_No! , fdRenewal.FixedDepositCreate!.Common.Tdscheme_Id, fdRenewal.FixedDepositCreate.Mem_Id, fdRenewal.FixedDepositCreate.Common.Tdh_Name!, fdRenewal.FixedDepositCreate.Members.Select(x => x.Age).First(),
                                 fdRenewal.FixedDepositCreate.Common.Mode_Of_Operation, fdRenewal.FixedDepositCreate.Common.Account_Opendate, fdRenewal.FixedDepositCreate.Common.Value_Date,
                                 fdRenewal.FixedDepositCreate.Deposit_Amount, fdRenewal.FixedDepositCreate.Period_In_Months, fdRenewal.FixedDepositCreate.Period_In_Days,
                                 fdRenewal.FixedDepositCreate.Rate_Of_Interest, fdRenewal.FixedDepositCreate.Maturity_Date, fdRenewal.FixedDepositCreate.Maturity_Amount,
@@ -621,7 +622,7 @@ namespace Infin8.Coapp.BusinessLogic
                             TermDeposit_Master tdMasterNew = new();
                             TermDeposit_Trn tdTrnNew = new();
                             List<TermDeposit_Members> tdMembers = new();
-                            tdMasterNew = Utility.GetModalObject.GetTermDepositMaster(0, "", newFD.Common.Tdscheme_Id, newFD.Mem_Id, newFD.Common.Tdh_Name!, newFD.Members.Select(x => x.Age).First(), newFD.Common.Mode_Of_Operation,
+                            tdMasterNew = Utility.GetModalObject.GetTermDepositMaster(0, newFD.Common.Td_No! , newFD.Common.Tdscheme_Id, newFD.Mem_Id, newFD.Common.Tdh_Name!, newFD.Members.Select(x => x.Age).First(), newFD.Common.Mode_Of_Operation,
                                 newFD.Common.Account_Opendate, newFD.Common.Value_Date, newFD.Deposit_Amount, newFD.Period_In_Months, newFD.Period_In_Days, newFD.Rate_Of_Interest,
                                 newFD.Maturity_Date, newFD.Maturity_Amount, true, newFD.Interest_Payable_Frequency, 0, newFD.Is_DiscountRate, (newFD.compoundfrequency > 0 ? true : false),
                                 newFD.compoundfrequency, newFD.Common.Nominee1Name!, newFD.Common.Nominee1Age, newFD.Common.Nominee1Relationship!,
@@ -1305,7 +1306,6 @@ namespace Infin8.Coapp.BusinessLogic
                                 vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sdPmt.IntLed_Id, 0, sdPmt.IntPayableAmount, trns.Cash_Or_Adjustment, "Interest on " + Narration, false, Checked_By, sdPmt.Yr_Id, Status, "SD No : " + sdPmt.TD_Id, Transacted_Member_Id, trns.BrCode!, 0, 0, 0);
                                 finVoucherTrns.Add(vocTrn);
                             }
-
                             #endregion 
                             break;
                         case 44:    /// Member due to transaction bulk
@@ -1397,6 +1397,216 @@ namespace Infin8.Coapp.BusinessLogic
                             //result = await _unitOfWork.JLOrnment.AddJLOrnmentListAsync(ornmentList);
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(jlVocListForDisb);
                             #endregion
+                            break;
+                        case 54:   /// Jewel loan disbursement to sb account
+                            #region Jewel loan disbursement
+                            decimal jlLoanIdToSB = 0;
+                            string jlLoanNoToSB = "";
+                            Loan_Master jlMasterToSB = new();
+                            Loan_Trn jlTrnToSB = new();
+                            Loan_Disb jlDisbToSB = new();
+                            Loan_Roi jlRoiToSB = new();
+                            JL_Details jlDetailsToSB = new();
+                            List<JL_Ornments> ornmentListToSB = new();
+                            Loan_Schemes jlSchemesToSB = new();
+                            DtoJewelLoanDisbursement dtoJLDisbToSB = new();
+                            sbCAScheme = new();
+                            sbCAScheme = await _unitOfWork.SBCASchemes.GetSBCAScheme(brCode);
+
+                            dtoJLDisbToSB = Utility.JsonbObject.ConvertFromJsonForJLDisbursement(trns.Related_Account_Data!);
+                            Narration = dtoJLDisbToSB.Member_No!.Trim() + " " + dtoJLDisbToSB.Member_Name!.Trim();
+                            jlSchemesToSB = await _unitOfWork.LoanScheme.GetLoanSchemesAsync(dtoJLDisbToSB.Scheme_Id, brCode);
+
+                            jlMasterToSB = Utility.GetModalObject.GetLoanMasterObject(dtoJLDisbToSB.Scheme_Id, "", dtoJLDisbToSB.Mem_Id, 0, "",
+                                dtoJLDisbToSB.Tranaction_Date, "", null, dtoJLDisbToSB.Loan_Amount, dtoJLDisbToSB.Tranaction_Date, 2, 0, 0, 0, 0,
+                                dtoJLDisbToSB.Period_Of_Loan, dtoJLDisbToSB.Period_Of_Loan, dtoJLDisbToSB.Tranaction_Date, dtoJLDisbToSB.Tranaction_Date,
+                                0, "", "", "", null, null, 0, dtoJLDisbToSB.Rate_Of_Interest, dtoJLDisbToSB.Penal_Rate, dtoJLDisbToSB.Tranaction_Date,
+                                0, false, false, false, vocId, Checked_By, yrId, 0, 0, brCode, 0, 0, 0);
+                            (result, jlLoanIdToSB, jlLoanNoToSB) = await _unitOfWork.LoanMaster.AddLoanMasterAsync(jlMasterToSB);
+
+                            jlTrnToSB = Utility.GetModalObject.GetLoanTrnObject(jlLoanIdToSB, 0, "I", dtoJLDisbToSB.Tranaction_Date, null,
+                                dtoJLDisbToSB.Tranaction_Date, dtoJLDisbToSB.Loan_Amount, 0, 0, 0, null, 0, null, 0, null, 0, 0, 0, 0, 0, 0, 0,
+                                null, 0, null, 0, null, dtoJLDisbToSB.Rate_Of_Interest, dtoJLDisbToSB.Penal_Rate, 0, 0, false, false, vocId,
+                                Checked_By, yrId, 1, false, dtoJLDisbToSB.Loan_Amount, 0, 0, 0, 0, brCode);
+
+
+                            jlDisbToSB = Utility.GetModalObject.GetLoanDisbursementObject(jlLoanIdToSB, dtoJLDisbToSB.Tranaction_Date, 1,
+                                dtoJLDisbToSB.Loan_Amount, dtoJLDisbToSB.Tranaction_Date, null, "", null, 0, null, "", null, false, 1, true, false,
+                                vocId, Checked_By, yrId, brCode);
+
+                            jlRoiToSB = Utility.GetModalObject.GetLoanROIObject(jlLoanIdToSB, "S", dtoJLDisbToSB.Tranaction_Date, dtoJLDisbToSB.Rate_Of_Interest,
+                                dtoJLDisbToSB.Penal_Rate, 0, 0, false, false, vocId, Checked_By, yrId, brCode);
+
+                            jlDetailsToSB = Utility.GetModalObject.GetJLDetails(0, jlLoanIdToSB, dtoJLDisbToSB.Due_Date, dtoJLDisbToSB.Govt_Rate, dtoJLDisbToSB.Gross_Weight,
+                                dtoJLDisbToSB.Wasgate, dtoJLDisbToSB.Net_Weight, dtoJLDisbToSB.Net_Weight, dtoJLDisbToSB.Market_Rate, dtoJLDisbToSB.Percentage_Of_Eligibility_On_Market_Rate,
+                                dtoJLDisbToSB.Jewels_Photo_Path!, false, false, vocId, Checked_By, yrId, brCode);
+
+                            foreach (var orn in dtoJLDisbToSB.Ornment_List!)
+                            {
+                                JL_Ornments jlOrnToSB = new JL_Ornments
+                                {
+                                    JLO_Id = 0,
+                                    Loan_Id = jlLoanIdToSB,
+                                    JLO_Nos = orn.Ornment_Nos,
+                                    JLO_Name = orn.Ornment_Name,
+                                    JLO_OE = false,
+                                    JLO_Delete = false,
+                                    Voc_Id = vocId,
+                                    Yr_Id = yrId,
+                                    BrCode = brCode,
+                                };
+                                ornmentListToSB.Add(jlOrnToSB);
+                            }
+                            Map_General mapToSB = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
+                            if (dtoJLDisbToSB.CashOrAdjustment == 1)
+                            {
+                                if (trns.CashPayment_Amount > 0)
+                                {
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, jlSchemesToSB.PrlLed_Id, 0, trns.CashPayment_Amount,
+                                    dtoJLDisbToSB.CashOrAdjustment, Narration + " Loan No : " + jlLoanNoToSB, false, Checked_By, yrId, Status, "Loan No :" + jlLoanNoToSB,
+                                    dtoJLDisbToSB.Mem_Id, brCode, jlLoanIdToSB, dtoJLDisbToSB.Loan_Amount, 0);
+                                    finVoucherTrns.Add(vocTrn);
+                                }
+                                if (dtoJLDisbToSB.AppraisalFee > 0)
+                                {
+                                    vocTrn = new();
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapToSB.Appraisal_Fee_Led_Id, dtoJLDisbToSB.AppraisalFee, 0, 1,
+                                        Narration + " Loan No :" + jlLoanNoToSB, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNoToSB, dtoJLDisbToSB.Mem_Id, brCode,
+                                        jlLoanIdToSB, dtoJLDisbToSB.Loan_Amount, 0);
+                                    finVoucherTrns.Add(vocTrn);
+                                }
+                                if (dtoJLDisbToSB.BankCharges > 0)
+                                {
+                                    vocTrn = new();
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapToSB.Bank_Charges_Led_Id, dtoJLDisbToSB.BankCharges,
+                                        0, 1, Narration + " Loan No :" + jlLoanNoToSB, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNoToSB,
+                                        dtoJLDisbToSB.Mem_Id, brCode, jlLoanIdToSB, dtoJLDisbToSB.Loan_Amount, 0);
+                                    finVoucherTrns.Add(vocTrn);
+                                }
+                            }
+                            else
+                            {
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, jlSchemesToSB.PrlLed_Id, 0, dtoJLDisbToSB.Loan_Amount,
+                                    dtoJLDisbToSB.CashOrAdjustment, Narration + " Loan No : " + jlLoanNoToSB, false, Checked_By, yrId, Status, "Loan No :" + jlLoanNoToSB,
+                                    dtoJLDisbToSB.Mem_Id, brCode, jlLoanIdToSB, dtoJLDisbToSB.Loan_Amount, 0);
+                                finVoucherTrns.Add(vocTrn);
+
+                                //Map_General map = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
+                                if (dtoJLDisbToSB.AppraisalFee > 0)
+                                {
+                                    vocTrn = new();
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapToSB.Appraisal_Fee_Led_Id, dtoJLDisbToSB.AppraisalFee, 0, dtoJLDisbToSB.CashOrAdjustment,
+                                        Narration + " Loan No :" + jlLoanNoToSB, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNoToSB, dtoJLDisbToSB.Mem_Id, brCode,
+                                        jlLoanIdToSB, dtoJLDisbToSB.Loan_Amount, 0);
+                                    finVoucherTrns.Add(vocTrn);
+                                }
+                                if (dtoJLDisbToSB.BankCharges > 0)
+                                {
+                                    vocTrn = new();
+                                    vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, mapToSB.Bank_Charges_Led_Id, dtoJLDisbToSB.BankCharges,
+                                        0, dtoJLDisbToSB.CashOrAdjustment, Narration + " Loan No :" + jlLoanNoToSB, false, Checked_By, yrId, Status, "Loan No: " + jlLoanNoToSB,
+                                        dtoJLDisbToSB.Mem_Id, brCode, jlLoanIdToSB, dtoJLDisbToSB.Loan_Amount, 0);
+                                    finVoucherTrns.Add(vocTrn);
+                                }
+                                /// sb account receipt
+                                vocTrn = new();
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sbCAScheme.SBCA_Led_Id,
+                                    dtoJLDisbToSB.Loan_Amount - (dtoJLDisbToSB.AppraisalFee + dtoJLDisbToSB.BankCharges), 0, 2,
+                                    Narration + " SB Ac No " + dtoJLDisbToSB.SBAccountNo , false, Checked_By, yrId, Status, 
+                                    "SB Ac No " + dtoJLDisbToSB.SBAccountNo , dtoJLDisbToSB.Mem_Id, brCode, 0, 0, 0);
+                                finVoucherTrns.Add(vocTrn);
+                            }
+
+                            
+                            Mem_Trn memTrnJLToSB = Utility.GetModalObject.GetMemTrnObject(7,dtoJLDisbToSB.Mem_Id, jlSchemesToSB.PrlLed_Id,dtoJLDisbToSB.Tranaction_Date, dtoJLDisbToSB.Loan_Amount - (dtoJLDisbToSB.AppraisalFee+ dtoJLDisbToSB.BankCharges ),0,false,false,vocId,Checked_By,yrId,0,0,null,0,"",0,dtoJLDisbToSB.SBAccountId ,0,brCode ) ;
+                            memberTrnList.Add(memTrnJLToSB);
+                            //result = await _unitOfWork.LoanTrn.AddLoanTrn(jlTrn);
+                            loanTrnList.Add(jlTrnToSB);
+                            result = await _unitOfWork.LoanDisbursement.AddLoanDisbursementAsync(jlDisbToSB);
+                            result = await _unitOfWork.LoanROI.AddLoanROIAsync(jlRoiToSB);
+                            result = await _unitOfWork.JLDetails.AddJLDetailsAsync(jlDetailsToSB);
+                            result = await _unitOfWork.JLOrnment.AddJLOrnmentListAsync(ornmentListToSB);
+                            //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
+                            #endregion
+                            break;
+                        case 55:    /// Locker allotment receipt of deposit amount and rent amount
+                            #region Locker allotment
+                            Fin_Voucher_Bank  bankLocker = new();
+                            TermDeposit_Master lockerMaster = new();
+                            TermDeposit_Trn lockerTrn = new();
+                            TermDeposit_Members lockermem = new();
+                            mem_master memMaster = new();
+                            TermDeposit_Schemes tdLocker = new();
+                            tdLocker = await  _unitOfWork.TermDepositScheme.GetTermDepositSchemeByIdAsync(60001);
+                            LockerAllotmentVM allotment = new();
+                            allotment = Utility.JsonbObject.ConvertFromJsonForLockerAllotment(trns.Related_Account_Data!);
+                            Locker_Settings settings = new();
+                            settings = await _unitOfWork.LockerSettings.GetLockerSetting( trns.BrCode!);
+                            memMaster = await _unitOfWork.Members.GetMemberById(allotment.CustomerId);
+                            string nomineeName = memMaster.nomineename != null ? memMaster.nomineename : string.Empty;
+                            int nomineeAge = memMaster.nomineeage>0 ? memMaster.nomineeage : 0;
+                            string nomineerelationship = memMaster.nomineerelationship != null ? memMaster.nomineerelationship : string.Empty;
+                            Narration = allotment.CustomerNo + " " + Transacted_MemName + "Locker Allotment Locker No " + allotment.LockerNumber;
+                            Locker_Allotments newLocker = new()
+                            {
+                                Id = 0,
+                                Customer_Id = allotment.CustomerId,
+                                Locker_Id = allotment.LockerId,
+                                Allotment_Date = allotment.AllotmentDate,
+                                Deposit_Amount = allotment.DepositAmount,
+                                Interest_Rate = allotment.InterestRate,
+                                Last_Rent_Adjustment_Date = allotment.AllotmentDate,
+                                Next_Rent_Due_Date = allotment.NextRentDueDate,
+                                Status = allotment.Status,
+                                Closure_Date = null,
+                                Refund_Amount = 0,
+                                BrCode = trns.BrCode ,
+                                Created_By = trns.Checked_By ,
+                                Created_At = allotment.AllotmentDate,
+                                Voc_Id = vocId
+                            };
+                            var resultList = await _unitOfWork.LockerAllotments.AddLockerAllotment(newLocker);
+
+                            if (allotment.DepositAmount >0 )
+                            {
+                                lockerMaster = Utility.GetModalObject.GetTermDepositMaster(0, "", tdLocker.TDScheme_Id, allotment.CustomerId, allotment.CustomerName , allotment.Age, 1,
+                                    trns.Transacted_Date, trns.Transacted_Date, allotment.DepositAmount, 0, 0, allotment.InterestRate ,
+                                    trns.Transacted_Date, 0, true, 12, 0, false, false,
+                                    0, nomineeName, nomineeAge, nomineerelationship,
+                                    "", 0, "", false, false, false, vocId, Checked_By,
+                                    yrId, "N", 0, "", brCode);
+                                (result, newTDId, newTDNo) = await _unitOfWork.TermDepositMaster.AddTermDepositMasterAsync(lockerMaster);
+                                lockerTrn = Utility.GetModalObject.GetTermDepositTrn(0, trns.Transacted_Date, newTDId, 0,
+                                    allotment.DepositAmount, 0, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, false, false,
+                                    vocId, Checked_By, yrId, 1, 0, trns.BrCode!);
+                                result = await _unitOfWork.TermDepositTrn.AddTermDepositTrnAsync(lockerTrn);
+                                lockermem = Utility.GetModalObject.GetTermDepositMembers(0, newTDId, allotment.CustomerId, 1, false, vocId, Checked_By, yrId, trns.BrCode!);
+                                result = await _unitOfWork.TermDepositMember.AddTermDepositMemberAsync(lockermem);
+                                /// Update locker number
+                                result = await _unitOfWork.Lockers.UpdateLockerStatusAsAllotted(allotment.LockerId,trns.BrCode!);
+                                vocTrn = new();
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, tdLocker.Led_Id, allotment.DepositAmount,0, trns.Cash_Or_Adjustment, Narration, false, Checked_By,  allotment.YrId, Status, "Locker " + allotment.LockerNumber , allotment.CustomerId, trns.BrCode!, 0, 0, 0);
+                                finVoucherTrns.Add(vocTrn);
+                                if(allotment.AccountId == 3)
+                                {
+                                    Mem_Trn memTrnLocker = Utility.GetModalObject.GetMemTrnObject(7, allotment.CustomerId, allotment.PaymentLedgerId , trns.Transacted_Date,0, allotment.DepositAmount + allotment.RentAmount , false, false, vocId, Checked_By, allotment.YrId, 0, 0, null, 0, "", 0, 0, 0, brCode);
+                                    memberTrnList.Add(memTrnLocker);
+                                }
+                                if(allotment.AccountId == 11)
+                                {
+                                    bankLocker = Utility.GetModalObject.GetFinVocBankObject(allotment.AllotmentDate, allotment.CustomerId,
+                                        "O", allotment.IssueBank!, vocId, allotment.PaymentLedgerId, allotment.PaymentAmount, allotment.ChequeNo!,
+                                        allotment.ChequeDate, null, 0, false, null, "", null, 0, allotment.CreatedBy, allotment.YrId, false, allotment.BrCode!);
+                                    result = await _unitOfWork.FinVoucherBank.AddFinVoucherBankAsync(bankLocker);
+                                }
+                            }
+                            if (allotment.RentAmount > 0)
+                            {
+                                vocTrn = new();
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, settings.Rent_Ledger_Id, allotment.RentAmount ,0, trns.Cash_Or_Adjustment, "Interest on " + Narration, false, Checked_By, allotment.YrId, Status, "Locker " + allotment.LockerNumber, allotment.CustomerId , trns.BrCode!, 0, 0, 0);
+                                finVoucherTrns.Add(vocTrn);
+                            }
+                            #endregion 
                             break;
                         case 1000:  /// Account Trasanctions
                             vocTrn = new();

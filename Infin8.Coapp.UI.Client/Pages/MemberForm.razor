@@ -7,9 +7,11 @@
 @using Infin8.Coapp.Utility
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Net.Http.Headers
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
 
 <div class="container-fluid p-4">
     <EditForm Model="@member" method="post" OnValidSubmit="@HandleValidSubmit" FormName="member-create">
@@ -30,7 +32,7 @@
                             <option value="2">Associate Member</option>
                             <option value="3">Non-Member</option>
                         </InputSelect>
-                        <ValidationMessage For="@(()=>member.membertype)" />
+                        <ValidationMessage For="@(() => member.membertype)" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Member No</label>
@@ -51,7 +53,7 @@
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Admission Date</label>
                         <InputDate @bind-Value="member.admissiondate" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.admissiondate)" />
+                        <ValidationMessage For="@(() => member.admissiondate)" />
                     </div>
                     <div class="col-md-1 mb-1">
                         <label class="form-label">Salutation</label>
@@ -63,12 +65,12 @@
                             <option value="3">Dr</option>
                             <option value="3">Er</option>
                         </InputSelect>
-                        <ValidationMessage For="@(()=>member.salutation)" />
+                        <ValidationMessage For="@(() => member.salutation)" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Member Name</label>
                         <InputText @bind-Value="member.membername" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.membername)" />
+                        <ValidationMessage For="@(() => member.membername)" />
                     </div>
                     <div class="col-md-2 mb-2">
                         <label class="form-label">Relation Type</label>
@@ -80,12 +82,12 @@
                             <option value="3">W/o</option>
                             <option value="3">H/o</option>
                         </InputSelect>
-                        <ValidationMessage For="@(()=>member.relation_type)" />
+                        <ValidationMessage For="@(() => member.relation_type)" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Father's Name</label>
                         <InputText @bind-Value="member.fathername" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.fathername)" />
+                        <ValidationMessage For="@(() => member.fathername)" />
                     </div>
                 </div>
 
@@ -98,7 +100,7 @@
                             <option value="2">Female</option>
                             <option value="3">Other</option>
                         </InputSelect>
-                        <ValidationMessage For="@(()=>member.gender)" />
+                        <ValidationMessage For="@(() => member.gender)" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Religion</label>
@@ -109,7 +111,7 @@
                                 <option value="@religion.Value">@religion.Text</option>
                             }
                         </InputSelect>
-                        <ValidationMessage For="@(()=>member.religion_id)" />
+                        <ValidationMessage For="@(() => member.religion_id)" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Community</label>
@@ -147,13 +149,13 @@
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Date of Birth</label>
                         <InputDate @bind-Value="DateOfBirth" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.dob)" />
+                        <ValidationMessage For="@(() => member.dob)" />
                     </div>
                     <div class="col-md-3 mb-3">
 
                         <label class="form-label">Age</label>
                         <InputNumber @bind-Value="member.age" class="form-control shadow-none" readonly />
-                        <ValidationMessage For="@(()=>member.age)" />
+                        <ValidationMessage For="@(() => member.age)" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Constituency</label>
@@ -181,7 +183,7 @@
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Mobile No</label>
                         <InputText @bind-Value="member.mobileno" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.mobileno)" />
+                        <ValidationMessage For="@(() => member.mobileno)" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Alternative Mobile No</label>
@@ -209,7 +211,7 @@
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Address Line 1</label>
                         <InputText @bind-Value="member.preadd1" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.preadd1)" />
+                        <ValidationMessage For="@(() => member.preadd1)" />
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Address Line 2</label>
@@ -224,7 +226,7 @@
                     <div class="col-md-4 mb-3">
                         <label class="form-label">PIN Code</label>
                         <InputText @bind-Value="member.prepin" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.prepin)" />
+                        <ValidationMessage For="@(() => member.prepin)" />
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Area</label>
@@ -256,7 +258,7 @@
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Address Line 1</label>
                         <InputText @bind-Value="member.peradd1" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.peradd1)" />
+                        <ValidationMessage For="@(() => member.peradd1)" />
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Address Line 2</label>
@@ -271,7 +273,7 @@
                     <div class="col-md-4 mb-3">
                         <label class="form-label">PIN Code</label>
                         <InputText @bind-Value="member.perpin" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.perpin)" />
+                        <ValidationMessage For="@(() => member.perpin)" />
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Area</label>
@@ -346,17 +348,17 @@
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Nominee Name</label>
                         <InputText @bind-Value="member.nomineename" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.nomineename)" />
+                        <ValidationMessage For="@(() => member.nomineename)" />
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Nominee Age</label>
                         <InputNumber @bind-Value="member.nomineeage" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.nomineeage)" />
+                        <ValidationMessage For="@(() => member.nomineeage)" />
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Relationship</label>
                         <InputText @bind-Value="member.nomineerelationship" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.nomineerelationship)" />
+                        <ValidationMessage For="@(() => member.nomineerelationship)" />
                     </div>
                 </div>
             </div>
@@ -396,17 +398,17 @@
                     <div class="col-md-3 mb-3">
                         <label class="form-label">PAN No</label>
                         <InputText @bind-Value="member.panno" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.panno)" />
+                        <ValidationMessage For="@(() => member.panno)" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Aadhar No</label>
                         <InputText @bind-Value="member.aadharno" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.aadharno)" />
+                        <ValidationMessage For="@(() => member.aadharno)" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Smart Card No</label>
                         <InputText @bind-Value="member.smartcardno" class="form-control shadow-none" />
-                        <ValidationMessage For="@(()=>member.smartcardno)" />
+                        <ValidationMessage For="@(() => member.smartcardno)" />
                     </div>
                 </div>
             </div>
@@ -478,6 +480,15 @@
     private List<DropdownItem> areas = new();
     private List<DropdownItem> banks = new();
     private List<DropdownItem> constituencies = new();
+
+    public class UploadResult
+    {
+        public bool Uploaded { get; set; }
+        public string? FileName { get; set; }
+        public string? StoredFileName { get; set; }
+        public string? FilePath { get; set; }
+        public int ErrorCode { get; set; }
+    }
 
     // protected override async Task OnInitializedAsync()
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -608,12 +619,17 @@
 
     private async Task HandleValidSubmit()
     {
-        // var response = await _httpClient.PostAsJsonAsync<MemberRegistration>("api/Member", member);
-        var response = await _httpClient.PostAsJsonAsync("api/Member", member);
+        // var response = await _httpClient.PostAsJsonAsync("api/Member", member);
+        var response = await _httpClient.PostAsJsonAsync("api/Member/AddMember", member);
         if (response.IsSuccessStatusCode)
         {
             // statusMessage = "success";
             await JSRuntime.InvokeVoidAsync("alert", "Member registed successfully!");
+            var memId = await response.Content.ReadFromJsonAsync<decimal>();
+            if (memId > 0)
+            {
+                await Print_MemberKYC(memId, 144, member.brcode!);
+            }
             sameAsPresent = false;
             member = new();
 
@@ -647,22 +663,42 @@
             var file = e.File;
             if (file != null)
             {
-                // Create directory if it doesn't exist
-                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "member-photos");
-                Directory.CreateDirectory(uploadPath);
+                //     // Create directory if it doesn't exist
+                //     var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "member-photos");
+                //     Directory.CreateDirectory(uploadPath);
+                //     // Generate unique filename
+                //     var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+                //     var filePath = Path.Combine(uploadPath, fileName);
+                //     // Save the file
+                //     using var stream = file.OpenReadStream(maxAllowedSize: 10485760); // 10MB max
+                //     using var fileStream = new FileStream(filePath, FileMode.Create);
+                //     await stream.CopyToAsync(fileStream);
+                //     // Update member photo path
+                //     member.memberphoto = $"/uploads/member-photos/{fileName}";
 
-                // Generate unique filename
-                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
-                var filePath = Path.Combine(uploadPath, fileName);
+                using var content = new MultipartFormDataContent();
+                using var stream = file.OpenReadStream(maxAllowedSize: 10485760);
+                using var fileContent = new StreamContent(stream);
 
-                // Save the file
-                using var stream = file.OpenReadStream(maxAllowedSize: 10485760); // 10MB max
-                using var fileStream = new FileStream(filePath, FileMode.Create);
-                await stream.CopyToAsync(fileStream);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                content.Add(fileContent, "file", file.Name);
 
-                // Update member photo path
-                member.memberphoto = $"/uploads/member-photos/{fileName}";
+                // Use PostAsync, not PostAsJsonAsync
+                var response = await _httpClient.PostAsync("api/Member/Upload/MemberPhoto", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var uploadResult = await response.Content.ReadFromJsonAsync<UploadResult>();
+                    member.memberphoto = uploadResult?.FilePath;
+                    Console.WriteLine($"Upload successful: {member.memberphoto}");
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Upload failed: {response.StatusCode} - {error}");
+                }
             }
+
         }
         catch (Exception ex)
         {
@@ -678,17 +714,39 @@
             var file = e.File;
             if (file != null)
             {
-                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "signatures");
-                Directory.CreateDirectory(uploadPath);
+                // var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "signatures");
+                // Directory.CreateDirectory(uploadPath);
 
-                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
-                var filePath = Path.Combine(uploadPath, fileName);
+                // var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+                // var filePath = Path.Combine(uploadPath, fileName);
 
-                using var stream = file.OpenReadStream(maxAllowedSize: 5242880); // 5MB max
-                using var fileStream = new FileStream(filePath, FileMode.Create);
-                await stream.CopyToAsync(fileStream);
+                // using var stream = file.OpenReadStream(maxAllowedSize: 5242880); // 5MB max
+                // using var fileStream = new FileStream(filePath, FileMode.Create);
+                // await stream.CopyToAsync(fileStream);
 
-                member.memberesignature = $"/uploads/signatures/{fileName}";
+                // member.memberesignature = $"/uploads/signatures/{fileName}";
+
+                using var content = new MultipartFormDataContent();
+                using var stream = file.OpenReadStream(maxAllowedSize: 10485760);
+                using var fileContent = new StreamContent(stream);
+
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                content.Add(fileContent, "file", file.Name);
+
+                // Use PostAsync, not PostAsJsonAsync
+                var response = await _httpClient.PostAsync("api/Member/Upload/Signature", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var uploadResult = await response.Content.ReadFromJsonAsync<UploadResult>();
+                    member.memberesignature = uploadResult?.FilePath;
+                    Console.WriteLine($"Upload successful: {member.memberesignature}");
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Upload failed: {response.StatusCode} - {error}");
+                }
             }
         }
         catch (Exception ex)
@@ -704,17 +762,37 @@
             var file = e.File;
             if (file != null)
             {
-                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "aadhar-cards");
-                Directory.CreateDirectory(uploadPath);
+                // var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "aadhar-cards");
+                // Directory.CreateDirectory(uploadPath);
+                // var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
+                // var filePath = Path.Combine(uploadPath, fileName);
+                // using var stream = file.OpenReadStream(maxAllowedSize: 15728640); // 15MB max
+                // using var fileStream = new FileStream(filePath, FileMode.Create);
+                // await stream.CopyToAsync(fileStream);
+                // member.aadharcardpath = $"/uploads/aadhar-cards/{fileName}";
 
-                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.Name)}";
-                var filePath = Path.Combine(uploadPath, fileName);
 
-                using var stream = file.OpenReadStream(maxAllowedSize: 15728640); // 15MB max
-                using var fileStream = new FileStream(filePath, FileMode.Create);
-                await stream.CopyToAsync(fileStream);
+                using var content = new MultipartFormDataContent();
+                using var stream = file.OpenReadStream(maxAllowedSize: 10485760);
+                using var fileContent = new StreamContent(stream);
 
-                member.aadharcardpath = $"/uploads/aadhar-cards/{fileName}";
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                content.Add(fileContent, "file", file.Name);
+
+                // Use PostAsync, not PostAsJsonAsync
+                var response = await _httpClient.PostAsync("api/Member/Upload/Aadhar", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var uploadResult = await response.Content.ReadFromJsonAsync<UploadResult>();
+                    member.aadharcardpath = uploadResult?.FilePath;
+                    Console.WriteLine($"Upload successful: {member.aadharcardpath}");
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Upload failed: {response.StatusCode} - {error}");
+                }
             }
         }
         catch (Exception ex)
@@ -727,5 +805,23 @@
     {
         public decimal Id { get; set; }
         public string Name { get; set; } = string.Empty;
+    }
+
+    private async Task Print_MemberKYC(decimal memId, int reportId, string brCode)
+    {
+        try
+        {
+            var fileBytes = await _httpClient.GetFromJsonAsync<byte[]>($"api/ReportsMember/GetMemberKYC/{memId}/{reportId}/{brCode}");
+            // 1. Convert byte array to a Base64 string
+            var base64String = Convert.ToBase64String(fileBytes!);
+
+            // 2. Call the new JavaScript function to open the PDF in a new tab
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
     }
 }

@@ -40,5 +40,7 @@ namespace Infin8.Coapp.Dto
         public double BankCharges { get; set; }
         public string? BrCode { get; set; }
         public decimal Created_By { get; set; }
+        public decimal SBAccountId { get; set; }
+        public string? SBAccountNo { get; set; }
     }
 }

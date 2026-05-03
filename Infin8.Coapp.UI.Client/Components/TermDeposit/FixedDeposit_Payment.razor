@@ -328,7 +328,8 @@
         <!-- Right-aligned submit button -->
         @if (RequestType == "I" || RequestType == "P")
         {
-            <button type="submit" class="btn btn-primary" @onclick="FDPaymentInitiate">
+            <button type="submit" class="btn btn-primary" @onclick="FDPaymentInitiate" 
+                disabled="@(!(paymentModel.Total_Interest_Payable >0 || @paymentModel.Total_Deposit_Payable >0))">
                 <i class="oi oi-check"></i>
                 Initiate Interest Payment on Fixed Deposit
             </button>
@@ -741,7 +742,7 @@
                 queryString.Append($"&toDate={Uri.EscapeDataString(paymentModel.Transaction_Date.ToString("yyyy-MM-dd"))}");
                 queryString.Append($"&accountId=");
                 queryString.Append(accId);
-                queryString.Append("&brCode={brCode}");
+                queryString.Append($"&brCode={brCode}");
 
                 var fdDataTmp = await _httpClient.GetFromJsonAsync<List<FDDetailsVM>>($"api/TermDeposit/GetFDPayable?{queryString}");
                 if (fdDataTmp != null && fdDataTmp.Count > 0)

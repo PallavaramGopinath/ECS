@@ -6,6 +6,7 @@ namespace Infin8.Coapp.BusinessLogic
     public interface ICRMHandler
     {
         Task<bool> AddMember(mem_master member);
+        Task<decimal> AddMemberMaster(mem_master member);
         Task<bool> AddEmployeeMaster(DtoEmpMaster  empMaster);
         Task<mem_master> GetMemberById(decimal mem_id);
         Task<List<DropdownItem>> GetAllMembers(int memType, int memStatus, bool isMemNo, string brCode);

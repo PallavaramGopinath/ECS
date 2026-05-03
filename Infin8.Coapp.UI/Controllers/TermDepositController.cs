@@ -55,7 +55,7 @@ namespace Infin8.Coapp.API.Controllers
         {
             List<DropdownItem> schemeList = new List<DropdownItem>();
             string[] schemeType = schemeTypes.Split(',');
-            var schList = await _termDepositSchemeHandler.GetTermDepositSchemeListBySchemeTypeArrayAsync(schemeType, "11001");
+            var schList = await _termDepositSchemeHandler.GetTermDepositSchemeListBySchemeTypeArrayAsync(schemeType, brCode);
             if (schList != null) { schemeList = schList.ToList(); }
             return Ok(schemeList);
         }

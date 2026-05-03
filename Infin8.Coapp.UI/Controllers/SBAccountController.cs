@@ -21,8 +21,8 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpPost]
-        [Route("AddSBAccount")]
-        public async Task<ActionResult<List<SBCA_Schemes>>> AddSBAccount([FromBody] SBCA_Schemes scheme)
+        [Route("AddSBAccountScheme")]
+        public async Task<ActionResult<List<SBCA_Schemes>>> AddSBAccountScheme([FromBody] SBCA_Schemes scheme)
         {
             List<SBCA_Schemes> sbcaSchemes = new();
             var result = await _sbcaSchemesHandler.AddSBCASchemesAsync(scheme,scheme.BrCode! );
@@ -31,13 +31,47 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpPost]
-        [Route("EditSBAccount")]
-        public async Task<ActionResult<List<SBCA_Schemes>>> EditSBAccount([FromBody] SBCA_Schemes scheme)
+        [Route("EditSBAccountScheme")]
+        public async Task<ActionResult<List<SBCA_Schemes>>> EditSBAccountScheme([FromBody] SBCA_Schemes scheme)
         {
             List<SBCA_Schemes> schemes = new();
             var query = await _sbcaSchemesHandler.EditSBCASchemesAsync(scheme, scheme.BrCode!);
             if (query != null && query.Count > 0) schemes = query.ToList();
             return Ok(schemes);
+        }
+
+        [HttpPost]
+        [Route("AddSBAccount")]
+        public async Task<ActionResult<(bool result, decimal accId, string accNo)>> AddSBAccount([FromBody] SBCA_Master sbcaMaster)
+        {
+            var result = await _sbcaMasterHandler.AddSBCAMasterAsync(sbcaMaster);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("AddNewSBAccount")]
+        public async Task<ActionResult<SBCA_Master>> AddNewSBAccount([FromBody] SBCA_Master sbcaMaster)
+        {
+            var result = await _sbcaMasterHandler.AddNewSBAccount(sbcaMaster);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("GetSBAccountDataByMemId/{memId:decimal}/{brCode}")]
+        public async Task<ActionResult<DtoSBAccountNo>> GetSBAccountDataByMemId(decimal memId, string brCode)
+        {
+            DtoSBAccountNo sbAccountData = new();
+            var result = await _sbcaMasterHandler.GetSBAccountDataByMemIdAsync(memId, brCode);
+            if(result != null && result.SBAccountId >0)
+            {
+                sbAccountData = result;
+                return Ok(sbAccountData);
+            }
+            else
+            {
+                sbAccountData = new();
+                return Ok(sbAccountData);
+            }
         }
 
         [HttpGet]
@@ -73,7 +107,25 @@ namespace Infin8.Coapp.UI.Controllers
                 sbAccountNos = new();
                 return Ok(sbAccountNos);
             }
-        }   
+        }
+
+        [HttpGet]
+        [Route("GetSBAccountNoByMemIdAsync/{memId:decimal}/{brCode}")]
+        public async Task<ActionResult<string>> GetSBAccountNoByMemIdAsync(decimal memId, string brCode)
+        {
+            string sbAccountNo = string.Empty;
+            var result = await _sbcaMasterHandler.GetSBCANoByMemIdAsync(memId, brCode);
+            if (result != null && result.Length > 0)
+            {
+                sbAccountNo = result;
+                return Ok(sbAccountNo);
+            }
+            else
+            {
+                sbAccountNo = string.Empty;
+                return Ok(sbAccountNo);
+            }
+        }
 
         [HttpGet]
         [Route("GetSBAccountLedgerIds/{brCode}")]

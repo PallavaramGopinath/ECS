@@ -55,7 +55,7 @@ namespace Infin8.Coapp.Repository
         {
             Mem_Payable_Master master = new();
 
-            var result =  await CSISContext.Mem_Payable_Master.Where(x=> x.PbleMaster_Id == pbleMasterId && x.BrCode ==  brCode && x.Master_Delete == false).FirstAsync();
+            var result = await CSISContext.Mem_Payable_Master.Where(x => x.PbleMaster_Id == pbleMasterId && x.BrCode == brCode && x.Master_Delete == false).FirstAsync();
             if (result != null && result.PbleMaster_Id > 0)
                 master = result;
             return master;
@@ -63,37 +63,49 @@ namespace Infin8.Coapp.Repository
         public async Task<Mem_Payable_Master> GetDividendLastCalculatedData(int pbleType, string status, string brCode)
         {
             Mem_Payable_Master master = new();
-            var latestDate = CSISContext.Mem_Payable_Master
-            .Where(m => !m.Master_Delete && m.Master_Status == status && m.PbleType == pbleType)
-            .Max(m => m.FromDate);
+            try
+            {
+                //    var latestDate = CSISContext.Mem_Payable_Master
+                //.Where(m => !m.Master_Delete && m.Master_Status == status && m.PbleType == pbleType)
+                //.Max(m => m.FromDate);
+                var latestDate = CSISContext.Mem_Payable_Master
+                .Where(m => !m.Master_Delete && m.Master_Status == status && m.PbleType == pbleType)
+                .Select(m => (DateTime?)m.FromDate)  // Cast to nullable DateTime?
+                .Max() ?? default(DateTime);
 
-            var query = await  CSISContext.Mem_Payable_Master
-                .Where(m => !m.Master_Delete
-                         && m.Master_Status == status
-                         && m.PbleType == pbleType
-                         && m.FromDate == latestDate)
-                .Select(m => new Mem_Payable_Master 
-                {   
-                    FromDate =  m.FromDate, 
-                    ToDate =  m.ToDate, 
-                    ROI_Pble =  m.ROI_Pble, 
-                    ROI_Trnble = m.ROI_Trnble,
-                }).FirstOrDefaultAsync ();
-            if (query != null && query.ROI_Pble > 0)
-                master = query;
+                var query = await CSISContext.Mem_Payable_Master
+                    .Where(m => !m.Master_Delete
+                             && m.Master_Status == status
+                             && m.PbleType == pbleType
+                             && m.FromDate == latestDate)
+                    .Select(m => new Mem_Payable_Master
+                    {
+                        FromDate = m.FromDate,
+                        ToDate = m.ToDate,
+                        ROI_Pble = m.ROI_Pble,
+                        ROI_Trnble = m.ROI_Trnble,
+                    }).FirstOrDefaultAsync();
+                if (query != null && query.ROI_Pble > 0)
+                    master = query;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw new InvalidOperationException(ex.Message + " Dividend calculation master not retrieved");
+            }
             return master;
         }
 
-        public async Task<List<Mem_Payable_Master>> GetCalculatedDataList(int pbleType,string status, string brCode)
+        public async Task<List<Mem_Payable_Master>> GetCalculatedDataList(int pbleType, string status, string brCode)
         {
             List<Mem_Payable_Master> masterList = new();
-            var result = await  CSISContext.Mem_Payable_Master
-                .Where(x=> x.PbleType == pbleType && x.BrCode == brCode && x.Master_Delete==false)
-                .OrderBy(x=> x.FromDate).ToListAsync ();
-            if(result != null && result.Any()) masterList = result;
+            var result = await CSISContext.Mem_Payable_Master
+                .Where(x => x.PbleType == pbleType && x.BrCode == brCode && x.Master_Delete == false)
+                .OrderBy(x => x.FromDate).ToListAsync();
+            if (result != null && result.Any()) masterList = result;
             return masterList;
         }
 
-       
+
     }
 }

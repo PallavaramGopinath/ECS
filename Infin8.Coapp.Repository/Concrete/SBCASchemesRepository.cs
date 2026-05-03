@@ -90,7 +90,7 @@ namespace Infin8.Coapp.Repository
                 var scheme = await CSISContext.SBCA_Schemes
                     .Where(x => x.BrCode == brCode)
                     .FirstOrDefaultAsync();
-                if (scheme != null)
+                if (scheme != null && scheme.Scheme_Id >0)
                 {
                     sbcaScheme = scheme;
                 }

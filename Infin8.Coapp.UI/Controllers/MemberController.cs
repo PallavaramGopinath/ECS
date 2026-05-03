@@ -155,10 +155,112 @@ namespace API.Controllers
                     return Ok(); // Returns 200 OK
                 else
                     return StatusCode(500, "Failed to add member"); // Returns 500 with message
-                //if(result )
-                //    return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-                //else
-                //    return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+
+
+                ////if(result )
+                ////    return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                ////else
+                ////    return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+            }
+            catch (Exception ex)
+            {
+                throw new System.Exception(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("AddMember")]
+        public async Task<ActionResult<decimal>> AddMember([FromBody] MemberRegistration memberRegistration)
+        {
+            try
+            {
+                //mem_master member = new mem_master();
+                var member = new mem_master
+                {
+                    // Direct matches
+                    memberno = memberRegistration.memberno,
+                    perno = memberRegistration.memberno,
+                    membertype = memberRegistration.membertype,
+                    resolutionno = memberRegistration.resolutionno,
+                    resolutiondate = memberRegistration.resolutiondate,
+                    memberphoto = memberRegistration.memberphoto,
+                    memberesignature = memberRegistration.memberesignature,
+                    salutation = memberRegistration.salutation,
+                    membername = memberRegistration.membername,
+                    relation_type = memberRegistration.relation_type,
+                    fathername = memberRegistration.fathername,
+                    gender = memberRegistration.gender,
+                    caste_id = memberRegistration.caste_id,
+                    dob = memberRegistration.dob,
+                    age = memberRegistration.age,
+                    alternative_mobileno = memberRegistration.alternative_mobileno,
+                    officephoneno = memberRegistration.officephoneno,
+                    mobileno = memberRegistration.mobileno,
+                    emailid = memberRegistration.emailid,
+
+                    // Address
+                    preadd1 = memberRegistration.preadd1,
+                    preadd2 = memberRegistration.preadd2,
+                    preadd3 = memberRegistration.preadd3,
+                    prepin = memberRegistration.prepin,
+                    prearea_id = memberRegistration.prearea_id,
+                    peradd1 = memberRegistration.peradd1,
+                    peradd2 = memberRegistration.peradd2,
+                    peradd3 = memberRegistration.peradd3,
+                    perpin = memberRegistration.perpin,
+                    perarea_id = memberRegistration.perarea_id,
+
+                    // Membership details
+                    isnewmember = memberRegistration.isnewmember,
+                    isexistingmember = memberRegistration.isexistingmember,
+                    existing_memberno = memberRegistration.existing_memberno,
+                    ismember_othersociety = memberRegistration.ismember_othersociety,
+
+                    // Nominee details
+                    nomineename = memberRegistration.nomineename,
+                    nomineeage = memberRegistration.nomineeage,
+                    nomineerelationship = memberRegistration.nomineerelationship,
+
+                    // Bank and identity details
+                    sbaccountno = memberRegistration.sbaccountno,
+                    bankname = memberRegistration.bankname,
+                    ifsccode = memberRegistration.ifsccode,
+                    gpf_no = memberRegistration.gpf_no,
+                    panno = memberRegistration.panno,
+                    aadharno = memberRegistration.aadharno,
+                    smartcardno = memberRegistration.smartcardno,
+                    aadharcardpath = memberRegistration.aadharcardpath,
+
+                    // Additional fields
+                    religion_id = memberRegistration.religion_id,
+                    comm_id = memberRegistration.comm_id,
+                    occ_id = memberRegistration.occ_id,
+                    constituency_id = memberRegistration.constituency_id,
+                    admissiondate = memberRegistration.admissiondate,
+
+                    // Default values for required fields not in MemberRegistration
+                    mem_id = 0, // This should be handled by your database
+                    memberdelete = false,
+                    memberstatus = 1, // Set appropriate default
+                    isaccountclosed = false,
+                    member_oe = false,
+                    ismemexpired = false,
+                    brcode = memberRegistration.brcode,
+                    usr_id = memberRegistration.usr_id,
+                    yr_id = memberRegistration.yr_id,
+                };
+
+                var result = await _memberHandler.AddMemberMaster(member);
+                if (result > 0)
+                    return Ok(result); // Returns 200 OK with new member ID
+                else
+                    return StatusCode(500, "Failed to add member"); // Returns 500 with message
+
+
+                ////if(result )
+                ////    return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                ////else
+                ////    return await Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
             }
             catch (Exception ex)
             {
@@ -250,6 +352,57 @@ namespace API.Controllers
             }
             return Ok(divideneList);
         }
+        #endregion
+
+        #region Upload
+        [HttpPost]
+        [Route("Upload/MemberPhoto")]
+        public async Task<IActionResult> UploadMemberPhoto(IFormFile file)
+        {
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "member-photos");
+            Directory.CreateDirectory(uploadPath);
+
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(uploadPath, fileName);
+
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(stream);
+
+            return Ok(new { FilePath = $"/uploads/member-photos/{fileName}" });
+        }
+
+        [HttpPost]
+        [Route("Upload/Signature")]
+        public async Task<IActionResult> UploadSignature(IFormFile file)
+        {
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "signatures");
+            Directory.CreateDirectory(uploadPath);
+
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(uploadPath, fileName);
+
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(stream);
+
+            return Ok(new { FilePath = $"/uploads/signatures/{fileName}" });
+        }
+
+        [HttpPost]
+        [Route("Upload/Aadhar")]
+        public async Task<IActionResult> UploadAadhar(IFormFile file)
+        {
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "aadhar-cards");
+            Directory.CreateDirectory(uploadPath);
+
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(uploadPath, fileName);
+
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(stream);
+
+            return Ok(new { FilePath = $"/uploads/aadhar-cards/{fileName}" });
+        }
         #endregion 
+
     }
 }

@@ -193,7 +193,7 @@
           <Image Name="Image3">
             <Source>Database</Source>
             <Value>=First(Fields!memberphoto.Value, "Ds_MemberKYC")</Value>
-            <MIMEType>image/png</MIMEType>
+            <MIMEType>image/jpeg</MIMEType>
             <Sizing>FitProportional</Sizing>
             <Top>1.25914cm</Top>
             <Left>13.24187cm</Left>

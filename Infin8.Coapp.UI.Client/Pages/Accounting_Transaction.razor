@@ -16,7 +16,7 @@
 @* @inject TransactionStateService TransactionState *@
 @* @inject AppState appState; *@
 
-@attribute [Authorize(Roles = "Admin,Maker")]
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 <h3>Accounting Transaction</h3>
 
 @if (_isLoading)
