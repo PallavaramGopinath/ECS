@@ -1531,6 +1531,7 @@ namespace Infin8.Coapp.BusinessLogic
                             break;
                         case 55:    /// Locker allotment receipt of deposit amount and rent amount
                             #region Locker allotment
+                            decimal TdId = 0;
                             decimal allotmentId = 0;
                             Fin_Voucher_Bank  bankLocker = new();
                             TermDeposit_Master lockerMaster = new();
@@ -1548,41 +1549,41 @@ namespace Infin8.Coapp.BusinessLogic
                             int nomineeAge = memMaster.nomineeage>0 ? memMaster.nomineeage : 0;
                             string nomineerelationship = memMaster.nomineerelationship != null ? memMaster.nomineerelationship : string.Empty;
                             Narration = allotment.CustomerNo + " " + Transacted_MemName + "Locker Allotment Locker No " + allotment.LockerNumber;
-                            Locker_Allotments newLocker = new()
-                            {
-                                Id = 0,
-                                Customer_Id = allotment.CustomerId,
-                                Locker_Id = allotment.LockerId,
-                                Allotment_Date = allotment.AllotmentDate,
-                                Deposit_Amount = allotment.DepositAmount,
-                                Interest_Rate = allotment.InterestRate,
-                                Last_Rent_Adjustment_Date = allotment.AllotmentDate,
-                                Next_Rent_Due_Date = allotment.NextRentDueDate,
-                                Status = allotment.Status,
-                                Closure_Date = null,
-                                Refund_Amount = 0,
-                                BrCode = trns.BrCode ,
-                                Created_By = trns.Checked_By ,
-                                Created_At = allotment.AllotmentDate,
-                                Voc_Id = vocId
-                            };
-                            (result, allotmentId) = await _unitOfWork.LockerAllotments.AddLockerAllotment(newLocker);
-                            Locker_Rent_Adjustments rentAdj = new()
-                            {
-                                Id = 0,
-                                Allotment_Id = allotmentId,
-                                Rent_Applied_Date = allotment.AllotmentDate,
-                                Rent_Receivable = allotment.RentAmount,
-                                Rent_Received_Date= allotment.AllotmentDate,
-                                Rent_Adjusted_From_Interest = 0,
-                                Rent_Received = allotment.RentAmount,
-                                BrCode = trns.BrCode!,
-                                Created_By = trns.Checked_By!,
-                                Created_At = allotment.AllotmentDate,
-                                Voc_Id = vocId
-                            };
-                            result = await _unitOfWork.LockerRentAdjustments.AddLockerRentAdjustment(rentAdj);
-                            if (allotment.DepositAmount >0 )
+                            //Locker_Allotments newLocker = new()
+                            //{
+                            //    Id = 0,
+                            //    Customer_Id = allotment.CustomerId,
+                            //    Locker_Id = allotment.LockerId,
+                            //    Allotment_Date = allotment.AllotmentDate,
+                            //    Deposit_Amount = allotment.DepositAmount,
+                            //    Interest_Rate = allotment.InterestRate,
+                            //    Last_Rent_Adjustment_Date = allotment.AllotmentDate,
+                            //    Next_Rent_Due_Date = allotment.NextRentDueDate,
+                            //    Status = allotment.Status,
+                            //    Closure_Date = null,
+                            //    Refund_Amount = 0,
+                            //    BrCode = trns.BrCode ,
+                            //    Created_By = trns.Checked_By ,
+                            //    Created_At = allotment.AllotmentDate,
+                            //    Voc_Id = vocId
+                            //};
+                            //(result, allotmentId) = await _unitOfWork.LockerAllotments.AddLockerAllotment(newLocker);
+                            //Locker_Rent_Adjustments rentAdj = new()
+                            //{
+                            //    Id = 0,
+                            //    Allotment_Id = allotmentId,
+                            //    Rent_Applied_Date = allotment.AllotmentDate,
+                            //    Rent_Receivable = allotment.RentAmount,
+                            //    Rent_Received_Date= allotment.AllotmentDate,
+                            //    Rent_Adjusted_From_Interest = 0,
+                            //    Rent_Received = allotment.RentAmount,
+                            //    BrCode = trns.BrCode!,
+                            //    Created_By = trns.Checked_By!,
+                            //    Created_At = allotment.AllotmentDate,
+                            //    Voc_Id = vocId
+                            //};
+                            //result = await _unitOfWork.LockerRentAdjustments.AddLockerRentAdjustment(rentAdj);
+                            if (allotment.DepositAmount > 0)
                             {
                                 lockerMaster = Utility.GetModalObject.GetTermDepositMaster(0, "", tdLocker.TDScheme_Id, allotment.CustomerId, allotment.CustomerName , allotment.Age, 1,
                                     trns.Transacted_Date, trns.Transacted_Date, allotment.DepositAmount, 0, 0, allotment.InterestRate ,
@@ -1591,6 +1592,7 @@ namespace Infin8.Coapp.BusinessLogic
                                     "", 0, "", false, false, false, vocId, Checked_By,
                                     yrId, "N", 0, "", brCode);
                                 (result, newTDId, newTDNo) = await _unitOfWork.TermDepositMaster.AddTermDepositMasterAsync(lockerMaster);
+                                TdId = newTDId;
                                 lockerTrn = Utility.GetModalObject.GetTermDepositTrn(0, trns.Transacted_Date, newTDId, 0,
                                     allotment.DepositAmount, 0, 0, null, 0, 0, 0, null, 0, 0, 0, null, null, false, false,
                                     vocId, Checked_By, yrId, 1, 0, trns.BrCode!);
@@ -1621,6 +1623,43 @@ namespace Infin8.Coapp.BusinessLogic
                                 vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, settings.Rent_Ledger_Id, allotment.RentAmount ,0, trns.Cash_Or_Adjustment, "Interest on " + Narration, false, Checked_By, allotment.YrId, Status, "Locker " + allotment.LockerNumber, allotment.CustomerId , trns.BrCode!, 0, 0, 0);
                                 finVoucherTrns.Add(vocTrn);
                             }
+
+                            Locker_Allotments newLocker = new()
+                            {
+                                Id = 0,
+                                Customer_Id = allotment.CustomerId,
+                                Locker_Id = allotment.LockerId,
+                                Allotment_Date = allotment.AllotmentDate,
+                                Deposit_Amount = allotment.DepositAmount,
+                                Interest_Rate = allotment.InterestRate,
+                                Last_Rent_Adjustment_Date = allotment.AllotmentDate,
+                                Next_Rent_Due_Date = allotment.NextRentDueDate,
+                                Status = allotment.Status,
+                                Closure_Date = null,
+                                Refund_Amount = 0,
+                                BrCode = trns.BrCode,
+                                Created_By = trns.Checked_By,
+                                Created_At = allotment.AllotmentDate,
+                                Voc_Id = vocId,
+                                Td_Id = TdId
+                            };
+                            (result, allotmentId) = await _unitOfWork.LockerAllotments.AddLockerAllotment(newLocker);
+                            Locker_Rent_Adjustments rentAdj = new()
+                            {
+                                Id = 0,
+                                Allotment_Id = allotmentId,
+                                Rent_Applied_Date = allotment.AllotmentDate,
+                                Rent_Receivable = allotment.RentAmount,
+                                Rent_Received_Date = allotment.AllotmentDate,
+                                Rent_Adjusted_From_Interest = 0,
+                                Rent_Received = allotment.RentAmount,
+                                BrCode = trns.BrCode!,
+                                Created_By = trns.Checked_By!,
+                                Created_At = allotment.AllotmentDate,
+                                Voc_Id = vocId
+                            };
+                            result = await _unitOfWork.LockerRentAdjustments.AddLockerRentAdjustment(rentAdj);
+
                             #endregion 
                             break;
                         case 56:    /// Locker rent receipt

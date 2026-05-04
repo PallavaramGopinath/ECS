@@ -15,5 +15,6 @@ namespace Infin8.Coapp.Repository
         Task<List<Locker_Rent_Adjustments>> GetLockerRentAdjustmentsListAsync(string brCode);
 
         Task<List<LockerRentReceiptAllotmentWiseDto>> GetLockerRentAllotmentWiseListAsync(decimal customerId,string brCode);
+        Task<List<LockerClosureBalanceDto>> GetLockerClosureBalanceListAsync(decimal customerId, string brCode);
     }
 }

@@ -15,6 +15,7 @@
 
 @attribute [Authorize(Roles = "Admin,Maker,Checker")]
 
+<!--Locker Closure-->
 <div class="mt-4">
     <h4 class-mb-2>Locker Rent Receipt</h4>
     <hr class="mt-0" />
@@ -35,7 +36,7 @@
                                     <InputSelect id="lockerId" class="form-select" @bind-Value="locker_Id"
                                                  @bind-Value:after="fetchLockerData">
                                         <option value="">Select Locker</option>
-                                        @foreach (var locker in lockerRentReceiptAllotmentWiseList)
+                                        @foreach (var locker in lockerClosureBalanceList)
                                         {
                                             <option value="@locker.LockerId">@locker.LockerNumber - @locker.SizeName </option>
                                         }
@@ -62,6 +63,22 @@
                                         <InputNumber id="rentReceived" class="form-control" @bind-Value="model.RentReceived"
                                                      @onblur="ValidateLedgerEntry" />
                                         <label for="rentReceived">Rent Received</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 mb-3">
+                                    <div class="form-floating">
+                                        <InputNumber id="depositRefund" class="form-control" @bind-Value="lockerData.DepositRefundAmount" readonly />
+                                        <label for="depositRefund">Deposit Refund Amount</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 mb-3">
+                                    <div class="form-floating">
+                                        <input type="number" id="InterestPayable" class="form-control"
+                                               value="@((lockerData.InterestPreviousBalance + lockerData.InterestCalculated).ToString("0.00"))"
+                                               readonly />
+                                        <label for="InterestPayalbe">Interest Payable</label>
                                     </div>
                                 </div>
                             }
@@ -96,6 +113,7 @@
     </button>
 </div>
 
+
 @code {
     #region parameter
     [Parameter] public int AccountId { get; set; }
@@ -106,18 +124,20 @@
     [Parameter] public string? MemberName { get; set; }
     [Parameter] public DateTime Transactiondate { get; set; }
 
-    [Parameter] public EventCallback<bool> OnLockerRentReceiptComponentClose { get; set; }
-    [Parameter] public EventCallback<LockerRentReceiptDto> OnLockerRentReceiptInitiate { get; set; }
+    [Parameter] public EventCallback<bool> OnLockerClosureComponentClose { get; set; }
+    [Parameter] public EventCallback<LockerClosureDto> OnLockerClosureInitiate { get; set; }
     #endregion
 
     #region variables
-    private LockerRentReceiptDto model = new LockerRentReceiptDto();
-    private List<LockerRentReceiptAllotmentWiseDto> lockerRentReceiptAllotmentWiseList = new List<LockerRentReceiptAllotmentWiseDto>();
+    private LockerClosureDto model = new LockerClosureDto();
+    private List<LockerClosureBalanceDto> lockerClosureBalanceList = new();
     private DtoStaging_Details stagingDetails = new();
-    LockerRentReceiptAllotmentWiseDto lockerData = new();
+    LockerClosureBalanceDto lockerData = new();
     private decimal locker_Id = 0;
     private bool isError = false;
     private string errorMessage = string.Empty;
+
+    private double InterestPayable => lockerData.InterestPreviousBalance + lockerData.InterestCalculated;
     #endregion
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -135,20 +155,20 @@
             model.BrCode = userInfoDto.BrCode;
             model.Created_By = userInfoDto.UserId;
             model.YrId = userInfoDto.YrId;
-            await GetLockerRentReceiptAllotmentWise();
+            await GetLockerClosureBalanceList();
             StateHasChanged();
         }
     }
 
-    private async Task GetLockerRentReceiptAllotmentWise()
+    private async Task GetLockerClosureBalanceList()
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<List<LockerRentReceiptAllotmentWiseDto>>($"api/Locker/GetAllotmentWiseRent/{model.CustomerId}/{model.BrCode}");
+            var result = await _httpClient.GetFromJsonAsync<List<LockerClosureBalanceDto>>($"api/Locker/GetLockerClosureBalance/{model.CustomerId}/{model.BrCode}");
             if (result != null)
             {
-                lockerRentReceiptAllotmentWiseList.Clear();
-                lockerRentReceiptAllotmentWiseList.AddRange(result);
+                lockerClosureBalanceList.Clear();
+                lockerClosureBalanceList.AddRange(result);
             }
             StateHasChanged();
         }
@@ -161,17 +181,22 @@
 
     private void fetchLockerData()
     {
-        lockerData = lockerRentReceiptAllotmentWiseList.FirstOrDefault(x => x.LockerId == locker_Id) ?? new LockerRentReceiptAllotmentWiseDto();
+        lockerData = lockerClosureBalanceList.FirstOrDefault(x => x.LockerId == locker_Id) ?? new LockerClosureBalanceDto();
         model.LockerId = lockerData.LockerId;
         model.AllotmentId = lockerData.AllotmentId;
         model.LockerNumber = lockerData.LockerNumber;
+        model.DepositId = lockerData.DepositId;
+        model.DepositNo = lockerData.DepositNo;
+        model.DepositRefundAmount = lockerData.DepositRefundAmount;
+        model.InterestCalculated = lockerData.InterestCalculated;
+        model.InterestCalculatedDate = lockerData.InterestCalculatedDate;
     }
 
     private void ValidateLedgerEntry()
     {
         if (lockerData != null)
         {
-            if(model.RentReceived != lockerData.RentAmount)
+            if (model.RentReceived != lockerData.RentAmount)
             {
                 JSRuntime.InvokeVoidAsync("alert", "Rent received amount not equal to rent amount");
                 model.RentReceived = lockerData.RentAmount;
@@ -182,7 +207,7 @@
 
     private async Task CloseComponent()
     {
-        await OnLockerRentReceiptComponentClose.InvokeAsync(true);
+        await OnLockerClosureComponentClose.InvokeAsync(true);
     }
 
     private async Task InitiateLockerRentReceipt()
@@ -190,7 +215,7 @@
         string accountName = "";
         try
         {
-            if(model.RentReceived == 0)
+            if (model.RentReceived == 0)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "Rent received amount not entered");
                 return;
@@ -216,7 +241,7 @@
             // Handle exception
             Console.WriteLine($"Error fetching account name: {ex.Message}");
         }
-        string lockerRentReceiptJsonData = ConvertToJson(model);
+        string lockerClosureJsonData = ConvertToJson(model);
         double cashRecipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
         if (CashOrAdjustment == 1)
         {
@@ -229,7 +254,7 @@
         {
             cashRecipt = 0;
             cashPayment = 0;
-            adjReceipt = model.RentReceived ;
+            adjReceipt = model.RentReceived;
             adjPayment = 0;
         }
         stagingDetails = new()
@@ -243,7 +268,7 @@
             Payment_Amount = 0,
             Module_Name = accountName,
             Cash_Or_Adjustment = CashOrAdjustment,
-            Related_Account_Data = lockerRentReceiptJsonData,
+            Related_Account_Data = lockerClosureJsonData,
             Created_By = model.Created_By,
             Created_Date = Transactiondate,
             Checked_By = 0,
@@ -260,13 +285,13 @@
         await TransactionState.NotifyIntiate(true);
     }
 
-    private string ConvertToJson(LockerRentReceiptDto rentReceived)
+    private string ConvertToJson(LockerClosureDto lockerClosure)
     {
         var options = new JsonSerializerOptions
         {
             WriteIndented = false, // Compact JSON
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
-        return JsonSerializer.Serialize(rentReceived, options);
+        return JsonSerializer.Serialize(lockerClosure, options);
     }
 }

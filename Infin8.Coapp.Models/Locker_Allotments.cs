@@ -24,5 +24,6 @@ namespace Infin8.Coapp.Models
         public decimal Created_By { get; set; }
         public DateTime Created_At { get; set; } = DateTime.UtcNow;
         public decimal Voc_Id { get; set; }
+        public decimal Td_Id { get; set; }
     }
 }

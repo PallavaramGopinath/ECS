@@ -108,7 +108,19 @@ namespace Infin8.Coapp.UI.Controllers
                 allotmentWiseRents = result.ToList();
             }
             return Ok(allotmentWiseRents);
+        }
 
+        [HttpGet]
+        [Route("GetLockerClosureBalance/{customerId:decimal}/{brCode}")]
+        public async Task<ActionResult<List<LockerClosureBalanceDto>>> GetLockerClosureBalanceList(decimal customerId, string brCode)
+        {
+            List<LockerClosureBalanceDto> balanceList = new();
+            var result = await _lockerRentAdjustmentsHandler.GetLockerClosureBalanceListAsync(customerId, brCode);  
+            if(result != null && result.Count > 0)
+            {
+                balanceList = result.ToList();
+            }
+            return Ok(balanceList);
         }
     }
 }

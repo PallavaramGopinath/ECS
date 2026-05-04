@@ -14,5 +14,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<Locker_Rent_Adjustments>> EditLockerRentAdjustment(Locker_Rent_Adjustments lockerRentAdjustment);
         Task<List<Locker_Rent_Adjustments>> GetLockerRentAdjustmentsListAsync(string brCode);
         Task<List<LockerRentReceiptAllotmentWiseDto>> GetLockerRentAllotmentWiseListAsync(decimal customerId, string brCode);
+        Task<List<LockerClosureBalanceDto>> GetLockerClosureBalanceListAsync(decimal customerId, string brCode);
     }
 }
