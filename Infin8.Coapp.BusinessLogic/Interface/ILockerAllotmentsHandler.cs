@@ -10,7 +10,7 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public  interface ILockerAllotmentsHandler
     {
-        Task<List<LockerAllotmentVM>> AddLockerAllotment(LockerAllotmentVM lockerAllotment);
+        Task<(bool result, decimal allotmentId)> AddLockerAllotment(LockerAllotmentVM lockerAllotment);
         Task<List<Locker_Allotments>> EditLockerAllotment(Locker_Allotments lockerAllotment);
         Task<List<LockerAllotmentVM>> GetLockerAllotmentList(string brCode);
         Task<LockerAllotmentVM> GetLockerAllotmentByAllotmentId(decimal allotmentId, string brCode);

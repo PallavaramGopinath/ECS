@@ -16,7 +16,7 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<List<Locker_Rent_Adjustments>> AddLockerRentAdjustment(Locker_Rent_Adjustments lockerRentAdjustment)
+        public async Task<bool> AddLockerRentAdjustment(Locker_Rent_Adjustments lockerRentAdjustment)
         {
             return await _unitOfWork.LockerRentAdjustments.AddLockerRentAdjustment(lockerRentAdjustment);
         }

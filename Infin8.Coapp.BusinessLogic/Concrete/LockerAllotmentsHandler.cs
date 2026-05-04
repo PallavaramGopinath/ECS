@@ -18,9 +18,10 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<List<LockerAllotmentVM>> AddLockerAllotment(LockerAllotmentVM  lockerAllotment)
+        public async Task<(bool result, decimal allotmentId)> AddLockerAllotment(LockerAllotmentVM  lockerAllotment)
         {
-            List<LockerAllotmentVM > allotments = new List<LockerAllotmentVM>();    
+            bool result = false;
+            decimal allotmentId = 0;
             try
             {
                 Locker_Allotments newLocker = new()
@@ -40,19 +41,14 @@ namespace Infin8.Coapp.BusinessLogic
                     Created_By = lockerAllotment.CreatedBy ,
                     Created_At = lockerAllotment.AllotmentDate 
                 };
-                var result =  await _unitOfWork.LockerAllotments.AddLockerAllotment(newLocker);
+                (result,allotmentId ) =  await _unitOfWork.LockerAllotments.AddLockerAllotment(newLocker);
 
-
-                if(result != null && result.Count > 0)
-                {
-                    allotments = result;
-                }
             }
             catch (Exception)
             {
-                allotments = new();
+                
             }
-           return allotments;
+           return (result, allotmentId );
         }
 
         public async Task<List<Locker_Allotments>> EditLockerAllotment(Locker_Allotments lockerAllotment)

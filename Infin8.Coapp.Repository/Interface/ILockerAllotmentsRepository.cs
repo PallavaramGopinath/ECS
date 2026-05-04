@@ -10,7 +10,7 @@ namespace Infin8.Coapp.Repository
 {
     public  interface ILockerAllotmentsRepository
     {
-        Task<List<LockerAllotmentVM>> AddLockerAllotment(Locker_Allotments lockerAllotment);
+        Task<(bool result, decimal allotmentId)> AddLockerAllotment(Locker_Allotments lockerAllotment);
         Task<List<Locker_Allotments>> EditLockerAllotment(Locker_Allotments lockerAllotment);
         Task<List<LockerAllotmentVM>> GetLockerAllotmentList(string brCode);
         Task<LockerAllotmentVM> GetLockerAllotmentByAllotmentId(decimal allotmentId, string brCode);

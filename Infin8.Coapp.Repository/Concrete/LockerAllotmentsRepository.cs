@@ -19,9 +19,10 @@ namespace Infin8.Coapp.Repository
         {
 
         }
-        public async Task<List<LockerAllotmentVM>> AddLockerAllotment(Locker_Allotments lockerAllotment)
+        public async Task<(bool result, decimal allotmentId)> AddLockerAllotment(Locker_Allotments lockerAllotment)
         {
-            List<LockerAllotmentVM> lockerAllotmentList = new();
+            bool result = false;
+            decimal allotmentId = 0;
             try
             {
                 decimal maxId = await CSISContext.Locker_Allotments
@@ -33,18 +34,14 @@ namespace Infin8.Coapp.Repository
                 maxId++;
                 lockerAllotment.Id = maxId;
                 await AddAsync(lockerAllotment);
-                CSISContext.SaveChanges();
-                var result = await GetLockerAllotmentList(lockerAllotment.BrCode!);
-                if (result != null && result.Count > 0)
-                {
-                    lockerAllotmentList = result.ToList();
-                }
+                result = true;
+                allotmentId = maxId;
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while adding locker allotment");
             }
-            return lockerAllotmentList;
+            return (result,allotmentId);
         }
 
         public Task<List<Locker_Allotments>> EditLockerAllotment(Locker_Allotments lockerAllotment)

@@ -1531,6 +1531,7 @@ namespace Infin8.Coapp.BusinessLogic
                             break;
                         case 55:    /// Locker allotment receipt of deposit amount and rent amount
                             #region Locker allotment
+                            decimal allotmentId = 0;
                             Fin_Voucher_Bank  bankLocker = new();
                             TermDeposit_Master lockerMaster = new();
                             TermDeposit_Trn lockerTrn = new();
@@ -1565,8 +1566,21 @@ namespace Infin8.Coapp.BusinessLogic
                                 Created_At = allotment.AllotmentDate,
                                 Voc_Id = vocId
                             };
-                            var resultList = await _unitOfWork.LockerAllotments.AddLockerAllotment(newLocker);
-
+                            (result, allotmentId) = await _unitOfWork.LockerAllotments.AddLockerAllotment(newLocker);
+                            Locker_Rent_Adjustments rentAdj = new()
+                            {
+                                Id = 0,
+                                Allotment_Id = allotmentId,
+                                Rent_Applied_Date = allotment.AllotmentDate,
+                                Rent_Receivable = allotment.RentAmount,
+                                Rent_Adjusted_From_Interest = 0,
+                                Rent_Received = allotment.RentAmount,
+                                BrCode = trns.BrCode!,
+                                Created_By = trns.Checked_By!,
+                                Created_At = allotment.AllotmentDate,
+                                Voc_Id = vocId
+                            };
+                            result = await _unitOfWork.LockerRentAdjustments.AddLockerRentAdjustment(rentAdj);
                             if (allotment.DepositAmount >0 )
                             {
                                 lockerMaster = Utility.GetModalObject.GetTermDepositMaster(0, "", tdLocker.TDScheme_Id, allotment.CustomerId, allotment.CustomerName , allotment.Age, 1,

@@ -69,18 +69,17 @@ namespace Infin8.Coapp.UI.Controllers
             return Ok(lockers);
         }
 
-        [HttpPost]
-        [Route("AddLockerAllotment")]
-        public async Task<ActionResult<List<LockerAllotmentVM>>> AddLockerAllotment([FromBody] LockerAllotmentVM  lockerAllotment)
-        {
-            List<LockerAllotmentVM> lockerAllotments = new List<LockerAllotmentVM>();
-            var result = await _lockerAllotmentsHandler.AddLockerAllotment(lockerAllotment);
-            if (result != null && result.Count > 0)
-            {
-                lockerAllotments = result.ToList();
-            }
-            return Ok(lockerAllotments);
-        }
+        //[HttpPost]
+        //[Route("AddLockerAllotment")]
+        //public async Task<ActionResult<(bool result, decimal allotmentId)>> AddLockerAllotment([FromBody] LockerAllotmentVM lockerAllotment)
+        //{
+        //    bool result = false;
+        //    decimal allotmentId = 0;
+        //    var respondResult = await _lockerAllotmentsHandler.AddLockerAllotment(lockerAllotment);
+        //    result = respondResult.result;
+        //    allotmentId = respondResult.allotmentId;
+        //    return Ok(result,allotmentId);
+        //}
 
         [HttpPost]
         [Route("CloseLockerAllotment")]

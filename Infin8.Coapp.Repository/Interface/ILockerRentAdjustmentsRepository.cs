@@ -9,7 +9,7 @@ namespace Infin8.Coapp.Repository
 {
     public  interface ILockerRentAdjustmentsRepository
     {
-        Task<List<Locker_Rent_Adjustments>> AddLockerRentAdjustment(Locker_Rent_Adjustments lockerRentAdjustment);
+        Task<bool> AddLockerRentAdjustment(Locker_Rent_Adjustments lockerRentAdjustment);
         Task<List<Locker_Rent_Adjustments>> EditLockerRentAdjustment(Locker_Rent_Adjustments lockerRentAdjustment);
         Task<List<Locker_Rent_Adjustments>> GetLockerRentAdjustmentsListAsync(string brCode);
     }
