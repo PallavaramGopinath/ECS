@@ -1,0 +1,271 @@
+﻿@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Net
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject TransactionStateService TransactionState
+
+@rendermode InteractiveWebAssembly
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<div class="mt-4">
+    <h4 class-mb-2>Locker Rent Receipt</h4>
+    <hr class="mt-0" />
+    <EditForm Model="@model" OnValidSubmit="InitiateLockerRentReceipt">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <!--Locker details-->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card p-3">
+                    <div class="card-header">
+                        <h5>Locker Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="form-floating">
+                                    <InputSelect id="lockerId" class="form-select" @bind-Value="locker_Id"
+                                                 @bind-Value:after="fetchLockerData">
+                                        <option value="">Select Locker</option>
+                                        @foreach (var locker in lockerRentReceiptAllotmentWiseList)
+                                        {
+                                            <option value="@locker.LockerId">@locker.LockerNumber - @locker.SizeName </option>
+                                        }
+                                    </InputSelect>
+                                    <label for="lockerId">Select loan product</label>
+                                </div>
+                            </div>
+                            @if (lockerData != null && lockerData.LockerId != 0)
+                            {
+                                <div class="col-md-3 mb-3">
+                                    <div class="form-floating">
+                                        <InputNumber id="rent" class="form-control" @bind-Value="lockerData.RentAmount" readonly />
+                                        <label for="rent">Rent Amount</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="form-floating">
+                                        <InputNumber id="rentReceivable" class="form-control" @bind-Value="lockerData.RentReceivable" readonly />
+                                        <label for="rentReceivable">Rent Receivable</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="form-floating">
+                                        <InputNumber id="rentReceived" class="form-control" @bind-Value="model.RentReceived"
+                                                     @onblur="ValidateLedgerEntry" />
+                                        <label for="rentReceived">Rent Received</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </EditForm>
+</div>
+
+<!-- Button group -->
+<div class="d-flex justify-content-between mt-4 mb-4">
+    <div>
+        <!-- Left-aligned buttons -->
+        <button type="button" class="btn btn-secondary me-2" @onclick="CloseComponent">
+            <i class="oi oi-x"></i>
+            Close
+        </button>
+        @* <button type="reset" class="btn btn-outline-secondary">
+            <i class="oi oi-action-undo"></i>
+            Reset
+        </button> *@
+    </div>
+
+    <!-- Right-aligned submit button -->
+    <button type="submit" class="btn btn-primary" @onclick="InitiateLockerRentReceipt" disabled="@(model.RentReceived <= 0)">
+        <i class="oi oi-check"></i>
+        Initiate
+    </button>
+</div>
+@code {
+    #region parameter
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public int ReceiptOrPayment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime Transactiondate { get; set; }
+
+    [Parameter] public EventCallback<bool> OnLockerRentReceiptComponentClose { get; set; }
+    [Parameter] public EventCallback<LockerRentReceiptDto> OnLockerRentReceiptInitiate { get; set; }
+    #endregion
+
+    #region variables
+    private LockerRentReceiptDto model = new LockerRentReceiptDto();
+    private List<LockerRentReceiptAllotmentWiseDto> lockerRentReceiptAllotmentWiseList = new List<LockerRentReceiptAllotmentWiseDto>();
+    private DtoStaging_Details stagingDetails = new();
+    LockerRentReceiptAllotmentWiseDto lockerData = new();
+    private decimal locker_Id = 0;
+    private bool isError = false;
+    private string errorMessage = string.Empty;
+    #endregion
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            model.CustomerId = MemberId;
+            model.AccountId = AccountId;
+            model.CashOrAdjustment = CashOrAdjustment;
+            model.CustomerName = MemberName;
+            model.CustomerNo = MemberNumber;
+            model.ReceiptOrPayment = ReceiptOrPayment;
+            model.TransactionDate = Transactiondate;
+            model.BrCode = userInfoDto.BrCode;
+            model.Created_By = userInfoDto.UserId;
+            model.YrId = userInfoDto.YrId;
+            await GetLockerRentReceiptAllotmentWise();
+            StateHasChanged();
+        }
+    }
+
+    private async Task GetLockerRentReceiptAllotmentWise()
+    {
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<LockerRentReceiptAllotmentWiseDto>>($"api/Locker/GetAllotmentWiseRent/{model.CustomerId}/{model.BrCode}");
+            if (result != null)
+            {
+                lockerRentReceiptAllotmentWiseList.Clear();
+                lockerRentReceiptAllotmentWiseList.AddRange(result);
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            isError = true;
+            errorMessage = $"Exception: {ex.Message}";
+        }
+    }
+
+    private void fetchLockerData()
+    {
+        lockerData = lockerRentReceiptAllotmentWiseList.FirstOrDefault(x => x.LockerId == locker_Id) ?? new LockerRentReceiptAllotmentWiseDto();
+        model.LockerId = lockerData.LockerId;
+        model.AllotmentId = lockerData.AllotmentId;
+        model.LockerNumber = lockerData.LockerNumber;
+    }
+
+    private void ValidateLedgerEntry()
+    {
+        if (lockerData != null)
+        {
+            if(model.RentReceived != lockerData.RentAmount)
+            {
+                JSRuntime.InvokeVoidAsync("alert", "Rent received amount not equal to rent amount");
+                model.RentReceived = lockerData.RentAmount;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task CloseComponent()
+    {
+        await OnLockerRentReceiptComponentClose.InvokeAsync(true);
+    }
+
+    private async Task InitiateLockerRentReceipt()
+    {
+        string accountName = "";
+        try
+        {
+            if(model.RentReceived == 0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Rent received amount not entered");
+                return;
+            }
+            var responseStaging = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
+
+            if (responseStaging.IsSuccessStatusCode)
+            {
+                accountName = await responseStaging.Content.ReadAsStringAsync();
+            }
+            else if (responseStaging.StatusCode == HttpStatusCode.NotFound)
+            {
+                accountName = ""; // or some default value
+            }
+            else
+            {
+                // Handle other error cases
+                throw new HttpRequestException($"Error: {responseStaging.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exception
+            Console.WriteLine($"Error fetching account name: {ex.Message}");
+        }
+        string lockerRentReceiptJsonData = ConvertToJson(model);
+        double cashRecipt = 0, cashPayment = 0, adjReceipt = 0, adjPayment = 0;
+        if (CashOrAdjustment == 1)
+        {
+            cashRecipt = model.RentReceived;
+            cashPayment = 0;
+            adjReceipt = 0;
+            adjPayment = 0;
+        }
+        else
+        {
+            cashRecipt = 0;
+            cashPayment = 0;
+            adjReceipt = model.RentReceived ;
+            adjPayment = 0;
+        }
+        stagingDetails = new()
+        {
+            Id = 0,
+            Staging_Id = 0,
+            Member_Id = MemberId,
+            Ledger_Id = 0,
+            Related_Account_Id = AccountId,
+            Receipt_Amount = model.RentReceived,
+            Payment_Amount = 0,
+            Module_Name = accountName,
+            Cash_Or_Adjustment = CashOrAdjustment,
+            Related_Account_Data = lockerRentReceiptJsonData,
+            Created_By = model.Created_By,
+            Created_Date = Transactiondate,
+            Checked_By = 0,
+            Checked_Date = null,
+            Staging_Status = "I",
+            BrCode = model.BrCode,
+            CashReceipt_Amount = cashRecipt,
+            CashPayment_Amount = cashPayment,
+            AdjustmentReceipt_Amount = adjReceipt,
+            AdjustmentPayment_Amount = adjPayment,
+            Transaction_Type = "Member Transaction"
+        };
+        var response = await _httpClient.PostAsJsonAsync<DtoStaging_Details>($"api/Staging/AddStaging", stagingDetails);
+        await TransactionState.NotifyIntiate(true);
+    }
+
+    private string ConvertToJson(LockerRentReceiptDto rentReceived)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false, // Compact JSON
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        return JsonSerializer.Serialize(rentReceived, options);
+    }
+}

@@ -393,6 +393,7 @@
     private DtoTermDepositLoanRecovery FDLoanRecovery = new();
     private DtoLedgerBalance LedgerBalance = new();
     private DtoDividendPayment DividendPayment = new();
+    private LockerRentReceiptDto LockerRentReceipt = new();
     #endregion
 
     #region cheque details class
@@ -776,7 +777,7 @@
                         isComponentLoaded = false;
                         return;
                     }
-                    
+
                 }
             }
             /// verify if the member has already a sb account
@@ -924,6 +925,9 @@
                     isComponentLoaded = true;
                     break;
                 case 47:    /// housing loan reimbursemet
+                    isLedgerSection = false;
+                    break;
+                case 56:    /// Locker rent receipt
                     isLedgerSection = false;
                     break;
             }
@@ -1569,6 +1573,7 @@
                 #endregion
                 break;
             case 54:   /// Jewel Loan Disbursement to SB Account
+                #region Jewel Loan disbursement to SB account
                 fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName}";
                 Type? type54 = Type.GetType(fullyQualifiedName);
                 if (type54 != null) currentComponent = type54;
@@ -1588,6 +1593,30 @@
                 };
                 isComponentLoaded = true;
                 StateHasChanged();
+                #endregion 
+                break;
+            case 55: ///Locker Allotment seperate page
+                break;
+            case 56: /// Locker Rent Receipt 
+                #region Locker Rent Receipt
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Locker"}.{componentName}";
+                Type? type56 = Type.GetType(fullyQualifiedName);
+                if (type56 != null) currentComponent = type56;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnLockerRentReceiptComponentClose", EventCallback.Factory.Create<bool>(this, CloseLockerRentReceiptComponent) },
+                    { "OnLockerRentReceiptInitiate",EventCallback.Factory.Create<LockerRentReceiptDto>(this,LockerRentReceiptInitiate)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion 
                 break;
                 #endregion
         }
@@ -3589,6 +3618,70 @@
             Member_Name = transaction.Member_Name,
             CashReceipt = 0,
             CashPayment = transaction.Cash_Adjustment == 1 ? DividendPayment.DividendPaid : 0,
+        };
+        transactionAccountsList.Add(trn);
+        transaction.Account_Id = 0;
+    }
+    #endregion
+
+    #region Locker Rent Receipt
+    private void CloseLockerRentReceiptComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private void LockerRentReceiptInitiate(LockerRentReceiptDto initiate)
+    {
+        LockerRentReceipt  = new();
+
+        LockerRentReceipt.CustomerId = initiate.CustomerId;
+        LockerRentReceipt.AccountId  = initiate.AccountId ;
+        LockerRentReceipt.CashOrAdjustment = initiate.CashOrAdjustment;
+        LockerRentReceipt.CustomerName = initiate.CustomerName;
+        LockerRentReceipt.CustomerNo = initiate.CustomerNo;
+        LockerRentReceipt.TransactionDate = initiate.TransactionDate;
+        LockerRentReceipt.RentReceived = initiate.RentReceived;
+        LockerRentReceipt.LockerId = initiate.LockerId ;
+        LockerRentReceipt.AllotmentId = initiate.AllotmentId;
+        LockerRentReceipt.BrCode = brCode;
+        LockerRentReceipt.Created_By = createdBy;
+        LockerRentReceipt.YrId = initiate.YrId;
+
+        
+        UpdateLockerRentReceiptTransaction();
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
+    private void UpdateLockerRentReceiptTransaction()
+    {
+        string accountName = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Name!).First();
+        string status = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Status!).First();
+
+        AccountTransactionVM trn = new()
+        {
+            CashAdjId = transaction.Cash_Adjustment,
+            LedId = 0,
+            AccountId = transaction.Account_Id,
+            AccountName = accountName,
+            ReceiptAmount = JewelLoanDisbursement.AppraisalFee + JewelLoanDisbursement.BankCharges,
+            PaymentAmount = JewelLoanDisbursement.Loan_Amount,
+            ChequeNo = string.Empty,
+            ChequeDate = null,
+            IssueBankName = string.Empty,
+            Status = status,
+            Member_Id = transaction.Member_Id,
+            Member_No = transaction.Member_No,
+            PerNo = string.Empty,
+            Member_Name = transaction.Member_Name,
+            CashReceipt = transaction.Cash_Adjustment == 1 ? JewelLoanDisbursement.AppraisalFee + JewelLoanDisbursement.BankCharges : 0,
+            CashPayment = transaction.Cash_Adjustment == 2 ? JewelLoanDisbursement.Loan_Amount : 0,
         };
         transactionAccountsList.Add(trn);
         transaction.Account_Id = 0;

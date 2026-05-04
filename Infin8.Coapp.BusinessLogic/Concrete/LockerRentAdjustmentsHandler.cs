@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
 using System;
 using System.Collections.Generic;
@@ -29,6 +30,11 @@ namespace Infin8.Coapp.BusinessLogic
         public async Task<List<Locker_Rent_Adjustments>> GetLockerRentAdjustmentsListAsync(string brCode)
         {
            return await _unitOfWork.LockerRentAdjustments.GetLockerRentAdjustmentsListAsync(brCode);
+        }
+
+        public async Task<List<LockerRentReceiptAllotmentWiseDto>> GetLockerRentAllotmentWiseListAsync(decimal customerId, string brCode)
+        {
+            return await _unitOfWork.LockerRentAdjustments.GetLockerRentAllotmentWiseListAsync(customerId, brCode);
         }
     }
 }

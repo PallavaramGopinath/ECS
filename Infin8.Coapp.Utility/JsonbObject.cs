@@ -467,6 +467,15 @@ namespace Infin8.Coapp.Utility
             };
             return JsonSerializer.Deserialize<LockerAllotmentVM>(jsonData, options)!;
         }
+        public static LockerRentReceiptDto ConvertFromJsonForLockerRentReceipt(string jsonData)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true // If you want case-insensitive property matching
+            };
+            return JsonSerializer.Deserialize<LockerRentReceiptDto>(jsonData, options)!;
+        }
+
         #endregion 
     }
 }

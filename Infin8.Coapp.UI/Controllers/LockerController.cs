@@ -13,11 +13,14 @@ namespace Infin8.Coapp.UI.Controllers
         readonly ILockerAllotmentsHandler _lockerAllotmentsHandler;
         readonly ILockersHandler _lockersHandler;
         readonly ILockerClosuresHandler _lockerClosuresHandler;
-        public LockerController(ILockerAllotmentsHandler lockerAllotmentsHandler, ILockersHandler lockersHandler, ILockerClosuresHandler lockerClosuresHandler)
+        readonly ILockerRentAdjustmentsHandler _lockerRentAdjustmentsHandler;
+        public LockerController(ILockerAllotmentsHandler lockerAllotmentsHandler, ILockersHandler lockersHandler,
+            ILockerClosuresHandler lockerClosuresHandler, ILockerRentAdjustmentsHandler lockerRentAdjustmentsHandler)
         {
             _lockerAllotmentsHandler = lockerAllotmentsHandler;
             _lockersHandler = lockersHandler;
             _lockerClosuresHandler = lockerClosuresHandler;
+            _lockerRentAdjustmentsHandler = lockerRentAdjustmentsHandler;
         }
 
         [HttpGet]
@@ -94,5 +97,18 @@ namespace Infin8.Coapp.UI.Controllers
             return Ok(lockerAllotments);
         }
 
+        [HttpGet]
+        [Route("GetAllotmentWiseRent/{customerId:decimal}/{brCode}")]
+        public async Task<ActionResult<List<LockerRentReceiptAllotmentWiseDto>>> GetAllotmentWiseRent(decimal customerId, string brCode)
+        {
+            List<LockerRentReceiptAllotmentWiseDto> allotmentWiseRents = new List<LockerRentReceiptAllotmentWiseDto>();
+            var result = await _lockerRentAdjustmentsHandler.GetLockerRentAllotmentWiseListAsync(customerId, brCode);
+            if (result != null && result.Count > 0)
+            {
+                allotmentWiseRents = result.ToList();
+            }
+            return Ok(allotmentWiseRents);
+
+        }
     }
 }

@@ -1573,6 +1573,7 @@ namespace Infin8.Coapp.BusinessLogic
                                 Allotment_Id = allotmentId,
                                 Rent_Applied_Date = allotment.AllotmentDate,
                                 Rent_Receivable = allotment.RentAmount,
+                                Rent_Received_Date= allotment.AllotmentDate,
                                 Rent_Adjusted_From_Interest = 0,
                                 Rent_Received = allotment.RentAmount,
                                 BrCode = trns.BrCode!,
@@ -1622,6 +1623,35 @@ namespace Infin8.Coapp.BusinessLogic
                             }
                             #endregion 
                             break;
+                        case 56:    /// Locker rent receipt
+                            #region Locker rent receipt
+                            Locker_Settings settingRentReceipt = new();
+                            settingRentReceipt = await _unitOfWork.LockerSettings.GetLockerSetting(trns.BrCode!);
+                            LockerRentReceiptDto rentReceipt = new();
+                            rentReceipt = Utility.JsonbObject.ConvertFromJsonForLockerRentReceipt(trns.Related_Account_Data!);
+                            if(rentReceipt.RentReceived >0)
+                            {
+                                vocTrn = new();
+                                vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, settingRentReceipt.Rent_Ledger_Id, rentReceipt.RentReceived, 0, trns.Cash_Or_Adjustment, "Locker Rent on " + Narration, false, Checked_By, rentReceipt.YrId, Status, "Locker " + rentReceipt.LockerNumber, rentReceipt.CustomerId, trns.BrCode!, 0, 0, 0);
+                                finVoucherTrns.Add(vocTrn);
+                                Locker_Rent_Adjustments rentRpt = new()
+                                {
+                                    Id = 0,
+                                    Allotment_Id = rentReceipt.AllotmentId,
+                                    Rent_Applied_Date = rentReceipt.TransactionDate,
+                                    Rent_Receivable = 0,
+                                    Rent_Received_Date = rentReceipt.TransactionDate,
+                                    Rent_Adjusted_From_Interest = 0,
+                                    Rent_Received = rentReceipt.RentReceived,
+                                    BrCode = trns.BrCode!,
+                                    Created_By = trns.Checked_By!,
+                                    Created_At = rentReceipt.TransactionDate ,
+                                    Voc_Id = vocId
+                                };
+                                result = await _unitOfWork.LockerRentAdjustments.AddLockerRentAdjustment(rentRpt);
+                            }
+                            break;
+                        #endregion
                         case 1000:  /// Account Trasanctions
                             vocTrn = new();
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, trns.Ledger_Id, trns.Receipt_Amount, trns.Payment_Amount, trns.Cash_Or_Adjustment, Transacted_MemNo.Trim() + Transacted_MemName.Trim(), false, Checked_By, yrId, "G", "", trns.Account_Holder_Member_Id, brCode, 0, 0, 0);

@@ -1,4 +1,5 @@
-﻿using Infin8.Coapp.Models;
+﻿using Infin8.Coapp.Dto;
+using Infin8.Coapp.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +13,6 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> AddLockerRentAdjustment(Locker_Rent_Adjustments lockerRentAdjustment);
         Task<List<Locker_Rent_Adjustments>> EditLockerRentAdjustment(Locker_Rent_Adjustments lockerRentAdjustment);
         Task<List<Locker_Rent_Adjustments>> GetLockerRentAdjustmentsListAsync(string brCode);
+        Task<List<LockerRentReceiptAllotmentWiseDto>> GetLockerRentAllotmentWiseListAsync(decimal customerId, string brCode);
     }
 }
