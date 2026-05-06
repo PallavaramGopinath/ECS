@@ -786,7 +786,7 @@ namespace Infin8.Coapp.BusinessLogic
                         case 27:    /// Member Deposit Payment
                             break;
                         case 29:    /// 28 fees- 29-> Divided 
-                            #region
+                            #region fees dividend
                             List<Mem_Trn> dividendList = new();
                             Mem_Trn dividend = new();
                             DtoDividendPayment dividendPmt = new();
@@ -1587,7 +1587,7 @@ namespace Infin8.Coapp.BusinessLogic
                             {
                                 lockerMaster = Utility.GetModalObject.GetTermDepositMaster(0, "", tdLocker.TDScheme_Id, allotment.CustomerId, allotment.CustomerName , allotment.Age, 1,
                                     trns.Transacted_Date, trns.Transacted_Date, allotment.DepositAmount, 0, 0, allotment.InterestRate ,
-                                    trns.Transacted_Date, 0, true, 12, 0, false, false,
+                                    trns.Transacted_Date, 0, true, 1, 0, false, false,
                                     0, nomineeName, nomineeAge, nomineerelationship,
                                     "", 0, "", false, false, false, vocId, Checked_By,
                                     yrId, "N", 0, "", brCode);

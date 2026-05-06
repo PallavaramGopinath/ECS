@@ -111,11 +111,12 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
-        [Route("GetLockerClosureBalance/{customerId:decimal}/{brCode}")]
-        public async Task<ActionResult<List<LockerClosureBalanceDto>>> GetLockerClosureBalanceList(decimal customerId, string brCode)
+        [Route("GetLockerClosureBalance/{customerId:decimal}/{currentDate}/{brCode}")]
+        public async Task<ActionResult<List<LockerClosureBalanceDto>>> GetLockerClosureBalanceList(decimal customerId, string currentDate, string brCode)
         {
             List<LockerClosureBalanceDto> balanceList = new();
-            var result = await _lockerRentAdjustmentsHandler.GetLockerClosureBalanceListAsync(customerId, brCode);  
+            DateTime.TryParse(currentDate, out DateTime currentDateUtc);
+            var result = await _lockerRentAdjustmentsHandler.GetLockerClosureBalanceListAsync(customerId, currentDateUtc , brCode);  
             if(result != null && result.Count > 0)
             {
                 balanceList = result.ToList();

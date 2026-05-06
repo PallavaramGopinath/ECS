@@ -394,6 +394,7 @@
     private DtoLedgerBalance LedgerBalance = new();
     private DtoDividendPayment DividendPayment = new();
     private LockerRentReceiptDto LockerRentReceipt = new();
+    private LockerClosureDto LockerClosure = new LockerClosureDto();
     #endregion
 
     #region cheque details class
@@ -928,6 +929,9 @@
                     isLedgerSection = false;
                     break;
                 case 56:    /// Locker rent receipt
+                    isLedgerSection = false;
+                    break;
+                case 57:    /// Locker closure
                     isLedgerSection = false;
                     break;
             }
@@ -1618,6 +1622,28 @@
                 StateHasChanged();
                 #endregion 
                 break;
+            case 57:    /// Locker closure
+                #region Locker Closure
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.Locker"}.{componentName}";
+                Type? type57 = Type.GetType(fullyQualifiedName);
+                if (type57 != null) currentComponent = type57;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId",transaction.Account_Id },
+                    { "CashOrAdjustment",transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnLockerClosureComponentClose", EventCallback.Factory.Create<bool>(this, CloseLockerClosureComponent) },
+                    { "OnLockerClosureInitiate",EventCallback.Factory.Create<LockerClosureDto>(this,LockerClosureInitiate)}
+                };
+                isComponentLoaded = true;
+                StateHasChanged();
+                #endregion
+                break;
+
                 #endregion
         }
     }
@@ -3651,7 +3677,7 @@
         LockerRentReceipt.Created_By = createdBy;
         LockerRentReceipt.YrId = initiate.YrId;
 
-        
+
         UpdateLockerRentReceiptTransaction();
         isComponentLoaded = false;
         isLedgerSection = false;
@@ -3670,8 +3696,8 @@
             LedId = 0,
             AccountId = transaction.Account_Id,
             AccountName = accountName,
-            ReceiptAmount = JewelLoanDisbursement.AppraisalFee + JewelLoanDisbursement.BankCharges,
-            PaymentAmount = JewelLoanDisbursement.Loan_Amount,
+            ReceiptAmount = LockerRentReceipt.RentReceived , /// JewelLoanDisbursement.AppraisalFee + JewelLoanDisbursement.BankCharges,
+            PaymentAmount = 0,
             ChequeNo = string.Empty,
             ChequeDate = null,
             IssueBankName = string.Empty,
@@ -3680,12 +3706,81 @@
             Member_No = transaction.Member_No,
             PerNo = string.Empty,
             Member_Name = transaction.Member_Name,
-            CashReceipt = transaction.Cash_Adjustment == 1 ? JewelLoanDisbursement.AppraisalFee + JewelLoanDisbursement.BankCharges : 0,
-            CashPayment = transaction.Cash_Adjustment == 2 ? JewelLoanDisbursement.Loan_Amount : 0,
+            CashReceipt = transaction.Cash_Adjustment == 1 ? LockerRentReceipt.RentReceived  : 0,
+            CashPayment = 0,
         };
         transactionAccountsList.Add(trn);
         transaction.Account_Id = 0;
     }
+
+    private void CloseLockerClosureComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private void LockerClosureInitiate(LockerClosureDto initiate)
+    {
+        LockerClosure = new();
+
+        LockerClosure.CustomerId = initiate.CustomerId;
+        LockerClosure.AccountId = initiate.AccountId;
+        LockerClosure.CashOrAdjustment = initiate.CashOrAdjustment;
+        LockerClosure.ReceiptOrPayment = initiate.ReceiptOrPayment;
+        LockerClosure.CustomerNo = initiate.CustomerNo;
+        LockerClosure.CustomerName = initiate.CustomerName;
+        LockerClosure.TransactionDate = initiate.TransactionDate;
+        LockerClosure.LockerId = initiate.LockerId;
+        LockerClosure.AllotmentId = initiate.AllotmentId;
+        LockerClosure.LockerNumber = initiate.LockerNumber ;
+        LockerClosure.RentReceivable = initiate.RentReceivable;
+        LockerClosure.RentReceived = initiate.RentReceived;
+        LockerClosure.DepositId = initiate.DepositId ;
+        LockerClosure.DepositNo = initiate.DepositNo ;
+        LockerClosure.InterestCalculated = initiate.InterestCalculated ;
+        LockerClosure.InterestPaid = initiate.InterestPaid ;
+        LockerClosure.BrCode = brCode;
+        LockerClosure.Created_By = createdBy;
+        LockerClosure.YrId = initiate.YrId;
+
+        UpdateLockerClosureTransaction();
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
+    private void UpdateLockerClosureTransaction()
+    {
+        string accountName = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Name!).First();
+        string status = AllAccountTransaction.Where(x => x.Acc_Id == transaction.Account_Id).Select(x => x.Acc_Status!).First();
+
+        AccountTransactionVM trn = new()
+        {
+            CashAdjId = transaction.Cash_Adjustment,
+            LedId = 0,
+            AccountId = transaction.Account_Id,
+            AccountName = accountName,
+            ReceiptAmount = LockerClosure.RentReceived , 
+            PaymentAmount = LockerClosure.DepositRefundAmount + LockerClosure.InterestPaid , 
+            ChequeNo = string.Empty,
+            ChequeDate = null,
+            IssueBankName = string.Empty,
+            Status = status,
+            Member_Id = transaction.Member_Id,
+            Member_No = transaction.Member_No,
+            PerNo = string.Empty,
+            Member_Name = transaction.Member_Name,
+            CashReceipt = transaction.Cash_Adjustment == 1 ? LockerClosure.RentReceived : 0,
+            CashPayment = transaction.Cash_Adjustment == 2 ? LockerClosure.DepositRefundAmount + LockerClosure.InterestPaid : 0,
+        };
+        transactionAccountsList.Add(trn);
+        transaction.Account_Id = 0;
+    }
+
     #endregion
 
     // private string ConvertToJson(ChequeDetails cheque)

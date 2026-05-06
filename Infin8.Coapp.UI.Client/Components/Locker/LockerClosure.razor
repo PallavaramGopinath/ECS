@@ -48,6 +48,21 @@
                             {
                                 <div class="col-md-3 mb-3">
                                     <div class="form-floating">
+                                        <InputNumber id="depositRefund" class="form-control" @bind-Value="lockerData.DepositRefundAmount" readonly />
+                                        <label for="depositRefund">Deposit Refund Amount</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 mb-3">
+                                    <div class="form-floating">
+                                        <input type="number" id="InterestPayable" class="form-control"
+                                               value="@((lockerData.InterestPreviousBalance + lockerData.InterestCalculated).ToString("0.00"))"
+                                               readonly />
+                                        <label for="InterestPayalbe">Interest Payable</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="form-floating">
                                         <InputNumber id="rent" class="form-control" @bind-Value="lockerData.RentAmount" readonly />
                                         <label for="rent">Rent Amount</label>
                                     </div>
@@ -65,30 +80,12 @@
                                         <label for="rentReceived">Rent Received</label>
                                     </div>
                                 </div>
-
-                                <div class="col-md-3 mb-3">
-                                    <div class="form-floating">
-                                        <InputNumber id="depositRefund" class="form-control" @bind-Value="lockerData.DepositRefundAmount" readonly />
-                                        <label for="depositRefund">Deposit Refund Amount</label>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3 mb-3">
-                                    <div class="form-floating">
-                                        <input type="number" id="InterestPayable" class="form-control"
-                                               value="@((lockerData.InterestPreviousBalance + lockerData.InterestCalculated).ToString("0.00"))"
-                                               readonly />
-                                        <label for="InterestPayalbe">Interest Payable</label>
-                                    </div>
-                                </div>
                             }
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-
     </EditForm>
 </div>
 
@@ -164,7 +161,8 @@
     {
         try
         {
-            var result = await _httpClient.GetFromJsonAsync<List<LockerClosureBalanceDto>>($"api/Locker/GetLockerClosureBalance/{model.CustomerId}/{model.BrCode}");
+            string currentDate = Transactiondate.ToString("yyyy-MM-dd");
+            var result = await _httpClient.GetFromJsonAsync<List<LockerClosureBalanceDto>>($"api/Locker/GetLockerClosureBalance/{model.CustomerId}/{currentDate}/{model.BrCode}");
             if (result != null)
             {
                 lockerClosureBalanceList.Clear();
@@ -190,6 +188,10 @@
         model.DepositRefundAmount = lockerData.DepositRefundAmount;
         model.InterestCalculated = lockerData.InterestCalculated;
         model.InterestCalculatedDate = lockerData.InterestCalculatedDate;
+        model.RentReceived = lockerData.RentReceived;
+        model.InterestCalculated = lockerData.InterestCalculated;
+        model.InterestCalculatedDate = lockerData.InterestCalculatedDate;
+
     }
 
     private void ValidateLedgerEntry()

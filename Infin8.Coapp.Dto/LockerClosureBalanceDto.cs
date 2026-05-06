@@ -25,6 +25,7 @@ namespace Infin8.Coapp.Dto
         public DateTime? InterestPreviousAppliedDate { get; set; }
         public double InterestCalculated { get; set; }
         public DateTime? InterestCalculatedDate { get; set; }
+        public DateTime LockerClosureDate { get; set; }
         ///public double InterestPaid { get; set; }
     }
 }

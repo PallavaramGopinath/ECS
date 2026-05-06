@@ -1,6 +1,8 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Infin8.Coapp.Repository;
+using Infin8.Coapp.Utility;
+using Microsoft.AspNetCore.Components.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,10 +13,15 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public class LockerRentAdjustmentsHandler : ILockerRentAdjustmentsHandler
     {
-        readonly IUnitOfWork _unitOfWork;
-        public LockerRentAdjustmentsHandler(IUnitOfWork unitOfWork)
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ITermDepositTrnHandler _termDepositTrnHandler;
+        //private readonly AuthenticationStateProvider _authStateProvider;
+        public LockerRentAdjustmentsHandler(IUnitOfWork unitOfWork, ITermDepositTrnHandler termDepositTrnHandler
+           )
         {
             _unitOfWork = unitOfWork;
+            _termDepositTrnHandler = termDepositTrnHandler;
+            //_authStateProvider = authStateProvider;
         }
 
         public async Task<bool> AddLockerRentAdjustment(Locker_Rent_Adjustments lockerRentAdjustment)
@@ -27,33 +34,24 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LockerRentAdjustments.EditLockerRentAdjustment(lockerRentAdjustment);
         }
 
-        public async Task<List<LockerClosureBalanceDto>> GetLockerClosureBalanceListAsync(decimal customerId, string brCode)
+        public async Task<List<LockerClosureBalanceDto>> GetLockerClosureBalanceListAsync(decimal customerId, DateTime currentDate, string brCode)
         {
             List<LockerClosureBalanceDto> balanceList = new();
-            DateTime IntCalcDate = DateTime.UtcNow;
-            DateTime ToDate = DateTime.UtcNow;
-            int NoOfMonths = 0;
-            double IntCalc = 0;
-            double TotalIntCalc = 0;
-            UtilityHandler utilityHandler = new UtilityHandler();
             try
             {
+                //var userInfo = await Utilities.GetUserInfoDtoFromASP(_authStateProvider);
                 balanceList = await _unitOfWork.LockerRentAdjustments.GetLockerClosureBalanceListAsync(customerId, brCode);
                 foreach (var bal in balanceList)
                 {
-                    IntCalc = 0;
-                    ToDate = bal.TransactionDate;
-                    bal.InterestCalculated = IntCalc;
-                    if (bal.InterestPreviousAppliedDate == null) IntCalcDate = bal.DepositDate;
-                    else IntCalcDate = (DateTime)bal.InterestPreviousAppliedDate;
-                    NoOfMonths = utilityHandler.GetMonthsBetweenDates(IntCalcDate, bal.TransactionDate);
-                    for (int i = 1; i <= NoOfMonths; i++)
-                    {
-                        IntCalc = 0;
-                        IntCalc = utilityHandler.CalculateInterestForFixedDeposit(bal.DepositRefundAmount, bal.InterestRate , 1, false);
-                        TotalIntCalc += IntCalc;
-                    }
-                    IntCalcDate = utilityHandler.GetNextMonthForFD(bal.TransactionDate, IntCalcDate, NoOfMonths);
+                    List<FDDetailsVM> fdDetails = new();
+                    
+                    decimal[] fdId = { bal.DepositId };
+                    fdDetails = await _termDepositTrnHandler.GetFDPayableByTDIdsAsync(fdId, currentDate , 7, brCode);
+                    var fd = fdDetails.FirstOrDefault();
+                    bal.InterestPreviousBalance = fd.FDIntAlreadyCalculated;
+                    bal.InterestCalculated = fd.FDIntCalculatedNow;
+                    bal.InterestCalculatedDate = fd.FDIntCalculatedDateNow;
+                    bal.LockerClosureDate = currentDate;
                 }
             }
             catch (Exception)
@@ -62,6 +60,7 @@ namespace Infin8.Coapp.BusinessLogic
             }
             return balanceList;
         }
+
 
         public async Task<List<Locker_Rent_Adjustments>> GetLockerRentAdjustmentsListAsync(string brCode)
         {
