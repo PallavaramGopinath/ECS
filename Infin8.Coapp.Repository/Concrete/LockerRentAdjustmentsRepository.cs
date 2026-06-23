@@ -82,43 +82,76 @@ namespace Infin8.Coapp.Repository
         public async Task<List<LockerClosureBalanceDto>> GetLockerClosureBalanceListAsync(decimal customerId, string brCode)
         {
             List<LockerClosureBalanceDto> closureBalance = new List<LockerClosureBalanceDto>();
-            double intCalc = 0;
             try
             {
-                var query = await (from a in CSISContext.Locker_Allotments
-                                   join l in CSISContext.Lockers on a.Locker_Id equals l.Id
-                                   join s in CSISContext.Locker_Size_Master on l.Size_Id equals s.Id
-                                   join r in CSISContext.Locker_Rent_Adjustments on a.Id equals r.Allotment_Id
-                                   join t in CSISContext.TermDeposit_Master on a.Td_Id equals t.TD_Id 
-                                   join tr in CSISContext.TermDeposit_Trn on t.TD_Id equals tr.TD_Id
-                                   where a.Customer_Id == customerId && a.BrCode == brCode
-                                   && a.Status == "Active"
-                                   group new { a, l, s, r,t,tr } by new { a.Id, a.Locker_Id,a.Td_Id,  a.Deposit_Amount , 
-                                       l.Locker_Number, s.Size_Name, s.Rent_Amount,
-                                       t.TD_No , t.ValueDate ,t.RateOfInterest ,  tr.TD_Id  } into g
-                                   select new LockerClosureBalanceDto
-                                   {
-                                       AllotmentId = g.Key.Id,
-                                       LockerId = g.Key.Locker_Id,
-                                       LockerNumber = g.Key.Locker_Number,
-                                       SizeName = g.Key.Size_Name,
-                                       RentAmount = g.Key.Rent_Amount,
-                                       RentReceivable = g.Sum(trn => trn.r.Rent_Receivable) - g.Sum(trn => trn.r.Rent_Received),
-                                       RentReceived = 0,
-                                       DepositId = g.Key.Td_Id,
-                                       DepositNo = g.Key.TD_No ,
-                                       DepositDate = g.Key.ValueDate ,
-                                       InterestRate = g.Key.RateOfInterest ,
-                                       DepositRefundAmount = g.Key.Deposit_Amount ,
-                                       InterestPreviousBalance = g.Sum(trn => trn.tr.InterestCalculatedAmount) - g.Sum(trn => trn.tr.InterestPaidAmount ),
-                                       InterestPreviousAppliedDate = g.Max(trn=> trn.tr.InterestAppliedDate ),
-                                       InterestCalculated = 0
-                                   }).ToListAsync();
-                closureBalance = query.ToList();
+                // Base: one row per active allotment backed by a term deposit.
+                closureBalance = await (from a in CSISContext.Locker_Allotments
+                                        join l in CSISContext.Lockers on a.Locker_Id equals l.Id
+                                        join s in CSISContext.Locker_Size_Master on l.Size_Id equals s.Id
+                                        join t in CSISContext.TermDeposit_Master on a.Td_Id equals t.TD_Id
+                                        where a.Customer_Id == customerId && a.BrCode == brCode
+                                        && a.Status == "Active"
+                                        select new LockerClosureBalanceDto
+                                        {
+                                            AllotmentId = a.Id,
+                                            LockerId = a.Locker_Id,
+                                            LockerNumber = l.Locker_Number,
+                                            SizeName = s.Size_Name,
+                                            RentAmount = s.Rent_Amount,
+                                            RentReceived = 0,
+                                            DepositId = a.Td_Id,
+                                            DepositNo = t.TD_No,
+                                            DepositDate = t.ValueDate,
+                                            InterestRate = t.RateOfInterest,
+                                            DepositRefundAmount = a.Deposit_Amount,
+                                            InterestCalculated = 0
+                                        }).ToListAsync();
+
+                if (closureBalance.Count == 0)
+                {
+                    return closureBalance;
+                }
+
+                var allotmentIds = closureBalance.Select(b => b.AllotmentId).ToList();
+                var depositIds = closureBalance.Select(b => b.DepositId).ToList();
+
+                // Rent receivable aggregated separately by allotment (no cartesian product).
+                var rentByAllotment = await CSISContext.Locker_Rent_Adjustments
+                    .Where(r => allotmentIds.Contains(r.Allotment_Id))
+                    .GroupBy(r => r.Allotment_Id)
+                    .Select(g => new
+                    {
+                        AllotmentId = g.Key,
+                        RentReceivable = g.Sum(r => r.Rent_Receivable) - g.Sum(r => r.Rent_Received)
+                    })
+                    .ToDictionaryAsync(x => x.AllotmentId, x => x.RentReceivable);
+
+                // TD interest balance aggregated separately by deposit (no cartesian product).
+                var interestByDeposit = await CSISContext.TermDeposit_Trn
+                    .Where(tr => depositIds.Contains(tr.TD_Id))
+                    .GroupBy(tr => tr.TD_Id)
+                    .Select(g => new
+                    {
+                        DepositId = g.Key,
+                        InterestPreviousBalance = g.Sum(tr => tr.InterestCalculatedAmount) - g.Sum(tr => tr.InterestPaidAmount),
+                        InterestPreviousAppliedDate = g.Max(tr => tr.InterestAppliedDate)
+                    })
+                    .ToListAsync();
+                var interestMap = interestByDeposit.ToDictionary(x => x.DepositId);
+
+                foreach (var bal in closureBalance)
+                {
+                    bal.RentReceivable = rentByAllotment.TryGetValue(bal.AllotmentId, out var rent) ? rent : 0;
+                    if (interestMap.TryGetValue(bal.DepositId, out var interest))
+                    {
+                        bal.InterestPreviousBalance = interest.InterestPreviousBalance;
+                        bal.InterestPreviousAppliedDate = interest.InterestPreviousAppliedDate;
+                    }
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                closureBalance = new();
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching locker closure balance");
             }
             return closureBalance;
         }

@@ -48,9 +48,12 @@ namespace Infin8.Coapp.BusinessLogic
                     decimal[] fdId = { bal.DepositId };
                     fdDetails = await _termDepositTrnHandler.GetFDPayableByTDIdsAsync(fdId, currentDate , 7, brCode);
                     var fd = fdDetails.FirstOrDefault();
-                    bal.InterestPreviousBalance = fd.FDIntAlreadyCalculated;
-                    bal.InterestCalculated = fd.FDIntCalculatedNow;
-                    bal.InterestCalculatedDate = fd.FDIntCalculatedDateNow;
+                    if (fd != null)
+                    {
+                        bal.InterestPreviousBalance = fd.FDIntAlreadyCalculated;
+                        bal.InterestCalculated = fd.FDIntCalculatedNow;
+                        bal.InterestCalculatedDate = fd.FDIntCalculatedDateNow;
+                    }
                     bal.LockerClosureDate = currentDate;
                 }
             }

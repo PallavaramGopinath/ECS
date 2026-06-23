@@ -8,7 +8,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.WebAssembly.Http
-@using BlazorCaptcha
+@using System.Text
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
@@ -162,18 +162,15 @@
                         <div class="form-group mb-3">
                             <label>Captcha</label>
                             <div class="d-flex align-items-center gap-2">
-                                <input class="form-control text-center fw-bold"
-                                       style="width:160px; letter-spacing:3px; font-size:1.5rem;"
-                                       value="@CaptchaCode"
-                                       disabled />
-
+                                <span class="border rounded" style="line-height:0;">
+                                    @((MarkupString)CaptchaSvg)
+                                </span>
                                 <button type="button" class="btn btn-outline-secondary"
                                         @onclick="GenerateCaptcha">
                                     ↻
                                 </button>
                             </div>
                         </div>
-                        @* <Captcha @bind-CaptchaWord="@Captcha" CharNumber="@CaptchaLetters" /> *@
                         <div class="mb-3" style="width:300px;">
                             <InputText class="form-control"
                                        placeholder="Enter captcha"
@@ -234,12 +231,11 @@
     private int captchaAnswer = 0;
     private string captchaUserAnswer = string.Empty;
 
-    private string CaptchaCode = string.Empty;
     private string UserCaptchaInput = string.Empty;
     private string captaErrorMessage = string.Empty;
 
-    private string Captcha = string.Empty;
-    private int CaptchaLetters = 5;
+    private string CaptchaCode = string.Empty;
+    private string CaptchaSvg = string.Empty;
 
     private LoginModel loginModel = new LoginModel();
     private bool isLoading = false;
@@ -275,21 +271,43 @@
 
     private void GenerateCaptcha()
     {
-
-        // var random = new Random();
-        // int num1 = random.Next(1, 10);
-        // int num2 = random.Next(1, 10);
-        // captchaAnswer = num1 + num2;
-        // captchaQuestion = $"{num1} + {num2} = ?";
-
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         var random = new Random();
         CaptchaCode = new string(Enumerable.Range(0, 6)
            .Select(_ => chars[random.Next(chars.Length)]).ToArray());
 
-        Captcha = BlazorCaptcha.Commun.Tools.GetCaptchaWord(CaptchaLetters);
+        CaptchaSvg = BuildCaptchaSvg(CaptchaCode, random);
         UserCaptchaInput = string.Empty;
         errorMessage = string.Empty;
+    }
+
+    // Renders the captcha code as a distorted inline SVG image (no native deps; works in WASM).
+    private static string BuildCaptchaSvg(string code, Random random)
+    {
+        const int width = 180, height = 60;
+        string[] colors = { "#2c3e50", "#8e44ad", "#c0392b", "#16a085", "#2980b9", "#d35400" };
+        var sb = new StringBuilder();
+        sb.Append($"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}' viewBox='0 0 {width} {height}' role='img' aria-label='captcha'>");
+        sb.Append($"<rect width='{width}' height='{height}' fill='#f1f3f5'/>");
+
+        // Noise lines.
+        for (int i = 0; i < 5; i++)
+        {
+            sb.Append($"<line x1='{random.Next(width)}' y1='{random.Next(height)}' x2='{random.Next(width)}' y2='{random.Next(height)}' stroke='{colors[random.Next(colors.Length)]}' stroke-width='1' opacity='0.5'/>");
+        }
+
+        // Characters with per-letter jitter and rotation.
+        int step = (width - 20) / code.Length;
+        for (int i = 0; i < code.Length; i++)
+        {
+            int x = 15 + (i * step) + random.Next(-3, 4);
+            int y = 40 + random.Next(-6, 7);
+            int angle = random.Next(-25, 26);
+            sb.Append($"<text x='{x}' y='{y}' font-family='Verdana,Arial,sans-serif' font-size='30' font-weight='bold' fill='{colors[random.Next(colors.Length)]}' transform='rotate({angle} {x} {y})'>{code[i]}</text>");
+        }
+
+        sb.Append("</svg>");
+        return sb.ToString();
     }
 
     private void ValidateCapta()
