@@ -1,7 +1,9 @@
-﻿using Infin8.Coapp.Models;
-using Infin8.Coapp.Repository;
-using Infin8.Coapp.Repository.Concrete;
-using Infin8.Coapp.Repository.Interface;
+﻿//using Infin8.Coapp.Models;
+//using Infin8.Coapp.Repository;
+//using Infin8.Coapp.Repository.Concrete;
+
+//using Infin8.Coapp.Repository.Concrete;
+//using Infin8.Coapp.Repository.Interface;
 using System.Xml.Linq;
 
 namespace Infin8.Coapp.Repository
@@ -56,6 +58,8 @@ namespace Infin8.Coapp.Repository
         private LoanRepaymentScheduleRepository? _loanRepaymentScheduleRepository;
         private LoanSanctionRepository? _loanSanctionRepository;
         private LoanSanctionTrnRepository? _loanSanctionTrnRepository;
+        private SuretyLoanSanctionRepository? _suretyLoanSanctionRepository;
+        private LoanEligibilityRepository? _loanEligibilityRepository;
         private LoanTrnRepository? _loanTrnRepository;
         private JLDailyMarketRateRepository? _jldailyMarketRateRepository;
         private JLDetailsRepository? _jldDetailsRepository;
@@ -70,7 +74,7 @@ namespace Infin8.Coapp.Repository
         private MapGeneralRepository? _mapGeneralRepository;
         private MapSuspenseAccountsRepository? _mapSuspenseAccountsRepository;
         private MemAddressRepository? _memAddressRepository;
-        private MemDemandMasterRepository? _memDemandMasterRepository;
+       
         private MemPassbookRepository? _memPassbookRepository;
         private MemPayableRepository? _memPayableRepository;
         private MemPayableMasterRepository? _memPayableMasterRepository;
@@ -158,7 +162,27 @@ namespace Infin8.Coapp.Repository
 
         private TransactionsRepository? _transactionsRepository;
 
-        
+        #region Deposits
+        private DepositMastersRepository? _depositMastersRepository;
+        private DepositTrnRepository? _depositTrnRepository;
+        private DepositRoiTemplatesRepository? _depositRoiTemplatesRepository;
+        private DepositOptionsRepository? _depositOptionsRepository;
+        #endregion
+
+        #region ECS Demand Calculation
+        private ECSDemandCalculationRepository? _ecsDemandCalculationRepository;
+        #endregion
+
+        #region Mem Demand
+        private MemDemandMasterRepository? _memDemandMasterRepository;
+        private MemDemandRepository? _memDemandRepository;
+        private MemDemandStatusRepository? _memDemandStatusRepository;
+        private MemCollectionPriorityRepository? _memCollectionPriorityRepository;
+        #endregion
+
+        #region Recurring Deposit
+        private RecurringDepositRepository? _recurringDepositRepository;
+        #endregion 
 
         #region Accounts
         public IAccountsRepository Accounts => _accountsRepository ??= new AccountsRepository(_context);
@@ -200,6 +224,8 @@ namespace Infin8.Coapp.Repository
         public ILoanRepaymentScheduleRepository LoanRepaymentSchedule => _loanRepaymentScheduleRepository ??= new LoanRepaymentScheduleRepository(_context);
         public ILoanSanctionRepository LoanSanction => _loanSanctionRepository ??= new LoanSanctionRepository(_context);
         public ILoanSanctionTrnRepository LoanSanctionTrn => _loanSanctionTrnRepository ??= new LoanSanctionTrnRepository(_context);
+        public ISuretyLoanSanctionRepository SuretyLoanSanction => _suretyLoanSanctionRepository ??= new SuretyLoanSanctionRepository(_context);
+        public ILoanEligibilityRepository LoanEligibility => _loanEligibilityRepository ??= new LoanEligibilityRepository(_context);
         public ILoanTrnRepository LoanTrn => _loanTrnRepository ??= new LoanTrnRepository(_context);
         public IJLDailyMarketRateRepository JLDailyMarketRate => _jldailyMarketRateRepository ??= new JLDailyMarketRateRepository(_context);    
         public IJLDetailsRepository JLDetails => _jldDetailsRepository ??= new JLDetailsRepository(_context);
@@ -214,7 +240,7 @@ namespace Infin8.Coapp.Repository
         public IMapGeneralRepository MapGeneral => _mapGeneralRepository ??= new MapGeneralRepository(_context);
         public IMapSuspenseAccountsRepository MapSuspenseAccounts => _mapSuspenseAccountsRepository ??= new MapSuspenseAccountsRepository(_context);
         public IMemAddressRepository MemAddress => _memAddressRepository ??= new MemAddressRepository(_context);
-        public IMemDemandMasterRepository MemDemandMaster => _memDemandMasterRepository ??= new MemDemandMasterRepository(_context);
+        
         public IMemPassbookRepository MemPassbook => _memPassbookRepository ??= new MemPassbookRepository(_context);
         public IMemPayableRepository MemPayable => _memPayableRepository ??= new MemPayableRepository(_context);
         public IMemPayableMasterRepository MemPayableMaster => _memPayableMasterRepository ??= new MemPayableMasterRepository(_context);
@@ -296,6 +322,29 @@ namespace Infin8.Coapp.Repository
         public ILockerAllotmentsRepository LockerAllotments => _lockerAllotmentsRepository ??= new LockerAllotmentsRepository(_context);
         public ILockerRentAdjustmentsRepository LockerRentAdjustments => _lockerRentAdjustmentsRepository ??= new LockerRentAdjustmentsRepository(_context);
         public ILockerClosuresRepository LockerClosures => _lockerClosuresRepository ??= new LockerClosuresRepository(_context);
+        #endregion
+
+        #region Deposits
+        public IDepositOptionsRepository DepositOptions => _depositOptionsRepository ??= new DepositOptionsRepository(_context);
+        public IDepositMastersRepository DepositMasters => _depositMastersRepository ??= new DepositMastersRepository(_context);
+        public IDepositTrnRepositoty DepositTrn => _depositTrnRepository ??= new DepositTrnRepository(_context);
+        public IDepositRoiTemplatesRepository DepositRoiTemplates => _depositRoiTemplatesRepository ??= new DepositRoiTemplatesRepository(_context);
+
+        #endregion
+
+        #region ECS Demand Caluclation
+        public IECSDemandCalculationRepository ECSDemandCalculation => _ecsDemandCalculationRepository ??= new ECSDemandCalculationRepository(_context);
+        #endregion
+
+        #region Mem Demand
+        public IMemDemandMasterRepository MemDemandMaster => _memDemandMasterRepository ??= new MemDemandMasterRepository(_context);
+        public IMemDemandRepository MemDemand => _memDemandRepository ??= new MemDemandRepository(_context);
+        public IMemDemandStatusRepository MemDemandStatus => _memDemandStatusRepository ??= new MemDemandStatusRepository(_context);
+        public IMemCollectionPriorityRepository MemCollectionPriority => _memCollectionPriorityRepository ??= new MemCollectionPriorityRepository(_context);
+        #endregion
+
+        #region Recurring Deposit
+        public IRecurringDepositRepository RecurringDeposit => _recurringDepositRepository ??= new RecurringDepositRepository(_context);
         #endregion 
 
         public ITransactionsRepository TransactionsRepository => _transactionsRepository ??= new TransactionsRepository(_context);

@@ -18,6 +18,5 @@ namespace Infin8.Coapp.Models
         public string? Bank_ShortName { get; set; }
         public int Bank_Type { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; }
     }
 }

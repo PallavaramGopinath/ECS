@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Infin8.Coapp.Repository
@@ -22,6 +23,7 @@ namespace Infin8.Coapp.Repository
         {
         }
 
+        #region CURD
         public async Task<bool> AddLoanTrnListAsync(List<Loan_Trn> loanTrnList)
         {
             bool result = false;
@@ -94,6 +96,7 @@ namespace Infin8.Coapp.Repository
             }
             return result;
         }
+        #endregion 
 
         public async Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(int schemeId)
         {
@@ -151,7 +154,7 @@ namespace Infin8.Coapp.Repository
             return balance;
         }
 
-        public async Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType,string brCode)
+        public async Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType, string brCode)
         {
             List<DropdownItem> list = new List<DropdownItem>();
             try
@@ -272,9 +275,9 @@ namespace Infin8.Coapp.Repository
                         _previourDueDate = (DateTime)loan.Due_Date.Value.Date;
                     else
                         if (loan.FirstPrl_DueDate != null)
-                        _previourDueDate = ((DateTime)loan.FirstPrl_DueDate).Date;
-                    else
-                        _previourDueDate = loan.FirstInt_DueDate;
+                            _previourDueDate = ((DateTime)loan.FirstPrl_DueDate).Date;
+                        else
+                            _previourDueDate = loan.FirstInt_DueDate;
                     switch (intCalcType)
                     {
                         case 1: /// due date
@@ -348,9 +351,9 @@ namespace Infin8.Coapp.Repository
                             _maxDueDate = Utilities.AddMonths((DateTime)loan.Due_Date, loan.Dem_Frequency);
                     else
                         if (loan.FirstPrl_DueDate != null)
-                        _maxDueDate = ((DateTime)loan.FirstPrl_DueDate).Date;
-                    else
-                        _maxDueDate = loan.FirstInt_DueDate.Date;
+                            _maxDueDate = ((DateTime)loan.FirstPrl_DueDate).Date;
+                        else
+                            _maxDueDate = loan.FirstInt_DueDate.Date;
                     //_maxDueDate = loanDetails.FirstInt_DueDate;
                     _prlDemand = 0; _nonODPrl = 0; _loanOS = 0; _oneMonthIntCalc = 0;
 
@@ -2006,66 +2009,66 @@ namespace Infin8.Coapp.Repository
             double intDemand = 0;
             double prlDemand = 0;
             int presentIntPrd = 0;
-            List<PayLoanBalanceVM> loanList = new ();
+            List<PayLoanBalanceVM> loanList = new();
             try
             {
                 #region get record set
                 var result = await (from lm in CSISContext.Loan_Master
-                              join mm in CSISContext.mem_master on lm.Mem_Id equals mm.mem_id
-                              join ls in CSISContext.Loan_Schemes on lm.Scheme_Id equals ls.Scheme_Id
-                              join lt in CSISContext.Loan_Trn on lm.Loan_Id equals lt.Loan_Id
-                              where lm.Mem_Id == empId
-                                    && !lt.TrnTr_Delete
-                                    && !lm.Loan_Delete
-                              group new { lm, ls, lt } by new
-                              {
-                                  lm.Loan_Id,
-                                  lm.Loan_No,
-                                  lm.San_Amt,
-                                  lm.FirstPrl_DueDate,
-                                  lm.FirstInt_DueDate,
-                                  lm.San_Date,
-                                  lm.Prl_Prd,
-                                  lm.Int_Prd,
-                                  lm.Inst_Amt,
-                                  lm.Roi,
-                                  ls.Scheme_Name,
-                                  ls.Scheme_Id,
-                                  ls.Loan_Type,
-                                  ls.PrlLed_Id,
-                                  ls.IntLed_Id,
-                                  ls.StaffLoan_Int_Type
-                              } into g
-                              where (g.Sum(x => x.lt.Disb_Amt) - g.Sum(x => x.lt.PrlColl_Amt) > 0) ||
-                                    (g.Sum(x => x.lt.IntCalc_Amt) - g.Sum(x => x.lt.IntColl_Amt) > 0)
-                              where g.Key.Loan_Type == 5
-                              select new PayLoanBalanceVM
-                              {
-                                  Loan_Id = g.Key.Loan_Id,
-                                  Loan_No = g.Key.Loan_No,
-                                  San_Amt = g.Key.San_Amt,
-                                  FirstPrl_DueDate = (DateTime)g.Key.FirstPrl_DueDate!,
-                                  FirstInt_DueDate = (DateTime)g.Key.FirstInt_DueDate!,
-                                  San_Date = g.Key.San_Date,
-                                  Prl_Prd = g.Key.Prl_Prd,
-                                  Int_Prd = g.Key.Int_Prd,
-                                  Inst_Amt = g.Key.Inst_Amt,
-                                  Roi = g.Key.Roi,
-                                  Scheme_Name = g.Key.Scheme_Name,
-                                  Scheme_Id = g.Key.Scheme_Id,
-                                  Loan_Type = g.Key.Loan_Type,
-                                  PrlLed_Id = g.Key.PrlLed_Id,
-                                  IntLed_Id = g.Key.IntLed_Id,
-                                  StaffLoan_Int_Type = g.Key.StaffLoan_Int_Type,
-                                  MaxTrn_Date = g.Max(x => x.lt.Trn_Date),
-                                  SumDisb_Amt = g.Sum(x => x.lt.Disb_Amt),
-                                  SumPrl_Sched = g.Sum(x => x.lt.Prl_Sched),
-                                  SumPrl_Dem = g.Sum(x => x.lt.Prl_Dem),
-                                  SumPrlColl_Amt = g.Sum(x => x.lt.PrlColl_Amt),
-                                  SumIntCalc_Amt = g.Sum(x => x.lt.IntCalc_Amt),
-                                  MaxIntCalc_Date = g.Max(x => x.lt.IntCalc_Date),
-                                  SumIntColl_Amt = g.Sum(x => x.lt.IntColl_Amt)
-                              }).ToListAsync();
+                                    join mm in CSISContext.mem_master on lm.Mem_Id equals mm.mem_id
+                                    join ls in CSISContext.Loan_Schemes on lm.Scheme_Id equals ls.Scheme_Id
+                                    join lt in CSISContext.Loan_Trn on lm.Loan_Id equals lt.Loan_Id
+                                    where lm.Mem_Id == empId
+                                          && !lt.TrnTr_Delete
+                                          && !lm.Loan_Delete
+                                    group new { lm, ls, lt } by new
+                                    {
+                                        lm.Loan_Id,
+                                        lm.Loan_No,
+                                        lm.San_Amt,
+                                        lm.FirstPrl_DueDate,
+                                        lm.FirstInt_DueDate,
+                                        lm.San_Date,
+                                        lm.Prl_Prd,
+                                        lm.Int_Prd,
+                                        lm.Inst_Amt,
+                                        lm.Roi,
+                                        ls.Scheme_Name,
+                                        ls.Scheme_Id,
+                                        ls.Loan_Type,
+                                        ls.PrlLed_Id,
+                                        ls.IntLed_Id,
+                                        ls.StaffLoan_Int_Type
+                                    } into g
+                                    where (g.Sum(x => x.lt.Disb_Amt) - g.Sum(x => x.lt.PrlColl_Amt) > 0) ||
+                                          (g.Sum(x => x.lt.IntCalc_Amt) - g.Sum(x => x.lt.IntColl_Amt) > 0)
+                                    where g.Key.Loan_Type == 5
+                                    select new PayLoanBalanceVM
+                                    {
+                                        Loan_Id = g.Key.Loan_Id,
+                                        Loan_No = g.Key.Loan_No,
+                                        San_Amt = g.Key.San_Amt,
+                                        FirstPrl_DueDate = (DateTime)g.Key.FirstPrl_DueDate!,
+                                        FirstInt_DueDate = (DateTime)g.Key.FirstInt_DueDate!,
+                                        San_Date = g.Key.San_Date,
+                                        Prl_Prd = g.Key.Prl_Prd,
+                                        Int_Prd = g.Key.Int_Prd,
+                                        Inst_Amt = g.Key.Inst_Amt,
+                                        Roi = g.Key.Roi,
+                                        Scheme_Name = g.Key.Scheme_Name,
+                                        Scheme_Id = g.Key.Scheme_Id,
+                                        Loan_Type = g.Key.Loan_Type,
+                                        PrlLed_Id = g.Key.PrlLed_Id,
+                                        IntLed_Id = g.Key.IntLed_Id,
+                                        StaffLoan_Int_Type = g.Key.StaffLoan_Int_Type,
+                                        MaxTrn_Date = g.Max(x => x.lt.Trn_Date),
+                                        SumDisb_Amt = g.Sum(x => x.lt.Disb_Amt),
+                                        SumPrl_Sched = g.Sum(x => x.lt.Prl_Sched),
+                                        SumPrl_Dem = g.Sum(x => x.lt.Prl_Dem),
+                                        SumPrlColl_Amt = g.Sum(x => x.lt.PrlColl_Amt),
+                                        SumIntCalc_Amt = g.Sum(x => x.lt.IntCalc_Amt),
+                                        MaxIntCalc_Date = g.Max(x => x.lt.IntCalc_Date),
+                                        SumIntColl_Amt = g.Sum(x => x.lt.IntColl_Amt)
+                                    }).ToListAsync();
                 #endregion 
 
                 if (result != null && result.Any())
@@ -2093,7 +2096,7 @@ namespace Infin8.Coapp.Repository
                         }
                         intBalIncludingCurrentIntCalc = loan.IntBal + intCalc;
                         //prdElapsed = GeneralService.GetNoOfMonths(toDate, loan.FirstPrl_DueDate);
-                        prdElapsed = Utilities.GetMonthsBetweenDates (loan.FirstPrl_DueDate, toDate);
+                        prdElapsed = Utilities.GetMonthsBetweenDates(loan.FirstPrl_DueDate, toDate);
                         switch (loan.StaffLoan_Int_Type)
                         {
                             case 1: /// int after prl
@@ -2160,7 +2163,7 @@ namespace Infin8.Coapp.Repository
                         loan.IntRecovery = intDemand;
                     }
                 }
-                
+
             }
             catch (Exception ex)
             {
@@ -2183,66 +2186,66 @@ namespace Infin8.Coapp.Repository
             try
             {
                 #region get record set
-                var result = await(from lm in CSISContext.Loan_Master
-                                   join mm in CSISContext.mem_master on lm.Mem_Id equals mm.mem_id
-                                   join ls in CSISContext.Loan_Schemes on lm.Scheme_Id equals ls.Scheme_Id
-                                   join lt in CSISContext.Loan_Trn on lm.Loan_Id equals lt.Loan_Id
-                                   where loanIdList .Contains( lm.Loan_Id)
-                                         && !lt.TrnTr_Delete
-                                         && !lm.Loan_Delete
-                                         && lm.BrCode == brCode 
-                                         && mm.brcode == brCode 
-                                         && ls.BrCode == brCode 
-                                         && lt.BrCode == brCode 
-                                   group new { lm, ls, lt } by new
-                                   {
-                                       lm.Loan_Id,
-                                       lm.Loan_No,
-                                       lm.San_Amt,
-                                       lm.FirstPrl_DueDate,
-                                       lm.FirstInt_DueDate,
-                                       lm.San_Date,
-                                       lm.Prl_Prd,
-                                       lm.Int_Prd,
-                                       lm.Inst_Amt,
-                                       lm.Roi,
-                                       ls.Scheme_Name,
-                                       ls.Scheme_Id,
-                                       ls.Loan_Type,
-                                       ls.PrlLed_Id,
-                                       ls.IntLed_Id,
-                                       ls.StaffLoan_Int_Type
-                                   } into g
-                                   where (g.Sum(x => x.lt.Disb_Amt) - g.Sum(x => x.lt.PrlColl_Amt) > 0) ||
-                                         (g.Sum(x => x.lt.IntCalc_Amt) - g.Sum(x => x.lt.IntColl_Amt) > 0)
-                                   where g.Key.Loan_Type == 5
-                                   select new PayLoanBalanceVM
-                                   {
-                                       Loan_Id = g.Key.Loan_Id,
-                                       Loan_No = g.Key.Loan_No,
-                                       San_Amt = g.Key.San_Amt,
-                                       FirstPrl_DueDate = (DateTime)g.Key.FirstPrl_DueDate!,
-                                       FirstInt_DueDate = (DateTime)g.Key.FirstInt_DueDate!,
-                                       San_Date = g.Key.San_Date,
-                                       Prl_Prd = g.Key.Prl_Prd,
-                                       Int_Prd = g.Key.Int_Prd,
-                                       Inst_Amt = g.Key.Inst_Amt,
-                                       Roi = g.Key.Roi,
-                                       Scheme_Name = g.Key.Scheme_Name,
-                                       Scheme_Id = g.Key.Scheme_Id,
-                                       Loan_Type = g.Key.Loan_Type,
-                                       PrlLed_Id = g.Key.PrlLed_Id,
-                                       IntLed_Id = g.Key.IntLed_Id,
-                                       StaffLoan_Int_Type = g.Key.StaffLoan_Int_Type,
-                                       MaxTrn_Date = g.Max(x => x.lt.Trn_Date),
-                                       SumDisb_Amt = g.Sum(x => x.lt.Disb_Amt),
-                                       SumPrl_Sched = g.Sum(x => x.lt.Prl_Sched),
-                                       SumPrl_Dem = g.Sum(x => x.lt.Prl_Dem),
-                                       SumPrlColl_Amt = g.Sum(x => x.lt.PrlColl_Amt),
-                                       SumIntCalc_Amt = g.Sum(x => x.lt.IntCalc_Amt),
-                                       MaxIntCalc_Date = g.Max(x => x.lt.IntCalc_Date),
-                                       SumIntColl_Amt = g.Sum(x => x.lt.IntColl_Amt)
-                                   }).ToListAsync();
+                var result = await (from lm in CSISContext.Loan_Master
+                                    join mm in CSISContext.mem_master on lm.Mem_Id equals mm.mem_id
+                                    join ls in CSISContext.Loan_Schemes on lm.Scheme_Id equals ls.Scheme_Id
+                                    join lt in CSISContext.Loan_Trn on lm.Loan_Id equals lt.Loan_Id
+                                    where loanIdList.Contains(lm.Loan_Id)
+                                          && !lt.TrnTr_Delete
+                                          && !lm.Loan_Delete
+                                          && lm.BrCode == brCode
+                                          && mm.brcode == brCode
+                                          && ls.BrCode == brCode
+                                          && lt.BrCode == brCode
+                                    group new { lm, ls, lt } by new
+                                    {
+                                        lm.Loan_Id,
+                                        lm.Loan_No,
+                                        lm.San_Amt,
+                                        lm.FirstPrl_DueDate,
+                                        lm.FirstInt_DueDate,
+                                        lm.San_Date,
+                                        lm.Prl_Prd,
+                                        lm.Int_Prd,
+                                        lm.Inst_Amt,
+                                        lm.Roi,
+                                        ls.Scheme_Name,
+                                        ls.Scheme_Id,
+                                        ls.Loan_Type,
+                                        ls.PrlLed_Id,
+                                        ls.IntLed_Id,
+                                        ls.StaffLoan_Int_Type
+                                    } into g
+                                    where (g.Sum(x => x.lt.Disb_Amt) - g.Sum(x => x.lt.PrlColl_Amt) > 0) ||
+                                          (g.Sum(x => x.lt.IntCalc_Amt) - g.Sum(x => x.lt.IntColl_Amt) > 0)
+                                    where g.Key.Loan_Type == 5
+                                    select new PayLoanBalanceVM
+                                    {
+                                        Loan_Id = g.Key.Loan_Id,
+                                        Loan_No = g.Key.Loan_No,
+                                        San_Amt = g.Key.San_Amt,
+                                        FirstPrl_DueDate = (DateTime)g.Key.FirstPrl_DueDate!,
+                                        FirstInt_DueDate = (DateTime)g.Key.FirstInt_DueDate!,
+                                        San_Date = g.Key.San_Date,
+                                        Prl_Prd = g.Key.Prl_Prd,
+                                        Int_Prd = g.Key.Int_Prd,
+                                        Inst_Amt = g.Key.Inst_Amt,
+                                        Roi = g.Key.Roi,
+                                        Scheme_Name = g.Key.Scheme_Name,
+                                        Scheme_Id = g.Key.Scheme_Id,
+                                        Loan_Type = g.Key.Loan_Type,
+                                        PrlLed_Id = g.Key.PrlLed_Id,
+                                        IntLed_Id = g.Key.IntLed_Id,
+                                        StaffLoan_Int_Type = g.Key.StaffLoan_Int_Type,
+                                        MaxTrn_Date = g.Max(x => x.lt.Trn_Date),
+                                        SumDisb_Amt = g.Sum(x => x.lt.Disb_Amt),
+                                        SumPrl_Sched = g.Sum(x => x.lt.Prl_Sched),
+                                        SumPrl_Dem = g.Sum(x => x.lt.Prl_Dem),
+                                        SumPrlColl_Amt = g.Sum(x => x.lt.PrlColl_Amt),
+                                        SumIntCalc_Amt = g.Sum(x => x.lt.IntCalc_Amt),
+                                        MaxIntCalc_Date = g.Max(x => x.lt.IntCalc_Date),
+                                        SumIntColl_Amt = g.Sum(x => x.lt.IntColl_Amt)
+                                    }).ToListAsync();
                 #endregion 
 
                 if (result != null && result.Any())
@@ -2352,24 +2355,24 @@ namespace Infin8.Coapp.Repository
             try
             {
                 var result = await (from master in CSISContext.Loan_Master
-                              join schemes in CSISContext.Loan_Schemes on master.Scheme_Id equals schemes.Scheme_Id
-                              where master.Voc_Id == vocId
-                              && master.BrCode == brCode
-                              select new DtoLoanDisbursementStaff
-                              {
-                                  Transaction_Date = master.San_Date,
-                                  Loan_No = master.Loan_No ,
-                                  Scheme_Id = master.Scheme_Id,
-                                  Scheme_Name = schemes.Scheme_Name ,
-                                  ResolutionNo = master.Res_No ,
-                                  ResolutionDate = master.Res_Date ,
-                                  DisbursementAmount = master.San_Amt ,
-                                  Principal_Period = master.Prl_Prd ,
-                                  Interest_Period = master.Int_Prd ,
-                                  Rate_Of_Interest = master.Roi ,
-                                  InstalmentStart_Date = (DateTime)master.FirstPrl_DueDate! ,
-                                  InstalmentAmount = master.Inst_Amt,
-                              }).FirstOrDefaultAsync();
+                                    join schemes in CSISContext.Loan_Schemes on master.Scheme_Id equals schemes.Scheme_Id
+                                    where master.Voc_Id == vocId
+                                    && master.BrCode == brCode
+                                    select new DtoLoanDisbursementStaff
+                                    {
+                                        Transaction_Date = master.San_Date,
+                                        Loan_No = master.Loan_No,
+                                        Scheme_Id = master.Scheme_Id,
+                                        Scheme_Name = schemes.Scheme_Name,
+                                        ResolutionNo = master.Res_No,
+                                        ResolutionDate = master.Res_Date,
+                                        DisbursementAmount = master.San_Amt,
+                                        Principal_Period = master.Prl_Prd,
+                                        Interest_Period = master.Int_Prd,
+                                        Rate_Of_Interest = master.Roi,
+                                        InstalmentStart_Date = (DateTime)master.FirstPrl_DueDate!,
+                                        InstalmentAmount = master.Inst_Amt,
+                                    }).FirstOrDefaultAsync();
                 if (result != null && result.Scheme_Id > 0) staffLoan = result;
             }
             catch (Exception ex)
@@ -2379,6 +2382,7 @@ namespace Infin8.Coapp.Repository
             return staffLoan;
         }
         #endregion 
+
         #region term deposit loans
         public async Task<List<decimal>> GetLoanIdListByTdIdListAsync(decimal[] tdIds, string brCode)
         {
@@ -2386,7 +2390,7 @@ namespace Infin8.Coapp.Repository
             try
             {
                 var list = await (from lien in CSISContext.Lien_Trn
-                                  where lien.LienTr_Delete == false && lien.BrCode==brCode  && tdIds.Contains(lien.TD_Id)
+                                  where lien.LienTr_Delete == false && lien.BrCode == brCode && tdIds.Contains(lien.TD_Id)
                                   select lien.Loan_Id)
                    .Distinct()
                    .ToListAsync();
@@ -2439,28 +2443,28 @@ namespace Infin8.Coapp.Repository
                 #endregion 
 
                 var query =
-                   await  (from lien in CSISContext.Lien_Trn 
-                     join loan in CSISContext.Loan_Master on lien.Loan_Id equals loan.Loan_Id
-                     join trn in CSISContext.Loan_Trn on loan.Loan_Id equals trn.Loan_Id
-                     where tdIds.Contains(lien.TD_Id)
-                           && lien.LienTr_Delete == false
-                           && loan.Loan_Delete == false
-                           && trn.TrnTr_Delete == false
-                           && lien.BrCode == brCode 
-                           && loan.BrCode == brCode 
-                           && trn.BrCode == brCode 
-                     select new
-                     {
-                         lien.Loan_Id,
-                         loan.Loan_No,
-                         loan.San_Date,
-                         loan.San_Amt,
-                         trn.Disb_Amt,
-                         trn.PrlColl_Amt,
-                         trn.IntCalc_Amt,
-                         trn.IntColl_Amt,
-                         trn.IntCalc_Date
-                     })
+                   await (from lien in CSISContext.Lien_Trn
+                          join loan in CSISContext.Loan_Master on lien.Loan_Id equals loan.Loan_Id
+                          join trn in CSISContext.Loan_Trn on loan.Loan_Id equals trn.Loan_Id
+                          where tdIds.Contains(lien.TD_Id)
+                                && lien.LienTr_Delete == false
+                                && loan.Loan_Delete == false
+                                && trn.TrnTr_Delete == false
+                                && lien.BrCode == brCode
+                                && loan.BrCode == brCode
+                                && trn.BrCode == brCode
+                          select new
+                          {
+                              lien.Loan_Id,
+                              loan.Loan_No,
+                              loan.San_Date,
+                              loan.San_Amt,
+                              trn.Disb_Amt,
+                              trn.PrlColl_Amt,
+                              trn.IntCalc_Amt,
+                              trn.IntColl_Amt,
+                              trn.IntCalc_Date
+                          })
                     .GroupBy(x => new
                     {
                         x.Loan_Id,
@@ -2489,7 +2493,7 @@ namespace Infin8.Coapp.Repository
             return loanList;
         }
 
-        public async Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList,string brCode)
+        public async Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList, string brCode)
         {
             List<DtoTermDepositLoan> loanList = new List<DtoTermDepositLoan>();
             try
@@ -2530,7 +2534,7 @@ namespace Infin8.Coapp.Repository
             return loanList;
         }
 
-        public async Task<List<DtoTermDepositLoanBalance>> GetTDLoanBalanceByTDIds(List<decimal> loanIdList, DateTime  toDate, string brCode)
+        public async Task<List<DtoTermDepositLoanBalance>> GetTDLoanBalanceByTDIds(List<decimal> loanIdList, DateTime toDate, string brCode)
         {
             List<DtoTermDepositLoanBalance> loanList = new List<DtoTermDepositLoanBalance>();
             DateTime IntCalcDate;
@@ -2662,22 +2666,22 @@ namespace Infin8.Coapp.Repository
                     //if (toDate > maxMaturityDate)
                     //{
                     //    toDate = maxMaturityDate;
-                        if (toDate > maxMaturityDate) toDate = maxMaturityDate;
-                        loanList = result.ToList();
-                        foreach (var loan in loanList)
-                        {
-                            if (loan.IntCalc_Date != null)
-                                IntCalcDate = Convert.ToDateTime(loan.IntCalc_Date);
-                            else
-                                IntCalcDate = loan.Loan_Date;
-                            intCalc = 0;
-                            intCalc = Utilities.Calculate_Interest(loan.Principal_Balance, loan.Rate_Of_Interest, Utilities.GetNoOfDays(toDate, IntCalcDate));
-                            loan.Current_Interest = intCalc;
-                            loan.Interest_Outstanding = loan.Interest_Balance + intCalc;
-                            loan.Total_Balance = loan.Principal_Balance + loan.Interest_Balance + intCalc;
-                            loan.IntCalc_Date = IntCalcDate;
-                            loan.Interest_Applied_Date = toDate ;
-                        }
+                    if (toDate > maxMaturityDate) toDate = maxMaturityDate;
+                    loanList = result.ToList();
+                    foreach (var loan in loanList)
+                    {
+                        if (loan.IntCalc_Date != null)
+                            IntCalcDate = Convert.ToDateTime(loan.IntCalc_Date);
+                        else
+                            IntCalcDate = loan.Loan_Date;
+                        intCalc = 0;
+                        intCalc = Utilities.Calculate_Interest(loan.Principal_Balance, loan.Rate_Of_Interest, Utilities.GetNoOfDays(toDate, IntCalcDate));
+                        loan.Current_Interest = intCalc;
+                        loan.Interest_Outstanding = loan.Interest_Balance + intCalc;
+                        loan.Total_Balance = loan.Principal_Balance + loan.Interest_Balance + intCalc;
+                        loan.IntCalc_Date = IntCalcDate;
+                        loan.Interest_Applied_Date = toDate;
+                    }
                     //}
                 }
             }
@@ -2712,6 +2716,540 @@ namespace Infin8.Coapp.Repository
         {
             throw new NotImplementedException();
         }
+
+        #region ECS Demand Calculation
+        public async Task<List<Mem_Demand>> CalculateLoanDemand(decimal memid, int memberStatus, DateTime demandCalcDate, DateTime demandDate)
+        {
+            DateTime? expiryDate = null;
+            bool IsStopDemand = false;
+            DateTime FromDate;
+            DateTime LastDueDate;
+            double prlDemand = 0;
+            double loanOS = 0;
+            double prlOD = 0;
+            List<LoanDetailsVM> loanBalanceList = new List<LoanDetailsVM>();
+            List<Mem_Demand> loandemand = new List<Mem_Demand>();
+
+            var loanList = await (from master in CSISContext.Loan_Master
+                                  join scheme in CSISContext.Loan_Schemes on master.Scheme_Id equals scheme.Scheme_Id
+                                  join trn in CSISContext.Loan_Trn on master.Loan_Id equals trn.Loan_Id
+                                  where trn.TrnTr_Delete == false && master.Loan_Delete == false && master.Loan_Type == 1
+                                  group new { master, scheme, trn } by new
+                                  {
+                                      master.Mem_Id,
+                                      master.Loan_Id,
+                                      master.Scheme_Id,
+                                      master.Loan_No,
+                                      master.Roi,
+                                      master.Prl_Prd,
+                                      master.Int_Prd,
+                                      master.Inst_Amt,
+                                      master.San_Amt,
+                                      master.San_Date,
+                                      scheme.Scheme_Name,
+                                      scheme.PrlLed_Id,
+                                      scheme.IntLed_Id,
+                                      scheme.IODLed_Id,
+                                      scheme.PILed_Id,
+                                      scheme.Inst_Type,
+                                      scheme.Int_Application,
+                                      scheme.PI_Application,
+                                      scheme.IOD_Application,
+                                      scheme.MatchShareCapital,
+                                      scheme.AdoptLoanLimit,
+                                      master.SecurityFaceValue,
+                                      master.FirstInt_DueDate,
+                                      master.FirstPrl_DueDate
+                                  } into g
+                                  let disbAmt = g.Sum(x => x.trn.Disb_Amt)
+                                  let prlColl = g.Sum(x => x.trn.PrlColl_Amt)
+                                  let intCalc = g.Sum(x => x.trn.IntCalc_Amt)
+                                  let intColl = g.Sum(x => x.trn.IntColl_Amt)
+                                  where g.Key.Mem_Id == memid
+                                        && (disbAmt - prlColl > 0 || intCalc - intColl > 0)
+                                        && disbAmt - prlColl > 0
+                                  select new LoanDetailsVM
+                                  {
+                                      memid = g.Key.Mem_Id,
+                                      loanid = g.Key.Loan_Id,
+                                      schemeid = g.Key.Scheme_Id,
+                                      loanno = g.Key.Loan_No,
+                                      roi = g.Key.Roi,
+                                      Prl_Prd = g.Key.Prl_Prd,
+                                      Int_Prd = g.Key.Int_Prd,
+                                      instalmentamt = g.Key.Inst_Amt,
+                                      disbursementdate = g.Key.San_Date,
+                                      schemename = g.Key.Scheme_Name,
+                                      prlledid = g.Key.PrlLed_Id,
+                                      intledid = g.Key.IntLed_Id,
+                                      iodledid = g.Key.IODLed_Id,
+                                      piledid = g.Key.PILed_Id,
+                                      instalType = g.Key.Inst_Type,
+                                      intapplication = g.Key.Int_Application,
+                                      piapplication = g.Key.PI_Application,
+                                      iodapplication = g.Key.IOD_Application,
+                                      matchShareCapital = g.Key.MatchShareCapital,
+                                      adoptLoanLimit = g.Key.AdoptLoanLimit,
+                                      disbamt = disbAmt,
+                                      sanctionamt = g.Key.San_Amt,
+                                      sanctiondate = g.Key.San_Date,
+                                      prlschedule = g.Sum(x => x.trn.Prl_Sched),
+                                      prldemand = g.Sum(x => x.trn.Prl_Dem),
+                                      prlcoll = prlColl,
+                                      intcalulatedamt = intCalc,
+                                      maxintcalcdate = g.Max(x => x.trn.IntCalc_Date),
+                                      intcollamt = intColl,
+                                      picalulatedamt = g.Sum(x => x.trn.PICalc_Amt),
+                                      maxpicalcdate = g.Max(x => x.trn.PICalc_Date),
+                                      picollamt = g.Sum(x => x.trn.PIColl_Amt),
+                                      iodcalculatedamt = g.Sum(x => x.trn.IODCalc_Amt),
+                                      iodcalcamt = g.Sum(x => x.trn.IODColl_Amt),
+                                      trndate = g.Min(x => x.trn.Trn_Date),
+                                      securityfacevalue = g.Key.SecurityFaceValue,
+                                      maxtrnslno = g.Max(x => x.trn.Trn_SlNo),
+                                      firstintduedate = g.Key.FirstInt_DueDate,
+                                      firstprlduedate = g.Key.FirstPrl_DueDate
+                                  }).ToListAsync();
+            if (loanList != null && loanList.Count > 0)
+            {
+                loanBalanceList = loanList.ToList();
+            }
+
+            var count = CSISContext.Mem_Demand_Stop
+            .Where(x => x.Is_Active == true
+                        && x.Mem_Id == memid
+                        && x.Demand_Date == DateOnly.FromDateTime(demandDate))
+            .Count();
+            if (count > 0) IsStopDemand = true; else IsStopDemand = false;
+
+            if (memberStatus == 2)
+                IsStopDemand = true;
+            else
+                IsStopDemand = false;
+
+            LoanInterestCalculatedItems calcItems = [];
+            try
+            {
+                if (loanBalanceList != null && loanBalanceList.Count > 0)
+                {
+                    foreach (LoanDetailsVM bal in loanBalanceList)
+                    {
+                        expiryDate = null;
+                        LastDueDate = Utilities.AddMonths((DateTime)bal.firstprlduedate!, bal.Prl_Prd);
+                        if (bal.maxintcalcdate == null) FromDate = bal.disbursementdate.Date;
+                        else FromDate = (DateTime)bal.maxintcalcdate.Value.Date;
+                        bal.prlcoll = Math.Round(bal.prlcoll, 2);
+
+
+
+                        calcItems = CalculateLnDues(bal.loanid, FromDate, demandDate, bal.intapplication, bal.piapplication, bal.iodapplication, bal.disbamt, bal.prlcoll, bal.prlschedule, bal.prldemand, bal.intcalulatedamt, bal.intcollamt, "S");
+
+                        bal.intcalcamt = calcItems.InterestCalculatAmt;
+                        bal.intcalcdate = calcItems.InterestCalculateDate;
+                        bal.picalcamt = calcItems.PICalculateAmt;
+                        bal.picalcdate = calcItems.PICalcuateDate;
+                        bal.iodcalcamt = calcItems.IODCalculateAmt;
+
+                        expiryDate = CSISContext.mem_master.Where(x => x.mem_id == memid).Select(x => x.expireddate).FirstOrDefault();
+                        //expiryDate = dbMember.GetMemberExpiryDate(memid, out errorMessage);
+                        //if (errorMessage.Length > 0)
+                        //{
+
+                        //}
+                        if (expiryDate != null)
+                        {
+                            if (demandDate > (DateTime)expiryDate.Value)
+                            {
+                                bal.intcalcamt = 0;
+                                bal.picalcamt = 0;
+                                bal.iodcalcamt = 0;
+                            }
+                        }
+
+                        loanOS = bal.disbamt - bal.prlcoll;
+                        prlOD = bal.prldemand - bal.prlcoll;
+
+                        Mem_Demand single = new Mem_Demand();
+
+                        single.Id = 0;
+                        single.Loan_Id = bal.loanid;
+                        single.Demand_Id = 0;
+                        single.Calculated_Date = DateOnly.FromDateTime( demandCalcDate);
+                        single.Recovery_Date = null;
+                        single.Demand_Type = "L";
+                        single.Mem_Id = memid;
+                        single.Loan_PI_Arrear = bal.picalulatedamt - bal.picollamt;
+                        single.Loan_PI_Current = bal.picalcamt;
+                        if (bal.intcalulatedamt - bal.intcollamt < 0)
+                            single.Loan_Int_Arrear = 0;
+                        else
+                            single.Loan_Int_Arrear = bal.intcalulatedamt - bal.intcollamt;
+                        single.Loan_Int_Current  = bal.intcalcamt;
+
+                        single.Loan_Prl_Arrear  = bal.prldemand - bal.prlcoll;
+                        if (bal.prldemand - bal.prlcoll < 0)
+                            single.Loan_Prl_Arrear  = 0;
+                        single.Loan_Oustanding = bal.disbamt - bal.prlcoll;
+
+                        /// Get principal demand
+                        if (bal.firstprlduedate <= demandDate)
+                        {
+                            switch (bal.instalType)
+                            {
+                                case 1:
+                                    prlDemand = bal.instalmentamt;
+                                    break;
+                                case 2:
+                                    prlDemand = bal.instalmentamt - bal.intcalcamt;
+                                    break;
+                                case 3:
+                                    prlDemand = bal.instalmentamt;
+                                    break;
+                                case 4:
+                                    prlDemand = 0;
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            prlDemand = 0;
+                        }
+
+
+                        //prlDemand = Utilities.GetLoanPrincipalDemand(bal.firstprlduedate, demandDate, bal.instalType, bal.instalmentamt, single.IntCurrentDemand.Value, out errorMessage);
+
+                        //if (bal.firstprlduedate > demandDate)
+                        //{
+                            //if (TSISGlobalVariables.gSocietyId == 5) /// tvs society
+                            //{
+                            //    IsStopDemand = true;
+                            //}
+                        //}
+                        if (prlDemand > loanOS)
+                            prlDemand = loanOS;
+                        if (demandDate > LastDueDate)
+                        {
+                            prlDemand = loanOS;
+                        }
+                        if (prlDemand + prlOD > loanOS)
+                        {
+                            prlDemand = prlDemand - ((prlOD + prlDemand) - loanOS);
+                        }
+                       
+                        single.Loan_Prl_Current  = prlDemand;
+                        single.Loan_Total = single.Loan_PI_Arrear + single.Loan_PI_Current + single.Loan_Int_Arrear + single.Loan_Int_Current + single.Loan_Prl_Arrear + single.Loan_Prl_Current;
+
+                        //single.PITotalDemand = single.PIArrearDemand + single.PICurrentDemand;
+                        //single.IntTotalDemand = single.IntArrearDemand + single.IntCurrentDemand;
+                        //single.PrlTotalDemand = single.PrlArrearDemand + single.PrlCurrentDemand;
+                        single.Prl_Schedule  = single.Loan_Prl_Current;
+                        single.Non_OD_Prl = bal.disbamt - bal.prldemand;
+                        single.Deposit_Id = 0;
+
+                        //single.ArrearDepositAmount = 0;
+                        //single.CurrentDepositAmount = 0;
+                        //single.TotalDepositAmount = 0;
+                        //single.ArrearPIOnDeposit = 0;
+                        //single.CurrentPIOnDeposit = 0;
+                        //single.TotalPIOnDeposit = 0;
+                        //single.SuspenseLed_Id = 0;
+                        //single.ArrearSuspenseAmount = 0;
+                        //single.CurrentSuspenseAmount = 0;
+                        //single.TotalSuspenseAmount = 0;
+                        //single.TotalDemandAmount = single.PIArrearDemand + single.PICurrentDemand + single.IntArrearDemand + single.IntCurrentDemand + single.PrlArrearDemand + single.PrlCurrentDemand;
+                        //single.PIArrearCollection = 0;
+                        //single.IntArrearCollection = 0;
+                        //single.PrlArrearCollection = 0;
+                        //single.PICurrentCollection = 0;
+                        //single.IntCurrentCollection = 0;
+                        //single.PrlCurrentCollection = 0;
+                        //single.PITotalCollection = 0;
+                        //single.IntTotalCollection = 0;
+                        //single.PrlTotalCollection = 0;
+                        single.Stop_Demand = IsStopDemand;
+                        //single.usr_Id = usrId;
+                        //single.yr_id = yrId;
+                        //single.ReferId = 0;
+                        //single.ArrearDepositCollection = 0;
+                        //single.CurrentDepositCollection = 0;
+                        //single.TotalDepositCollection = 0;
+                        //single.ArrearPIOnDepositCollection = 0;
+                        //single.CurrentPIOnDepositCollection = 0;
+                        //single.TotalPIOnDepositCollection = 0;
+                        //single.ArrearSuspenseCollection = 0;
+                        //single.CurrentSuspenseCollection = 0;
+                        //single.TotalSuspenseCollection = 0;
+                        //single.TotalCollectionAmount = 0;
+                        //single.SuspenseDueByLed_Id = 0;
+                        //single.TotalDueByCollection = 0;
+                        //single.voc_id = 0;
+                        //single.PenalInterestCalculatedAmount = 0;
+                        //single.InterestCalculatedAmount = 0;
+                        //single.Prl_SchedForStopDemand = 0;
+                        //single.IntCalcForStopDemand = 0;
+                        //single.Recovery_Id = 0;
+                        //single.PIArrearDemand2 = 0;
+                        //single.IntArrearDemand2 = 0;
+                        //single.PrlArrearDemand2 = 0;
+                        //single.PICurrentDemand2 = 0;
+                        //single.IntCurrentDemand2 = 0;
+                        //single.PrlCurrentDemand2 = 0;
+                        //single.PITotalDemand2 = 0;
+                        //single.IntTotalDemand2 = 0;
+                        //single.PrlTotalDemand2 = 0;
+                        //single.ArrearDepositAmount2 = 0;
+                        //single.CurrentDepositAmount2 = 0;
+                        //single.TotalDepositAmount2 = 0;
+                        //single.ArrearPIOnDeposit2 = 0;
+                        //single.CurrentPIOnDeposit2 = 0;
+                        //single.TotalPIOnDeposit2 = 0;
+                        //single.ArrearSuspenseAmount2 = 0;
+                        //single.CurrentSuspenseAmount2 = 0;
+                        //single.TotalSuspenseAmount2 = 0;
+                        //single.TotalDemandAmount2 = 0;
+                        //single.TD_Id = 0;
+                        //single.RDInstalmentAmount = 0;
+                        //single.RDNoOfInstalments = 0;
+                        //single.RDDemandAmount = 0;
+                        //single.PIOnRDArrearAmount = 0;
+                        //single.PIOnRDCalcAmount = 0;
+                        //single.PIOnRDTotalAmount = 0;
+                        //single.RDTotalDemandAmount = 0;
+                        //single.RDReceiptAmount = 0;
+                        //single.PIOnRDReceiptAmount = 0;
+                        //single.RDTotalReceiptAmount = 0;
+                        //single.RDNoOfInstalments2 = 0;
+                        //single.RDDemandAmount2 = 0;
+                        //single.PIOnRDArrearAmount2 = 0;
+                        //single.PIOnRDCalcAmount2 = 0;
+                        //single.PIOnRDTotalAmount2 = 0;
+                        //single.RDTotalDemandAmount2 = 0;
+                        //single.RDReceiptAmount2 = 0;
+                        //single.PIOnRDReceiptAmount2 = 0;
+                        //single.RestrictedDemand = 0;
+                        //single.TotalDemand = 0;
+                        //single.TotalLoanArrearDemand = 0;
+                        //single.TotalLoanCurrentDemand = 0;
+                        //single.TotalRDDemand = 0;
+                        //single.TotalDepositDemand = 0;
+                        //single.DueByDemandLed_Id = 0;
+                        //single.ArrearDueByDemandAmount = 0;
+                        //single.CurrentDueByDemandAmount = 0;
+                        //single.TotalDueByDemandAmount = 0;
+                        //single.ArrearDueByCollectionOnDemand = 0;
+                        //single.CurrentDueByCollectionOnDemand = 0;
+                        //single.TotalDueByCollectionOnDemand = 0;
+                        if (single.Loan_Total > 0)
+                        {
+                            //demId += 1;
+                            loandemand.Add(single);
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+            return loandemand;
+        }
+
+        public LoanInterestCalculatedItems CalculateLnDues(decimal loanid, DateTime FromDate, DateTime ToDate, int InterestApplication, int PIApplication, int IODApplication, double DisbAmt, double PrlColl, double PrlSchedule, double PrlDemand, double IntCalcAmt, double IntCollAmt, string DisbAgency)
+        {
+            LoanInterestCalculatedItems calcLnDues = [];
+            double LoanOS = DisbAmt - PrlColl;
+            double NonODPrl = DisbAmt - PrlDemand;
+            double PrlOD = PrlDemand - PrlColl;
+            double IntOD = IntCalcAmt - IntCollAmt;
+
+            if (NonODPrl < 0)
+            {
+                NonODPrl = 0;
+            }
+
+            //double roi = 0;
+
+            /// calculate Interest
+            if (InterestApplication == 1) /// int on non od prl
+            {
+
+                calcLnDues.InterestCalculatAmt = Calc_Int_OnVariable_ROI(NonODPrl, loanid, FromDate, ToDate, DisbAgency);
+                if (calcLnDues.InterestCalculatAmt > 0)
+                    calcLnDues.InterestCalculateDate = ToDate;
+            }
+            else if (InterestApplication == 2)    // int on prl os
+            {
+                calcLnDues.InterestCalculatAmt = Calc_Int_OnVariable_ROI(LoanOS, loanid, FromDate, ToDate, DisbAgency);
+                if (calcLnDues.InterestCalculatAmt > 0)
+                    calcLnDues.InterestCalculateDate = ToDate;
+            }
+
+            /// calculate PI
+            if (PIApplication == 1)   /// no pi
+            {
+                calcLnDues.PICalculateAmt = 0;
+                calcLnDues.PICalcuateDate = null;
+            }
+            if (PIApplication == 2)  /// pi on prl od
+            {
+                if (PrlOD > 0)
+                {
+                    calcLnDues.PICalculateAmt = Calc_PI_OnVariable_ROI(PrlOD, loanid, FromDate, ToDate, DisbAgency);
+                    if (calcLnDues.PICalculateAmt > 0)
+                        calcLnDues.PICalcuateDate = ToDate;
+                }
+                else
+                {
+                    calcLnDues.PICalculateAmt = 0;
+                    calcLnDues.PICalcuateDate = null;
+                }
+            }
+            else if (PIApplication == 3) /// pi on prl od + int od
+            {
+                if (PrlOD + IntOD > 0)
+                {
+                    calcLnDues.PICalculateAmt = Calc_PI_OnVariable_ROI(PrlOD + IntOD, loanid, FromDate, ToDate, DisbAgency);
+                    if (calcLnDues.PICalculateAmt > 0)
+                        calcLnDues.PICalcuateDate = ToDate;
+                }
+                else
+                {
+                    calcLnDues.PICalculateAmt = 0;
+                    calcLnDues.PICalcuateDate = null;
+                }
+            }
+            else
+            {
+                calcLnDues.PICalculateAmt = 0;
+                calcLnDues.PICalcuateDate = null;
+            }
+            /// calculate IOD
+            if (IODApplication == 1)    /// no iod
+            {
+                calcLnDues.IODCalculateAmt = 0;
+            }
+            else if (IODApplication == 2) /// iod on prlod
+            {
+                calcLnDues.IODCalculateAmt = Calc_Int_OnVariable_ROI(PrlOD, loanid, ToDate, FromDate, DisbAgency);
+
+            }
+            else if (IODApplication == 3) /// iod on prlod + intod 
+            {
+                calcLnDues.IODCalculateAmt = Calc_Int_OnVariable_ROI(PrlOD + IntOD, loanid, FromDate, ToDate, DisbAgency);
+            }
+            return calcLnDues;
+        }
+
+        public double Calc_Int_OnVariable_ROI(double amt, decimal loanid, DateTime FromDate, DateTime ToDate, string Agency)
+        {
+            double roi = 0;
+            DateTime tmpToDate;
+            RateOfInterestVM roiVM = new RateOfInterestVM();
+
+            List<RateOfInterestVM> roilist = [];
+            double intCalcAmt = 0;
+
+            var tempRoi = CSISContext.Loan_Roi
+            .Where(x => x.Loan_Id == loanid
+                        && x.Agency == Agency
+                        && x.Roi_Wef <= FromDate)
+            .OrderByDescending(x => x.Roi_Wef)
+            .Select(x => new RateOfInterestVM
+            {
+                Roi = x.Roi,
+                Pi = x.Pi,
+                Roi_Wef = x.Roi_Wef
+            }).FirstOrDefault();
+
+            if (tempRoi != null && tempRoi.Roi > 0 && tempRoi.Pi > 0)
+            {
+                roiVM = tempRoi;
+            }
+            roi = roiVM.Roi;
+            var tempRoiList = CSISContext.Loan_Roi
+                    .Where(x => x.Loan_Id == loanid
+                                && x.Agency == Agency
+                                && x.Roi_Wef >= FromDate
+                                && x.Roi_Wef <= ToDate
+                                && !x.Loanroi_Delete)
+                    .OrderBy(x => x.Roi_Wef)
+                    .Select(x => new RateOfInterestVM
+                    {
+                        Roi = x.Roi,
+                        Pi = x.Pi,
+                        Roi_Wef = x.Roi_Wef
+                    }).ToList();
+
+            if (tempRoiList != null && tempRoiList.Count > 0)
+            {
+                roilist = tempRoiList.ToList();
+            }
+            foreach (RateOfInterestVM single in roilist)
+            {
+                tmpToDate = single.Roi_Wef;
+                intCalcAmt += Utilities.Calculate_Interest(amt, roi, (int)(tmpToDate - FromDate).TotalDays);
+                roi = single.Roi;
+                FromDate = single.Roi_Wef;
+            }
+            intCalcAmt += Utilities.Calculate_Interest(amt, roi, (int)(ToDate - FromDate).TotalDays);
+            return intCalcAmt;
+        }
+
+        public double Calc_PI_OnVariable_ROI(double amt, decimal loanid, DateTime FromDate, DateTime ToDate, string Agency)
+        {
+            double roi = 0;
+            DateTime tmpToDate;
+            RateOfInterestVM roiVM = new RateOfInterestVM();
+
+            List<RateOfInterestVM> roilist = [];
+            double intCalcAmt = 0;
+
+            var tempRoi = CSISContext.Loan_Roi
+            .Where(x => x.Loan_Id == loanid
+                        && x.Agency == Agency
+                        && x.Roi_Wef <= FromDate)
+            .OrderByDescending(x => x.Roi_Wef)
+            .Select(x => new RateOfInterestVM
+            {
+                Roi = x.Roi,
+                Pi = x.Pi,
+                Roi_Wef = x.Roi_Wef
+            }).FirstOrDefault();
+
+            if (tempRoi != null && tempRoi.Roi > 0 && tempRoi.Pi > 0)
+            {
+                roiVM = tempRoi;
+            }
+            roi = roiVM.Pi;
+            var tempRoiList = CSISContext.Loan_Roi
+                    .Where(x => x.Loan_Id == loanid
+                                && x.Agency == Agency
+                                && x.Roi_Wef >= FromDate
+                                && x.Roi_Wef <= ToDate
+                                && !x.Loanroi_Delete)
+                    .OrderBy(x => x.Roi_Wef)
+                    .Select(x => new RateOfInterestVM
+                    {
+                        Roi = x.Roi,
+                        Pi = x.Pi,
+                        Roi_Wef = x.Roi_Wef
+                    }).ToList();
+
+            if (tempRoiList != null && tempRoiList.Count > 0)
+            {
+                roilist = tempRoiList.ToList();
+            }
+
+            foreach (RateOfInterestVM single in roilist)
+            {
+                tmpToDate = single.Roi_Wef;
+                intCalcAmt += Utilities.Calculate_Interest(amt, roi, (int)(tmpToDate - FromDate).TotalDays);
+                roi = single.Pi;
+                FromDate = single.Roi_Wef;
+            }
+            intCalcAmt += Utilities.Calculate_Interest(amt, roi, (int)(ToDate - FromDate).TotalDays);
+            return intCalcAmt;
+        }
+        #endregion 
 
     }
 }

@@ -38,7 +38,11 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<TDLoanData>> GetTDLoanDetailsByTDIds(decimal[] tdIds ,string brCode);
         Task<List<DtoTermDepositLoan>> GetTDLoanDataByTDIds(List<decimal> tdIdList,DateTime toDate,string brCode);
         Task<List<DtoTermDepositLoanBalance>> GetTDLoanBalanceByTDIds(List<decimal> loanIdList, DateTime toDate, string brCode);
-        #endregion 
+        #endregion
+
+        #region ECS Demand Calculation
+        Task<List<Mem_Demand>> CalculateLoanDemand(decimal memid, int memberStatus, DateTime demandCalcDate, DateTime demandDate);
+        #endregion
     }
 
 }

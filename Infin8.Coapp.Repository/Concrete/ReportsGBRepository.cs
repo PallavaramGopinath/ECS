@@ -1,6 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
-using Infin8.Coapp.Repository.Interface;
+//using Infin8.Coapp.Repository.Interface;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Infin8.Coapp.Repository.Concrete
+namespace Infin8.Coapp.Repository
 {
     public class ReportsGBRepository : Repository<Reports_Master>, IReportsGBRepository
     {
@@ -21,7 +21,7 @@ namespace Infin8.Coapp.Repository.Concrete
 
         public async Task<List<rptDividendTDFWDWorking>> GetDividendWorkingSheet(decimal pbleMasterId, string brCode)
         {
-            List<rptDividendTDFWDWorking> rptList = new();
+            List<rptDividendTDFWDWorking> rptList = [];
             try
             {
                 var result = await  (from rpt in CSISContext.Mem_Payable
@@ -43,8 +43,8 @@ namespace Infin8.Coapp.Repository.Concrete
                                   Interest_Amount = rpt.Interest_Amount 
                               })
                               .OrderBy(x=> x.MemberNo).ThenBy(x=> x.Trn_Date) .ToListAsync();
-                if (result != null && result.Any())
-                    rptList = result.ToList();
+                if (result != null && result.Count != 0)
+                    rptList = [.. result];
             }
             catch (Exception)
             {
@@ -55,7 +55,7 @@ namespace Infin8.Coapp.Repository.Concrete
 
         public async Task<List<rptDividendIntOnTDPendingList>> GetDividendPendingList(DateTime asOnDate, string brCode)
         {
-            List<rptDividendIntOnTDPendingList> rptList = new();
+            List<rptDividendIntOnTDPendingList> rptList = [];
             try
             {
                 var query = await  (from trn in CSISContext.Mem_Trn
@@ -90,7 +90,7 @@ namespace Infin8.Coapp.Repository.Concrete
                             )}).ToListAsync ();
 
                 if (query != null && query.Count >0)
-                    rptList = query.ToList();
+                    rptList = [.. query];
             }
             catch (Exception)
             {
@@ -101,7 +101,7 @@ namespace Infin8.Coapp.Repository.Concrete
 
         public async Task<List<rptDividendPaid >> GetDividendPaidList(DateTime fromDate, DateTime toDate, string brCode)
         {
-            List<rptDividendPaid> rptList = new();
+            List<rptDividendPaid> rptList = [];
             try
             {
                 var query = await (from trn in CSISContext.Mem_Trn
@@ -136,7 +136,7 @@ namespace Infin8.Coapp.Repository.Concrete
                                    }).ToListAsync();
 
                 if (query != null && query.Count > 0)
-                    rptList = query.ToList();
+                    rptList = [.. query];
             }
             catch (Exception)
             {

@@ -1,5 +1,5 @@
 ﻿using Infin8.Coapp.Models;
-using Infin8.Coapp.Repository.Interface;
+//using Infin8.Coapp.Repository;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -7,9 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Infin8.Coapp.Repository.Concrete
+namespace Infin8.Coapp.Repository
 {
-    internal class PayComponentAssignmentsRepository : Repository<Pay_Component_Assignments>, IPayComponentAssignmentsRepository 
+    public  class PayComponentAssignmentsRepository : Repository<Pay_Component_Assignments>, IPayComponentAssignmentsRepository 
     {
         public CSISContext CSISContext => (CSISContext)Context;
         public PayComponentAssignmentsRepository(DbContext context) : base(context)

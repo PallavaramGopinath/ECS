@@ -163,6 +163,46 @@ namespace Infin8.Coapp.Repository
             return memberDetails;
         }
 
+        public async Task<List<MemberDetailsVM>> GetMembersForECSDemand(string brCode)
+        {
+            List<MemberDetailsVM> memberDetailsList = [];
+            try
+            {
+                var memDetails = await(from f in CSISContext.mem_master
+                                       where  f.memberdelete == false && f.isaccountclosed == false && f.brcode == brCode
+                                       select new MemberDetailsVM
+                                       {
+                                           Mem_Id = f.mem_id,
+                                           MemberNo = f.memberno,
+                                           MemberType = (int)f.membertype,
+                                           PerNo = f.perno,
+                                           MemberName = f.membername,
+                                           FatherName = f.fathername,
+                                           Dob = f.dob,
+                                           Age = (int)f.age,
+                                           DOR = f.dor,
+                                           IsMemExpired = f.ismemexpired,
+                                           ExpiredDate = f.expireddate,
+                                           MemberStatus = f.memberstatus,
+                                           GPF_No = f.gpf_no,
+                                           TicketTokenGangNo = f.tickettokengangno,
+                                           DOJ = f.doj,
+                                           BasicPay = f.basicpay,
+                                           AdmissionDate = f.admissiondate,
+                                           BrCode = f.brcode,
+                                           Address = (f.peradd1 ?? "") +
+                                                     (!string.IsNullOrEmpty(f.peradd2) ? ", " + f.peradd2 : "") +
+                                                     (!string.IsNullOrEmpty(f.peradd3) ? ", " + f.peradd3 : "") +
+                                                     (!string.IsNullOrEmpty(f.prepin) ? ", " + f.prepin : "")
+                                       }).FirstOrDefaultAsync();
+                if (memDetails != null) memberDetailsList = memDetails;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message + " Something went wrong! An error occurred while fetching member details by member No");
+            }
+            return memberDetailsList;
+        }
     }
 
 }

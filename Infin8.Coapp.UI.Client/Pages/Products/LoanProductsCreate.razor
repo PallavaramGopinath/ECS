@@ -8,6 +8,7 @@
 
 @rendermode InteractiveWebAssembly
 @using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Globalization
@@ -365,16 +366,49 @@
                                 {
                                     <div class="col-md-3">
                                         <div class="form-floating">
-                                            @* <InputNumber class="form-control" id="securityMembers"
-                                                     @bind-Value="loanScheme.IssurityMemberRequired"
-                                                     placeholder="Number of members" /> *@
-                                            <InputSelect class="form-select" id="securityMembers" @bind-Value="loanScheme.IssurityMemberRequired">
-                                                <option value="">Select Type</option>
-                                                <option value="1">Surety Required</option>
-                                                <option value="2">Surety Not Required</option>
+                                            <InputSelect class="form-select" id="salaryBasis" @bind-Value="loanScheme.AdoptLoanEligibility">
+                                                <option value="">Select Basis</option>
+                                                <option value="1">Based on Salry</option>
+                                                <option value="2">Non-Salary Based</option>
                                             </InputSelect>
-                                            <label for="securityMembers">Is Securety Required (for Employee Society)</label>
+                                            <label for="salaryBasis">Salary Eligibility Basis (for Employee Society)</label>
                                         </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="enforceLoanLimit" @bind-Value="loanScheme.AdoptLoanLimit">
+                                                <option value="">Select Rule</option>
+                                                <option value="1">Enforce Loan Limit</option>
+                                                <option value="2">Bypass Loan Limit</option>
+                                            </InputSelect>
+                                            <label for="enforceLoanLimit">Loan Limit Enforcement (for Employee Society)</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <InputSelect class="form-select" id="requiredSurety" @bind-Value="loanScheme.IssurityMemberRequired">
+                                                <option value="">Select Requirement</option>
+                                                <option value="1">Surety Required</option>
+                                                <option value="2">No Surety Required</option>
+                                            </InputSelect>
+                                            <label for="requiredSurety">Surety Requirement (for Employee Society)</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label>Deduct the following loans</label>
+                                        @foreach (var loan in ecsLoans)
+                                        {
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="@($"loan_{loan.Scheme_Id}")"
+                                                       @onchange="e => ToggleLoanSelection(loan, (bool)e.Value)" />
+                                                <label class="form-check-label" for="@($"loan_{loan.Scheme_Name}")">
+                                                    @loan.Scheme_Name
+                                                </label>
+                                            </div>
+                                        }
                                     </div>
                                 }
 
@@ -819,7 +853,10 @@
 
 @code {
     [Parameter] public int SchemeId { get; set; }
+    private InstitutionType institution = InstitutionType.Unknown;
     private Loan_Schemes loanScheme = new();
+    private List<Loan_Schemes> ecsLoans = new();
+    private List<Loan_Schemes> selectedEcsLoans = new();
     private List<Loan_Schemes_Group> loan_Schemes_Groups = new List<Loan_Schemes_Group>();
     private List<DropdownItem> prlLedgerList = new List<DropdownItem>();
     private List<DropdownItem> intLedgerList = new List<DropdownItem>();
@@ -832,26 +869,7 @@
     private int currentStep = 1;
     private string brCode = "11005";
 
-    private enum LoanCategory
-    {
-        EmploheeSocietyLoans = 1,
-        JewelLoans = 2,
-        LoansOnFixedDeposits = 3,
-        LoansOnRecurringDeposits = 4,
-        StaffLoans = 5,
-        FarmSectorLoans = 6,
-        NonFarmSectorLoans = 7,
-        RuralHousing = 8,
-        SmallRoadTransportLoans = 9
-
-        // JewelLoans = 1,
-        // LoansOnFixedDeposits = 2,
-        // StaffLoans = 3,
-        // FarmSectorLoans = 4,
-        // NonFarmSectorLoans = 5,
-        // RuralHousing = 6,
-        // SmallRoadTransportLoans = 7
-    }
+    // LoanCategory enum promoted to shared Infin8.Coapp.Utility.Enums.LoanCategory.
 
     private class LoanSubCategory
     {
@@ -871,7 +889,9 @@
     {
         var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
         brCode = userInfoDto.BrCode!;
+        institution = userInfoDto.SocietyType.ToInstitutionType();
         await GetLedgerList(brCode);
+        ecsLoans = await GetEcsLoans();
         if (SchemeId != 0)
         {
             await LoadLoanScheme();
@@ -919,6 +939,45 @@
         }
         return loanScheme;
         // loanScheme = GetSampleLoanData().FirstOrDefault(l => l.Scheme_Id == SchemeId) ?? new DtoLoanProducts();
+    }
+
+    // Get all ecs schemes
+    private async Task<List<Loan_Schemes>> GetEcsLoans()
+    {
+        List<Loan_Schemes> schemes = new();
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<Loan_Schemes>>($"api/Loan/GetAllLoanProducts/{brCode}");
+            if (result != null && result.Count > 0)
+            {
+                schemes = result.Where(x => x.Loan_Type == 1).ToList();
+            }
+            else schemes = new List<Loan_Schemes>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching loan products: {ex.Message}");
+            schemes = new List<Loan_Schemes>(); // Return empty list on error
+        }
+        return schemes;
+
+       
+    }
+
+    // Get selected ecs schemes for deductions
+    private void ToggleLoanSelection(Loan_Schemes loan, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedEcsLoans.Any(l => l.Scheme_Id == loan.Scheme_Id))
+            {
+                selectedEcsLoans.Add(loan);
+            }
+        }
+        else
+        {
+            selectedEcsLoans.RemoveAll(l => l.Scheme_Id == loan.Scheme_Id);
+        }
     }
 
     private void NextStep()
@@ -972,6 +1031,7 @@
     {
         return new List<LoanCategoryInfo>
         {
+            new LoanCategoryInfo { Category = LoanCategory.EmployeeSocietyLoans, Name = "Employee Society Loans" },
             new LoanCategoryInfo { Category = LoanCategory.JewelLoans, Name = "Jewel Loans" },
             new LoanCategoryInfo { Category = LoanCategory.LoansOnFixedDeposits, Name = "Loans on Fixed Deposits" },
             new LoanCategoryInfo { Category = LoanCategory.LoansOnRecurringDeposits, Name = "Loan on Recurring Deposits"},
@@ -979,8 +1039,14 @@
             new LoanCategoryInfo { Category = LoanCategory.FarmSectorLoans, Name = "Farm Sector Loans" },
             new LoanCategoryInfo { Category = LoanCategory.NonFarmSectorLoans, Name = "Non-Farm Sector Loans" },
             new LoanCategoryInfo { Category = LoanCategory.RuralHousing, Name = "Rural Housing" },
-            new LoanCategoryInfo { Category = LoanCategory.SmallRoadTransportLoans, Name = "Small Road Transport Loans" }
-        };
+            new LoanCategoryInfo { Category = LoanCategory.SmallRoadTransportLoans, Name = "Small Road Transport Loans" },
+            // new LoanCategoryInfo { Category = LoanCategory.SuretyLoan, Name = "Surety Loans" },
+            // new LoanCategoryInfo { Category = LoanCategory.EducationLoan, Name = "Education Loans" },
+            // new LoanCategoryInfo { Category = LoanCategory.DraughtLoan, Name = "Draught Loans" }
+        }
+        // Show only the loan categories valid for this society's institution type.
+        .Where(c => LoanCategoryPolicy.IsAllowed(c.Category, institution))
+        .ToList();
     }
 
     private string GetCategoryName(int? purId)
@@ -994,6 +1060,9 @@
             7 => "Non-Farm Sector Loans",
             8 => "Rural Housing",
             9 => "Small Road Transport Loans",
+            10 => "Surety Loans",
+            11 => "Education Loans",
+            12 => "Draught Loans",
             _ => "Not Specified"
         };
     }

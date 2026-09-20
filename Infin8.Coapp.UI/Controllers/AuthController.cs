@@ -22,6 +22,7 @@ namespace Infin8.Coapp.API.Controllers
         private readonly IAuthenticationHandler _authenticationHandler;
         private readonly IUserHandler _userHandler;
         private readonly IAntiforgery _antiforgery;
+        private readonly IGeneralHandler _generalHandler;
         //private readonly IHttpContextAccessor _httpContextAccessor;
 
         /// <summary>
@@ -29,11 +30,12 @@ namespace Infin8.Coapp.API.Controllers
         /// </summary>
         /// <param name="authenticationHandler"></param>
         public AuthController(IAuthenticationHandler authenticationHandler,
-            IUserHandler userHandler, IAntiforgery antiforgery)
+            IUserHandler userHandler, IAntiforgery antiforgery, IGeneralHandler generalHandler)
         {
             _authenticationHandler = authenticationHandler;
             _userHandler = userHandler;
             _antiforgery = antiforgery;
+            _generalHandler = generalHandler;
         }
 
         [HttpGet("get-antiforgery-token")]
@@ -245,9 +247,25 @@ namespace Infin8.Coapp.API.Controllers
 
         [Authorize]
         [HttpGet("me")]
-        public IActionResult Me()
+        public async Task<IActionResult> Me()
         {
-            return Ok(this.GetUserInfoDto());
+            var userInfoDto = this.GetUserInfoDto();
+            // Surface the institution type (Gen_Bank_Name.Bank_Type) so the client can gate
+            // ECS-only loan products. Defensive: a lookup failure leaves SocietyType = 0
+            // (Unknown), which is treated as the incumbent PCARDB and never hides PCARDB items.
+            try
+            {
+                if (!string.IsNullOrEmpty(userInfoDto.BrCode))
+                {
+                    var society = await _generalHandler.GetSocietyData(userInfoDto.BrCode);
+                    userInfoDto.SocietyType = society?.Bank_Type ?? 0;
+                }
+            }
+            catch
+            {
+                userInfoDto.SocietyType = 0;
+            }
+            return Ok(userInfoDto);
             //return Ok(new UserInfoDto
             //{
             //    UserId = Convert.ToDecimal ( User.FindFirstValue(ClaimTypes.NameIdentifier)),

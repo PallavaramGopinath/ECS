@@ -1,5 +1,5 @@
 ﻿using Infin8.Coapp.Models;
-using Infin8.Coapp.Repository.Entities;
+//using Infin8.Coapp.Repository.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +23,8 @@ namespace Infin8.Coapp.Repository
                 builder.UseLowerCaseTableAndColumnNames();
             }
             builder.Entity<Refresh_Token>().ToTable("refresh_tokens");
+            // Deposit_Trn has no [Key] attribute and Trn_Id is not discovered by convention.
+            //builder.Entity<DepositTrnRepository>().HasKey(x => x.Trn_Id);
         }
 
         public virtual DbSet<Account_Transactions> Account_Transactions { get; set; }
@@ -44,6 +46,8 @@ namespace Infin8.Coapp.Repository
         public virtual DbSet<mem_master> mem_master { get; set; }
         public virtual DbSet<Mem_Trn> Mem_Trn { get; set; }
         public virtual DbSet<Mem_Address> Mem_Address { get; set; }
+        public virtual DbSet<Mem_Salary> Mem_Salary { get; set; }
+        public virtual DbSet<Mem_RetirementAge> Mem_RetirementAge { get; set; }
         #endregion
 
         #region Financial Accounts
@@ -81,6 +85,9 @@ namespace Infin8.Coapp.Repository
         public virtual DbSet<Loan_Schemes_Group> Loan_Schemes_Group { get; set; }
         public virtual DbSet<Loan_Sanction> Loan_Sanction { get; set; }
         public virtual DbSet<Loan_Sanction_Trn> Loan_Sanction_Trn { get; set; }
+        public virtual DbSet<Loan_Scheme_Deduction_Rules> Loan_Scheme_Deduction_Rules { get; set; }
+        public virtual DbSet<Loan_Eligibility> Loan_Eligibility { get; set; }
+        public virtual DbSet<Loan_Elig_Outstanding> Loan_Elig_Outstanding { get; set; }
         public virtual DbSet<Loan_Repayment_Schedule> Loan_Repayment_Schedule { get; set; }
         public virtual DbSet<Lien> Lien { get; set; }
         public virtual DbSet<Lien_Trn> Lien_Trn { get; set; }
@@ -101,8 +108,23 @@ namespace Infin8.Coapp.Repository
 
         #region Demand
         public virtual DbSet<Mem_Demand_Master> Mem_Demand_Master { get; set; }
+        public virtual DbSet<Mem_Demand> Mem_Demand { get; set; }
+        public virtual DbSet<Mem_Demand_Status> Mem_Demand_Status { get; set; }
+        public virtual DbSet<Mem_Demand_Stop> Mem_Demand_Stop { get; set; }
+        public virtual DbSet<Mem_CollectionPriority> Mem_CollectionPriority { get; set; }
         #endregion
+
+        #region Deposit (thrift / family-welfare)
+        public virtual DbSet<Deposit_Masters> Deposit_Masters { get; set; }
+        public virtual DbSet<Deposit_Trn>   Deposit_Trn { get; set; }
+        public virtual DbSet<Deposit_Roi_Templates> Deposit_Roi_Templates { get; set; }
+        public virtual DbSet<Deposit_Options> Deposit_Options { get; set; }
+
+        #endregion
+
+        #region Member Pass Book
         public virtual DbSet<Mem_PassBook> Mem_PassBook { get; set; }
+        #endregion 
 
         #region Mem Payable
         public virtual DbSet<Mem_Payable>Mem_Payable { get; set; } 

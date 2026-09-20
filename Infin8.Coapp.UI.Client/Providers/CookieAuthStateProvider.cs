@@ -39,7 +39,8 @@
                     new Claim("YrBeginningDate", userInfo.YrBeginningDate!.ToString()),
                     new Claim("YrEndDate", userInfo.YrEndDate!.ToString ()),
                     new Claim("CurrentDate", userInfo.CurrentDate!.ToString ()),
-                    new Claim("IsAuthenticated", userInfo.IsAuthenticated.ToString())
+                    new Claim("IsAuthenticated", userInfo.IsAuthenticated.ToString()),
+                    new Claim("SocietyType", userInfo.SocietyType.ToString())
                 };
 
                 foreach (var role in userInfo.Roles)

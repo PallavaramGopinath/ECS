@@ -405,5 +405,69 @@ namespace Infin8.Coapp.Repository
             }
             return dividendList;
         }
+
+        public async Task<List<Mem_Demand>> CalculateDueToDemand( decimal memId,DateTime demandDate, string brCode)
+        {
+            List<Mem_Demand> dueToDemand = [];
+            List<MemberTransactionVM> memTrnList = [];
+            try
+            {
+                memTrnList = await (from mem in CSISContext.Mem_Trn
+                              join led in CSISContext.Fin_Ledger on mem.Led_Id equals led.Led_Id
+                              where mem.Mem_Id == memId &&  mem.MemTrn_Delete == false && mem.Trn_Type == 1 && mem.BrCode == brCode && led.BrCode == brCode 
+                              group new { mem, led } by new
+                              {
+                                  mem.Trn_Type,
+                                  mem.Mem_Id,
+                                  mem.Led_Id,
+                                  led.Led_Name
+                              } into g
+                              let rpt = g.Sum(x => (double)x.mem.Rpt_Amt)
+                              let pmt = g.Sum(x => (double)x.mem.Pmt_Amt)
+                              where pmt - rpt > 0
+                              select new MemberTransactionVM
+                              {
+                                  TrnType = (byte)g.Key.Trn_Type,
+                                  MemId = g.Key.Mem_Id,
+                                  LedId = (int)g.Key.Led_Id,
+                                  LedName = g.Key.Led_Name,
+                                  Rpt = rpt,
+                                  Pmt = pmt,
+                                  IntCalculatedAmt = g.Sum(x => (int)x.mem.IntCalc_Amt),
+                                  IntPaid = g.Sum(x => (int)x.mem.IntPaid_Amt)
+                              }).ToListAsync();
+
+                
+                foreach (MemberTransactionVM dueto in memTrnList)
+                {
+                    if (Math.Round(dueto.Pmt, 2) - Math.Round(dueto.Rpt, 2) > 0)
+                    {
+                        Mem_Demand single = new()
+                        {
+                            Id = 0,
+                            Demand_Id = 0,
+                            Recovery_Date = null,
+                            Demand_Type = "S",
+                            Mem_Id = dueto.MemId,
+                            Loan_Id = 0,
+                            Debtor_Led_Id = dueto.LedId,
+                            Debtor_Arrear = 0,
+                            Debtor_Current = Math.Round(dueto.Pmt, 2) - Math.Round(dueto.Rpt, 2),
+                            Debtor_Total = dueto.Pmt - dueto.Rpt,
+                            Total_Demand = dueto.Pmt - dueto.Rpt,
+                            Usr_Id = 0,
+                            Yr_Id = 0,
+                            Voc_Id = 0,
+                            Recovery_Id = 0
+                        };
+                        dueToDemand.Add(single);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+            return dueToDemand;
+        }
     }
 }

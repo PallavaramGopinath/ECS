@@ -12,5 +12,6 @@ namespace Infin8.Coapp.Repository
         Task<MemberDetailsVM> GetMemberDetailsByMemIdAsync(decimal memId);
         Task<MemberDetailsVM> GetMemberDetailsByMemNoAsync(string memNo,string brCode);
 
+        Task<List<MemberDetailsVM>> GetMembersForECSDemand(string brCode);
     }
 }

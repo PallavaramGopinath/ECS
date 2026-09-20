@@ -172,6 +172,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanTrn.GetPayLoanBalance(empId, loanType, toDate, brCode);
         }
         #endregion 
+
         public async Task<List<PayLoanBalanceVM>> GetPayLoanBalance(decimal[] loanIdList, DateTime toDate, string brCode)
         {
             return await _unitOfWork.LoanTrn.GetPayLoanBalance(loanIdList, toDate, brCode);
@@ -180,6 +181,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.LoanTrn.GetStaffLoanDisbursement(vocId , brCode);
         }
+
         #region TD Loan
         public async Task<List<LoanDetailsVM>> GetTDLoanDetailsByTDIdsAsync(decimal[] TDNos, DateTime toDate, string brCode)
         {
@@ -260,6 +262,15 @@ namespace Infin8.Coapp.BusinessLogic
         public Task<List<LoanDetailsVM>> GetLoanDetailsList2ByLoanIdsAsync(decimal[] loanIds)
         {
             throw new NotImplementedException();
+        }
+
+
+        #endregion
+
+        #region ECS Demand Calculate
+        public async Task<List<Mem_Demand>> CalculateLoanDemand(decimal memid, int memberStatus, DateTime demandCalcDate, DateTime demandDate)
+        {
+            return await _unitOfWork.LoanTrn.CalculateLoanDemand(memid, memberStatus, demandCalcDate, demandDate);
         }
 
         #endregion

@@ -21,8 +21,17 @@ namespace Infin8.Coapp.Repository
         public async Task<Gen_Bank_Name> GetSocietyData(string brCode)
         {
             Gen_Bank_Name bank = new();
-            var result =  await CSISContext.Gen_Bank_Name.Where(x=>x.BrCode == brCode).FirstOrDefaultAsync();
-            if (result != null) bank = result;
+            try
+            {
+                var result = await CSISContext.Gen_Bank_Name.Where(x => x.BrCode == brCode).FirstOrDefaultAsync();
+                if (result != null) bank = result;
+            }
+            catch (Exception ex)
+            {
+
+                Console.WriteLine( ex.Message +  " Error while fetching society data");
+            }
+            
             return bank;
         }
     }

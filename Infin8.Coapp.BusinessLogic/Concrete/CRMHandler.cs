@@ -112,6 +112,10 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.Members.GetMemberDetailsByMemNoAsync(memNo,brCode);
         }
 
+        public async Task<List<MemberDetailsVM>> GetMembersForECSDemand(string brCode)
+        {
+           return await _unitOfWork.Members.GetMembersForECSDemand(brCode);
+        }
     }
 }
 
