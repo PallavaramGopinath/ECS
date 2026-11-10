@@ -194,7 +194,7 @@ namespace Infin8.Coapp.Repository
                                                      (!string.IsNullOrEmpty(f.peradd2) ? ", " + f.peradd2 : "") +
                                                      (!string.IsNullOrEmpty(f.peradd3) ? ", " + f.peradd3 : "") +
                                                      (!string.IsNullOrEmpty(f.prepin) ? ", " + f.prepin : "")
-                                       }).FirstOrDefaultAsync();
+                                       }).ToListAsync();
                 if (memDetails != null) memberDetailsList = memDetails;
             }
             catch (Exception ex)

@@ -110,7 +110,7 @@ namespace Infin8.Coapp.Repository
                         {
                             var depBalance = (from trn in CSISContext.Deposit_Trn
                                           join mas in CSISContext.Deposit_Masters on trn.Deposit_Id equals mas.Deposit_Id
-                                          where trn.Mem_Id == memId && trn.Is_Active == true && trn.Deposit_Id == master.Deposit_Id && trn.Mem_Id == master.Mem_Id && trn.BrCode == brCode
+                                          where trn.Mem_Id == memId && trn.Is_Active == true && trn.Deposit_Id == master.Deposit_Id && trn.Mem_Id == memId && trn.BrCode == brCode
                                               group new { trn, mas } by new
                                           {
                                               trn.Mem_Id,
@@ -142,11 +142,7 @@ namespace Infin8.Coapp.Repository
                                           }).FirstOrDefault();
 
                             if(depBalance != null && depBalance.DMId >0) depBal = depBalance;
-                            
-                            if(depBalance != null && depBalance)
-
-
-
+                                                       
                             if (depBal != null)
                             {
                                 _depArrear = depBal.DemandAmount - depBal.ReceiptAmount > 0 ? Math.Round(depBal.DemandAmount - depBal.ReceiptAmount, 2) : 0;

@@ -2827,7 +2827,7 @@ namespace Infin8.Coapp.Repository
             else
                 IsStopDemand = false;
 
-            LoanInterestCalculatedItems calcItems = [];
+            LoanInterestCalculatedItems calcItems = new();
             try
             {
                 if (loanBalanceList != null && loanBalanceList.Count > 0)
@@ -3055,7 +3055,7 @@ namespace Infin8.Coapp.Repository
 
         public LoanInterestCalculatedItems CalculateLnDues(decimal loanid, DateTime FromDate, DateTime ToDate, int InterestApplication, int PIApplication, int IODApplication, double DisbAmt, double PrlColl, double PrlSchedule, double PrlDemand, double IntCalcAmt, double IntCollAmt, string DisbAgency)
         {
-            LoanInterestCalculatedItems calcLnDues = [];
+            LoanInterestCalculatedItems calcLnDues = new();
             double LoanOS = DisbAmt - PrlColl;
             double NonODPrl = DisbAmt - PrlDemand;
             double PrlOD = PrlDemand - PrlColl;
