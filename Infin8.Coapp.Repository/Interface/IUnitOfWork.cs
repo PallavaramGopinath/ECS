@@ -1,5 +1,5 @@
 ﻿
-using Infin8.Coapp.Repository.Interface;
+//using Infin8.Coapp.Repository.Interface;
 using Microsoft.AspNetCore.Connections.Abstractions;
 using System.Net;
 
@@ -47,6 +47,8 @@ namespace Infin8.Coapp.Repository
         ILoanRepaymentScheduleRepository LoanRepaymentSchedule { get; }
         ILoanSanctionRepository LoanSanction { get; }
         ILoanSanctionTrnRepository LoanSanctionTrn { get; }
+        ISuretyLoanSanctionRepository SuretyLoanSanction { get; }
+        ILoanEligibilityRepository LoanEligibility { get; }
         ILoanTrnRepository LoanTrn { get; }
         IJLDailyMarketRateRepository JLDailyMarketRate { get; }
         IJLDetailsRepository JLDetails { get; }
@@ -61,7 +63,7 @@ namespace Infin8.Coapp.Repository
         IMapGeneralRepository MapGeneral { get; }   
         IMapSuspenseAccountsRepository MapSuspenseAccounts { get; }
         IMemAddressRepository MemAddress { get; }
-        IMemDemandMasterRepository MemDemandMaster { get; }
+        
         IMemPassbookRepository MemPassbook { get; }
         IMemPayableRepository MemPayable { get; }
         IMemPayableMasterRepository MemPayableMaster { get; }
@@ -142,6 +144,29 @@ namespace Infin8.Coapp.Repository
         ILockerRentAdjustmentsRepository LockerRentAdjustments { get; }
         ILockerClosuresRepository LockerClosures { get; }
         #endregion
+
+        #region Deposits
+        IDepositMastersRepository DepositMasters { get; }
+        IDepositTrnRepositoty DepositTrn { get; }
+        IDepositRoiTemplatesRepository DepositRoiTemplates { get; }
+        IDepositOptionsRepository DepositOptions { get; }
+        #endregion
+
+        #region ECS Demand
+        IECSDemandCalculationRepository ECSDemandCalculation { get; }
+        #endregion
+
+        #region Mem Demand
+        IMemDemandMasterRepository MemDemandMaster { get; }
+        IMemDemandRepository MemDemand { get; }
+        IMemDemandStatusRepository MemDemandStatus { get; }
+        IMemCollectionPriorityRepository MemCollectionPriority { get; }
+
+        #endregion
+
+        #region Recurring Deposit
+        IRecurringDepositRepository RecurringDeposit { get; }
+        #endregion 
 
         ITransactionsRepository TransactionsRepository { get; }
         IMaxId MaxId { get; }

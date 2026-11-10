@@ -2,131 +2,190 @@ using System.ComponentModel.DataAnnotations;
 namespace Infin8.Coapp.Models
 {
     using System;
+    using System.ComponentModel;
 
     public partial class Mem_Demand
     {
         [Key]
-        public int MemDemand_Id { get; set; }
-        public int Demand_Id { get; set; }
-        public Nullable<System.DateTime> DemandCalculatedDate { get; set; }
-        public Nullable<System.DateTime> RecoveryDate { get; set; }
-        public string? DemandType { get; set; }
-        public int Mem_Id { get; set; }
-        public int Loan_Id { get; set; }
-        public double PIArrearDemand { get; set; }
-        public double IntArrearDemand { get; set; }
-        public double PrlArrearDemand { get; set; }
-        public double PICurrentDemand { get; set; }
-        public double IntCurrentDemand { get; set; }
-        public double PrlCurrentDemand { get; set; }
-        public double PITotalDemand { get; set; }
-        public double IntTotalDemand { get; set; }
-        public double PrlTotalDemand { get; set; }
-        public double Prl_Sched { get; set; }
-        public double NonODPrl { get; set; }
-        public int DM_Id { get; set; }
-        public double ArrearDepositAmount { get; set; }
-        public double CurrentDepositAmount { get; set; }
-        public double TotalDepositAmount { get; set; }
-        public double ArrearPIOnDeposit { get; set; }
-        public double CurrentPIOnDeposit { get; set; }
-        public double TotalPIOnDeposit { get; set; }
-        public int SuspenseLed_Id { get; set; }
-        public double ArrearSuspenseAmount { get; set; }
-        public double CurrentSuspenseAmount { get; set; }
-        public double TotalSuspenseAmount { get; set; }
-        public double TotalDemandAmount { get; set; }
-        public double PIArrearCollection { get; set; }
-        public double IntArrearCollection { get; set; }
-        public double PrlArrearCollection { get; set; }
-        public double PICurrentCollection { get; set; }
-        public double IntCurrentCollection { get; set; }
-        public double PrlCurrentCollection { get; set; }
-        public double PITotalCollection { get; set; }
-        public double IntTotalCollection { get; set; }
-        public double PrlTotalCollection { get; set; }
-        public double ArrearDepositCollection { get; set; }
-        public double CurrentDepositCollection { get; set; }
-        public double TotalDepositCollection { get; set; }
-        public double ArrearPIOnDepositCollection { get; set; }
-        public double CurrentPIOnDepositCollection { get; set; }
-        public double TotalPIOnDepositCollection { get; set; }
-        public double ArrearSuspenseCollection { get; set; }
-        public double CurrentSuspenseCollection { get; set; }
-        public double TotalSuspenseCollection { get; set; }
-        public double TotalCollectionAmount { get; set; }
-        public int SuspenseDueByLed_Id { get; set; }
-        public double TotalDueByCollection { get; set; }
-        public int Voc_Id { get; set; }
-        public int Usr_Id { get; set; }
-        public int Yr_Id { get; set; }
-        public double LoanOS { get; set; }
-        public double PenalInterestCalculatedAmount { get; set; }
-        public double InterestCalculatedAmount { get; set; }
-        public bool MemDemand_Delete { get; set; }
-        public bool StopDemand { get; set; }
-        public double Prl_SchedForStopDemand { get; set; }
-        public int IntCalcForStopDemand { get; set; }
-        public bool IsAppropriated { get; set; }
-        public bool IsRecoverySaved { get; set; }
-        public string? PerNo { get; set; }
-        public string? PerName { get; set; }
-        public int Recovery_Id { get; set; }
-        public double PIArrearDemand2 { get; set; }
-        public double IntArrearDemand2 { get; set; }
-        public double PrlArrearDemand2 { get; set; }
-        public double PICurrentDemand2 { get; set; }
-        public double IntCurrentDemand2 { get; set; }
-        public double PrlCurrentDemand2 { get; set; }
-        public double PITotalDemand2 { get; set; }
-        public double IntTotalDemand2 { get; set; }
-        public double PrlTotalDemand2 { get; set; }
-        public double ArrearDepositAmount2 { get; set; }
-        public double CurrentDepositAmount2 { get; set; }
-        public double TotalDepositAmount2 { get; set; }
-        public double ArrearPIOnDeposit2 { get; set; }
-        public double CurrentPIOnDeposit2 { get; set; }
-        public double TotalPIOnDeposit2 { get; set; }
-        public double ArrearSuspenseAmount2 { get; set; }
-        public double CurrentSuspenseAmount2 { get; set; }
-        public double TotalSuspenseAmount2 { get; set; }
-        public double TotalDemandAmount2 { get; set; }
-        public int TD_Id { get; set; }
-        public int RDInstalmentAmount { get; set; }
-        public int RDNoOfInstalments { get; set; }
-        public int RDDemandAmount { get; set; }
-        public int PIOnRDArrearAmount { get; set; }
-        public int PIOnRDCalcAmount { get; set; }
-        public int PIOnRDTotalAmount { get; set; }
-        public Nullable<System.DateTime> PIOnRDApplicationDate { get; set; }
-        public int RDTotalDemandAmount { get; set; }
-        public int RDReceiptAmount { get; set; }
-        public int PIOnRDReceiptAmount { get; set; }
-        public int RDTotalReceiptAmount { get; set; }
-        public int RDNoOfInstalments2 { get; set; }
-        public int RDDemandAmount2 { get; set; }
-        public int PIOnRDArrearAmount2 { get; set; }
-        public int PIOnRDCalcAmount2 { get; set; }
-        public int PIOnRDTotalAmount2 { get; set; }
-        public Nullable<System.DateTime> PIOnRDApplicationDate2 { get; set; }
-        public int RDTotalDemandAmount2 { get; set; }
-        public int RDReceiptAmount2 { get; set; }
-        public int PIOnRDReceiptAmount2 { get; set; }
-        public int RestrictedDemand { get; set; }
-        public int TotalDemand { get; set; }
-        public int TotalLoanArrearDemand { get; set; }
-        public int TotalLoanCurrentDemand { get; set; }
-        public int TotalRDDemand { get; set; }
-        public int TotalDepositDemand { get; set; }
-        public int DueByDemandLed_Id { get; set; }
-        public int ArrearDueByDemandAmount { get; set; }
-        public int CurrentDueByDemandAmount { get; set; }
-        public int TotalDueByDemandAmount { get; set; }
-        public int ArrearDueByCollectionOnDemand { get; set; }
-        public int CurrentDueByCollectionOnDemand { get; set; }
-        public int TotalDueByCollectionOnDemand { get; set; }
-        public int ReferId { get; set; }
+        public decimal Id { get; set; }
+        public decimal Demand_Id { get; set; }
+        public  DateOnly Calculated_Date { get; set; }
+        public DateOnly? Recovery_Date { get; set; }
+        public string? Demand_Type { get; set; }
+        public Decimal Mem_Id { get; set; }
+
+        /// <summary>
+        /// Loan
+        /// </summary>
+        public Decimal Loan_Id { get; set; }
+        public double Prl_Schedule { get; set; }
+        public double Non_OD_Prl { get; set; }
+        public double Loan_Oustanding { get; set; }
+        public double Loan_PI_Arrear { get; set; }
+        public double Loan_Int_Arrear { get; set; }
+        public double Loan_Prl_Arrear { get; set; }
+        public double Loan_PI_Current { get; set; }
+        public double Loan_Int_Current { get; set; }
+        public double Loan_Prl_Current { get; set; }
+        public double Loan_Total { get; set; }
+
+        /// <summary>
+        /// Deposits
+        /// </summary>
+        public int Deposit_Id { get; set; }
+        public double Deposit_Arrear { get; set; }
+        public double Deposit_Current { get; set; }
+        public double Deposit_PI_Arrear { get; set; }
+        public double Deposit_PI_Current { get; set; }
+        public double Deposit_Total { get; set; }
+
+        /// <summary>
+        /// Sundry Debtors
+        /// </summary>
+        public decimal Debtor_Led_Id { get; set; }
+        public double Debtor_Arrear { get; set; }
+        public double Debtor_Current { get; set; }
+        public double Debtor_Total { get; set; }
+
+        /// <summary>
+        /// Recurring Deposits
+        /// </summary>
+        public decimal TD_Id { get; set; }
+        public int RD_Instalment { get; set; }
+        public int RD_NoOf_Instalments { get; set; }
+        public double RD_Demand { get; set; }
+        public double RD_PI_Arrear { get; set; }
+        public double RD_PI_Calc { get; set; }
+        public DateTime? RD_PI_Application_Date { get; set; }
+        public double RD_Total { get; set; }
+
+        /// <summary>
+        /// Due By Demand (CVRDE group insurance demand)
+        /// </summary>
+        public decimal DueBy_Led_Id { get; set; }
+        public double DueBy_Arrear { get; set; }
+        public double DueBy_Current { get; set; }
+        public double DueBy_Total { get; set; }
+
+        /// <summary>
+        /// Total Demand
+        /// </summary>
+        public double Total_Demand { get; set; }
+
+
+        /// <summary>
+        /// Loan Collection
+        /// </summary>
+        public double loan_PI_Arrear_Collection { get; set; }
+        public double Loan_Int_Arrear_Collection { get; set; }
+        public double Loan_Prl_Arrear_Collection { get; set; }
+        public double Loan_PI_Current_Collection { get; set; }
+        public double Loan_Int_Current_Collection { get; set; }
+        public double Loan_Prl_Current_Collection { get; set; }
+        public double Loan_Total_Collection { get; set; }
+
+        /// <summary>
+        /// Deposit Collection
+        /// </summary>
+        public double Deposit_Arrear_Collection { get; set; }
+        public double Deposit_Current_Collection { get; set; }
+        public double Deposit_Arrear_PI_Collection { get; set; }
+        public double Deposit_Current_PI_Collection { get; set; }
+        public double Deposit_Total_Collection { get; set; }
+
+        /// <summary>
+        /// Sundry Debtors Collection
+        /// </summary>
+        public double Debtor_Arrear_Collection { get; set; }
+        public double Debtor_Current_Collection { get; set; }
+        public double Debtor_Total_Collection { get; set; }
+
+        /// <summary>
+        /// Recurring Deposits Collection
+        /// </summary>
+        public double RD_Receipt { get; set; }
+        public double RD_PI_Receipt { get; set; }
+        public double RD_Total_Receipt { get; set; }
+
+        /// <summary>
+        /// Advance Collection(Sundry Creditors)
+        /// </summary>
+        public decimal Creditor_Led_Id { get; set; }
+        public double Creditor_Collection { get; set; }
+
+        /// <summary>
+        /// Due By Collection (CVRDE group insurance collection)
+        /// </summary>
+        public double DueBy_Arrear_Collection { get; set; }
+        public double DueBy_Current_Collection { get; set; }
+        public double DueBy_Total_Collection { get; set; }
+
+        /// <summary>
+        /// Total collection
+        /// </summary>
+        public double Total_Collection { get; set; }
+
+        /// <summary>
+        /// General
+        /// </summary>
+        public decimal Voc_Id { get; set; }
+        public decimal Usr_Id { get; set; }
+        public decimal Yr_Id { get; set; }
         public string? BrCode { get; set; }
-        public string? Voc_Status { get; set; } = "V";
-    }
+        public bool Is_Active { get; set; } = true;
+        public bool Stop_Demand { get; set; } =false;
+        public bool Is_Appropriated { get; set; }=false;
+        public bool Is_Recovery_Saved { get; set; } = false;
+        public decimal Recovery_Id { get; set; }
+
+        /// <summary>
+        /// Loan2 Recalculation
+        /// </summary>
+        public double Loan_PI_Arrear2 { get; set; }
+        public double Loan_Int_Arrear2 { get; set; }
+        public double Loan_Prl_Arrear2 { get; set; }
+        public double Loan_PI_Current2 { get; set; }
+        public double Loan_Int_Current2 { get; set; }
+        public double Loan_Prl_Current2 { get; set; }
+        public double Loan_Total2 { get; set; }
+
+        /// <summary>
+        /// Deposits2
+        /// </summary>
+        public double Deposit_Arrear2 { get; set; }
+        public double Deposit_Current2 { get; set; }
+        public double Deposit_PI_Arrear2 { get; set; }
+        public double Deposit_PI_Current2 { get; set; }
+        public double Deposit_Total2 { get; set; }
+
+        /// <summary>
+        /// Sundry Debtors2
+        /// </summary>
+        public double Debtor_Arrear2 { get; set; }
+        public double Debtor_Current2 { get; set; }
+        public double Debtor_Total2 { get; set; }
+
+        /// <summary>
+        /// Recurring Deposits2
+        /// </summary>
+        public int RD_Instalment2 { get; set; }
+        public int RD_NoOf_Instalments2 { get; set; }
+        public double RD_Demand2 { get; set; }
+        public double RD_PI_Arrear2 { get; set; }
+        public double RD_PI_Calc2 { get; set; }
+        public DateTime? RD_PI_Application_Date2 { get; set; }
+        public double RD_Total2 { get; set; }
+
+        /// <summary>
+        /// Due By Demand2 (CVRDE group insurance demand)
+        /// </summary>
+        public double DueBy_Arrear2 { get; set; }
+        public double DueBy_Current2 { get; set; }
+        public double DueBy_Total2 { get; set; }
+
+        /// <summary>
+        /// Total Demand2
+        /// </summary>
+        public double Total_Demand2 { get; set; }
+            }
 }

@@ -20,5 +20,6 @@ namespace Infin8.Coapp.Repository
         Task<double> GetmemTrnTotalSuspenseAmount(decimal memId, int trnType,string brCode);
         Task<List<MemberTransactionVM>> GetMemberTrnBalanceList(decimal MemId, int TrnType, string brCode);
         Task<List<DividendOrIntOnTDPaymentVM>> GetDividendPayableListAsync(decimal memId, DateTime asOnDate, string brCode);
+        Task<List<Mem_Demand>> CalculateDueToDemand(decimal memId, DateTime demandDate, string brCode);
     }
 }

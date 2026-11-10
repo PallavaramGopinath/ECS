@@ -19,5 +19,11 @@ namespace Infin8.Coapp.Dto
         public DateTime  CurrentDate { get; set; }
         public bool IsAuthenticated { get; set; }
         public string? CalendarStatus { get; set; }
+
+        /// <summary>
+        /// Institution type of the current society, sourced from Gen_Bank_Name.Bank_Type
+        /// (1 = PCARDB, 2 = ECS). Populated by the api/Auth/me endpoint.
+        /// </summary>
+        public int SocietyType { get; set; }
     }
 }

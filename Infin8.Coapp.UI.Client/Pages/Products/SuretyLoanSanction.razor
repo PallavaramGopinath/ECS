@@ -1,0 +1,798 @@
+@* @page "/loan-sanction/surety" *@
+@page "/loan-sanction"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveWebAssembly
+@inject TransactionStateService TransactionState
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Loan Sanction</PageTitle>
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">Surety Loan Sanction</li>
+    </ol>
+</nav>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
+    </div>
+}
+else if (institution != InstitutionType.ECS)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        Surety Loan sanction is available only for Employees' Society (ECS) institutions.
+    </div>
+}
+else
+{
+    <h4 class="mb-3"><i class="bi bi-cash-coin me-2 text-primary"></i>Surety Loan Sanction</h4>
+
+    @* ---------- Member lookup (Sec 2) ---------- *@
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white py-2"><h6 class="mb-0">Member</h6></div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Member No</label>
+                    <input class="form-control" @bind="memberNo" @bind:event="onchange"
+                           @onblur="LookupMember" placeholder="Enter member no" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Per No</label>
+                    <input class="form-control" value="@data.PerNo" readonly />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Member Name</label>
+                    <input class="form-control" value="@data.MemberName" readonly />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Surety Member No</label>
+                    <input class="form-control" value="@data.SuretyMemberNo" readonly />
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label">Surety Member Name</label>
+                    <input class="form-control" value="@data.SuretyMemberName" readonly />
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(lookupMessage))
+            {
+                <div class="text-danger small mt-2">@lookupMessage</div>
+            }
+        </div>
+    </div>
+
+    @if (data.Found)
+    {
+        <div class="row g-3">
+            @* ---------- Salary (Sec 3) ---------- *@
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white py-2"><h6 class="mb-0">Salary Details</h6></div>
+                    <div class="card-body">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><th class="fw-normal">Basic Pay</th><td class="text-end"><input type="number" class="form-control form-control-sm text-end" @bind="data.BasicPay" /></td></tr>
+                                <tr><th class="fw-normal">Gross Pay</th><td class="text-end"><input type="number" class="form-control form-control-sm text-end" @bind="data.GrossPay" @bind:after="RecalcNetPay" /></td></tr>
+                                <tr><th class="fw-normal">Society Deduction</th><td class="text-end"><input type="number" class="form-control form-control-sm text-end" @bind="data.SocietyDeduction" /></td></tr>
+                                <tr><th class="fw-normal">Total Deductions</th><td class="text-end"><input type="number" class="form-control form-control-sm text-end" @bind="data.TotalDeductions" @bind:after="RecalcNetPay" /></td></tr>
+                                <tr class="table-light"><th class="fw-normal">Net Pay</th><td class="text-end fw-bold">@F(data.NetPay)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            @* ---------- Dates (Sec 4) ---------- *@
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white py-2"><h6 class="mb-0">Dates</h6></div>
+                    <div class="card-body">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><th class="fw-normal">Date of Birth</th><td class="text-end"><input type="date" class="form-control form-control-sm" @bind="data.DateOfBirth" /></td></tr>
+                                <tr><th class="fw-normal">Date of Retirement</th><td class="text-end"><input type="date" class="form-control form-control-sm" @bind="data.DateOfRetirement" @bind:after="RecalcService" /></td></tr>
+                                <tr><th class="fw-normal">Service in Months</th><td class="text-end">@data.ServiceInMonths</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ---------- Loan details (Sec 5) ---------- *@
+        <div class="card border-0 shadow-sm my-3">
+            <div class="card-header bg-white py-2"><h6 class="mb-0">Loan Details</h6></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Loan Purpose (Scheme)</label>
+                        <select class="form-select" @bind="selectedSchemeId" @bind:after="OnSchemeChanged">
+                            <option value="0">Select purpose…</option>
+                            @foreach (var s in schemes)
+                            {
+                                <option value="@s.Value">@s.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Loan Amount</label>
+                        <input type="number" class="form-control" @bind="loanAmount" @bind:after="CalcInstallment" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Period of Loan (months)</label>
+                        <input type="number" class="form-control" @bind="periodOfLoan" @bind:after="CalcInstallment" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Rate of Interest (%)</label>
+                        <input type="number" class="form-control" @bind="rateOfInterest" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Penal Rate (%)</label>
+                        <input type="number" class="form-control" @bind="penalRate" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Installment Amount</label>
+                        <input type="number" class="form-control" @bind="installmentAmount" @onblur="EnforceInstallmentFloor" />
+                        <div class="form-text">Not less than @F(calculatedInstallment)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">First Due Date</label>
+                        <input type="date" class="form-control" @bind="firstDueDate" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">This Loan Limit</label>
+                        <input class="form-control" value="@F(thisLoanLimit)" readonly />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Maximum Loan Limit</label>
+                        <input class="form-control" value="@F(maxLoanLimit)" readonly />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Installments Completed</label>
+                        <input class="form-control" value="@noOfInstalmentsCompleted" readonly />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Installments Recovered</label>
+                        <input class="form-control" value="@noOfInstalmentsRecovered" readonly />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ---------- Loan Scheme Details + Eligibility Criteria ---------- *@
+        @if (schemeDetails.Any())
+        {
+            <div class="row g-3 my-1">
+                @* Loan Scheme Details (col-6) *@
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white py-2"><h6 class="mb-0">Loan Scheme Details</h6></div>
+                        <div class="card-body">
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead class="table-light"><tr><th>Caption</th><th>Content</th></tr></thead>
+                                <tbody>
+                                    @foreach (var sd in schemeDetails)
+                                    {
+                                        <tr><td>@sd.Caption</td><td>@sd.Content</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                @* Eligibility Criteria (col-6) *@
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white py-2"><h6 class="mb-0">Eligibility Criteria</h6></div>
+                        <div class="card-body">
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    <tr><th class="fw-normal">25 times of Gross Pay</th><td class="text-end">@F(data.GrossPay * 25)</td></tr>
+                                    <tr><th class="fw-normal">50 % of Salary</th><td class="text-end">@F(data.GrossPay * 0.5)</td></tr>
+                                    <tr><th class="fw-normal">25 % of Salary</th><td class="text-end">@F(data.GrossPay * 0.25)</td></tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100 my-2"
+                                    @onclick="DisplayDemandDetails">Display Demand Details</button>
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    <tr><th class="fw-normal">Demand</th><td class="text-end">@F(eligibility?.TotalDemand ?? 0)</td></tr>
+                                    <tr><th class="fw-normal">Other Deductions</th><td class="text-end">@F(eligibility?.OtherDeductions ?? 0)</td></tr>
+                                    <tr class="table-light"><th class="fw-normal">Net Pay</th><td class="text-end fw-bold">@F(eligibility?.NewNetPay ?? 0)</td></tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-sm btn-primary w-100 mt-2" @onclick="DisplayEligibility"
+                                    disabled="@(selectedSchemeId == "0" || loanAmount <= 0)">Display Loan Eligibility</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ---------- Deductions (Sec 9) ---------- *@
+        <div class="card border-0 shadow-sm my-3">
+            <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Deductions</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="LoadDeductions"
+                        disabled="@(selectedSchemeId == "0" || loanAmount <= 0)">Load Deductions</button>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Ledger</label>
+                        <select class="form-select" @bind="newDeductionLedgerId">
+                            <option value="0">Select ledger…</option>
+                            @foreach (var l in ledgers)
+                            {
+                                <option value="@l.Value">@l.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Amount</label>
+                        <input type="number" class="form-control" @bind="newDeductionAmount" />
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-secondary w-100" @onclick="AddManualDeduction">
+                            <i class="bi bi-plus-lg me-1"></i>Add
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-1">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Type</th><th>Loan No</th><th>Ledger</th>
+                                <th class="text-end">Outstanding</th><th class="text-end">OD Amount</th>
+                                <th class="text-end">L Deduct</th><th class="text-center">Match SC</th><th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!deductableLoans.Any() && !manualDeductions.Any())
+                            {
+                                <tr><td colspan="8" class="text-center text-muted">Load deductions to populate.</td></tr>
+                            }
+                            @foreach (var row in deductableLoans)
+                            {
+                                <tr>
+                                    <td>@row.RowType</td>
+                                    <td>@row.Loan_No</td>
+                                    <td>@row.Ledger_Name</td>
+                                    <td class="text-end">@F(row.Outstanding)</td>
+                                    <td class="text-end">@F(row.ODAmount)</td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm text-end"
+                                               @bind="row.LDeduct" @bind:after="StateHasChanged" />
+                                    </td>
+                                    <td class="text-center">@(row.MatchSC ? "✓" : "")</td>
+                                    <td><button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => deductableLoans.Remove(row)">×</button></td>
+                                </tr>
+                            }
+                            @foreach (var m in manualDeductions)
+                            {
+                                <tr>
+                                    <td>Manual</td><td></td><td>@m.LedgerName</td>
+                                    <td class="text-end">-</td><td class="text-end">-</td>
+                                    <td class="text-end">@F(m.Amount)</td><td></td>
+                                    <td><button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => manualDeductions.Remove(m)">×</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <th colspan="5" class="text-end">Total Recoverable</th>
+                                <th class="text-end">@F(TotalRecoverable)</th><th colspan="2"></th>
+                            </tr>
+                            <tr>
+                                <th colspan="5" class="text-end">Loan Balance</th>
+                                <th class="text-end">@F(LoanBalance)</th><th colspan="2"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                @if (deductionsData != null)
+                {
+                    <div class="small text-muted">
+                        Required Share Capital: <strong>@F(deductionsData.RequiredShareCapital)</strong>
+                        (@F(deductionsData.ShareCapitalPercentageOnLoan)% of loan) ·
+                        Member SC: @F(deductionsData.MemberShareCapital) ·
+                        Surety SC: @F(deductionsData.SuretyShareCapital)
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* ---------- Eligibility Result (Sec 10) ---------- *@
+        @if (eligibility != null)
+        {
+            <div class="card border-0 shadow-sm my-3">
+                <div class="card-header bg-white py-2"><h6 class="mb-0">Eligibility Result</h6></div>
+                <div class="card-body">
+                    <div class="alert @(eligibility.IsEligible ? "alert-success" : "alert-danger") py-2">
+                        <strong>@(eligibility.IsEligible ? "Eligible" : "Not Eligible")</strong>
+                        <ul class="mb-0">
+                            @foreach (var r in eligibility.Reasons)
+                            {
+                                <li>@r</li>
+                            }
+                        </ul>
+                    </div>
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr><th class="fw-normal">Current Loan Demand</th><td class="text-end">@F(eligibility.CurrentLoanDemand)</td></tr>
+                            <tr><th class="fw-normal">Current Deposit Demand</th><td class="text-end">@F(eligibility.CurrentDepositDemand)</td></tr>
+                            <tr><th class="fw-normal">Other Deductions</th><td class="text-end">@F(eligibility.OtherDeductions)</td></tr>
+                            <tr><th class="fw-normal">Non-Deductable Loan Demand</th><td class="text-end">@F(eligibility.NonDeductableLoanDemand)</td></tr>
+                            <tr class="table-light"><th class="fw-normal">Total Demand</th><td class="text-end fw-bold">@F(eligibility.TotalDemand)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        @* ---------- Verification tabs (Sec 11) ---------- *@
+        @if (deductionsData != null)
+        {
+            <div class="card border-0 shadow-sm my-3">
+                <div class="card-header bg-white py-2">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link @(activeTab == "nondeduct" ? "active" : "")" href="javascript:void(0)" @onclick='() => activeTab = "nondeduct"'>Non-deductable Loans</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(activeTab == "deposits" ? "active" : "")" href="javascript:void(0)" @onclick='() => activeTab = "deposits"'>Pending Deposits</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    @if (activeTab == "nondeduct")
+                    {
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="table-light"><tr><th>Loan No</th><th>Purpose</th><th class="text-end">Outstanding</th><th class="text-end">Interest Bal</th><th class="text-end">Penal Bal</th></tr></thead>
+                            <tbody>
+                                @if (!deductionsData.NonDeductableLoans.Any())
+                                {
+                                    <tr><td colspan="5" class="text-center text-muted">None</td></tr>
+                                }
+                                @foreach (var n in deductionsData.NonDeductableLoans)
+                                {
+                                    <tr><td>@n.Loan_No</td><td>@n.Purpose</td><td class="text-end">@F(n.LoanOutstanding)</td><td class="text-end">@F(n.InterestBalance)</td><td class="text-end">@F(n.PenalInterestBalance)</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="table-light"><tr><th>Deposit</th><th class="text-end">Balance</th><th class="text-end">Pending Demand</th></tr></thead>
+                            <tbody>
+                                @foreach (var d in deductionsData.PendingDeposits)
+                                {
+                                    <tr><td>@d.DepositName</td><td class="text-end">@F(d.Balance)</td><td class="text-end">@F(d.PendingDemand)</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        }
+
+        @* ---------- Assets (Sec 6 / 7) ---------- *@
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white py-2"><h6 class="mb-0">Member's Assets</h6></div>
+                    <div class="card-body">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><th class="fw-normal">Share Capital</th><td class="text-end">@F(data.MemberShareCapital)</td></tr>
+                                <tr><th class="fw-normal">Thrift Deposit</th><td class="text-end">@F(data.MemberThriftDeposit)</td></tr>
+                                <tr><th class="fw-normal">Family Welfare Deposit</th><td class="text-end">@F(data.MemberFamilyWelfareDeposit)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white py-2"><h6 class="mb-0">Surety's Assets</h6></div>
+                    <div class="card-body">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><th class="fw-normal">Share Capital</th><td class="text-end">@F(data.SuretyShareCapital)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ---------- Surety loan overdue & history (Sec 8) ---------- *@
+        @if (data.SuretyLoanOverdues.Any())
+        {
+            <div class="card border-0 shadow-sm my-3">
+                <div class="card-header bg-white py-2"><h6 class="mb-0">Surety Loan Overdue</h6></div>
+                <div class="card-body">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr><th>Loan No</th><th>Purpose</th><th class="text-end">Overdue Amount</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var od in data.SuretyLoanOverdues)
+                            {
+                                <tr>
+                                    <td>@od.LoanNo</td>
+                                    <td>@od.Purpose</td>
+                                    <td class="text-end">@F(od.OverdueAmount)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(saveMessage))
+        {
+            <div class="alert @(saveSuccess ? "alert-success" : "alert-danger") py-2 my-2">@saveMessage</div>
+        }
+
+        <div class="d-flex justify-content-end gap-2 my-3">
+            <button type="button" class="btn btn-outline-secondary" @onclick="@(() => Navigation.NavigateTo("/"))">Cancel</button>
+            <button type="button" class="btn btn-primary"
+                    disabled="@(eligibility == null || !eligibility.IsEligible)"
+                    @onclick="OnSanctionClicked">
+                Sanction
+            </button>
+        </div>
+        <div class="form-text">Sanction enables once eligibility passes. The server re-checks eligibility and the duplicate-sanction guard before saving.</div>
+    }
+}
+
+@code {
+    private bool isReady;
+    private string brCode = "";
+    private InstitutionType institution = InstitutionType.Unknown;
+
+    private string memberNo = "";
+    private string? lookupMessage;
+    private SuretyLoanSanctionDataVM data = new();
+
+    private List<DropdownItem> schemes = new();
+    private string selectedSchemeId = "0";
+    private List<SchemeDetailRowVM> schemeDetails = new();
+
+    // Loan-detail inputs
+    private double loanAmount;
+    private int periodOfLoan;
+    private double rateOfInterest;
+    private double penalRate;
+    private double installmentAmount;
+    private double calculatedInstallment;
+    private DateTime firstDueDate = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private double thisLoanLimit;
+    private double maxLoanLimit;
+    private int noOfInstalmentsCompleted;
+    private int noOfInstalmentsRecovered;
+    private bool adoptLoanEligibility;
+
+    // Phase 2 — deductions + eligibility
+    private List<DropdownItem> ledgers = new();
+    private string newDeductionLedgerId = "0";
+    private double newDeductionAmount;
+    private List<ManualDeductionRow> manualDeductions = new();
+    private List<DeductableLoanRowVM> deductableLoans = new();
+    private SuretyDeductionsDataVM? deductionsData;
+    private LoanEligibilityResultVM? eligibility;
+    private string activeTab = "nondeduct";
+    private string? saveMessage;
+    private bool saveSuccess;
+
+    private double TotalRecoverable => deductableLoans.Sum(r => r.LDeduct) + manualDeductions.Sum(m => m.Amount);
+    private double LoanBalance => loanAmount - TotalRecoverable;
+
+    private class ManualDeductionRow
+    {
+        public decimal LedgerId { get; set; }
+        public string? LedgerName { get; set; }
+        public double Amount { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode ?? "";
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+
+            if (institution == InstitutionType.ECS)
+            {
+                var list = await _httpClient.GetFromJsonAsync<List<DropdownItem>>(
+                    $"api/loansanction/GetSuretyLoanSchemes/{brCode}");
+                if (list != null) schemes = list;
+
+                var ledgerList = await _httpClient.GetFromJsonAsync<List<DropdownItem>>(
+                    $"api/loansanction/GetLedgers/{brCode}");
+                if (ledgerList != null) ledgers = ledgerList;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LookupMember()
+    {
+        lookupMessage = null;
+        if (string.IsNullOrWhiteSpace(memberNo)) return;
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<SuretyLoanSanctionDataVM>(
+                $"api/loansanction/GetSuretyLoanMember/{memberNo}/{brCode}");
+            if (result != null && result.Found)
+            {
+                data = result;
+                RecalcNetPay();
+                RecalcService();
+            }
+            else
+            {
+                data = new();
+                lookupMessage = result?.Message ?? "Member details not available.";
+            }
+        }
+        catch (Exception ex)
+        {
+            data = new();
+            lookupMessage = "Could not load member details.";
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task OnSchemeChanged()
+    {
+        if (!int.TryParse(selectedSchemeId, out var schemeId) || schemeId <= 0)
+        {
+            thisLoanLimit = maxLoanLimit = 0;
+            periodOfLoan = 0;
+            schemeDetails = new();
+            return;
+        }
+        try
+        {
+            var d = await _httpClient.GetFromJsonAsync<SuretyLoanSchemeDefaultsVM>(
+                $"api/loansanction/GetSchemeDefaults/{schemeId}/{brCode}");
+            if (d != null)
+            {
+                periodOfLoan = d.PeriodOfLoan;
+                rateOfInterest = d.RateOfInterest;
+                penalRate = d.PenalRate;
+                thisLoanLimit = d.ThisLoanLimit;
+                maxLoanLimit = d.MaxLoanLimit;
+                adoptLoanEligibility = d.AdoptLoanEligibility;
+                noOfInstalmentsCompleted = d.NoOfInstalmentsCompleted;
+                noOfInstalmentsRecovered = d.NoOfInstalmentsRecovered;
+                schemeDetails = d.SchemeDetails ?? new();
+                CalcInstallment();
+                // Recomputed deductions/eligibility are now stale — clear them.
+                deductableLoans.Clear();
+                deductionsData = null;
+                eligibility = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    // Phase-1 installment: straight-line principal / period. EMI-by-Inst_Type is added in Phase 2.
+    private void CalcInstallment()
+    {
+        calculatedInstallment = periodOfLoan > 0 ? Math.Ceiling(loanAmount / periodOfLoan) : 0;
+        installmentAmount = calculatedInstallment;
+    }
+
+    private void EnforceInstallmentFloor()
+    {
+        if (installmentAmount < calculatedInstallment) installmentAmount = calculatedInstallment;
+    }
+
+    private static string Inv(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private async Task LoadDeductions()
+    {
+        if (!int.TryParse(selectedSchemeId, out var schemeId) || schemeId <= 0 || loanAmount <= 0) return;
+        try
+        {
+            var url = $"api/loansanction/GetDeductions/{data.Mem_Id}/{data.SuretyMem_Id}/{schemeId}/{Inv(loanAmount)}/{brCode}";
+            var d = await _httpClient.GetFromJsonAsync<SuretyDeductionsDataVM>(url);
+            if (d != null)
+            {
+                deductionsData = d;
+                deductableLoans = d.DeductableLoans ?? new();
+                eligibility = null; // require a fresh eligibility check after deductions change
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void AddManualDeduction()
+    {
+        if (!decimal.TryParse(newDeductionLedgerId, out var ledId) || ledId <= 0 || newDeductionAmount <= 0) return;
+        var ledger = ledgers.FirstOrDefault(l => l.Value == newDeductionLedgerId);
+        manualDeductions.Add(new ManualDeductionRow
+        {
+            LedgerId = ledId,
+            LedgerName = ledger?.Text,
+            Amount = newDeductionAmount
+        });
+        newDeductionLedgerId = "0";
+        newDeductionAmount = 0;
+        eligibility = null;
+    }
+
+    private void DisplayDemandDetails()
+    {
+        // Demand module (separate spec) — to be implemented. Placeholder for now.
+    }
+
+    private async Task DisplayEligibility()
+    {
+        if (!int.TryParse(selectedSchemeId, out var schemeId) || schemeId <= 0 || loanAmount <= 0) return;
+        var input = new LoanEligibilityInputVM
+        {
+            Mem_Id = data.Mem_Id,
+            Scheme_Id = schemeId,
+            BrCode = brCode,
+            LoanAmount = loanAmount,
+            InstallmentAmount = installmentAmount,
+            RateOfInterest = rateOfInterest,
+            GrossPay = data.GrossPay,
+            NetPay = data.NetPay,
+            TotalDeductions = data.TotalDeductions,
+            SocietyDeduction = data.SocietyDeduction,
+            ServiceInMonths = data.ServiceInMonths,
+            CurrentDepositDemand = deductionsData?.CurrentDepositDemand ?? 0,
+            NonDeductableLoanDemand = deductionsData?.NonDeductableLoanDemand ?? 0,
+            // Existing demand approximated as the OD of the deductable (existing) loans — refine in Phase 3.
+            ExistingDemand = deductableLoans.Sum(r => r.ODAmount),
+            AdoptLoanEligibility = adoptLoanEligibility
+        };
+        try
+        {
+            var resp = await _httpClient.PostAsJsonAsync("api/loansanction/CalculateEligibility", input);
+            if (resp.IsSuccessStatusCode)
+                eligibility = await resp.Content.ReadFromJsonAsync<LoanEligibilityResultVM>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task OnSanctionClicked()
+    {
+        if (!int.TryParse(selectedSchemeId, out var schemeId) || schemeId <= 0) return;
+        saveMessage = null;
+
+        // Combine grid rows + manual deductions into the deduction line set.
+        var rows = new List<DeductableLoanRowVM>(deductableLoans);
+        rows.AddRange(manualDeductions.Select(m => new DeductableLoanRowVM
+        {
+            Mem_Id = data.Mem_Id,
+            Led_Id = m.LedgerId,
+            Ledger_Name = m.LedgerName,
+            LDeduct = m.Amount,
+            RowType = "Manual"
+        }));
+
+        var vm = new SuretyLoanSanctionSaveVM
+        {
+            Mem_Id = data.Mem_Id,
+            SuretyMem_Id = data.SuretyMem_Id,
+            Scheme_Id = schemeId,
+            Inst_Type = 0,
+            LoanAmount = loanAmount,
+            PeriodOfLoan = periodOfLoan,
+            RateOfInterest = rateOfInterest,
+            PenalRate = penalRate,
+            InstalmentAmount = (int)installmentAmount,
+            FirstDueDate = firstDueDate,
+            BasicPay = data.BasicPay,
+            GrossPay = data.GrossPay,
+            SocietyDeduction = data.SocietyDeduction,
+            TotalDeductions = data.TotalDeductions,
+            NetPay = data.NetPay,
+            MemberShareCapitalAmount = (int)data.MemberShareCapital,
+            SuretyShareCapitalAmount = (int)data.SuretyShareCapital,
+            MemberTD = (int)data.MemberThriftDeposit,
+            ThisLoanLimit = (int)thisLoanLimit,
+            MemberTotalLimit = (int)maxLoanLimit,
+            NoOfInstalmentsCompleted = noOfInstalmentsCompleted,
+            NoOfInstalmentsRecovered = noOfInstalmentsRecovered,
+            EligibilityInput = new LoanEligibilityInputVM
+            {
+                Mem_Id = data.Mem_Id,
+                Scheme_Id = schemeId,
+                BrCode = brCode,
+                LoanAmount = loanAmount,
+                InstallmentAmount = installmentAmount,
+                RateOfInterest = rateOfInterest,
+                GrossPay = data.GrossPay,
+                NetPay = data.NetPay,
+                TotalDeductions = data.TotalDeductions,
+                SocietyDeduction = data.SocietyDeduction,
+                ServiceInMonths = data.ServiceInMonths,
+                CurrentDepositDemand = deductionsData?.CurrentDepositDemand ?? 0,
+                NonDeductableLoanDemand = deductionsData?.NonDeductableLoanDemand ?? 0,
+                ExistingDemand = deductableLoans.Sum(r => r.ODAmount),
+                AdoptLoanEligibility = adoptLoanEligibility
+            },
+            DeductionRows = rows
+        };
+
+        try
+        {
+            var resp = await _httpClient.PostAsJsonAsync("api/loansanction/SaveSanction", vm);
+            var result = await resp.Content.ReadFromJsonAsync<SanctionSaveResultVM>();
+            if (resp.IsSuccessStatusCode && result?.Success == true)
+            {
+                saveSuccess = true;
+                saveMessage = $"Sanction saved. Loan Sanction No: {result.LoanSanction_Id}.";
+            }
+            else
+            {
+                saveSuccess = false;
+                saveMessage = result?.Message ?? "Sanction save failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            saveSuccess = false;
+            saveMessage = "Sanction save failed.";
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void RecalcNetPay() => data.NetPay = data.GrossPay - data.TotalDeductions;
+
+    private void RecalcService()
+    {
+        if (data.DateOfRetirement is DateTime dor)
+        {
+            int m = (dor.Year - DateTime.Today.Year) * 12 + dor.Month - DateTime.Today.Month;
+            if (dor.Day < DateTime.Today.Day) m--;
+            data.ServiceInMonths = m < 0 ? 0 : m;
+        }
+        else data.ServiceInMonths = 0;
+    }
+
+    private static string F(double v) => v.ToString("N2");
+    private static string D(DateTime? dt) => dt?.ToString("dd-MM-yyyy") ?? "-";
+}

@@ -65,5 +65,9 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.MemTrn.GetDividendPayableListAsync(memId, asOnDate, brCode);
         }
 
+        public async Task<List<Mem_Demand>> CalculateDueToDemand(decimal memId, DateTime demandDate, string brCode)
+        {
+            return await _unitOfWork.MemTrn.CalculateDueToDemand(memId,demandDate ,brCode);
+        }
     }
 }

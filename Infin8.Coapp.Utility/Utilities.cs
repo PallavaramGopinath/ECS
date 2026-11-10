@@ -70,6 +70,47 @@ namespace Infin8.Coapp.Utility
             return months;
         }
 
+        public static int GetMonthsBetween(DateTime from, DateTime to)
+        {
+            if (from > to) return GetMonthsBetween(to, from);
+
+            var monthDiff = Math.Abs((to.Year * 12 + (to.Month - 1)) - (from.Year * 12 + (from.Month - 1)));
+
+            if (from.AddMonths(monthDiff) > to || to.Day < from.Day)
+            {
+                return monthDiff - 1;
+            }
+            else
+            {
+                return monthDiff;
+            }
+        }
+
+        public static int GetMonthsBetweenFinal(DateTime from, DateTime to)
+        {
+            int _noOfMonths = 0;
+            try
+            {
+                _noOfMonths = (to.Month - from.Month) + 12 * (to.Year - from.Year);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message + " error in obtain no.of months between two dates");
+            }
+            return _noOfMonths;
+        }
+
+        public static DateTime GetLastDateOfMonth(DateTime dDate)
+        {
+            DateTime returnDate;
+            returnDate = new DateTime(dDate.Year, dDate.Month, 1);
+            returnDate = returnDate.AddMonths(1);
+            //returnDate = AddMonths(dDate, 1);
+            //returnDate = returnDate.AddMonths(-1);
+            returnDate = returnDate.AddDays(-1);
+            return returnDate;
+        }
+
         public static int GetNoOfMonths(DateTime fromDate, DateTime toDate)
         {
             int retVal = 0;
@@ -799,6 +840,7 @@ namespace Infin8.Coapp.Utility
                     var yrBeginningDateClaim = allClaims.GetValueOrDefault("YrBeginningDate", "");
                     var yrEndDateClaim = allClaims.GetValueOrDefault("YrEndDate", "");
                     var currentDateClaim = allClaims.GetValueOrDefault("CurrentDate", "");
+                    var societyTypeClaim = allClaims.GetValueOrDefault("SocietyType", "0");
                     var roles = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
                     var isAuthenticated = user.Identity.IsAuthenticated;
 
@@ -812,6 +854,7 @@ namespace Infin8.Coapp.Utility
                         YrBeginningDate = Convert.ToDateTime(yrBeginningDateClaim),
                         YrEndDate = Convert.ToDateTime(yrEndDateClaim),
                         CurrentDate = Convert.ToDateTime(currentDateClaim),
+                        SocietyType = int.TryParse(societyTypeClaim, out var st) ? st : 0,
                         Roles = roles,
                         IsAuthenticated = isAuthenticated
                     };
@@ -838,5 +881,7 @@ namespace Infin8.Coapp.Utility
             }
             return userInfo;
         }
+
+       
     }
 }

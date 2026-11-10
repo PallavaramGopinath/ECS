@@ -143,7 +143,7 @@ namespace Infin8.Coapp.UI.Controllers
             {
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 List<rptEmp12MonthsSalary> payList = new();
-                string roiList = "";
+                //string roiList = "";
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
                 var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
                 LocalReport localReport = new LocalReport

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Infin8.Coapp.Repository.Interface
+namespace Infin8.Coapp.Repository
 {
     public  interface IReportsGBRepository
     {

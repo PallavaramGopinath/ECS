@@ -1,0 +1,52 @@
+﻿@page "/recovery-appropriation"
+@using Infin8.Coapp.Utility
+@using System.Net
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject TransactionStateService TransactionState
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+
+<h3>RecoveryAppropriation</h3>
+<!-- Step 1: Display Due Date for recovery pending Button to  get pending recovery data-->
+<div class="container">
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5>Pending Recovery Data</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="dueDate">Due Date:</label>
+                </div>
+                <div class="col-md-3">
+                    <input type="date" class="form-control" id="dueDate" @bind="dueDate" />
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary" @onclick="GetPendingRecoveryData">Get Pending Recovery Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="card mt-4">
+</div>
+
+@code {
+    private DateTime dueDate = DateTime.Today;
+    private void GetPendingRecoveryData()
+    {
+        // Implement logic to fetch pending recovery data based on the selected due date
+        // You can use the _httpClient to make an API call to your backend service
+        // Example:
+        // var response = await _httpClient.GetAsync($"api/recovery-appropriation?dueDate={dueDate.ToString("yyyy-MM-dd")}");
+        // Handle the response and update the UI accordingly
+    }
+
+}

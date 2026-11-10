@@ -145,7 +145,7 @@ namespace Infin8.Coapp.Dto
         public List<Mem_GI_Trn>? GITrnList { get; set; }
         public List<Deposit_Trn>? GIDepositTrnList { get; set; } /// FWD Payment
         public List<Mem_Trn>? GIMemTrnList { get; set; }  /// Due By Demand
-        public List<Depositor_Option>? GIDepositOptionList { get; set; }
+        public List<Deposit_Options>? GIDepositOptionList { get; set; }
 
         /// STAFF TRANSACTIONS
         /// Staff loan disbursement 15

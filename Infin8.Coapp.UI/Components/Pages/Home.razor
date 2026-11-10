@@ -1,8 +1,8 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components.Authorization
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
 
 <AuthorizeView>
     <Authorized>
@@ -10,31 +10,28 @@
         <p>Authenticated content</p>
     </Authorized>
     <NotAuthorized>
-        @if (!isRedirecting)
-        {
-            <p>Redirecting to login...</p>
-            Navigation.NavigateTo("/login", forceLoad: false);
-        }
+        <p>Redirecting to login...</p>
     </NotAuthorized>
 </AuthorizeView>
 
 @code {
-    private bool isRedirecting = false;
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        // Redirect unauthenticated users to the login page. This runs on the
+        // interactive server circuit after the first render, where NavigateTo
+        // performs a real navigation. (Doing this during static SSR — e.g. in
+        // OnInitializedAsync with no render mode — makes NavigateTo throw a
+        // framework NavigationException, which the debugger breaks on.)
+        if (!firstRender)
         {
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            return;
+        }
 
-            if (authState.User.Identity?.IsAuthenticated != true && !isRedirecting)
-            {
-                isRedirecting = true;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
 
-                // Force full page load to ensure WASM loads properly
-                Navigation.NavigateTo("/login", forceLoad: true);
-                StateHasChanged();
-            }
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            Navigation.NavigateTo("/login");
         }
     }
 }

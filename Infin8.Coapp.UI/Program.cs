@@ -6,8 +6,9 @@ using Infin8.Coapp.Reporting;
 using Infin8.Coapp.ReportServices.Concrete;
 using Infin8.Coapp.ReportServices.Interface;
 using Infin8.Coapp.Repository;
+//using Infin8.Coapp.Repository.Concrete;
 using Infin8.Coapp.Repository.Entities;
-using Infin8.Coapp.Repository.Interface;
+//using Infin8.Coapp.Repository.Interface;
 using Infin8.Coapp.UI.Client.Pages;
 using Infin8.Coapp.UI.Client.Providers;
 using Infin8.Coapp.UI.Components;
@@ -154,6 +155,8 @@ builder.Services.AddScoped<ILoanInstalmentHandler, LoanInstalmentHandler>();
 builder.Services.AddScoped<ILoanROIHandler, LoanROIHandler>();
 builder.Services.AddScoped<ILoanROITemplateHandler, LoanROITemplateHandler>();
 builder.Services.AddScoped<ILoanMemberHandler, LoanMemberHandler>();
+builder.Services.AddScoped<ISuretyLoanSanctionHandler, SuretyLoanSanctionHandler>();
+builder.Services.AddScoped<ILoanEligibilityHandler, LoanEligibilityHandler>();
 builder.Services.AddScoped<IJLDetailsHandler, JLDetailsHandler>();
 builder.Services.AddScoped<IJLOrnmentHandler, JLOrnmentHandler>();
 builder.Services.AddScoped<IJLEligibleHandler, JLEligibleHandler>();
@@ -215,6 +218,24 @@ builder.Services.AddScoped<IPayComponentHandler, PayComponentHandler>();
 builder.Services.AddScoped<IPayComponentAssignmentsHandler , PayComponentAssignmentsHandler>();
 builder.Services.AddScoped<IPayGenInfoHandler, PayGenInfoHandler>();
 builder.Services.AddScoped<IPayTemplateHandler, PayTemplateHandler>();
+#endregion 
+
+#region Deposit
+builder.Services.AddScoped<IDepositMastersHandler, DepositMastersHandler>();
+builder.Services.AddScoped<IDepositTrnHandler, DepositTrnHandler>();
+builder.Services.AddScoped<IDepositOptionsHandler, DepositOptionsHandler>();
+builder.Services.AddScoped<IDepositRoiTemplatesHandler, DepositRoiTemplatesHandler>();
+#endregion 
+
+#region ECS Demand Calculation
+builder.Services.AddScoped<IECSDemandCalculationHandler, ECSDemandCalculationHandler>();
+#endregion 
+
+#region Mem Demand
+builder.Services.AddScoped<IMemDemandMasterHandler, MemDemandMasterHandler>();
+builder.Services.AddScoped<IMemDemandHandler, MemDemandHandler>();
+builder.Services.AddScoped<IMemDemandStatusHandler, MemDemandStatusHandler>();
+builder.Services.AddScoped<IMemCollectionPriorityHandler, MemCollectionPriorityHandler>();
 #endregion 
 
 builder.Services.AddScoped<INewAccountNoHandler, NewAccountNoHandler>();

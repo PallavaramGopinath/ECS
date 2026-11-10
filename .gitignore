@@ -362,3 +362,8 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /Infin8.Coapp.UI/wwwroot/uploads/jewels
+
+# Vendored ReportViewerCore source (~456 MB, 6961 files), kept locally for
+# reference only. The build depends on the ReportViewerCore.NETCore NuGet
+# package, not on this folder.
+/ReportViewer/

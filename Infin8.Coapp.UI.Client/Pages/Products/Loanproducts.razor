@@ -8,6 +8,7 @@
 @using System.Globalization
 
 @using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
 @rendermode InteractiveWebAssembly
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -241,6 +242,7 @@
 
 @code {
     private string brCode = "11005";
+    private InstitutionType institution = InstitutionType.Unknown;
     private List<Loan_Schemes_Group> schemeGroupList = new List<Loan_Schemes_Group>();
     private List<Loan_Schemes> allLoans = new();
     private List<Loan_Schemes> filteredLoans = new();
@@ -250,26 +252,7 @@
     // private List<DtoLoanProducts> allLoans = new();
     // private List<DtoLoanProducts> filteredLoans = new();
 
-    private enum LoanCategory
-    {
-        EmploheeSocietyLoans = 1,
-        JewelLoans = 2,
-        LoansOnFixedDeposits = 3,
-        LoansOnRecurringDeposits = 4,
-        StaffLoans = 5,
-        FarmSectorLoans = 6,
-        NonFarmSectorLoans = 7,
-        RuralHousing = 8,
-        SmallRoadTransportLoans = 9
-
-        // JewelLoans = 1,
-        // LoansOnFixedDeposits = 2,
-        // StaffLoans = 3,
-        // FarmSectorLoans = 4,
-        // NonFarmSectorLoans = 5,
-        // RuralHousing = 6,
-        // SmallRoadTransportLoans = 7
-    }
+    // LoanCategory enum promoted to shared Infin8.Coapp.Utility.Enums.LoanCategory.
 
     private class LoanSubCategory
     {
@@ -296,6 +279,7 @@
         //     {
         var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
         brCode = userInfoDto.BrCode!;
+        institution = userInfoDto.SocietyType.ToInstitutionType();
         await LoadLoanProducts();
         // }
     }
@@ -552,7 +536,7 @@
             {
                 case 1:
                     icode = "bi-people";
-                    catogery = LoanCategory.EmploheeSocietyLoans;
+                    catogery = LoanCategory.EmployeeSocietyLoans;
                     break;
                 case 2:
                     catogery = LoanCategory.JewelLoans;
@@ -586,6 +570,18 @@
                     catogery = LoanCategory.SmallRoadTransportLoans;
                     icode = "bi-truck";
                     break;
+                case 10: /// ECS surety loan
+                    catogery = LoanCategory.SuretyLoan;
+                    icode = "bi-person-check";
+                    break;
+                case 11: /// ECS education loan
+                    catogery = LoanCategory.EducationLoan;
+                    icode = "bi-mortarboard";
+                    break;
+                case 12: /// ECS draught loan
+                    catogery = LoanCategory.DraughtLoan;
+                    icode = "bi-cash-coin";
+                    break;
                 default:
                     icode = "bi-question-circle";
                     break;
@@ -603,7 +599,11 @@
                 }
             });
         }
-        return loanCategoryInfo;
+        // Only surface categories that apply to this society's institution type
+        // (e.g. PCARDB never sees ECS-only Surety/Education/Draught and vice versa).
+        return loanCategoryInfo
+            .Where(c => LoanCategoryPolicy.IsAllowed(c.Category, institution))
+            .ToList();
     }
 
     private string GetSelectedCategoryName()
