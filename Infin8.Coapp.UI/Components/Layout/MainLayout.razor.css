@@ -1,86 +1,173 @@
+/* App shell (from TNCU GAMS): [NavMenu rail + panel] [top bar / content] */
+
 .page {
-    position: relative;
+    display: flex;
+    flex-direction: row;
+    min-height: 100vh;
+}
+
+.shell-main {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
 }
 
-main {
-    flex: 1;
-}
-
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-}
-
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
+.topbar {
+    flex-shrink: 0;
     height: 3.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 1.5rem;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
+.topbar-brand {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--fg-brand);
+    text-decoration: none;
+    white-space: nowrap;
+}
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
+.topbar-brand:hover {
+    color: var(--accent-hover);
+}
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+/* ---- Status strip: micro-label above a semibold value ---- */
+.topbar-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+    min-width: 0;
+}
 
+.ts-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.ts-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    white-space: nowrap;
+}
+
+.ts-value {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+}
+
+.ts-value .bi {
+    font-size: 0.6875rem;
+    margin-right: 0.3rem;
+    color: var(--fg-muted);
+}
+
+.ts-date .ts-value,
+.ts-date .ts-value .bi {
+    color: var(--fg-brand);
+}
+
+.ts-user .ts-value { max-width: 14rem; }
+.ts-role .ts-value { max-width: 10rem; color: var(--fg-muted); font-weight: 500; }
+.ts-branch .ts-value { max-width: 12rem; }
+
+.ts-sep {
+    flex: 0 0 1px;
+    width: 1px;
+    height: 1.75rem;
+    background: var(--border);
+}
+
+.ts-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-full);
+    color: var(--fg-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+}
+
+.ts-link:hover {
+    background: var(--accent-tint);
+    color: var(--fg-brand);
+}
+
+.content {
+    flex: 1;
+    min-width: 0;
+    padding: 1.25rem 1.5rem 2rem;
+}
+
+.content:focus {
+    outline: none;
+}
+
+.skip-link {
+    position: absolute;
+    left: -999px;
+    top: 0;
+    z-index: 2000;
+    padding: 0.5rem 1rem;
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-radius: 0 0 var(--radius-8) 0;
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    left: 0;
+}
+
+/* Tablet: single-line items, hide micro-labels and the FY range. */
+@media (max-width: 1100px) {
+    .topbar-status { gap: 0.5rem; }
+    .ts-item { flex-direction: row; align-items: center; gap: 0.375rem; }
+    .ts-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .ts-fy, .ts-fy + .ts-sep { display: none; }
+    .ts-user .ts-value { max-width: 9rem; }
+    .ts-role .ts-value { max-width: 7rem; }
+    .ts-link-text { display: none; }
+}
+
+/* Phone: the burger takes the left corner; keep date and branch only. */
 @media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
-}
-
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
-
-    .sidebar {
-        width: 300px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
+    .page { flex-direction: column; }
+    .topbar { padding-left: 3.75rem; padding-right: 1rem; }
+    .topbar-brand { display: none; }
+    .ts-user, .ts-role, .ts-sep { display: none; }
+    .ts-value { font-size: 0.75rem; }
+    .content { padding: 1rem; }
 }
 
 #blazor-error-ui {
     color-scheme: light only;
-    background: lightyellow;
+    background: var(--warning-50);
+    color: var(--warning-700);
     bottom: 0;
     box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
     box-sizing: border-box;

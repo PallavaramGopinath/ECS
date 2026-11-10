@@ -1,61 +1,67 @@
 ﻿@inherits LayoutComponentBase
-@inject NavigationManager Navigation
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.Authorization
-@* @using Microsoft.AspNetCore.Components.Authorization *@
 @inject AuthenticationStateProvider AuthenticationStateProvider
-<div class="page">
-    <div class="sidebar">
-        <NavMenu BrCode="@brCode" Role="@loginRole" />
-    </div>
 
-    <main>
-        <div class="top-row px-4">
+<a href="#main-content" class="skip-link">Skip to content</a>
+
+<div class="page">
+    <NavMenu BrCode="@brCode" Role="@loginRole" />
+
+    <div class="shell-main">
+        <header class="topbar">
+            <a href="main-dashboard" class="topbar-brand">PCARD Bank</a>
+
             <AuthorizeView>
                 <Authorized>
-                    <div class="nav-item px-3 w-100">
-                        <div class="d-flex align-items-center w-100">
-                            <!-- User name and role at beginning -->
-                            <div class="text-nowrap">
-                                User : @loginName (@loginRole)
-                            </div>
-                            <!-- Dates in middle -->
-                            <div class="flex-grow-1 d-flex justify-content-center">
-                                <span class="text-nowrap">Financial Year : @yearFromDate.ToString("dd-MM-yyyy") - @yearToDate.ToString("dd-MM-yyyy")</span>
-                                
-                            </div>
-                            <!-- Logout near end, amount at last -->
-                            <div class="d-flex align-items-center text-nowrap">
-                                <NavLink vlass="nav-link logout-link me-2" href="/logout">
-                                    <i class="fas fa-sign-out-alt me-1"></i> Logout
-                                </NavLink>
-                                @* <span class="badge bg-primary fs-6">₹@totalAmount</span> *@
-                            </div>
+                    <div class="topbar-status">
+                        <div class="ts-item ts-date" title="Business day">
+                            <span class="ts-label">Business date</span>
+                            <span class="ts-value"><span class="bi bi-calendar3" aria-hidden="true"></span>@currentDate.ToString("dd-MMM-yyyy")</span>
                         </div>
+                        <span class="ts-sep" aria-hidden="true"></span>
+                        <div class="ts-item ts-fy">
+                            <span class="ts-label">Financial year</span>
+                            <span class="ts-value">@yearFromDate.ToString("dd-MM-yyyy") – @yearToDate.ToString("dd-MM-yyyy")</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(brCode))
+                        {
+                            <span class="ts-sep" aria-hidden="true"></span>
+                            <div class="ts-item ts-branch">
+                                <span class="ts-label">Branch</span>
+                                <span class="ts-value"><span class="bi bi-building" aria-hidden="true"></span>@brCode</span>
+                            </div>
+                        }
+                        <span class="ts-sep" aria-hidden="true"></span>
+                        <div class="ts-item ts-user">
+                            <span class="ts-label">User</span>
+                            <span class="ts-value" title="@loginName">@loginName</span>
+                        </div>
+                        <div class="ts-item ts-role">
+                            <span class="ts-label">Role</span>
+                            <span class="ts-value" title="@loginRole">@loginRole</span>
+                        </div>
+                        <a href="https://infin8software.com" target="_blank" rel="noopener" class="ts-link" title="About Infin8 Software">
+                            <span class="bi bi-info-circle" aria-hidden="true"></span><span class="ts-link-text">About</span>
+                        </a>
+                        <a href="logout" class="ts-link">
+                            <span class="bi bi-box-arrow-right" aria-hidden="true"></span><span class="ts-link-text">Logout</span>
+                        </a>
                     </div>
-
-                    @* <div class="nav-item px-3">
-                        <NavLink class="nav-link logout-link" href="/logout">
-                            <i class="fas fa-sign-in-alt me-1"></i> logout
-                        </NavLink>
-                    </div> *@
                 </Authorized>
                 <NotAuthorized>
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link login-link" href="/login" Match="NavLinkMatch.Prefix">
-                            <i class="fas fa-sign-in-alt me-1"></i> Login
-                        </NavLink>
+                    <div class="topbar-status">
+                        <a href="login" class="ts-link">
+                            <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span><span class="ts-link-text">Login</span>
+                        </a>
                     </div>
                 </NotAuthorized>
             </AuthorizeView>
-            @* <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a> *@
-            <a href="https://infin8software.com" target="_blank">About</a>
-        </div>
+        </header>
 
-        <article class="content px-4">
+        <main id="main-content" class="content" tabindex="-1">
             @Body
-        </article>
-    </main>
+        </main>
+    </div>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
@@ -72,29 +78,19 @@
     DateTime yearToDate = DateTime.Now;
     DateTime currentDate = DateTime.Now;
 
-    private Dictionary<string, object> parameters = new();
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        var userName = user.FindFirst("UserName")?.Value.ToString();
-        var userRoles = user.FindFirst("Roles")?.Value.ToString();
-        var BrCode = user.FindFirst("BrCode")?.Value.ToString();
-        var yrId = user.FindFirst("YrId")?.Value.ToString();
-        var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
-        var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
-        var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
 
-        loginName = userName ?? string.Empty;
-        loginRole = userRoles ?? string.Empty;
-        brCode = BrCode!;
-        yearFromDate = yrBeginningDate;
-        yearToDate = yrEndDate;
-        this.currentDate = currentDate;
+        loginName = user.FindFirst("UserName")?.Value ?? string.Empty;
+        loginRole = user.FindFirst("Roles")?.Value ?? string.Empty;
+        brCode = user.FindFirst("BrCode")?.Value ?? string.Empty;
+        yearFromDate = ParseClaimDate(user.FindFirst("YrBeginningDate")?.Value);
+        yearToDate = ParseClaimDate(user.FindFirst("YrEndDate")?.Value);
+        currentDate = ParseClaimDate(user.FindFirst("CurrentDate")?.Value);
     }
-    private async Task PerformLogout()
-    {
-        // This forces full reload → clears auth state immediately
-        Navigation.NavigateTo("/logout", forceLoad: false);
-    }
+
+    private static DateTime ParseClaimDate(string? value) =>
+        DateTime.TryParse(value, out var d) ? d : DateTime.Now;
 }

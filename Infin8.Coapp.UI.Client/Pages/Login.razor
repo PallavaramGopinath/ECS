@@ -13,209 +13,105 @@
 @inject IJSRuntime JSRuntime
 @inject HttpClient _httpClient
 @rendermode InteractiveWebAssembly
-<div class="container mt-5">
-    <div class="row justify-content-center g-0">
-        @* <div class="col-md-8 bg-image"
-             style="background-image:url(@imagePath); height:520px;  background-size:cover;
-                background-position: center; background-repeat: no-repeat;"> *@
-        <div class="col-md-8">
-            @* <div class="card shadow mask" style="background-color:rgba(0, 0, 0, 0.3);"> *@
-            <div class="card shadow mask">
-                <div class="card-header bg-secondary text-white">
-                    <h3 class="mb-0">User Login</h3>
-                </div>
-                <div class="card-body">
-                    @if (isLoading)
-                    {
-                        @* <div class="text-center p-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2">Signing you in...</p>
-                        </div> *@
-                    }
-                    else
-                    {
-                        @if (!string.IsNullOrEmpty(errorMessage))
-                        {
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <strong>Error:</strong> @errorMessage
-                                <button type="button" class="btn-close" @onclick="ClearError" aria-label="Close"></button>
-                            </div>
-                        }
-
-                        @if (!string.IsNullOrEmpty(successMessage))
-                        {
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                <strong>Success:</strong> @successMessage
-                                <button type="button" class="btn-close" @onclick="ClearSuccess" aria-label="Close"></button>
-                            </div>
-                        }
-                        @* <EditForm Model="@loginModel" OnValidSubmit="@HandleValidSubmit" FormName="loginForm">
-                            <DataAnnotationsValidator />
-                            <ValidationSummary />
-
-                            <div class="form-group mb-3" style="width:300px;">
-                                <label for="username">Username or Email</label>
-                                <InputText id="username" @bind-Value="loginModel.Username" class="form-control" placeholder="Enter username or email" />
-                                <ValidationMessage For="@(() => loginModel.Username)" class="text-danger" />
-                            </div>
-
-                            <div class="form-group mb-3" style="width:300px;">
-                                <label for="password">Password</label>
-                                <div class="input-group">
-                                    <InputText id="password" @bind-Value="loginModel.Password" class="form-control" type="@inputType" placeholder="Enter password"/>
-                                    <button type="button"
-                                            class="btn btn-outline-secondary"
-                                            @onclick="TogglePassword">
-                                        <i class="@eyeIcon"></i>
-                                    </button>
-                                    <ValidationMessage For="@(() => loginModel.Password)" class="text-danger" />
-                                </div>
-                            </div>
-                            <div class="form-group mb-3">
-                                <label>CAPTCHA: @captchaQuestion</label>
-                                <InputText @bind-Value="captchaUserAnswer" class="form-control" placeholder="Enter the answer" />
-                                @if (!string.IsNullOrEmpty(errorMessage) && errorMessage.Contains("CAPTCHA"))
-                                {
-                                    <span class="text-danger">@errorMessage</span>
-                                }
-                            </div>
-                            <div class="form-group mb-3">
-                                <label>Captcha</label>
-                                <div class="d-flex align-items-center gap-2">
-                                    <input class="form-control text-center fw-bold"
-                                           style="width:160px; letter-spacing:3px; font-size:1.5rem;"
-                                           value="@CaptchaCode"
-                                           disabled />
-
-                                    <button type="button" class="btn btn-outline-secondary" style="color:white;"
-                                            @onclick="GenerateCaptcha">
-                                        ↻
-                                    </button>
-                                </div>
-                            </div> *@
-                        @* <div class="mb-3" style="width:300px;">
-                                <InputText class="form-control"
-                                           placeholder="Enter captcha"
-                                           @bind-Value="UserCaptchaInput"
-                                           @onblur="ValidateCapta" />
-                            </div>
-                            @if (!string.IsNullOrEmpty(captaErrorMessage))
-                            {
-                                <div class="alert alert-danger">@captaErrorMessage</div>
-                            }
-                            <div class="form-check mb-3">
-                                <InputCheckbox id="rememberMe" @bind-Value="loginModel.RememberMe" class="form-check-input" />
-                                <label class="form-check-label" for="rememberMe">
-                                    Remember me
-                                </label>
-                            </div>
-
-                            <div class="d-grid gap-2 mb-3">
-                                <button type="submit" class="btn btn-primary" disabled="@isLoading">
-                                    @if (isLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                    }
-                                    Login
-                                </button>
-                            </div>
-
-                            <div class="text-center mb-3">
-                                <a href="/forgot-password" class="text-decoration-none">Forgot your password?</a>
-                            </div>
-                        </EditForm> *@
-                    }
-
-                    <EditForm Model="@loginModel" OnValidSubmit="@HandleValidSubmit" FormName="loginForm">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary />
-
-                        <div class="form-group mb-3" style="width:300px;">
-                            <label for="username">Username or Email</label>
-                            <InputText id="username" @bind-Value="loginModel.Username" class="form-control"
-                                       placeholder="Enter username or email" />
-                            <ValidationMessage For="@(() => loginModel.Username)" class="text-danger" />
-                        </div>
-
-                        <div class="form-group mb-3" style="width:300px;">
-                            <label for="password">Password</label>
-                            <div class="input-group">
-                                <InputText id="password" @bind-Value="loginModel.Password" class="form-control" type="@inputType" placeholder="Enter password" />
-                                <button type="button"
-                                        class="btn btn-outline-secondary"
-                                        @onclick="TogglePassword">
-                                    <i class="@eyeIcon"></i>
-                                </button>
-                                <ValidationMessage For="@(() => loginModel.Password)" class="text-danger" />
-                            </div>
-                        </div>
-                        @* <div class="form-group mb-3">
-                                <label>CAPTCHA: @captchaQuestion</label>
-                                <InputText @bind-Value="captchaUserAnswer" class="form-control" placeholder="Enter the answer" />
-                                @if (!string.IsNullOrEmpty(errorMessage) && errorMessage.Contains("CAPTCHA"))
-                                {
-                                    <span class="text-danger">@errorMessage</span>
-                                }
-                            </div> *@
-                        <div class="form-group mb-3">
-                            <label>Captcha</label>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="border rounded" style="line-height:0;">
-                                    @((MarkupString)CaptchaSvg)
-                                </span>
-                                <button type="button" class="btn btn-outline-secondary"
-                                        @onclick="GenerateCaptcha">
-                                    ↻
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mb-3" style="width:300px;">
-                            <InputText class="form-control"
-                                       placeholder="Enter captcha"
-                                       @bind-Value="UserCaptchaInput"
-                                       @onblur="ValidateCapta" />
-                        </div>
-                        @if (!string.IsNullOrEmpty(captaErrorMessage))
-                        {
-                            <div class="alert alert-danger">@captaErrorMessage</div>
-                        }
-                        <div class="form-check mb-3">
-                            <InputCheckbox id="rememberMe" @bind-Value="loginModel.RememberMe" class="form-check-input" />
-                            <label class="form-check-label" for="rememberMe">
-                                Remember me
-                            </label>
-                        </div>
-
-                        <div class="d-grid gap-2 mb-3">
-                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
-                                @if (isLoading)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                }
-                                Login
-                            </button>
-                        </div>
-
-                        <div class="text-center mb-3">
-                            <a href="/forgot-password" class="text-decoration-none">Forgot your password?</a>
-                        </div>
-                    </EditForm>
-                </div>
+<div class="login-page">
+    <aside class="login-brand">
+        <div class="login-brand__header">
+            <img class="login-logo" src="/uploads/app-images/ardb-logo.jpg" alt="" />
+            <div>
+                <div class="login-wordmark">PCARD Bank</div>
+                <div class="login-tagline">Core banking for cooperative societies</div>
             </div>
         </div>
+        <div class="login-brand__footer">Powered by Infin8 Software</div>
+    </aside>
 
-        @* <div class="col-md-6 ms-0">
-            <div class="card shadow">
-                <div class="image-container"> 
-                 <div class="container-fluid d-flex justify-content-start"> 
-                     <img src="@imagePath" alt="login" height=520 width=100% />
-                 </div>
-             </div>
-            </div>  
-        </div>  *@
+    <div class="login-form-panel">
+        <div class="login-card">
+            <h1>Sign in</h1>
+            <p class="login-sub">Use your branch user account.</p>
 
+            @if (!isLoading)
+            {
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @errorMessage
+                        <button type="button" class="btn-close" @onclick="ClearError" aria-label="Close"></button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @successMessage
+                        <button type="button" class="btn-close" @onclick="ClearSuccess" aria-label="Close"></button>
+                    </div>
+                }
+            }
+
+            <EditForm Model="@loginModel" OnValidSubmit="@HandleValidSubmit" FormName="loginForm">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="login-field">
+                    <label for="username" class="form-label">Username or Email</label>
+                    <InputText id="username" @bind-Value="loginModel.Username" class="form-control"
+                               placeholder="Enter username or email" autocomplete="username" />
+                    <ValidationMessage For="@(() => loginModel.Username)" />
+                </div>
+
+                <div class="login-field">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group">
+                        <InputText id="password" @bind-Value="loginModel.Password" class="form-control" type="@inputType"
+                                   placeholder="Enter password" autocomplete="current-password" />
+                        <button type="button" class="btn btn-outline-secondary" @onclick="TogglePassword"
+                                aria-label="@(isPasswordVisible ? "Hide password" : "Show password")">
+                            <i class="@eyeIcon"></i>
+                        </button>
+                    </div>
+                    <ValidationMessage For="@(() => loginModel.Password)" />
+                </div>
+
+                <div class="login-field">
+                    <label class="form-label" for="captcha">Captcha</label>
+                    <div class="login-captcha">
+                        <span class="login-captcha__img">
+                            @((MarkupString)CaptchaSvg)
+                        </span>
+                        <button type="button" class="login-captcha__refresh" @onclick="GenerateCaptcha"
+                                aria-label="New captcha" title="New captcha">
+                            <span class="bi bi-arrow-clockwise" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                    <InputText id="captcha" class="form-control"
+                               placeholder="Enter captcha"
+                               @bind-Value="UserCaptchaInput"
+                               @onblur="ValidateCapta" />
+                    @if (!string.IsNullOrEmpty(captaErrorMessage))
+                    {
+                        <div class="validation-message">@captaErrorMessage</div>
+                    }
+                </div>
+
+                <div class="form-check mb-3">
+                    <InputCheckbox id="rememberMe" @bind-Value="loginModel.RememberMe" class="form-check-input" />
+                    <label class="form-check-label" for="rememberMe">Remember me</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    Login
+                </button>
+
+                <div class="login-links">
+                    <a href="/forgot-password">Forgot your password?</a>
+                </div>
+            </EditForm>
+        </div>
     </div>
 </div>
 
@@ -392,17 +288,3 @@
         successMessage = string.Empty;
     }
 }
-<style>
-    .input-group {
-        display: flex;
-    }
-
-        .input-group .form-control {
-            flex: 1 1 auto;
-        }
-
-        .input-group .btn {
-            flex: 0 0 auto;
-        }
-
-</style>

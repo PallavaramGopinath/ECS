@@ -1,429 +1,269 @@
 ﻿@using Infin8.Coapp.BusinessLogic
 @using Infin8.Coapp.Dto
+@using Microsoft.AspNetCore.Components.Routing
 @implements IDisposable
-@inject HttpClient _httpClient
 @inject IMenuMainHandler MenuMainHandler
+@inject NavigationManager Nav
 @rendermode InteractiveServer
-@* @rendermode @(new InteractiveServerRenderMode(prerender: false)) *@
-@* @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
-@inject AuthenticationStateProvider AuthenticationStateProvider *@
-<div class="top-row ps-3 navbar navbar-dark bg-success">
-    <div class="container-fluid d-flex justify-content-start">
-        <img src="@imagePath" alt="Under Development" height=30 width=30 />
-        <a class="navbar-brand ps-3" href="/main-dashboard">PCARD Bank</a>
-    </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-<div class="nav-scrollable bg-success" style="--bs-bg-opacity: .5;" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/main-dashboard" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+@*
+    Navigation shell modelled on TNCU GAMS: a dark icon rail (one button per Menu_Main
+    module) next to a white context panel listing the selected module's Menu_Sub groups
+    and Menu_Forms links. The menu data and URL slug rules are unchanged.
+*@
+
+<button type="button" class="nav-burger" aria-label="Toggle navigation menu" aria-expanded="@(_mobileOpen ? "true" : "false")" @onclick="ToggleMobile">
+    <span class="bi bi-list" aria-hidden="true"></span>
+</button>
+
+<div class="shell-nav @(_mobileOpen ? "is-open" : null)">
+    <nav class="rail" aria-label="Modules">
+        <a href="main-dashboard" class="rail-brand" title="Home">
+            <img src="@LogoPath" alt="" />
+        </a>
+
+        <div class="rail-items">
+            <NavLink class="rail-item" href="main-dashboard" Match="NavLinkMatch.All" title="Home" aria-label="Home">
+                <span class="bi bi-house-door" aria-hidden="true"></span>
             </NavLink>
-        </div>
 
-        <!-- nav bar from database inclusion of icons begin-->
-        @if (_menuStructure != null)
-        {
-            @foreach (var mainMenu in _menuStructure)
+            @if (_menuStructure is not null)
             {
-                if (mainMenu.SubMenus.Any())
+                @foreach (var main in _menuStructure)
                 {
-                    <div class="nav-item px-3">
-                        <div class="nav-link clickable" @onclick="@(() => ToggleMenu(mainMenu.MenuId))">
-                            <!-- Main Menu Icon with helper -->
-                            <span class="@MenuIcons.GetIcon(mainMenu.MenuIcon, MenuIcons.DefaultMain) pe-2" aria-hidden="true"></span>
-                            @mainMenu.MenuName?.Trim()
-                            <span class="float-end ps-1">@(_expandedMenus.Contains(mainMenu.MenuId) ? "▼" : "►")</span>
-                        </div>
-
-                        @if (_expandedMenus.Contains(mainMenu.MenuId))
-                        {
-                            <div class="submenu-container">
-                                @foreach (var subMenu in mainMenu.SubMenus)
-                                {
-                                    if (subMenu.Forms.Any())
-                                    {
-                                        <div class="submenu-item clickable" @onclick="@(() => ToggleSubMenu(subMenu.SubMenuId))">
-                                            <!-- Sub Menu Icon with helper -->
-                                            <span class="@MenuIcons.GetIcon(subMenu.SubMenuIcon, MenuIcons.DefaultSub) pe-2" aria-hidden="true"></span>
-                                            @subMenu.SubMenuName?.Trim()
-                                            <span class="float-end ps-1">@(_expandedSubMenus.Contains(subMenu.SubMenuId) ? "▼" : "►")</span>
-                                        </div>
-
-                                        @if (_expandedSubMenus.Contains(subMenu.SubMenuId))
-                                        {
-                                            <div class="form-container">
-                                                @foreach (var form in subMenu.Forms)
-                                                {
-                                                    <NavLink class="form-item" href="@GetFormUrl(form.FormName)"
-                                                             ActiveClass="active">
-                                                        <!-- Form Icon with helper -->
-                                                        <span class="@MenuIcons.GetIcon(form.FormIcon, MenuIcons.DefaultForm) ps-2" aria-hidden="true"></span>
-                                                        @form.FormMenu?.Trim()
-                                                    </NavLink>
-                                                }
-                                            </div>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <NavLink class="submenu-item" href="@GetSubMenuUrl(subMenu.FormName)"
-                                                 ActiveClass="active">
-                                            <!-- Sub Menu Icon (for items without forms) with helper -->
-                                            <span class="@MenuIcons.GetIcon(subMenu.SubMenuIcon, MenuIcons.DefaultLink) pe-2" aria-hidden="true"></span>
-                                            @subMenu.SubMenuName?.Trim()
-                                        </NavLink>
-                                    }
-                                }
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="#">
-                            <!-- Main Menu Icon (no submenus) with helper -->
-                            <span class="@MenuIcons.GetIcon(mainMenu.MenuIcon, MenuIcons.DefaultMain) pe-2" aria-hidden="true"></span>
-                            @mainMenu.MenuName?.Trim()
-                        </NavLink>
-                    </div>
+                    var isActive = _active is not null && main.MenuId == _active.MenuId;
+                    <button type="button"
+                            class="rail-item @(isActive ? "is-active" : null)"
+                            title="@main.MenuName?.Trim()"
+                            aria-label="@main.MenuName?.Trim()"
+                            aria-current="@(isActive ? "true" : null)"
+                            @onclick="() => SelectMain(main)">
+                        <span class="@MenuIcons.GetIcon(main.MenuIcon, MenuIcons.DefaultMain)" aria-hidden="true"></span>
+                    </button>
                 }
             }
-        }
-        else
-        {
-            <div class="nav-item px-3">
-                <div class="nav-link text-muted">Loading menu...</div>
-            </div>
-        }
-        <!-- nav bar from database inclusion of icons end -->
-        <!-- nav bar from database start commented since, icon not included -->
-        @* @if (_menuStructure != null)
-        {
-            @foreach (var mainMenu in _menuStructure)
-            {
-                if (mainMenu.SubMenus.Any())
-                {
-                    <div class="nav-item px-3">
-                        <div class="nav-link dropdown-toggle" @onclick="() => ToggleMenu(mainMenu.MenuId)">
-
-                            <!-- Main Menu Icon -->
-                            @if (!string.IsNullOrEmpty(mainMenu.MenuIcon))
-                            {
-                                <span class="@mainMenu.MenuIcon" aria-hidden="true"></span>
-                            }
-                            else
-                            {
-                                <span class="bi bi-collection-fill" aria-hidden="true"></span>
-                            }
-                            <!-- <span class="bi bi-collection-fill" aria-hidden="true"></span>--> 
-                            @mainMenu.MenuName?.Trim()
-                            <span class="float-end">@(_expandedMenus.Contains(mainMenu.MenuId) ? "▼" : "►")</span>
-                        </div>
-
-                        @if (_expandedMenus.Contains(mainMenu.MenuId))
-                        {
-                            <div class="submenu-container">
-                                <!-- <div class="dropdown-menu show"> -->  
-                                @foreach (var subMenu in mainMenu.SubMenus)
-                                {
-                                    if (subMenu.Forms.Any())
-                                    {
-                                        <div class="dropdown-item dropdown-toggle"
-                                             @onclick="() => ToggleSubMenu(subMenu.SubMenuId)">
-                                            <!-- Sub Menu Icon -->
-                                            @if (!string.IsNullOrEmpty(subMenu.SubMenuIcon))
-                                            {
-                                                <span class="@subMenu.SubMenuIcon" aria-hidden="true"></span>
-                                            }
-                                            else
-                                            {
-                                                <span class="bi bi-folder-fill" aria-hidden="true"></span>
-                                            }
-                                            @subMenu.SubMenuName?.Trim()
-                                            <span class="float-end">@(_expandedSubMenus.Contains(subMenu.SubMenuId) ? "▼" : "►")</span>
-                                        </div>
-
-                                        @if (_expandedSubMenus.Contains(subMenu.SubMenuId))
-                                        {
-                                            <div class="form-container">
-                                                <!-- <div class="dropdown-menu show">-->
-                                                @foreach (var form in subMenu.Forms)
-                                                {
-                                                    <NavLink class="dropdown-item" href="@GetFormUrl(form.FormName)">
-                                                        ActiveClass="active">
-                                                        <!-- Form Icon -->
-                                                        @if (!string.IsNullOrEmpty(form.FormIcon))
-                                                        {
-                                                            <span class="@form.FormIcon" aria-hidden="true"></span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="bi bi-file-earmark-text" aria-hidden="true"></span>
-                                                        }
-                                                        @form.FormName?.Trim()
-                                                    </NavLink>
-                                                }
-                                            </div>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <NavLink class="dropdown-item" href="@GetSubMenuUrl(subMenu.FormName)">
-                                            @subMenu.SubMenuName?.Trim()
-                                        </NavLink>
-                                    }
-                                }
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="#">
-                            <span class="bi bi-menu-button-wide" aria-hidden="true"></span>
-                            @mainMenu.MenuName?.Trim()
-                        </NavLink>
-                    </div>
-                }
-            }
-        }
-        else
-        {
-            <div class="nav-item px-3">
-                <div class="nav-link text-muted">Loading menu...</div>
-            </div>
-        }
- *@
-
-        <!-- nav bar from database end  commented since, icon not included-->
-        <!-- old nav bar start-->
-        @* <div class="nav-item px-3">
-            <NavLink class="nav-link" href="products">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Products
-            </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="member-transactions">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Transaction
-            </NavLink>
+
+        <div class="rail-footer">
+            <a href="logout" class="rail-item" title="Logout" aria-label="Logout">
+                <span class="bi bi-box-arrow-right" aria-hidden="true"></span>
+            </a>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="rcs-dashboard">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> KPI
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="checker-dashboard">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Checker Dashboard
-            </NavLink>
-        </div> *@
-        <!-- old nav bar end -->
     </nav>
+
+    <aside class="panel" aria-label="@(_active?.MenuName?.Trim() ?? "Navigation")">
+        <div class="panel-head">
+            <h2 class="panel-title">@(_active?.MenuName?.Trim() ?? "Menu")</h2>
+        </div>
+
+        @if (_active is not null && ShowSearch(_active))
+        {
+            <div class="panel-search">
+                <input type="search" class="panel-search-input"
+                       placeholder="Search @_active.MenuName?.Trim()…"
+                       aria-label="Search @_active.MenuName?.Trim()"
+                       value="@_search"
+                       @oninput="OnSearchInput" />
+            </div>
+        }
+
+        <div class="panel-scroll">
+            @if (_loading)
+            {
+                <div class="panel-empty">Loading menu…</div>
+            }
+            else if (_active is null)
+            {
+                <div class="panel-empty">No menu available.</div>
+            }
+            else
+            {
+                var subs = VisibleSubs(_active).ToList();
+                if (subs.Count == 0)
+                {
+                    <div class="panel-empty">@(string.IsNullOrWhiteSpace(_search) ? "No items in this module." : "No matches.")</div>
+                }
+                foreach (var sub in subs)
+                {
+                    if (sub.Forms.Any())
+                    {
+                        var collapsed = IsCollapsed(sub.SubMenuId);
+                        <div class="panel-group">
+                            <button type="button" class="panel-group-head"
+                                    aria-expanded="@(collapsed ? "false" : "true")"
+                                    @onclick="() => ToggleGroup(sub.SubMenuId)">
+                                <span class="panel-group-name">@sub.SubMenuName?.Trim()</span>
+                                <span class="panel-caret bi bi-chevron-right @(collapsed ? null : "is-open")" aria-hidden="true"></span>
+                            </button>
+                            @if (!collapsed)
+                            {
+                                <div class="panel-group-body">
+                                    @foreach (var form in VisibleForms(sub))
+                                    {
+                                        <NavLink class="panel-link is-form" href="@ToUrl(form.FormName)">
+                                            <span class="panel-link-icon @MenuIcons.GetIcon(form.FormIcon, MenuIcons.DefaultForm)" aria-hidden="true"></span>
+                                            <span class="panel-link-text">@form.FormMenu?.Trim()</span>
+                                        </NavLink>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <NavLink class="panel-link" href="@ToUrl(sub.FormName)">
+                            <span class="panel-link-icon @MenuIcons.GetIcon(sub.SubMenuIcon, MenuIcons.DefaultLink)" aria-hidden="true"></span>
+                            <span class="panel-link-text">@sub.SubMenuName?.Trim()</span>
+                        </NavLink>
+                    }
+                }
+            }
+        </div>
+    </aside>
 </div>
 
-<div class="nav-footer">
-    Powered by Infin8 Software
-</div>
-
+<button type="button" class="nav-scrim @(_mobileOpen ? "is-open" : null)" aria-hidden="true" tabindex="-1" @onclick="CloseMobile"></button>
 
 @code {
-    private string imagePath = "/uploads/app-images/ardb-logo.jpg";
-    private List<MenuMain>? _menuStructure;
-    private HashSet<int> _expandedMenus = new();
-    private HashSet<int> _expandedSubMenus = new();
+    private const string LogoPath = "/uploads/app-images/ardb-logo.jpg";
 
-    #region parameters
+    private List<MenuMain>? _menuStructure;
+    private MenuMain? _active;
+    private readonly HashSet<int> _collapsed = new();
+    private string _search = "";
+    private bool _loading = true;
+    private bool _mobileOpen;
+
     [Parameter] public string? BrCode { get; set; }
     [Parameter] public string? Role { get; set; }
 
-    #endregion 
-    // private string brCode = "11001";
     protected override async Task OnInitializedAsync()
     {
+        Nav.LocationChanged += OnLocationChanged;
         await LoadMenu();
     }
+
     private async Task LoadMenu()
     {
         try
         {
-            // var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            // var user = authState.User;
-            // var userName = user.FindFirst("UserName")?.Value.ToString();
-            // var userRoles = user.FindFirst("Roles")?.Value.ToString();
-            // var brCode = user.FindFirst("BrCode")?.Value.ToString();
-            // var yrId = user.FindFirst("YrId")?.Value.ToString();
-            // var yrBeginningDate = DateTime.Parse(user.FindFirst("YrBeginningDate")?.Value.ToString() ?? DateTime.Now.ToString());
-            // var yrEndDate = DateTime.Parse(user.FindFirst("YrEndDate")?.Value.ToString() ?? DateTime.Now.ToString());
-            // var currentDate = DateTime.Parse(user.FindFirst("CurrentDate")?.Value.ToString() ?? DateTime.Now.ToString());
-            //var query = await _httpClient.GetFromJsonAsync<List<MenuMain>>($"api/Menu/GetMenuStructure/{BrCode}/{Role}");
             var query = await MenuMainHandler.GetMenuStructureAsync(BrCode ?? string.Empty, Role ?? string.Empty);
-            if (query != null && query.Any())
-            {
-                _menuStructure = query.ToList();
-            }
-            // _menuStructure = await MenuService.GetMenuStructureAsync();
+            _menuStructure = query?.ToList();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading menu: {ex.Message}");
-            // Handle error (you might want to show a message to the user)
         }
-    }
-
-    // private async Task PerformLogout()
-    // {
-    //     // This forces full reload → clears auth state immediately
-    //     Navigation.NavigateTo("/logout", forceLoad: false);
-    // }
-
-    private void ToggleMenu(int menuId)
-    {
-        if (_expandedMenus.Contains(menuId))
+        finally
         {
-            _expandedMenus.Remove(menuId);
+            _loading = false;
         }
-        else
+        ResolveActiveFromRoute();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _ = InvokeAsync(() =>
         {
-            _expandedMenus.Add(menuId);
+            ResolveActiveFromRoute();
+            _mobileOpen = false;
+            StateHasChanged();
+        });
+    }
+
+    // Pick the module that owns the current page (longest route match), so deep links
+    // open with the right module in the panel. Keeps the user's choice when nothing matches.
+    private void ResolveActiveFromRoute()
+    {
+        if (_menuStructure is null || _menuStructure.Count == 0) { _active = null; return; }
+
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        var q = path.IndexOfAny(new[] { '?', '#' });
+        if (q >= 0) path = path[..q];
+        path = path.Trim('/').ToLowerInvariant();
+
+        MenuMain? best = null;
+        var bestLen = 0;
+        foreach (var main in _menuStructure)
+        {
+            foreach (var route in RoutesOf(main))
+            {
+                var r = route.Trim('/');
+                if (r.Length == 0 || r == "#") continue;
+                if ((path == r || path.StartsWith(r + "/")) && r.Length > bestLen)
+                {
+                    best = main;
+                    bestLen = r.Length;
+                }
+            }
+        }
+
+        if (best is not null && best.MenuId != _active?.MenuId) _search = "";
+        _active = best ?? _active ?? _menuStructure[0];
+    }
+
+    private IEnumerable<string> RoutesOf(MenuMain main)
+    {
+        foreach (var sub in main.SubMenus)
+        {
+            if (sub.Forms.Any())
+            {
+                foreach (var form in sub.Forms) yield return ToUrl(form.FormName);
+            }
+            else
+            {
+                yield return ToUrl(sub.FormName);
+            }
         }
     }
 
-    private void ToggleSubMenu(int subMenuId)
+    private void SelectMain(MenuMain main)
     {
-        if (_expandedSubMenus.Contains(subMenuId))
-        {
-            _expandedSubMenus.Remove(subMenuId);
-        }
-        else
-        {
-            _expandedSubMenus.Add(subMenuId);
-        }
+        _active = main;
+        _search = "";
     }
 
-    private string GetSubMenuUrl(string? formName)
+    private void ToggleGroup(int subId)
     {
-        formName = formName?.ToLower().Trim();
-        return formName?.ToLower().Replace(" ", "-") ?? "#";
+        if (!_collapsed.Remove(subId)) _collapsed.Add(subId);
     }
 
-    private string GetFormUrl(string? formName)
+    private bool IsCollapsed(int subId) =>
+        string.IsNullOrWhiteSpace(_search) && _collapsed.Contains(subId);
+
+    private void OnSearchInput(ChangeEventArgs e) => _search = e.Value?.ToString() ?? "";
+
+    private void ToggleMobile() => _mobileOpen = !_mobileOpen;
+    private void CloseMobile() => _mobileOpen = false;
+
+    private bool Matches(string? text) =>
+        string.IsNullOrWhiteSpace(_search) ||
+        (text?.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase) ?? false);
+
+    private IEnumerable<MenuSub> VisibleSubs(MenuMain main)
     {
-        formName = formName?.ToLower().Trim();
-        return formName?.ToLower().Replace(" ", "-") ?? "#";
+        if (string.IsNullOrWhiteSpace(_search)) return main.SubMenus;
+        return main.SubMenus.Where(sub =>
+            !sub.Forms.Any()
+                ? Matches(sub.SubMenuName)
+                : Matches(sub.SubMenuName) || sub.Forms.Any(f => Matches(f.FormMenu)));
     }
+
+    private IEnumerable<MenuForm> VisibleForms(MenuSub sub)
+    {
+        if (string.IsNullOrWhiteSpace(_search) || Matches(sub.SubMenuName)) return sub.Forms;
+        return sub.Forms.Where(f => Matches(f.FormMenu));
+    }
+
+    private static bool ShowSearch(MenuMain main) =>
+        main.SubMenus.Sum(s => s.Forms.Any() ? s.Forms.Count : 1) > 6;
+
+    // Menu_Forms.Form_Name / Menu_Sub.Form_Name → route slug (unchanged rule; see CLAUDE.md).
+    private static string ToUrl(string? formName) =>
+        formName?.ToLower().Trim().Replace(" ", "-") ?? "#";
 
     public void Dispose()
     {
-        // Cleanup if needed
+        Nav.LocationChanged -= OnLocationChanged;
     }
 }
-
-<style>
-    /* Custom dropdown styles for Blazor */
-    .nav-scrollable .dropdown-menu {
-        position: static;
-        float: none;
-        background-color: #6c757d;
-        border: none;
-        display: none; /* Hide by default */
-    }
-
-        .nav-scrollable .dropdown-menu.show {
-            display: block; /* Show when expanded */
-        }
-
-    .nav-scrollable .dropdown-item {
-        color: #fff;
-        padding: 0.5rem 1.5rem;
-        cursor: pointer;
-    }
-
-        .nav-scrollable .dropdown-item:hover {
-            background-color: #5a6268;
-            color: #fff;
-        }
-
-    .nav-scrollable .dropdown-toggle {
-        cursor: pointer;
-    }
-
-    .nav-scrollable .dropdown-menu .dropdown-menu {
-        margin-left: 1.5rem;
-        background-color: #5a6268;
-    }
-
-    /* Make sure nav items are properly spaced */
-    .nav-item {
-        position: relative;
-    }
-
-    /* Pointer cursor for clickable items */
-    .clickable {
-        cursor: pointer;
-    }
-
-    .submenu-container {
-        margin-left: 1rem;
-        border-left: 2px solid #495057;
-    }
-
-    .submenu-item {
-        padding: 0.5rem 1rem;
-        color: #fff;
-        display: block;
-        text-decoration: none;
-    }
-
-        .submenu-item:hover {
-            background-color: #5a6268;
-        }
-
-    .form-container {
-        margin-left: 1rem;
-        border-left: 2px solid #6c757d;
-    }
-
-    .form-item {
-        padding: 0.5rem 1.5rem;
-        color: #e9ecef;
-        display: block;
-        text-decoration: none;
-    }
-
-        .form-item:hover, .form-item.active {
-            background-color: #495057;
-        }
-
-    .clickable {
-        cursor: pointer;
-    }
-    /* Ensure icons have proper spacing */
-    .nav-link span[class^="bi-"],
-    .submenu-item span[class^="bi-"],
-    .form-item span[class^="bi-"] {
-        margin-right: 0.5rem;
-        width: 1em;
-        display: inline-block;
-        text-align: center;
-    }
-
-    /* Home icon specific styling */
-    .nav-link .bi-house-door-fill-nav-menu {
-        margin-right: 0.5rem;
-    }
-
-    hr {
-        display: block;
-        height: 1px;
-        border: 0;
-        border-top: 1px solid #ffffff;
-        margin: 1em 0;
-        padding: 0;
-    }
-</style>
