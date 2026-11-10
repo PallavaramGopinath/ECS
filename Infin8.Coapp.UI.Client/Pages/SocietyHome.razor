@@ -1,0 +1,204 @@
+@page "/"
+@using Infin8.Coapp.UI.Client.Providers
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@rendermode InteractiveWebAssembly
+
+@*
+    Society landing page shown after login (Login.razor navigates here).
+
+    Deliberately NOT [Authorize]: AuthorizeRouteView's <NotAuthorized> branch renders the
+    non-existent <RedirectToLogin /> component, which would leave anonymous visitors on a
+    blank page. Instead we check the auth state ourselves and redirect to /login, the same
+    behaviour the old server-side Home.razor provided for "/".
+*@
+
+<PageTitle>Society Home</PageTitle>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted p-4">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
+    </div>
+}
+else
+{
+    <div class="sh-page">
+        @* ── Header: emblem, society name, tagline ───────────────────────── *@
+        <header class="sh-header">
+            <div class="sh-emblem">
+                <img src="/uploads/app-images/ardb-logo.jpg" alt="Society emblem" />
+            </div>
+            <div class="sh-titles">
+                <h1 class="sh-title">Tamil Nadu Cooperative<br />Thrift and Credit Societies</h1>
+                <div class="sh-tagline">
+                    <span class="sh-rule" aria-hidden="true"></span>
+                    <span>Together for a Prosperous Tomorrow</span>
+                    <span class="sh-rule" aria-hidden="true"></span>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(userName))
+                {
+                    <div class="sh-welcome">
+                        <span class="bi bi-person-circle" aria-hidden="true"></span>
+                        Welcome, <strong>@userName</strong>
+                        @if (!string.IsNullOrWhiteSpace(brCode))
+                        {
+                            <span class="sh-welcome-sep" aria-hidden="true">·</span>
+                            <span>Branch @brCode</span>
+                        }
+                    </div>
+                }
+            </div>
+        </header>
+
+        @* ── Hero: slogan + growth illustration ────────────────────────────── *@
+        <section class="sh-hero" aria-label="Save, grow, prosper together">
+            <div class="sh-slogan">
+                <span>Save Together…</span>
+                <span>Grow Together…</span>
+                <span>Prosper Together…</span>
+                <svg class="sh-swoosh" viewBox="0 0 300 30" aria-hidden="true">
+                    <path d="M4 26 C 90 6, 200 2, 296 8" />
+                </svg>
+            </div>
+
+            <svg class="sh-illustration" viewBox="0 0 640 260" role="img" aria-label="Coin stacks growing into plants beside a family home">
+                <defs>
+                    <linearGradient id="shCoin" x1="0" x2="1">
+                        <stop offset="0" stop-color="#b9783a" />
+                        <stop offset=".5" stop-color="#e9b46a" />
+                        <stop offset="1" stop-color="#a8682e" />
+                    </linearGradient>
+                    <linearGradient id="shWood" x1="0" x2="1">
+                        <stop offset="0" stop-color="#d79a5f" />
+                        <stop offset="1" stop-color="#b8743c" />
+                    </linearGradient>
+                </defs>
+
+                @* table surface *@
+                <ellipse cx="300" cy="238" rx="300" ry="16" fill="#c9a06b" opacity=".35" />
+
+                @* coin stacks, each topped by a sprout that grows with the stack *@
+                @foreach (var s in stacks)
+                {
+                    var top = 236 - s.Coins * 9;
+                    for (int i = 0; i < s.Coins; i++)
+                    {
+                        var y = 236 - (i + 1) * 9;
+                        <rect x="@(s.X - 30)" y="@y" width="60" height="9" rx="4" fill="url(#shCoin)" stroke="#8a5424" stroke-width=".6" />
+                    }
+                    <ellipse cx="@s.X" cy="@top" rx="30" ry="5" fill="#f1c886" stroke="#8a5424" stroke-width=".6" />
+                    <path d="M@(s.X) @top v-@s.Stem" stroke="#4c9a2a" stroke-width="3" fill="none" />
+                    <path d="M@(s.X) @(top - s.Stem + 4) c -@s.Leaf -4 -@s.Leaf -@s.Leaf -2 -@s.Leaf c 2 @(s.Leaf / 2) 2 @s.Leaf 2 @s.Leaf z" fill="#6cc04a" />
+                    <path d="M@(s.X) @(top - s.Stem + 4) c @s.Leaf -4 @s.Leaf -@s.Leaf 2 -@s.Leaf c -2 @(s.Leaf / 2) -2 @s.Leaf -2 @s.Leaf z" fill="#8bd660" />
+                }
+
+                @* wooden house with family silhouette *@
+                <g transform="translate(470 70)">
+                    <path d="M0 80 L80 4 L160 80 L148 80 L80 22 L12 80 Z" fill="url(#shWood)" stroke="#8f5a2b" stroke-width="1.5" />
+                    <rect x="120" y="14" width="14" height="40" fill="url(#shWood)" stroke="#8f5a2b" stroke-width="1.5" />
+                    <path d="M14 80 L80 24 L146 80 L146 166 L14 166 Z" fill="#f6e2c6" stroke="#8f5a2b" stroke-width="10" stroke-linejoin="round" />
+                    <g fill="#ffffff">
+                        <circle cx="52" cy="92" r="9" /><path d="M40 104 h24 l-3 40 h-6 l-1 18 h-4 l-1 -18 h-6 z" />
+                        <circle cx="108" cy="92" r="9" /><path d="M96 104 h24 l4 40 h-10 l-1 18 h-6 l-1 -18 h-10 z" />
+                        <circle cx="80" cy="118" r="6" /><path d="M72 126 h16 l-2 24 h-3 l-1 12 h-4 l-1 -12 h-3 z" />
+                        <circle cx="132" cy="122" r="5.5" /><path d="M125 129 h14 l2 20 h-4 l-1 13 h-8 l-1 -13 h-4 z" />
+                    </g>
+                </g>
+            </svg>
+        </section>
+
+        @* ── Module tiles ───────────────────────────────────────────────────── *@
+        <nav class="sh-modules" aria-label="Modules">
+            @foreach (var m in modules)
+            {
+                <a class="sh-tile @m.Css" href="@m.Href">
+                    <span class="sh-tile-icon"><span class="bi @m.Icon" aria-hidden="true"></span></span>
+                    <span class="sh-tile-label">@m.Line1<br />@m.Line2</span>
+                </a>
+            }
+        </nav>
+
+        @* ── Footer band ──────────────────────────────────────────────────────── *@
+        <footer class="sh-footer">
+            <svg class="sh-landscape" viewBox="0 0 900 160" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+                <path d="M0 120 Q 160 40 330 110 T 640 95 T 900 80 V160 H0 Z" fill="#b9d9a3" opacity=".7" />
+                <path d="M420 112 Q 520 30 620 105 Z" fill="#9fb9c9" opacity=".55" />
+                @* temple gopuram *@
+                <g transform="translate(500 30)" fill="#d48c4b">
+                    <rect x="0" y="92" width="64" height="22" />
+                    <path d="M4 92 L10 66 H54 L60 92 Z" />
+                    <path d="M12 66 L17 44 H47 L52 66 Z" fill="#e0a467" />
+                    <path d="M19 44 L23 26 H41 L45 44 Z" />
+                    <path d="M25 26 L28 12 H36 L39 26 Z" fill="#e0a467" />
+                    <rect x="26" y="98" width="12" height="16" fill="#7a4a24" />
+                </g>
+                @* palms *@
+                @foreach (var x in palms)
+                {
+                    <g transform="translate(@x 70)">
+                        <path d="M0 0 q 3 30 1 52" stroke="#6b5a3a" stroke-width="3" fill="none" />
+                        <path d="M0 0 q -18 -8 -26 6 M0 0 q 18 -8 26 6 M0 0 q -10 -16 -24 -10 M0 0 q 10 -16 24 -10" stroke="#3f8a3a" stroke-width="4" fill="none" stroke-linecap="round" />
+                    </g>
+                }
+                <rect x="0" y="130" width="900" height="30" fill="#7cc35a" />
+            </svg>
+            <div class="sh-footer-band">
+                <p>Strengthening Cooperatives…<br /><span>Building a Better Tamil Nadu…</span></p>
+            </div>
+        </footer>
+    </div>
+}
+
+@code {
+    private bool isReady;
+    private string userName = string.Empty;
+    private string brCode = string.Empty;
+
+    private sealed record Module(string Line1, string Line2, string Icon, string Css, string Href);
+    private sealed record Stack(int X, int Coins, int Stem, int Leaf);
+
+    private static readonly Module[] modules =
+    {
+        new("Member",       "Management", "bi-people-fill",         "sh-blue",   "member-dashboard"),
+        new("Loans &",      "Advances",   "bi-currency-rupee",      "sh-green",  "loanproducts"),
+        new("Deposits &",   "Savings",    "bi-piggy-bank-fill",     "sh-violet", "td-schemes"),
+        new("Reports &",    "Analytics",  "bi-bar-chart-line-fill", "sh-orange", "main-dashboard"),
+        new("Accounting &", "Compliance", "bi-journal-text",        "sh-teal",   "finance/ledgers"),
+        new("Administration", "",         "bi-gear-fill",           "sh-lime",   "user-register"),
+    };
+
+    // Five stacks, each taller with a bigger sprout — "grow together".
+    private static readonly Stack[] stacks =
+    {
+        new(50, 3, 14, 9), new(130, 6, 20, 11), new(210, 9, 26, 13), new(290, 12, 32, 15), new(370, 15, 40, 18),
+    };
+
+    private static readonly int[] palms = { 140, 220, 300, 380, 700, 780, 850 };
+
+    // Auth check runs after the first interactive render (never during prerender), so
+    // NavigateTo is a real client-side navigation rather than a prerender exception.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        userName = user.FindFirst("UserName")?.Value ?? string.Empty;
+        brCode = user.FindFirst("BrCode")?.Value ?? string.Empty;
+        isReady = true;
+        StateHasChanged();
+    }
+}
