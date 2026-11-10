@@ -1,130 +1,329 @@
-.navbar-toggler {
-    appearance: none;
-    cursor: pointer;
-    width: 3.5rem;
-    height: 2.5rem;
-    color: white;
-    position: absolute;
-    top: 0.5rem;
-    right: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center/1.75rem rgba(255, 255, 255, 0.1);
+/* ============================================================
+   NAVIGATION SHELL — icon rail + context panel (from TNCU GAMS).
+   Layout/pattern only; all colours come from css/ecs-theme.css tokens.
+   ============================================================ */
+
+.shell-nav {
+    display: flex;
+    flex-shrink: 0;
+    height: 100vh;
+    position: sticky;
+    top: 0;
 }
 
-.navbar-toggler:checked {
-    background-color: rgba(255, 255, 255, 0.5);
+/* ---- Column 1 · icon rail -------------------------------- */
+.rail {
+    width: 64px;
+    flex-shrink: 0;
+    background: var(--bg-inverse);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0;
+    gap: 0.25rem;
 }
 
-.top-row {
-    min-height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
-}
-
-.navbar-brand {
-    font-size: 1.1rem;
-}
-
-.bi {
-    display: inline-block;
-    position: relative;
-    width: 1.25rem;
-    height: 1.25rem;
-    margin-right: 0.75rem;
-    top: -1px;
-    background-size: cover;
-}
-
-.bi-house-door-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-house-door-fill' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5Z'/%3E%3C/svg%3E");
-}
-
-.bi-plus-square-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-plus-square-fill' viewBox='0 0 16 16'%3E%3Cpath d='M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm6.5 4.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3a.5.5 0 0 1 1 0z'/%3E%3C/svg%3E");
-}
-
-.bi-list-nested-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-list-nested' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M4.5 11.5A.5.5 0 0 1 5 11h10a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 3 7h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 1 3h10a.5.5 0 0 1 0 1H1a.5.5 0 0 1-.5-.5z'/%3E%3C/svg%3E");
-}
-
-.nav-item {
+.rail-brand {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: var(--radius-10);
+    background: var(--accent);
+    color: var(--accent-fg);
+    font-weight: 800;
     font-size: 0.9rem;
-    padding-bottom: 0.5rem;
-}
-
-    .nav-item:first-of-type {
-        padding-top: 1rem;
-    }
-
-    .nav-item:last-of-type {
-        padding-bottom: 1rem;
-    }
-
-    .nav-item ::deep .nav-link {
-        color: #d7d7d7;
-        background: none;
-        border: none;
-        border-radius: 4px;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        line-height: 3rem;
-        width: 100%;
-    }
-
-.nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.37);
-    color: white;
-}
-
-.nav-item ::deep .nav-link:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
-}
-
-.nav-scrollable {
-    display: none;
-}
-
-.navbar-toggler:checked ~ .nav-scrollable {
-    display: block;
-}
-
-@media (min-width: 641px) {
-    .navbar-toggler {
-        display: none;
-    }
-
-    .nav-scrollable {
-        /* Never collapse the sidebar for wide screens */
-        display: block;
-
-        /* Fill the space between the brand row and the footer; scroll for tall menus */
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow-y: auto;
-    }
-}
-
-/* Footer sits below the scroll area (not on top of it), so menu items can never slide underneath */
-.nav-footer {
-    flex: 0 0 auto;
+    letter-spacing: 0.5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 50px;
-    width: 100%;
-    color: white;
-    border-top: 2px solid white;
-    text-align: center;
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
 }
 
-/* On narrow screens the footer follows the collapsible menu's visibility */
+.rail-brand img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #fff;
+}
+
+.rail-brand:hover {
+    background: var(--accent-hover);
+    color: var(--accent-fg);
+}
+
+.rail-items {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    /* ECS has ~20 modules, more than fit a laptop screen, so the rail scrolls.
+       Scrolling clips overflow, hence native title tooltips instead of TNCU's CSS ones. */
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 0.5rem;
+    scrollbar-width: none;
+}
+
+.rail-items::-webkit-scrollbar {
+    display: none;
+}
+
+.rail-footer {
+    margin-top: auto;
+    padding-top: 0.5rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.rail ::deep .rail-item {
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    border-radius: var(--radius-10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.05rem;
+    text-decoration: none;
+    transition: background-color var(--dur-fast) var(--ease-standard),
+                color var(--dur-fast) var(--ease-standard);
+}
+
+.rail ::deep .rail-item:hover {
+    background: rgba(255, 255, 255, 0.10);
+    color: #fff;
+}
+
+.rail ::deep .rail-item:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bg-inverse), 0 0 0 4px var(--accent);
+}
+
+.rail ::deep .rail-item.is-active,
+.rail ::deep .rail-item.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.rail ::deep .rail-item.is-active::before, .rail ::deep .rail-item.active::before {
+    content: "";
+    position: absolute;
+    left: -0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 24px;
+    border-radius: 0 var(--radius-4) var(--radius-4) 0;
+    background: var(--accent);
+}
+
+/* ---- Column 2 · context panel --------------------------- */
+.panel {
+    width: 248px;
+    flex-shrink: 0;
+    height: 100vh;
+    background: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-head {
+    display: flex;
+    align-items: center;
+    min-height: 3.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.panel-search {
+    padding: 0.75rem 0.75rem 0.25rem;
+}
+
+.panel-search-input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-8);
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 0.8125rem;
+}
+
+.panel-search-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: var(--ring-focus);
+}
+
+.panel-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0.5rem 1rem;
+}
+
+.panel-empty {
+    padding: 1rem 0.75rem;
+    color: var(--fg-subtle);
+    font-size: 0.8125rem;
+    font-style: italic;
+}
+
+/* collapsible group */
+.panel-group {
+    margin-bottom: 0.25rem;
+}
+
+.panel-group-head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--fg-subtle);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.panel-group-head:hover {
+    color: var(--fg-muted);
+}
+
+.panel-caret {
+    font-size: 0.6rem;
+    transition: transform var(--dur-fast) var(--ease-standard);
+}
+
+.panel-caret.is-open {
+    transform: rotate(90deg);
+}
+
+.panel-group-body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* nav links are rendered by the NavLink child component → ::deep */
+.panel-scroll ::deep .panel-link {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin: 1px 0;
+    padding: 0.5rem 0.625rem;
+    border-radius: var(--radius-8);
+    color: var(--fg-muted);
+    text-decoration: none;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    transition: background-color var(--dur-fast) var(--ease-standard),
+                color var(--dur-fast) var(--ease-standard);
+}
+
+.panel-scroll ::deep .panel-link:hover {
+    background: var(--bg-subtle);
+    color: var(--fg);
+}
+
+.panel-scroll ::deep .panel-link.active {
+    background: var(--accent-tint);
+    color: var(--fg-brand);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.panel-scroll ::deep .panel-link.is-form {
+    padding-left: 1.5rem;
+}
+
+.panel-scroll ::deep .panel-link-icon {
+    flex-shrink: 0;
+    width: 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.panel-scroll ::deep .panel-link-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---- Mobile burger + scrim ------------------------------ */
+.nav-burger {
+    display: none;
+    position: fixed;
+    top: 0.6rem;
+    left: 0.6rem;
+    z-index: 1002;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-8);
+    background: var(--bg-elevated);
+    color: var(--fg);
+    cursor: pointer;
+}
+
+.nav-scrim {
+    display: none;
+}
+
 @media (max-width: 640.98px) {
-    .nav-footer {
-        display: none;
+    .nav-burger {
+        display: inline-flex;
     }
 
-    .navbar-toggler:checked ~ .nav-footer {
-        display: flex;
+    .shell-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1001;
+        transform: translateX(-100%);
+        transition: transform var(--dur-base) var(--ease-standard);
+        box-shadow: var(--shadow-lg);
     }
+
+    .shell-nav.is-open {
+        transform: translateX(0);
+    }
+
+    .nav-scrim.is-open {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        border: none;
+        background: rgba(26, 23, 20, 0.40);
+        cursor: pointer;
+    }
+
 }
