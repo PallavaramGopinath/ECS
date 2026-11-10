@@ -1,222 +1,52 @@
 /* =============================================================
-   Society Home ("/") — landing page shown after login.
-   Green/navy palette from the TN Cooperative Thrift & Credit
-   Societies banner. All classes are prefixed .sh- to stay isolated
-   from the coral app theme.
+   Society Home ("/") — the society banner image stretched to fill
+   the content area under the top bar, with invisible links over
+   the six module tiles painted into the image.
    ============================================================= */
 
-.sh-page {
-  --sh-navy: #13317a;
-  --sh-green-900: #0f4d2a;
-  --sh-green-700: #1f7a3a;
-  --sh-green-500: #4caf3c;
-  --sh-green-200: #cdeab9;
-  --sh-sky: #e8f4fb;
-
+.sh-banner {
   position: relative;
-  overflow: hidden;
-  border-radius: var(--radius-16, 16px);
-  background:
-    radial-gradient(1200px 400px at 85% 0%, #ffffff 0%, transparent 60%),
-    linear-gradient(180deg, var(--sh-sky) 0%, #f2f9ec 55%, #ffffff 100%);
-  box-shadow: var(--shadow-md);
-  font-family: var(--font-sans);
+  /* Cancel .content padding (1.25rem 1.5rem 2rem) so the banner reaches the edges,
+     and fill the viewport below the 3.5rem top bar. */
+  margin: -1.25rem -1.5rem -2rem;
+  height: calc(100vh - 3.5rem);
+  min-height: 420px;
+  background: url("/uploads/app-images/society-home-banner.webp") center / 100% 100% no-repeat;
 }
 
-/* ── Header ─────────────────────────────────────────────────── */
-.sh-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 28px;
-  padding: 32px 24px 8px;
-  text-align: center;
-}
-
-.sh-emblem {
-  flex: none;
-  width: 116px;
-  height: 116px;
-  border-radius: 50%;
-  background: #fff;
-  border: 4px solid var(--sh-green-700);
-  box-shadow: 0 0 0 6px #fff, 0 0 0 8px #d9b24c, var(--shadow-md);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-.sh-emblem img { width: 78%; height: auto; }
-
-.sh-title {
-  margin: 0;
-  color: var(--sh-navy);
-  font-weight: 700;
-  font-size: clamp(1.5rem, 3.4vw, 2.75rem);
-  line-height: 1.12;
-  letter-spacing: -0.01em;
-}
-
-.sh-tagline {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin-top: 10px;
-  color: var(--sh-navy);
-  font-style: italic;
-  font-weight: 600;
-  font-size: clamp(1rem, 1.7vw, 1.35rem);
-}
-.sh-rule { width: 90px; height: 2px; background: var(--sh-green-700); }
-
-.sh-welcome {
-  margin-top: 10px;
-  color: var(--fg-muted);
-  font-size: .9rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.sh-welcome .bi { color: var(--sh-green-700); }
-.sh-welcome-sep { color: var(--fg-subtle); }
-
-/* ── Hero ───────────────────────────────────────────────────── */
-.sh-hero {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(320px, 1.6fr);
-  align-items: end;
-  gap: 16px;
-  padding: 8px 40px 0;
-}
-
-.sh-slogan {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 36px;
-  color: var(--sh-green-900);
-  font-weight: 700;
-  font-style: italic;
-  font-size: clamp(1.3rem, 2.4vw, 2rem);
-  line-height: 1.2;
-  transform: rotate(-6deg);
-  transform-origin: left bottom;
-}
-.sh-slogan span:nth-child(2) { padding-left: 1.6em; }
-.sh-slogan span:nth-child(3) { padding-left: 1.2em; }
-.sh-swoosh { width: 75%; height: 24px; margin-top: 4px; }
-.sh-swoosh path { fill: none; stroke: var(--sh-green-700); stroke-width: 4; stroke-linecap: round; }
-
-.sh-illustration { width: 100%; height: auto; max-height: 280px; }
-
-/* ── Module tiles ───────────────────────────────────────────── */
-.sh-modules {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 18px;
-  padding: 26px 40px 30px;
-  background: linear-gradient(180deg, #f4faef 0%, #fbfdf8 100%);
-  border-top: 6px solid var(--sh-green-500);
-}
-
-.sh-tile {
-  --tile-bg: #eef5ff;
-  --tile-icon: #2a7de1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 10px 18px;
-  border-radius: var(--radius-14, 14px);
-  background: var(--tile-bg);
-  border: 1px solid rgba(255,255,255,.9);
-  box-shadow: 0 6px 18px rgba(19, 49, 122, .10);
-  color: var(--sh-navy);
-  text-align: center;
-  text-decoration: none;
-  font-weight: 600;
-  line-height: 1.25;
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.sh-tile:hover,
-.sh-tile:focus-visible {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 26px rgba(19, 49, 122, .18);
-  color: var(--sh-navy);
-}
-.sh-tile:focus-visible { outline: 3px solid var(--tile-icon); outline-offset: 2px; }
-
-.sh-tile-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--tile-icon);
-  color: #fff;
-  font-size: 2rem;
-  box-shadow: inset 0 -4px 0 rgba(0,0,0,.12);
-}
-
-.sh-blue   { --tile-bg: #eaf3fe; --tile-icon: #2a7de1; }
-.sh-green  { --tile-bg: #eaf6ee; --tile-icon: #1f8a3e; }
-.sh-violet { --tile-bg: #f3eef9; --tile-icon: #8a4fbf; }
-.sh-orange { --tile-bg: #fdf0e3; --tile-icon: #f06a1d; }
-.sh-teal   { --tile-bg: #e6f5fa; --tile-icon: #1597b1; }
-.sh-lime   { --tile-bg: #eef7e8; --tile-icon: #6cae2c; }
-
-/* ── Footer band ────────────────────────────────────────────── */
-.sh-footer { position: relative; min-height: 170px; }
-
-.sh-landscape {
+.sh-hotspots {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
 }
 
-.sh-footer-band {
-  position: relative;
-  width: min(560px, 62%);
-  min-height: 170px;
-  display: flex;
-  align-items: center;
-  padding: 24px 40px;
-  background: linear-gradient(135deg, var(--sh-green-900), var(--sh-green-700));
-  clip-path: ellipse(100% 120% at 0% 100%);
+/* Tile boxes measured on the 1672 x 941 source image. */
+.sh-hotspot {
+  position: absolute;
+  top: 58.24%;
+  height: 17.43%;
+  border-radius: 1.2vw;
+  transition: background-color .15s ease, box-shadow .15s ease;
 }
-.sh-footer-band p {
-  margin: 0;
-  color: #fff;
-  font-style: italic;
-  font-weight: 600;
-  font-size: clamp(1.05rem, 2vw, 1.6rem);
-  line-height: 1.35;
+.sh-hotspot:hover {
+  background-color: rgba(255, 255, 255, .18);
+  box-shadow: 0 10px 24px rgba(19, 49, 122, .25);
 }
-.sh-footer-band span {
-  display: inline-block;
-  padding-left: 1.5em;
-  border-bottom: 3px solid #f2b632;
-  padding-bottom: 4px;
+.sh-hotspot:focus-visible {
+  outline: 3px solid #13317a;
+  outline-offset: 2px;
 }
 
-/* ── Responsive ─────────────────────────────────────────────── */
-@media (max-width: 1100px) {
-  .sh-modules { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-@media (max-width: 760px) {
-  .sh-header { flex-direction: column; gap: 14px; padding-top: 24px; }
-  .sh-emblem { width: 92px; height: 92px; }
-  .sh-rule { width: 36px; }
-  .sh-hero { grid-template-columns: 1fr; padding: 8px 16px 0; }
-  .sh-slogan { transform: none; padding-bottom: 8px; align-items: center; }
-  .sh-slogan span { padding-left: 0 !important; }
-  .sh-swoosh { display: none; }
-  .sh-modules { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 20px 16px; gap: 12px; }
-  .sh-footer-band { width: 100%; clip-path: none; padding: 20px 16px; }
+/* On narrow screens stretching to full height would distort the banner badly,
+   so keep its natural proportions instead. */
+@media (max-width: 640.98px) {
+  .sh-banner {
+    margin: -1rem;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1672 / 941;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sh-tile { transition: none; }
+  .sh-hotspot { transition: none; }
 }
