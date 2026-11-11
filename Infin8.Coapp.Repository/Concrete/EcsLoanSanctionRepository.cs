@@ -71,9 +71,17 @@ namespace Infin8.Coapp.Repository
             data.DateOfBirth = member.dob;
 
             // Retirement date and service months (§3.6).
-            int? perMember = await (from r in CSISContext.Mem_RetirementAge
-                                    where r.Mem_Id == (int)member.mem_id && !r.RetirementAge_Delete && r.BrCode == brCode
-                                    select (int?)r.RetirementAge).FirstOrDefaultAsync();
+            int? perMember = null;
+            try
+            {
+                perMember = await (from r in CSISContext.Mem_RetirementAge
+                                   where r.Mem_Id == (int)member.mem_id && !r.RetirementAge_Delete && r.BrCode == brCode
+                                   select (int?)r.RetirementAge).FirstOrDefaultAsync();
+            }
+            catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P01")
+            {
+                // mem_retirementage is not present in every database; fall back to Map_General (spec §3.6).
+            }
             int ageMonths = perMember ?? map?.TSISRetirementAgeInMonths ?? 0;
             // mem_retirementage.retirementage may be stored in years in some databases; a value below 150
             // cannot be a retirement age in months, so treat it as years.
