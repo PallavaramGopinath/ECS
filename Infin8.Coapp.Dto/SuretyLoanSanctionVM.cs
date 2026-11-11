@@ -1,49 +1,49 @@
 namespace Infin8.Coapp.Dto
 {
     /// <summary>
-    /// Composite data assembled on member lookup for the ECS Surety Loan sanction screen
-    /// (Spec 03 — sections 2 (member), 3 (salary), 4 (dates), 6/7 (assets), 8 (overdue)).
+    /// Member + surety + dates + assets assembled on member lookup for the ECS Loan Sanction screen
+    /// (spec 06 §2.2). Pay details are typed in by hand; see <see cref="EcsPayDetailsVM"/> for the
+    /// optional payroll prefill.
     /// </summary>
     public class SuretyLoanSanctionDataVM
     {
         public bool Found { get; set; }
         public string? Message { get; set; }
 
-        // Member (Sec 2)
+        // Member
         public decimal Mem_Id { get; set; }
         public string? MemberNo { get; set; }
         public string? PerNo { get; set; }
         public string? MemberName { get; set; }
 
-        // Surety (Sec 2)
+        // Surety (mem_master.suretymem_id)
         public decimal SuretyMem_Id { get; set; }
         public string? SuretyMemberNo { get; set; }
         public string? SuretyMemberName { get; set; }
 
-        // Salary (Sec 3) — Net Pay = Gross Pay − Total Deductions
+        // Salary — kept for payload compatibility; not prefilled on lookup.
         public double BasicPay { get; set; }
         public double GrossPay { get; set; }
         public double SocietyDeduction { get; set; }
         public double TotalDeductions { get; set; }
         public double NetPay { get; set; }
 
-        // Dates (Sec 4)
+        // Dates (spec §3.6)
         public DateTime? DateOfBirth { get; set; }
         public DateTime? DateOfRetirement { get; set; }
-        public int ServiceInMonths { get; set; }
+        /// <summary>MonthsBetween(sanction date, DOR) − MinInstalmentsForLoan. Null when DOR is unknown.</summary>
+        public int? ServiceInMonths { get; set; }
 
-        // Member assets (Sec 6) — display only
+        // Member assets — display only
         public double MemberShareCapital { get; set; }
         public double MemberThriftDeposit { get; set; }
         public double MemberFamilyWelfareDeposit { get; set; }
 
-        // Surety assets (Sec 7) — display only
+        // Surety assets — display only
         public double SuretyShareCapital { get; set; }
-
-        // Surety loan overdue & history (Sec 8) — populated only when an overdue exists
-        public List<SuretyLoanOverdueVM> SuretyLoanOverdues { get; set; } = new();
     }
 
+    /// <summary>A surety's (or member's) loan that is in overdue.</summary>
     public class SuretyLoanOverdueVM
     {
         public decimal Loan_Id { get; set; }
@@ -53,25 +53,33 @@ namespace Infin8.Coapp.Dto
     }
 
     /// <summary>
-    /// Scheme-driven defaults loaded when a loan purpose (scheme) is selected (Spec 03 — section 5).
-    /// The user may override Period / ROI / Penal / Installment on the screen.
+    /// Scheme-driven defaults loaded when a scheme is selected (spec 06 §2.3 step 3), plus the
+    /// duplicate / already-saved / stipulated-period warnings (§3.4, §3.5).
     /// </summary>
     public class SuretyLoanSchemeDefaultsVM
     {
+        public bool Found { get; set; }
+        public string? Message { get; set; }
+
         public int Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
-        public int PeriodOfLoan { get; set; }        // default from Loan_Schemes.MaximumPrincipalPeriod
-        public double RateOfInterest { get; set; }   // from ROI template (0 when not configured)
-        public double PenalRate { get; set; }        // from ROI template (0 when not configured)
-        public double ThisLoanLimit { get; set; }    // from Loan_Schemes.MaximumLoanAmount
-        public double MaxLoanLimit { get; set; }     // from Map_General.MaxLoanLimit (scoped by brcode)
-        public int InstType { get; set; }            // Loan_Schemes.Inst_Type (installment-calc method)
-        public bool AdoptLoanEligibility { get; set; } // Loan_Schemes.AdoptLoanEligibility (gates the 50% rule)
-        public int NoOfInstalmentsCompleted { get; set; }
-        public int NoOfInstalmentsRecovered { get; set; }
+        public int Loan_Type { get; set; }
+        public double LoanAmount { get; set; }       // default = Loan_Schemes.MaximumLoanAmount
+        public int PeriodOfLoan { get; set; }        // default = Loan_Schemes.MaximumPrincipalPeriod
+        public double RateOfInterest { get; set; }   // Loan_Roi_Template as on sanction date
+        public double PenalRate { get; set; }        // Loan_Roi_Template as on sanction date
+        public bool RoiTemplateFound { get; set; }
+        public double ThisLoanLimit { get; set; }    // Loan_Schemes.MaximumLoanAmount
+        public double MaxLoanLimit { get; set; }     // Map_General.MaxLoanLimit
+        public int InstType { get; set; }
+        public bool AdoptLoanEligibility { get; set; }
+        public int MatchShareCapital { get; set; }   // 1 member+surety, 2 member only, 3 none
+        public bool AdoptLoanLimit { get; set; }
+        public bool IsSuretyRequired { get; set; }
+        public DateTime FirstDueDate { get; set; }
 
-        // Loan Scheme Details (Caption/Content grid) — scheme config codes rendered as readable text.
         public List<SchemeDetailRowVM> SchemeDetails { get; set; } = new();
+        public List<SanctionWarningVM> Warnings { get; set; } = new();
     }
 
     /// <summary>One Caption/Content row of the Loan Scheme Details grid.</summary>
@@ -82,31 +90,9 @@ namespace Infin8.Coapp.Dto
     }
 
     /// <summary>
-    /// Deductions + verification data assembled for a member + selected scheme (Spec 03 — sections 9, 10.1, 11).
+    /// One recoverable row (WinForms dgvOS). Status codes per spec §3.8:
+    /// P / I / PI (deductable loan), DTo, DBy, MS / SS (share-capital shortfall), D (deposit), G (general).
     /// </summary>
-    public class SuretyDeductionsDataVM
-    {
-        // Deductable loans grid (Sec 9.2) + share-capital-shortfall and sundry-debtor rows (Sec 10.1)
-        public List<DeductableLoanRowVM> DeductableLoans { get; set; } = new();
-
-        // Required share-capital check (Sec 10.1)
-        public double ShareCapitalPercentageOnLoan { get; set; }
-        public double RequiredShareCapital { get; set; }
-        public double MemberShareCapital { get; set; }
-        public double SuretyShareCapital { get; set; }
-        public double MemberShareCapitalShortfall { get; set; }
-        public double SuretyShareCapitalShortfall { get; set; }
-
-        // Verification tabs (Sec 11)
-        public List<NonDeductableLoanVM> NonDeductableLoans { get; set; } = new();
-        public List<PendingDepositVM> PendingDeposits { get; set; } = new();
-
-        // Eligibility demand inputs (Sec 10.2)
-        public double CurrentDepositDemand { get; set; }       // Σ pending thrift + FWD demand
-        public double NonDeductableLoanDemand { get; set; }    // Σ demand of non-deductable loans
-    }
-
-    /// <summary>One row of the Deductable Loans grid (Sec 9.2). Also used for SC-shortfall / sundry-debtor rows.</summary>
     public class DeductableLoanRowVM
     {
         public decimal Loan_Id { get; set; }
@@ -116,32 +102,15 @@ namespace Infin8.Coapp.Dto
         public decimal Mem_Id { get; set; }
         public decimal Led_Id { get; set; }
         public string? Ledger_Name { get; set; }
-        public double Outstanding { get; set; }
+        public double Outstanding { get; set; }       // the amount recovered (loan_sanction_trn.receiptitem)
+        public double CalcAmount { get; set; }
         public double ODAmount { get; set; }
-        public double InterestBalance { get; set; } // interest outstanding — drives the "I" recovery line on save
         public int Scheme_Id { get; set; }
-        public int Loan_SlNo { get; set; }
-        public double LDeduct { get; set; }      // editable recoverable amount (semantics to be detailed by owner)
-        public bool MatchSC { get; set; }        // true for share-capital-shortfall rows
-        public string? RowType { get; set; }     // "Loan" | "ShareCapital" | "Sundry" | "Manual"
-    }
-
-    /// <summary>Non-deductable loan (Sec 11 verification tab).</summary>
-    public class NonDeductableLoanVM
-    {
-        public decimal Loan_Id { get; set; }
-        public string? Loan_No { get; set; }
-        public string? Purpose { get; set; }
-        public double LoanOutstanding { get; set; }
-        public double InterestBalance { get; set; }
-        public double PenalInterestBalance { get; set; }
-    }
-
-    /// <summary>Pending deposit (thrift / family-welfare) for the verification tab (Sec 11).</summary>
-    public class PendingDepositVM
-    {
-        public string? DepositName { get; set; }
-        public double Balance { get; set; }
-        public double PendingDemand { get; set; }
+        public int Loan_SlNo { get; set; }            // MAX(loan_trn.trn_slno) snapshot for §3.13
+        public bool MatchSC { get; set; }
+        /// <summary>True for rows added by hand (ledger + amount). Only these, and zero rows, can be removed.</summary>
+        public bool IsManual { get; set; }
+        /// <summary>"Deductable" | "NonDeductable" | "Pending" | "ShareCapital" | "DueTo" | "Manual".</summary>
+        public string? RowType { get; set; }
     }
 }

@@ -1,18 +1,22 @@
 namespace Infin8.Coapp.Dto
 {
     /// <summary>
-    /// POST body for saving an ECS Surety Loan sanction (Spec 03 — section 13).
-    /// Audit fields (Usr_Id/Yr_Id/BrCode/SanctionDate) are NOT carried here — the server stamps
-    /// them from the authenticated user's claims.
+    /// POST body for saving (create or modify) an ECS loan sanction (spec 06 §3.12, §7.2).
+    /// Audit fields (Usr_Id / Yr_Id / BrCode / SanctionDate) are NOT carried here — the server stamps
+    /// them from the authenticated user's claims. Totals, eligibility and payment lines are recomputed
+    /// on the server; only the user's entries and the chosen recoverable rows are taken from here.
     /// </summary>
     public class SuretyLoanSanctionSaveVM
     {
+        /// <summary>0 = create; otherwise the sanction being modified (it is soft-deleted and re-issued).</summary>
+        public decimal LoanSanction_Id { get; set; }
+        public bool OverrideStipulatedPeriod { get; set; }
+
         public decimal Mem_Id { get; set; }
         public decimal SuretyMem_Id { get; set; }
         public int Scheme_Id { get; set; }
-        public int Inst_Type { get; set; }
 
-        // Loan details (Sec 5)
+        // Loan details
         public double LoanAmount { get; set; }
         public int PeriodOfLoan { get; set; }
         public double RateOfInterest { get; set; }
@@ -20,37 +24,23 @@ namespace Infin8.Coapp.Dto
         public int InstalmentAmount { get; set; }
         public DateTime? FirstDueDate { get; set; }
 
-        // Salary snapshot (Sec 3)
+        // Pay details (typed in from the salary certificate)
         public double BasicPay { get; set; }
         public double GrossPay { get; set; }
         public double SocietyDeduction { get; set; }
         public double TotalDeductions { get; set; }
-        public double NetPay { get; set; }
 
-        // Assets snapshot (Sec 6/7)
-        public int MemberShareCapitalAmount { get; set; }
-        public int SuretyShareCapitalAmount { get; set; }
-        public int MemberTD { get; set; }
-
-        // Limits / history (Sec 5)
-        public int ThisLoanLimit { get; set; }
-        public int MemberTotalLimit { get; set; }
-        public int NoOfInstalmentsCompleted { get; set; }
-        public int NoOfInstalmentsRecovered { get; set; }
-
-        // Eligibility re-verification input (Sec 10) — recomputed server-side before saving.
-        public LoanEligibilityInputVM? EligibilityInput { get; set; }
-
-        // Deduction lines from the grid (deductable loans + SC-shortfall + sundry + manual rows).
+        // Recoverables chosen on the page (deductable + DTo + MS/SS + moved non-deductable / pending + manual).
         public List<DeductableLoanRowVM> DeductionRows { get; set; } = new();
     }
 
-    /// <summary>Result of a sanction save — drives the page's success / rejection message.</summary>
+    /// <summary>Result of a sanction save / delete — drives the page's success / rejection message.</summary>
     public class SanctionSaveResultVM
     {
         public bool Success { get; set; }
         public string? Message { get; set; }
         public decimal LoanSanction_Id { get; set; }
         public int LoanElig_Id { get; set; }
+        public List<string> Reasons { get; set; } = new();
     }
 }

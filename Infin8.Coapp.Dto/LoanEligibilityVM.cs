@@ -1,9 +1,6 @@
 namespace Infin8.Coapp.Dto
 {
-    /// <summary>
-    /// Input for the shared loan-eligibility calculator (Spec 03 — section 10).
-    /// Built on the client from the assembled sanction data + the user's loan-detail entries.
-    /// </summary>
+    /// <summary>Input for the loan-eligibility calculator (spec 06 §3.3).</summary>
     public class LoanEligibilityInputVM
     {
         public decimal Mem_Id { get; set; }
@@ -11,50 +8,44 @@ namespace Infin8.Coapp.Dto
         public string? BrCode { get; set; }
 
         public double LoanAmount { get; set; }
+        public int PeriodOfLoan { get; set; }
         public double InstallmentAmount { get; set; }
         public double RateOfInterest { get; set; }
+        public int InstType { get; set; }
 
-        // Salary (Sec 3)
+        // Salary
         public double GrossPay { get; set; }
-        public double NetPay { get; set; }
         public double TotalDeductions { get; set; }
         public double SocietyDeduction { get; set; }
 
-        // Service / retirement (Sec 4 / 10.3)
-        public int ServiceInMonths { get; set; }
+        /// <summary>MonthsBetween(sanction date, DOR) − MinInstalmentsForLoan; null when DOR is unknown.</summary>
+        public int? ServiceInMonths { get; set; }
 
-        // Demand inputs (Sec 10.2) — supplied by the deductions step
-        public double CurrentDepositDemand { get; set; }      // thrift + family-welfare pending demand
-        public double NonDeductableLoanDemand { get; set; }   // Σ demand of non-deductable loans
-        public double ExistingDemand { get; set; }            // existing demand for eligibility ceiling
+        /// <summary>Σ current deposit demand from Deposit_Masters / Deposit_Options (§3.3).</summary>
+        public double DepositDemand { get; set; }
+        /// <summary>Σ demand of non-deductable loans not moved into recoverables.</summary>
+        public double ExistingDemand { get; set; }
 
-        // Scheme flag
         public bool AdoptLoanEligibility { get; set; }
     }
 
-    /// <summary>
-    /// Result of the eligibility calculation (Spec 03 — section 10.2/10.3). Compute-only in Phase 2;
-    /// persisted to <c>Loan_Eligibility</c> with the sanction in Phase 3.
-    /// </summary>
+    /// <summary>Result of the eligibility calculation (spec 06 §3.3).</summary>
     public class LoanEligibilityResultVM
     {
-        // Demand breakdown (Sec 10.2)
-        public double CurrentLoanDemand { get; set; }   // principal (installment) + interest on loan amount
-        public double CurrentDepositDemand { get; set; }
-        public double OtherDeductions { get; set; }      // Total Deductions − Society Deduction
-        public double NonDeductableLoanDemand { get; set; }
-        public double TotalDemand { get; set; }
-        public double NewNetPay { get; set; }            // Gross − Total Demand
+        public double NewLoanDemand { get; set; }        // instalment (+ monthly interest for Inst_Type 3)
+        public double DepositDemand { get; set; }
+        public double Demand { get; set; }               // NewLoanDemand + DepositDemand
+        public double ExistingDemand { get; set; }
+        public double OtherDeductions { get; set; }      // Total − Society
+        public double NetPay { get; set; }               // Gross − Demand − Existing − Other
 
-        // Ceilings (Sec 10.3 / 10.4)
+        public double TwentyFiveTimesOfGross { get; set; }
         public double FiftyPercentOfGross { get; set; }
         public double TwentyFivePercentOfGross { get; set; }
-        public double TwentyFiveTimesOfGross { get; set; }
 
-        // Rule outcomes
-        public bool FailsDemandCeiling { get; set; }     // (TotalDemand + ExistingDemand) > 50% gross
-        public bool FailsNetPayFloor { get; set; }       // 25% gross > Net Pay
-        public bool FailsServiceCheck { get; set; }      // service < retirement-age-in-months
+        public bool FailsDemandCeiling { get; set; }     // Demand + Existing > 50 %
+        public bool FailsNetPayFloor { get; set; }       // 25 % > NetPay
+        public bool FailsServiceCheck { get; set; }      // ServiceInMonths < PeriodOfLoan
 
         public bool IsEligible { get; set; }
         public List<string> Reasons { get; set; } = new();

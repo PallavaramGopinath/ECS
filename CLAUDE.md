@@ -205,13 +205,14 @@ Gating exists on exactly three pages, all under `Pages/Products/`, all keyed off
 institution = userInfoDto.SocietyType.ToInstitutionType();
 ```
 
-`SuretyLoanSanction.razor` is the reference implementation for a whole-page ECS gate — note its
+`ECSLoanSanction.razor` (`/ecs-loan-sanction`) is the reference implementation for a whole-page ECS gate — note its
 `isReady` guard, which stops the "ECS only" warning flashing before the claim has been read.
 `Loanproducts.razor` and `LoanProductsCreate.razor` instead filter a category collection through
 `LoanCategoryPolicy.IsAllowed`.
 
-Caveats: **gating is client-side only** — the ECS-only endpoints have no server-side institution
-check. Nav-menu gating is deliberately deferred (no menu rows added), so ECS pages are reachable only
+Caveats: gating is **mostly client-side**. Only `LoanSanctionController` checks the institution on the
+server (its `IsEcsAsync` looks up `Gen_Bank_Name.Bank_Type` for the claims `BrCode`, since the JWT carries
+no `SocietyType`); other ECS-only endpoints have no server-side check. Nav-menu gating is deliberately deferred (no menu rows added), so ECS pages are reachable only
 by URL. `specs/ecs-extension/03`–`05` (the three ECS loan types) are still stubs.
 
 ## Gotchas

@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="OfficeNoteViewModel">
+      <ConnectionProperties><DataProvider>System.Data.DataSet</DataProvider><ConnectString>/* Local Connection */</ConnectString></ConnectionProperties>
+      <rd:DataSourceID>5f0b6f7e-6a51-4c1e-9b1e-0f2d6c0e0a61</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="Ds_OfficeNote">
+      <Query><DataSourceName>OfficeNoteViewModel</DataSourceName><CommandText>/* Local Query */</CommandText></Query>
+      <Fields><Field Name="LoanSanction_Id"><DataField>LoanSanction_Id</DataField><rd:TypeName>System.Int32</rd:TypeName></Field><Field Name="SanctionDate"><DataField>SanctionDate</DataField><rd:TypeName>System.DateTime</rd:TypeName></Field><Field Name="LoanAmount"><DataField>LoanAmount</DataField><rd:TypeName>System.Double</rd:TypeName></Field><Field Name="PeriodOfLoan"><DataField>PeriodOfLoan</DataField><rd:TypeName>System.Int32</rd:TypeName></Field><Field Name="InstalmentAmount"><DataField>InstalmentAmount</DataField><rd:TypeName>System.Int32</rd:TypeName></Field><Field Name="TotalReceiptAmount"><DataField>TotalReceiptAmount</DataField><rd:TypeName>System.Double</rd:TypeName></Field><Field Name="IsMemberBecomeDefaulter"><DataField>IsMemberBecomeDefaulter</DataField><rd:TypeName>System.Boolean</rd:TypeName></Field><Field Name="isSurityBecomeDefaulter"><DataField>isSurityBecomeDefaulter</DataField><rd:TypeName>System.Boolean</rd:TypeName></Field><Field Name="MemberNo"><DataField>MemberNo</DataField><rd:TypeName>System.String</rd:TypeName></Field><Field Name="PerNo"><DataField>PerNo</DataField><rd:TypeName>System.String</rd:TypeName></Field><Field Name="MemberName"><DataField>MemberName</DataField><rd:TypeName>System.String</rd:TypeName></Field><Field Name="SlNo"><DataField>SlNo</DataField><rd:TypeName>System.Int32</rd:TypeName></Field><Field Name="ReceiptDescription"><DataField>ReceiptDescription</DataField><rd:TypeName>System.String</rd:TypeName></Field><Field Name="ReceiptItem"><DataField>ReceiptItem</DataField><rd:TypeName>System.Double</rd:TypeName></Field><Field Name="PaymentDescription"><DataField>PaymentDescription</DataField><rd:TypeName>System.String</rd:TypeName></Field><Field Name="PaymentItem"><DataField>PaymentItem</DataField><rd:TypeName>System.Double</rd:TypeName></Field><Field Name="SuretymemberNo"><DataField>SuretymemberNo</DataField><rd:TypeName>System.String</rd:TypeName></Field><Field Name="SuretyPerNo"><DataField>SuretyPerNo</DataField><rd:TypeName>System.String</rd:TypeName></Field><Field Name="SuretymemberName"><DataField>SuretymemberName</DataField><rd:TypeName>System.String</rd:TypeName></Field><Field Name="MemberShareCapitalAmount"><DataField>MemberShareCapitalAmount</DataField><rd:TypeName>System.Int32</rd:TypeName></Field><Field Name="NoOfInstalmentsCompleted"><DataField>NoOfInstalmentsCompleted</DataField><rd:TypeName>System.Int32</rd:TypeName></Field><Field Name="NoOfInstalmentsRecovered"><DataField>NoOfInstalmentsRecovered</DataField><rd:TypeName>System.Int32</rd:TypeName></Field><Field Name="SurityShareCapitalAmount"><DataField>SurityShareCapitalAmount</DataField><rd:TypeName>System.Int32</rd:TypeName></Field><Field Name="GrossPay"><DataField>GrossPay</DataField><rd:TypeName>System.Int32</rd:TypeName></Field></Fields>
+      <rd:DataSetInfo><rd:DataSetName>Infin8.Coapp.Dto</rd:DataSetName><rd:TableName>rptOfficeNote</rd:TableName><rd:ObjectDataSourceType>Infin8.Coapp.Dto.rptOfficeNote, Infin8.Coapp.Dto</rd:ObjectDataSourceType></rd:DataSetInfo>
+    </DataSet>
+  </DataSets>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems><Textbox Name="tb1">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Sanction Id</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.05in</Top><Left>0in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb2">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=First(Fields!LoanSanction_Id.Value, "Ds_OfficeNote")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.05in</Top><Left>1.5in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb3">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Sanction Date</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.05in</Top><Left>3.8in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb4">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(First(Fields!SanctionDate.Value, "Ds_OfficeNote"), "dd/MM/yyyy")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.05in</Top><Left>5.3in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb5">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Member No / Per No</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.29in</Top><Left>0in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb6">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=First(Fields!MemberNo.Value, "Ds_OfficeNote") &amp; " / " &amp; First(Fields!PerNo.Value, "Ds_OfficeNote")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.29in</Top><Left>1.5in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb7">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Member Name</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.29in</Top><Left>3.8in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb8">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=First(Fields!MemberName.Value, "Ds_OfficeNote")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.29in</Top><Left>5.3in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb9">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Surety No / Per No</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.53in</Top><Left>0in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb10">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=First(Fields!SuretymemberNo.Value, "Ds_OfficeNote") &amp; " / " &amp; First(Fields!SuretyPerNo.Value, "Ds_OfficeNote")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.53in</Top><Left>1.5in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb11">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Surety Name</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.53in</Top><Left>3.8in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb12">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=First(Fields!SuretymemberName.Value, "Ds_OfficeNote")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.53in</Top><Left>5.3in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb13">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Loan Amount</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.77in</Top><Left>0in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb14">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(First(Fields!LoanAmount.Value, "Ds_OfficeNote"), "#,##0.00")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.77in</Top><Left>1.5in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb15">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Period / Instalment</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.77in</Top><Left>3.8in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb16">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=First(Fields!PeriodOfLoan.Value, "Ds_OfficeNote") &amp; " months / Rs." &amp; First(Fields!InstalmentAmount.Value, "Ds_OfficeNote")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>0.77in</Top><Left>5.3in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb17">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Gross Pay</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.01in</Top><Left>0in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb18">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(First(Fields!GrossPay.Value, "Ds_OfficeNote"), "#,##0")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.01in</Top><Left>1.5in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb19">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Total Recovery</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.01in</Top><Left>3.8in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb20">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(First(Fields!TotalReceiptAmount.Value, "Ds_OfficeNote"), "#,##0.00")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.01in</Top><Left>5.3in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb21">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Member Share Capital</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.25in</Top><Left>0in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb22">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(First(Fields!MemberShareCapitalAmount.Value, "Ds_OfficeNote"), "#,##0")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.25in</Top><Left>1.5in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb23">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Surety Share Capital</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.25in</Top><Left>3.8in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb24">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(First(Fields!SurityShareCapitalAmount.Value, "Ds_OfficeNote"), "#,##0")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.25in</Top><Left>5.3in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb25">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Instalments Completed</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.49in</Top><Left>0in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb26">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=First(Fields!NoOfInstalmentsCompleted.Value, "Ds_OfficeNote")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.49in</Top><Left>1.5in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb27">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Instalments Recovered</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.49in</Top><Left>3.8in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb28">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=First(Fields!NoOfInstalmentsRecovered.Value, "Ds_OfficeNote")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.49in</Top><Left>5.3in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb29">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Member Defaulter</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.73in</Top><Left>0in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb30">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=IIf(First(Fields!IsMemberBecomeDefaulter.Value, "Ds_OfficeNote"), "Yes", "No")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.73in</Top><Left>1.5in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb31">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Surety Defaulter</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.73in</Top><Left>3.8in</Left><Height>0.22in</Height><Width>1.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb32">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=IIf(First(Fields!isSurityBecomeDefaulter.Value, "Ds_OfficeNote"), "Yes", "No")</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>1.73in</Top><Left>5.3in</Left><Height>0.22in</Height><Width>2.2in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Tablix Name="TablixLines">
+  <TablixBody>
+    <TablixColumns><TablixColumn><Width>0.5in</Width></TablixColumn><TablixColumn><Width>2.4in</Width></TablixColumn><TablixColumn><Width>1.1in</Width></TablixColumn><TablixColumn><Width>2.4in</Width></TablixColumn><TablixColumn><Width>1.1in</Width></TablixColumn></TablixColumns>
+    <TablixRows>
+      <TablixRow><Height>0.25in</Height><TablixCells><TablixCell><CellContents><Textbox Name="tb33">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Sl No</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Left</TextAlign></Style></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb34">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Recoveries</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb35">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Amount</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb36">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Particulars</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb37">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Amount</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell></TablixCells></TablixRow>
+      <TablixRow><Height>0.22in</Height><TablixCells><TablixCell><CellContents><Textbox Name="tb38">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!SlNo.Value</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style><TextAlign>Left</TextAlign></Style></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb39">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!ReceiptDescription.Value</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb40">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=IIf(Len(Fields!ReceiptDescription.Value) &gt; 0, Fields!ReceiptItem.Value, Nothing)</Value><Style><FontSize>9pt</FontSize><Format>#,##0.00</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb41">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!PaymentDescription.Value</Value><Style><FontSize>9pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb42">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=IIf(Len(Fields!PaymentDescription.Value) &gt; 0, Fields!PaymentItem.Value, Nothing)</Value><Style><FontSize>9pt</FontSize><Format>#,##0.00</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell></TablixCells></TablixRow>
+      <TablixRow><Height>0.25in</Height><TablixCells><TablixCell><CellContents><Textbox Name="tb43">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value></Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb44">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>Total Recovery</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb45">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Sum(Fields!ReceiptItem.Value)</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight><Format>#,##0.00</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb46">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value></Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell><TablixCell><CellContents><Textbox Name="tb47">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value></Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  
+  <Style><Border><Color>Black</Color><Style>Solid</Style><Width>0.5pt</Width></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></CellContents></TablixCell></TablixCells></TablixRow>
+    </TablixRows>
+  </TablixBody>
+  <TablixColumnHierarchy><TablixMembers><TablixMember /><TablixMember /><TablixMember /><TablixMember /><TablixMember /></TablixMembers></TablixColumnHierarchy>
+  <TablixRowHierarchy><TablixMembers>
+    <TablixMember><KeepWithGroup>After</KeepWithGroup><RepeatOnNewPage>true</RepeatOnNewPage></TablixMember>
+    <TablixMember><Group Name="Details" /><SortExpressions><SortExpression><Value>=Fields!SlNo.Value</Value></SortExpression></SortExpressions></TablixMember>
+    <TablixMember><KeepWithGroup>Before</KeepWithGroup></TablixMember>
+  </TablixMembers></TablixRowHierarchy>
+  <DataSetName>Ds_OfficeNote</DataSetName>
+  <Top>2.12in</Top><Left>0in</Left><Height>0.72in</Height><Width>7.5in</Width>
+  <Style><Border><Style>None</Style></Border></Style>
+</Tablix><Textbox Name="tb48">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Parameters!paramNotes.Value</Value><Style><FontSize>10pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+  <Top>3.04in</Top><Left>0in</Left><Height>0.5in</Height><Width>7.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb49">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Parameters!ParamFirstSignature.Value</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Center</TextAlign></Style></Paragraph></Paragraphs>
+  <Top>4.14in</Top><Left>0.0in</Left><Height>0.22in</Height><Width>2.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb50">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Parameters!ParamSecondSignature.Value</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Center</TextAlign></Style></Paragraph></Paragraphs>
+  <Top>4.14in</Top><Left>2.5in</Left><Height>0.22in</Height><Width>2.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb51">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Parameters!ParamThirdSignature.Value</Value><Style><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Center</TextAlign></Style></Paragraph></Paragraphs>
+  <Top>4.14in</Top><Left>5.0in</Left><Height>0.22in</Height><Width>2.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></ReportItems>
+        <Height>4.54in</Height>
+        <Style />
+      </Body>
+      <Width>7.5in</Width>
+      <Page>
+        <PageHeader>
+          <Height>0.7in</Height><PrintOnFirstPage>true</PrintOnFirstPage><PrintOnLastPage>true</PrintOnLastPage>
+          <ReportItems><Textbox Name="tb52">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Parameters!paramSocietyName.Value</Value><Style><FontSize>12pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Center</TextAlign></Style></Paragraph></Paragraphs>
+  <Top>0.05in</Top><Left>0in</Left><Height>0.3in</Height><Width>7.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox><Textbox Name="tb53">
+  <CanGrow>true</CanGrow><KeepTogether>true</KeepTogether>
+  <Paragraphs><Paragraph><TextRuns><TextRun><Value>=Parameters!paramReportHeader.Value</Value><Style><FontSize>11pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Center</TextAlign></Style></Paragraph></Paragraphs>
+  <Top>0.38in</Top><Left>0in</Left><Height>0.25in</Height><Width>7.5in</Width>
+  <Style><Border><Style>None</Style></Border><PaddingLeft>2pt</PaddingLeft><PaddingRight>2pt</PaddingRight><PaddingTop>2pt</PaddingTop><PaddingBottom>2pt</PaddingBottom></Style>
+</Textbox></ReportItems>
+          <Style><Border><Style>None</Style></Border></Style>
+        </PageHeader>
+        <PageHeight>11.69in</PageHeight><PageWidth>8.27in</PageWidth>
+        <LeftMargin>0.38in</LeftMargin><RightMargin>0.38in</RightMargin><TopMargin>0.5in</TopMargin><BottomMargin>0.5in</BottomMargin>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <ReportParameters><ReportParameter Name="paramSocietyName"><DataType>String</DataType><Nullable>true</Nullable><AllowBlank>true</AllowBlank><Prompt>paramSocietyName</Prompt></ReportParameter><ReportParameter Name="paramReportHeader"><DataType>String</DataType><Nullable>true</Nullable><AllowBlank>true</AllowBlank><Prompt>paramReportHeader</Prompt></ReportParameter><ReportParameter Name="paramNotes"><DataType>String</DataType><Nullable>true</Nullable><AllowBlank>true</AllowBlank><Prompt>paramNotes</Prompt></ReportParameter><ReportParameter Name="ParamFirstSignature"><DataType>String</DataType><Nullable>true</Nullable><AllowBlank>true</AllowBlank><Prompt>ParamFirstSignature</Prompt></ReportParameter><ReportParameter Name="ParamSecondSignature"><DataType>String</DataType><Nullable>true</Nullable><AllowBlank>true</AllowBlank><Prompt>ParamSecondSignature</Prompt></ReportParameter><ReportParameter Name="ParamThirdSignature"><DataType>String</DataType><Nullable>true</Nullable><AllowBlank>true</AllowBlank><Prompt>ParamThirdSignature</Prompt></ReportParameter></ReportParameters>
+  <ReportParametersLayout><GridLayoutDefinition><NumberOfColumns>4</NumberOfColumns><NumberOfRows>2</NumberOfRows><CellDefinitions><CellDefinition><ColumnIndex>0</ColumnIndex><RowIndex>0</RowIndex><ParameterName>paramSocietyName</ParameterName></CellDefinition><CellDefinition><ColumnIndex>1</ColumnIndex><RowIndex>0</RowIndex><ParameterName>paramReportHeader</ParameterName></CellDefinition><CellDefinition><ColumnIndex>2</ColumnIndex><RowIndex>0</RowIndex><ParameterName>paramNotes</ParameterName></CellDefinition><CellDefinition><ColumnIndex>3</ColumnIndex><RowIndex>0</RowIndex><ParameterName>ParamFirstSignature</ParameterName></CellDefinition><CellDefinition><ColumnIndex>0</ColumnIndex><RowIndex>1</RowIndex><ParameterName>ParamSecondSignature</ParameterName></CellDefinition><CellDefinition><ColumnIndex>1</ColumnIndex><RowIndex>1</RowIndex><ParameterName>ParamThirdSignature</ParameterName></CellDefinition></CellDefinitions></GridLayoutDefinition></ReportParametersLayout>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>8c1f0d8e-2a4b-4d55-9a8e-4f3b7c2d1e90</rd:ReportID>
+</Report>
