@@ -2,7 +2,8 @@
 
 > Builds on [01-institution-type.md](./01-institution-type.md). Each loan type has its own spec:
 > [03-surety-loan.md](./03-surety-loan.md), [04-education-loan.md](./04-education-loan.md),
-> [05-draught-loan.md](./05-draught-loan.md).
+> [05-draught-loan.md](./05-draught-loan.md). Sanction screen (ported from TSIS WinForms):
+> [06-ecs-loan-sanction.md](./06-ecs-loan-sanction.md).
 
 ## Decision: extend the existing `Loan_Type` discriminator ("Option A")
 
