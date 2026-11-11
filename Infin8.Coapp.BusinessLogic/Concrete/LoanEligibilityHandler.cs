@@ -3,6 +3,7 @@ using Infin8.Coapp.Repository;
 
 namespace Infin8.Coapp.BusinessLogic
 {
+    /// <summary>Loan eligibility per spec 06 §3.3 (TSIS Sum_DueItems / Display Loan Eligibility).</summary>
     public class LoanEligibilityHandler : ILoanEligibilityHandler
     {
         readonly IUnitOfWork _unitOfWork;
@@ -11,45 +12,49 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<LoanEligibilityResultVM> CalculateAsync(LoanEligibilityInputVM input)
-        {
-            var map = await _unitOfWork.MapGeneral.GetMapGeneralAsync(input.BrCode ?? "");
-            int retirementAgeMonths = map?.TSISRetirementAgeInMonths ?? 0;
+        public Task<LoanEligibilityResultVM> CalculateAsync(LoanEligibilityInputVM input)
+            => Task.FromResult(Calculate(input));
 
+        public static LoanEligibilityResultVM Calculate(LoanEligibilityInputVM input)
+        {
             var r = new LoanEligibilityResultVM();
 
-            // --- Demand calculation (Sec 10.2) ---
-            // Interest demand on the new loan, monthly (assumption: simple monthly interest on principal).
-            double interestDemandOnLoan = input.LoanAmount * (input.RateOfInterest / 100.0) / 12.0;
-            r.CurrentLoanDemand = input.InstallmentAmount + interestDemandOnLoan;
-            r.CurrentDepositDemand = input.CurrentDepositDemand;
+            // Demand. Monthly interest is part of the demand only for Inst_Type 3 (principal + interest).
+            double interest = input.InstType == 3
+                ? Math.Round(input.LoanAmount * input.RateOfInterest / 1200.0, 0, MidpointRounding.AwayFromZero)
+                : 0;
+            r.NewLoanDemand = input.InstallmentAmount + interest;
+            r.DepositDemand = input.DepositDemand;
+            r.Demand = r.NewLoanDemand + r.DepositDemand;
+            r.ExistingDemand = input.ExistingDemand;
             r.OtherDeductions = input.TotalDeductions - input.SocietyDeduction;
-            r.NonDeductableLoanDemand = input.NonDeductableLoanDemand;
-            r.TotalDemand = r.CurrentLoanDemand + r.CurrentDepositDemand + r.OtherDeductions + r.NonDeductableLoanDemand;
-            r.NewNetPay = input.GrossPay - r.TotalDemand;
+            r.NetPay = input.GrossPay - r.Demand - r.ExistingDemand - r.OtherDeductions;
 
-            // --- Ceilings (Sec 10.3 / 10.4) ---
-            r.FiftyPercentOfGross = input.GrossPay * 0.50;
-            r.TwentyFivePercentOfGross = input.GrossPay * 0.25;
-            r.TwentyFiveTimesOfGross = input.GrossPay * 25.0;
+            // Ceilings
+            r.TwentyFiveTimesOfGross = input.GrossPay * 25;
+            r.FiftyPercentOfGross = Math.Round(input.GrossPay * 0.5, 0, MidpointRounding.AwayFromZero);
+            r.TwentyFivePercentOfGross = Math.Round(input.GrossPay * 0.25, 0, MidpointRounding.AwayFromZero);
 
-            // --- Eligibility rules (Sec 10.3) ---
-            if (input.AdoptLoanEligibility && (r.TotalDemand + input.ExistingDemand) > r.FiftyPercentOfGross)
+            // Both salary checks apply only when the scheme adopts loan eligibility.
+            if (input.AdoptLoanEligibility)
             {
-                r.FailsDemandCeiling = true;
-                r.Reasons.Add("Total demand plus existing demand exceeds 50% of gross pay.");
+                if (r.Demand + r.ExistingDemand > r.FiftyPercentOfGross)
+                {
+                    r.FailsDemandCeiling = true;
+                    r.Reasons.Add("Demand amount is greater than 50% of gross pay.");
+                }
+                if (r.TwentyFivePercentOfGross > r.NetPay)
+                {
+                    r.FailsNetPayFloor = true;
+                    r.Reasons.Add("Net Pay is less than 25% of gross pay.");
+                }
             }
-            if (r.TwentyFivePercentOfGross > input.NetPay)
-            {
-                r.FailsNetPayFloor = true;
-                r.Reasons.Add("25% of gross pay exceeds net pay.");
-            }
-            // NOTE (assumption to confirm): spec compares "Service in Months" literally to
-            // Map_General.TSISRetirementAgeInMonths — interpreted as months of service rendered.
-            if (input.ServiceInMonths < retirementAgeMonths)
+
+            // The loan cannot run past retirement (business decision on spec §13 Q2).
+            if (input.ServiceInMonths.HasValue && input.ServiceInMonths.Value < input.PeriodOfLoan)
             {
                 r.FailsServiceCheck = true;
-                r.Reasons.Add($"Service in months ({input.ServiceInMonths}) is below the configured minimum ({retirementAgeMonths}).");
+                r.Reasons.Add($"Remaining service ({input.ServiceInMonths} months) is less than the loan period ({input.PeriodOfLoan} months).");
             }
 
             r.IsEligible = !r.FailsDemandCeiling && !r.FailsNetPayFloor && !r.FailsServiceCheck;

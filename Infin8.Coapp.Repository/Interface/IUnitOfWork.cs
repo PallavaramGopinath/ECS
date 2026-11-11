@@ -47,7 +47,7 @@ namespace Infin8.Coapp.Repository
         ILoanRepaymentScheduleRepository LoanRepaymentSchedule { get; }
         ILoanSanctionRepository LoanSanction { get; }
         ILoanSanctionTrnRepository LoanSanctionTrn { get; }
-        ISuretyLoanSanctionRepository SuretyLoanSanction { get; }
+        IEcsLoanSanctionRepository EcsLoanSanction { get; }
         ILoanEligibilityRepository LoanEligibility { get; }
         ILoanTrnRepository LoanTrn { get; }
         IJLDailyMarketRateRepository JLDailyMarketRate { get; }

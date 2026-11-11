@@ -162,7 +162,7 @@ builder.Services.AddScoped<ILoanInstalmentHandler, LoanInstalmentHandler>();
 builder.Services.AddScoped<ILoanROIHandler, LoanROIHandler>();
 builder.Services.AddScoped<ILoanROITemplateHandler, LoanROITemplateHandler>();
 builder.Services.AddScoped<ILoanMemberHandler, LoanMemberHandler>();
-builder.Services.AddScoped<ISuretyLoanSanctionHandler, SuretyLoanSanctionHandler>();
+builder.Services.AddScoped<IEcsLoanSanctionHandler, EcsLoanSanctionHandler>();
 builder.Services.AddScoped<ILoanEligibilityHandler, LoanEligibilityHandler>();
 builder.Services.AddScoped<IJLDetailsHandler, JLDetailsHandler>();
 builder.Services.AddScoped<IJLOrnmentHandler, JLOrnmentHandler>();

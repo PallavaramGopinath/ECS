@@ -1,61 +1,107 @@
 using Infin8.Coapp.BusinessLogic;
 using Infin8.Coapp.Dto;
 using Infin8.Coapp.UI.Controllers; // ControllerExtensions.GetUserInfoDto
+using Infin8.Coapp.Utility.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Infin8.Coapp.API.Controllers
 {
+    /// <summary>
+    /// ECS Loan Sanction (spec 06 §7.3). Every write endpoint takes BrCode / user / year / business day
+    /// from the caller's claims and is gated server-side to ECS societies.
+    /// </summary>
     [Route("api/loansanction")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class LoanSanctionController : ControllerBase
     {
-        // Loan-purpose schemes for the Surety Loan screen are configured under Loan_Type = 1.
-        private const int SuretyLoanSchemeType = 1;
+        private const string OfficeNoteReportName = "Office Note";
 
-        readonly ISuretyLoanSanctionHandler _suretyLoanSanctionHandler;
-        readonly ILoanSchemeHandler _loanSchemeHandler;
+        readonly IEcsLoanSanctionHandler _sanctionHandler;
         readonly IFinLedgerHandler _finLedgerHandler;
-        readonly ILoanEligibilityHandler _loanEligibilityHandler;
+        readonly IGeneralHandler _generalHandler;
+        readonly IReportsHandler _reportsHandler;
+        readonly IWebHostEnvironment _webHostEnvironment;
 
-        public LoanSanctionController(ISuretyLoanSanctionHandler suretyLoanSanctionHandler,
-            ILoanSchemeHandler loanSchemeHandler, IFinLedgerHandler finLedgerHandler,
-            ILoanEligibilityHandler loanEligibilityHandler)
+        public LoanSanctionController(IEcsLoanSanctionHandler sanctionHandler, IFinLedgerHandler finLedgerHandler,
+            IGeneralHandler generalHandler, IReportsHandler reportsHandler, IWebHostEnvironment webHostEnvironment)
         {
-            _suretyLoanSanctionHandler = suretyLoanSanctionHandler;
-            _loanSchemeHandler = loanSchemeHandler;
+            _sanctionHandler = sanctionHandler;
             _finLedgerHandler = finLedgerHandler;
-            _loanEligibilityHandler = loanEligibilityHandler;
+            _generalHandler = generalHandler;
+            _reportsHandler = reportsHandler;
+            _webHostEnvironment = webHostEnvironment;
         }
 
-        /// <summary>Loan-purpose dropdown for Surety Loans (Spec 03 Sec 5).</summary>
-        [HttpGet]
-        [Route("GetSuretyLoanSchemes/{brCode}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetSuretyLoanSchemes(string brCode)
+        // ----- context helpers -----
+
+        private EcsUserContextVM UserContext()
         {
-            var items = await _loanSchemeHandler.GetLoanSchemeItemsAsync(SuretyLoanSchemeType, brCode);
-            return Ok(items ?? new List<DropdownItem>());
+            var u = this.GetUserInfoDto();
+            return new EcsUserContextVM
+            {
+                UsrId = u.UserId,
+                YrId = u.YrId,
+                BrCode = u.BrCode ?? "",
+                CurrentDate = u.CurrentDate == DateTime.MinValue ? DateTime.Today : u.CurrentDate,
+                YrBeginningDate = u.YrBeginningDate,
+                YrEndDate = u.YrEndDate
+            };
         }
 
-        /// <summary>Member + surety + salary + dates + assets assembled on member lookup (Spec 03 Sec 2-7).</summary>
+        /// <summary>The business day from the caller's claims.</summary>
+        private DateTime BusinessDay() => UserContext().CurrentDate;
+
+        /// <summary>Server-side ECS gate: resolves Gen_Bank_Name.Bank_Type the same way api/Auth/me does.</summary>
+        private async Task<bool> IsEcsAsync(string brCode)
+        {
+            if (string.IsNullOrEmpty(brCode)) return false;
+            try
+            {
+                var society = await _generalHandler.GetSocietyData(brCode);
+                return (society?.Bank_Type ?? 0).ToInstitutionType() == InstitutionType.ECS;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private ObjectResult NotEcs() =>
+            StatusCode(StatusCodes.Status403Forbidden,
+                new SanctionSaveResultVM { Success = false, Message = "ECS Loan Sanction is available only to ECS societies." });
+
+        // ----- lookups -----
+
+        /// <summary>Schemes with Loan_Type 10 / 11 / 12 that the ECS policy allows.</summary>
+        [HttpGet]
+        [Route("GetEcsLoanSchemes/{brCode}")]
+        [Route("GetSuretyLoanSchemes/{brCode}")] // alias kept for the old page URL
+        public async Task<ActionResult<List<DropdownItem>>> GetEcsLoanSchemes(string brCode)
+        {
+            if (!await IsEcsAsync(brCode)) return NotEcs();
+            return Ok(await _sanctionHandler.GetEcsSchemesAsync(brCode));
+        }
+
         [HttpGet]
         [Route("GetSuretyLoanMember/{memberNo}/{brCode}")]
         public async Task<ActionResult<SuretyLoanSanctionDataVM>> GetSuretyLoanMember(string memberNo, string brCode)
-        {
-            var data = await _suretyLoanSanctionHandler.GetSuretyLoanMemberAsync(memberNo, brCode);
-            return Ok(data);
-        }
+            => Ok(await _sanctionHandler.GetMemberAsync(memberNo, BusinessDay(), brCode));
 
-        /// <summary>Scheme-driven defaults when a loan purpose is selected (Spec 03 Sec 5).</summary>
+        /// <summary>Optional "Fetch from payroll" prefill of the pay details.</summary>
         [HttpGet]
-        [Route("GetSchemeDefaults/{schemeId:int}/{brCode}")]
-        public async Task<ActionResult<SuretyLoanSchemeDefaultsVM>> GetSchemeDefaults(int schemeId, string brCode)
-        {
-            var defaults = await _suretyLoanSanctionHandler.GetSchemeDefaultsAsync(schemeId, brCode);
-            return Ok(defaults);
-        }
+        [Route("GetPayDetails/{memId:decimal}/{brCode}")]
+        public async Task<ActionResult<EcsPayDetailsVM>> GetPayDetails(decimal memId, string brCode)
+            => Ok(await _sanctionHandler.GetPayDetailsAsync(memId, brCode));
 
-        /// <summary>Ledger dropdown for manual deductions — excludes cash + bank ledgers (Spec 03 Sec 9.1).</summary>
+        [HttpGet]
+        [Route("GetSchemeDefaults/{schemeId:int}/{memId:decimal}/{excludeSanctionId:decimal}/{brCode}")]
+        public async Task<ActionResult<SuretyLoanSchemeDefaultsVM>> GetSchemeDefaults(int schemeId, decimal memId,
+            decimal excludeSanctionId, string brCode)
+            => Ok(await _sanctionHandler.GetSchemeDefaultsAsync(schemeId, memId, excludeSanctionId, BusinessDay(), brCode));
+
+        /// <summary>Ledger dropdown for manual deductions — excludes cash and bank ledgers.</summary>
         [HttpGet]
         [Route("GetLedgers/{brCode}")]
         public async Task<ActionResult<List<DropdownItem>>> GetLedgers(string brCode)
@@ -64,37 +110,94 @@ namespace Infin8.Coapp.API.Controllers
             return Ok(items ?? new List<DropdownItem>());
         }
 
-        /// <summary>Deductable loans, share-capital + sundry rows, and verification data (Spec 03 Sec 9/10.1/11).</summary>
-        [HttpGet]
-        [Route("GetDeductions/{memId:decimal}/{suretyMemId:decimal}/{schemeId:int}/{loanAmount:double}/{brCode}")]
-        public async Task<ActionResult<SuretyDeductionsDataVM>> GetDeductions(decimal memId, decimal suretyMemId,
-            int schemeId, double loanAmount, string brCode)
+        [HttpPost]
+        [Route("GetRecoverables")]
+        public async Task<ActionResult<EcsRecoverablesVM>> GetRecoverables([FromBody] EcsRecoverablesRequestVM req)
         {
-            var data = await _suretyLoanSanctionHandler.GetDeductionsDataAsync(memId, suretyMemId, schemeId, loanAmount, brCode);
-            return Ok(data);
+            var ctx = UserContext();
+            return Ok(await _sanctionHandler.GetRecoverablesAsync(req, ctx.CurrentDate, ctx.BrCode));
         }
 
-        /// <summary>Loan eligibility pre-check (Spec 03 Sec 10.2/10.3) — compute only, no persistence.</summary>
+        [HttpGet]
+        [Route("ResolveDeductionStatus/{ledId:decimal}/{brCode}")]
+        public async Task<ActionResult<DeductableLoanRowVM>> ResolveDeductionStatus(decimal ledId, string brCode)
+            => Ok(await _sanctionHandler.ResolveDeductionAsync(ledId, brCode));
+
         [HttpPost]
         [Route("CalculateEligibility")]
         public async Task<ActionResult<LoanEligibilityResultVM>> CalculateEligibility([FromBody] LoanEligibilityInputVM input)
-        {
-            var result = await _loanEligibilityHandler.CalculateAsync(input);
-            return Ok(result);
-        }
+            => Ok(await _sanctionHandler.CalculateEligibilityAsync(input));
 
-        /// <summary>Saves a surety loan sanction (Spec 03 Sec 13) with the Sec 12 integrity guards.</summary>
+        // ----- writes (claims context, ECS gate) -----
+
+        /// <summary>Create (LoanSanction_Id = 0) or modify a sanction.</summary>
         [HttpPost]
         [Route("SaveSanction")]
         public async Task<ActionResult<SanctionSaveResultVM>> SaveSanction([FromBody] SuretyLoanSanctionSaveVM vm)
         {
-            // Audit context is taken from the authenticated user's claims — never trusted from the client.
-            var user = this.GetUserInfoDto();
-            var brCode = user.BrCode ?? "";
-            var sanctionDate = user.CurrentDate == default ? DateTime.Today : user.CurrentDate;
-
-            var result = await _suretyLoanSanctionHandler.SaveSanctionAsync(vm, user.UserId, user.YrId, brCode, sanctionDate);
+            var ctx = UserContext();
+            if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
+            var result = await _sanctionHandler.SaveAsync(vm, ctx);
             return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpPost]
+        [Route("DeleteSanction/{sanctionId:decimal}")]
+        public async Task<ActionResult<SanctionSaveResultVM>> DeleteSanction(decimal sanctionId)
+        {
+            var ctx = UserContext();
+            if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
+            var result = await _sanctionHandler.DeleteAsync(sanctionId, ctx);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        // ----- list / load / print -----
+
+        [HttpPost]
+        [Route("ListSanctions")]
+        public async Task<ActionResult<List<EcsSanctionListItemVM>>> ListSanctions([FromBody] EcsSanctionListFilterVM filter)
+            => Ok(await _sanctionHandler.ListAsync(filter, UserContext().BrCode));
+
+        [HttpGet]
+        [Route("GetSanction/{sanctionId:decimal}/{brCode}")]
+        public async Task<ActionResult<EcsSanctionDetailVM>> GetSanction(decimal sanctionId, string brCode)
+        {
+            var detail = await _sanctionHandler.GetAsync(sanctionId, brCode);
+            return detail == null ? NotFound() : Ok(detail);
+        }
+
+        /// <summary>Office Note PDF (spec 06 §9), returned as bytes (base64 in JSON) like the other report endpoints.</summary>
+        [HttpGet]
+        [Route("OfficeNote/{sanctionId:decimal}")]
+        public async Task<ActionResult<byte[]>> OfficeNote(decimal sanctionId)
+        {
+            var brCode = UserContext().BrCode;
+
+            Infin8.Coapp.Models.Reports_Master report;
+            try
+            {
+                report = await _reportsHandler.GetReportNameWithSignature(OfficeNoteReportName);
+            }
+            catch
+            {
+                return NotFound($"No '{OfficeNoteReportName}' row in reports_master. Add it to enable printing.");
+            }
+
+            var path = Path.Combine(_webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "OfficeNote.rdlc");
+            if (!System.IO.File.Exists(path)) return NotFound($"Report file {report.ReportFileName} not found.");
+
+            var parameters = new Dictionary<string, string>
+            {
+                { "paramSocietyName", await _generalHandler.GetSocietyName(brCode) ?? "" },
+                { "ParamFirstSignature", report.FirstSignature ?? "" },
+                { "ParamSecondSignature", report.SecondSignature ?? "" },
+                { "ParamThirdSignature", report.ThirdSignature ?? "" },
+            };
+
+            byte[]? pdf;
+            using (var stream = System.IO.File.OpenRead(path))
+                pdf = await _sanctionHandler.GetOfficeNotePdfAsync(sanctionId, brCode, stream, parameters);
+            return pdf == null ? NotFound("Sanction not found.") : Ok(pdf);
         }
     }
 }

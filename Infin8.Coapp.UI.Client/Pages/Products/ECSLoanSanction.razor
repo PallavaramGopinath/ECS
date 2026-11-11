@@ -1,0 +1,1039 @@
+@page "/ecs-loan-sanction"
+@page "/loan-sanction"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Net
+@rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>ECS Loan Sanction</PageTitle>
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">ECS Loan Sanction</li>
+    </ol>
+</nav>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
+    </div>
+}
+else if (institution != InstitutionType.ECS)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        ECS Loan Sanction is available only for Employees' Society (ECS) institutions.
+    </div>
+}
+else
+{
+    <div class="d-flex align-items-center mb-3">
+        <h4 class="mb-0"><i class="bi bi-cash-coin me-2 text-primary"></i>ECS Loan Sanction</h4>
+        <span class="badge ms-3 @(IsModify ? "bg-warning text-dark" : "bg-secondary")">@(IsModify ? "Modify" : "New")</span>
+    </div>
+
+    @* ---------- Header strip ---------- *@
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">Member No</label>
+                    <input class="form-control" @bind="memberNo" @bind:event="onchange" @bind:after="LookupMember"
+                           placeholder="Member / Per No" disabled="@IsModify" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Member Name</label>
+                    <input class="form-control" value="@member.MemberName" readonly />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Surety No</label>
+                    <input class="form-control" value="@member.SuretyMemberNo" readonly />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Surety Name</label>
+                    <input class="form-control" value="@member.SuretyMemberName" readonly />
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Sanction Id</label>
+                    <input class="form-control" value="@(sanctionId > 0 ? sanctionId.ToString() : "")" readonly />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Sanction Date</label>
+                    <input class="form-control" value="@currentDate.ToString("dd/MM/yyyy")" readonly />
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(lookupMessage))
+            {
+                <div class="text-danger small mt-2">@lookupMessage</div>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert @(alertSuccess ? "alert-success" : "alert-danger") alert-dismissible" role="alert">
+            @if (alertReasons.Count > 1)
+            {
+                <ul class="mb-0">
+                    @foreach (var r in alertReasons) { <li>@r</li> }
+                </ul>
+            }
+            else
+            {
+                @alertMessage
+            }
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    @* ---------- Tabs ---------- *@
+    <ul class="nav nav-tabs">
+        @foreach (var t in tabs)
+        {
+            <li class="nav-item">
+                <button type="button" class="nav-link @(activeTab == t.key ? "active" : "")" @onclick="() => activeTab = t.key">
+                    @t.title
+                    @if (TabComplete(t.key)) { <i class="bi bi-check-circle-fill text-success ms-1"></i> }
+                    @if (t.key == "recov" && rows.Count > 0) { <span class="badge bg-secondary ms-1">@rows.Count</span> }
+                </button>
+            </li>
+        }
+    </ul>
+
+    <div class="card border-0 border-start border-end border-bottom shadow-sm mb-3">
+        <div class="card-body">
+            @switch (activeTab)
+            {
+                case "pay":
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6>Pay Details <small class="text-muted">(from salary certificate)</small></h6>
+                            <table class="table table-sm align-middle mb-2">
+                                <tbody>
+                                    <tr><th class="fw-normal">Basic Pay</th><td><input type="number" class="form-control form-control-sm text-end" @bind="basicPay" @bind:after="OnBasicPayChanged" /></td></tr>
+                                    <tr><th class="fw-normal">Gross Pay</th><td><input type="number" class="form-control form-control-sm text-end" @bind="grossPay" @bind:after="RefreshEligibilityAsync" /></td></tr>
+                                    <tr><th class="fw-normal">Society Deduction</th><td><input type="number" class="form-control form-control-sm text-end" @bind="societyDeduction" @bind:after="RefreshEligibilityAsync" /></td></tr>
+                                    <tr><th class="fw-normal">Total Deductions</th><td><input type="number" class="form-control form-control-sm text-end" @bind="totalDeductions" @bind:after="RefreshEligibilityAsync" /></td></tr>
+                                    <tr class="table-light"><th class="fw-normal">Net Salary</th><td class="text-end fw-bold">@F(grossPay - totalDeductions)</td></tr>
+                                </tbody>
+                            </table>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="FetchPayroll" disabled="@(!member.Found || busy)">
+                                <i class="bi bi-download me-1"></i>Fetch from payroll
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Service</h6>
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    <tr><th class="fw-normal">Date of Birth</th><td class="text-end">@D(member.DateOfBirth)</td></tr>
+                                    <tr><th class="fw-normal">Date of Retirement</th><td class="text-end">@D(member.DateOfRetirement)</td></tr>
+                                    <tr><th class="fw-normal">Service in Months</th><td class="text-end">@(member.ServiceInMonths?.ToString() ?? "-")</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    break;
+
+                case "loan":
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Select Loan</label>
+                            <select class="form-select" @bind="schemeId" @bind:after="OnSchemeChanged" disabled="@(!member.Found)">
+                                <option value="0">-- Select --</option>
+                                @foreach (var s in schemes) { <option value="@s.Value">@s.Text</option> }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Loan Amount</label>
+                            <input type="number" class="form-control text-end" @bind="loanAmount" @bind:after="MarkStale" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Period (months)</label>
+                            <input type="number" class="form-control text-end" @bind="periodOfLoan" @bind:after="MarkStale" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Rate of Interest</label>
+                            <input type="number" step="0.01" class="form-control text-end" @bind="rateOfInterest" @bind:after="MarkStale" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Penal Rate</label>
+                            <input type="number" step="0.01" class="form-control text-end" @bind="penalRate" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Instalment Amt</label>
+                            <input type="number" class="form-control text-end" @bind="instalmentAmount" @bind:after="EnforceInstalmentFloor" />
+                            @if (calculatedInstalment > 0) { <div class="form-text">Calculated: @calculatedInstalment</div> }
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">First Due Date</label>
+                            <input type="date" class="form-control" @bind="firstDueDate" @bind:after="MarkStale" />
+                            @if (firstDueDate.Day != 1 || firstDueDate.Date < currentDate.Date) { <div class="form-text text-danger">Must be the 1st of a month, on or after the sanction date.</div> }
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">This Loan Limit</label>
+                            <input class="form-control text-end" value="@F(defaults?.ThisLoanLimit ?? 0)" readonly />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Maximum Loan Limit</label>
+                            <input class="form-control text-end" value="@F(defaults?.MaxLoanLimit ?? 0)" readonly />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Instalments Completed</label>
+                            <input class="form-control text-end" value="@(recov?.NoOfInstalmentsCompleted ?? 0)" readonly />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Instalments Recovered</label>
+                            <input class="form-control text-end" value="@(recov?.NoOfInstalmentsRecovered ?? 0)" readonly />
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 my-3">
+                        <button class="btn btn-primary" @onclick="GetRecoverables" disabled="@(!member.Found || schemeId == 0 || busy)">
+                            <i class="bi bi-arrow-repeat me-1"></i>Get Recoverables
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="() => showDemand = true" disabled="@(eligibility == null)">Display Demand</button>
+                        <button class="btn btn-outline-secondary" @onclick="RefreshEligibilityAsync" disabled="@(recov == null || busy)">Check Eligibility</button>
+                        @if (recoverablesStale && schemeId != 0)
+                        {
+                            <span class="text-warning align-self-center small"><i class="bi bi-exclamation-triangle me-1"></i>Recoverables are out of date. Get Recoverables again.</span>
+                        }
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6>Scheme Details</h6>
+                            <table class="table table-sm table-bordered small">
+                                <tbody>
+                                    @foreach (var d in defaults?.SchemeDetails ?? new()) { <tr><td>@d.Caption</td><td>@d.Content</td></tr> }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Assets</h6>
+                            <table class="table table-sm small">
+                                <tbody>
+                                    <tr><td>Share Capital</td><td class="text-end">@F(recov?.MemberSC ?? member.MemberShareCapital)</td></tr>
+                                    <tr><td>Required Share Capital</td><td class="text-end">@F(recov?.RequiredSC ?? 0)</td></tr>
+                                    <tr><td>Thrift Deposit</td><td class="text-end">@F(recov?.MemberTD ?? member.MemberThriftDeposit)</td></tr>
+                                    <tr><td>Family Welfare Deposit</td><td class="text-end">@F(recov?.MemberFWD ?? member.MemberFamilyWelfareDeposit)</td></tr>
+                                    <tr><td>Surety's Share Capital</td><td class="text-end">@F(recov?.SuretySC ?? member.SuretyShareCapital)</td></tr>
+                                </tbody>
+                            </table>
+                            @if (recov?.SuretyOverdues.Count > 0)
+                            {
+                                <span class="badge bg-danger mb-1">Surety has overdue</span>
+                                <table class="table table-sm small">
+                                    <thead><tr><th>Loan</th><th class="text-end">Overdue</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var o in recov.SuretyOverdues) { <tr><td>@o.LoanNo @o.Purpose</td><td class="text-end">@F(o.OverdueAmount)</td></tr> }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Eligibility</h6>
+                            @if (eligibility == null)
+                            {
+                                <div class="text-muted small">Get recoverables to compute eligibility.</div>
+                            }
+                            else
+                            {
+                                <table class="table table-sm small">
+                                    <tbody>
+                                        <tr><td>25 Times of Gross Pay</td><td class="text-end">@F(eligibility.TwentyFiveTimesOfGross)</td></tr>
+                                        <tr><td>50% of Gross Pay</td><td class="text-end">@F(eligibility.FiftyPercentOfGross)</td></tr>
+                                        <tr><td>25% of Gross Pay</td><td class="text-end">@F(eligibility.TwentyFivePercentOfGross)</td></tr>
+                                        <tr><td>Demand</td><td class="text-end">@F(eligibility.Demand)</td></tr>
+                                        <tr><td>Existing Demand</td><td class="text-end">@F(eligibility.ExistingDemand)</td></tr>
+                                        <tr><td>Other Deductions</td><td class="text-end">@F(eligibility.OtherDeductions)</td></tr>
+                                        <tr class="table-light"><td>Net Pay</td><td class="text-end fw-bold">@F(eligibility.NetPay)</td></tr>
+                                    </tbody>
+                                </table>
+                                <div class="@(eligibility.IsEligible ? "text-success" : "text-danger") small">
+                                    @foreach (var r in eligibility.Reasons) { <div>@r</div> }
+                                    @if (defaults?.AdoptLoanEligibility == false) { <div class="text-muted">Scheme does not adopt salary eligibility.</div> }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    break;
+
+                case "recov":
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead class="table-light">
+                                <tr><th>Loan No</th><th>Status</th><th>Ledger</th><th class="text-end">Outstanding</th><th class="text-end">Calc Amt</th><th class="text-end">OD Amt</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @if (rows.Count == 0)
+                                {
+                                    <tr><td colspan="7" class="text-muted">No recoverables.</td></tr>
+                                }
+                                @foreach (var r in rows)
+                                {
+                                    <tr>
+                                        <td>@r.Loan_No</td>
+                                        <td><span class="badge bg-light text-dark border">@r.Status</span></td>
+                                        <td>@r.Ledger_Name</td>
+                                        <td class="text-end" style="width:9rem">
+                                            <input type="number" class="form-control form-control-sm text-end" @bind="r.Outstanding" />
+                                        </td>
+                                        <td class="text-end">@F(r.CalcAmount)</td>
+                                        <td class="text-end">@F(r.ODAmount)</td>
+                                        <td>
+                                            @if (CanRemove(r))
+                                            {
+                                                <button class="btn btn-sm btn-link text-danger p-0" title="Remove" @onclick="() => RemoveRow(r)"><i class="bi bi-x-lg"></i></button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label small">Ledger</label>
+                            <select class="form-select form-select-sm" @bind="manualLedId">
+                                <option value="0">-- Select ledger --</option>
+                                @foreach (var l in ledgers) { <option value="@l.Value">@l.Text</option> }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Amount</label>
+                            <input type="number" class="form-control form-control-sm text-end" @bind="manualAmount" />
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="AddManualRow" disabled="@(manualLedId == "0" || manualAmount <= 0 || busy)"><i class="bi bi-plus-lg me-1"></i>Add</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5 ms-auto">
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    <tr><th class="fw-normal">Total Recoverable</th><td class="text-end">@F(TotalRecoverable)</td></tr>
+                                    <tr class="@(LoanBalance > 0 ? "table-light" : "table-danger")"><th>Loan Balance (net disbursable)</th><td class="text-end fw-bold">@F(LoanBalance)</td></tr>
+                                </tbody>
+                            </table>
+                            @if (recov != null && LoanBalance <= 0) { <div class="text-danger small">Member does not have adequate loan balance.</div> }
+                        </div>
+                    </div>
+                    break;
+
+                case "nondeduct":
+                    @if (nonDeductable.Count == 0)
+                    {
+                        <div class="text-muted">No non-deductable loans.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr><th></th><th>Loan No</th><th>Purpose</th><th class="text-end">Loan OS</th><th class="text-end">Int Bal</th><th class="text-end">PI Bal</th><th class="text-end">Demand</th><th class="text-end">Prl Recovery</th><th class="text-end">Int Recovery</th><th class="text-end">PI Recovery</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var n in nonDeductable)
+                                    {
+                                        bool moved = movedLoanIds.Contains(n.LoanId);
+                                        <tr class="@(moved ? "table-success" : "")">
+                                            <td><input type="checkbox" class="form-check-input" checked="@(moved || selectedNonDed.Contains(n.LoanId))" disabled="@moved" @onchange="e => ToggleNonDed(n.LoanId, (bool)e.Value!)" /></td>
+                                            <td>@n.LoanNo</td><td>@n.Purpose</td>
+                                            <td class="text-end">@F(n.LoanOS)</td><td class="text-end">@F(n.IntBal)</td><td class="text-end">@F(n.PIBal)</td><td class="text-end">@F(n.DemandAmount)</td>
+                                            <td style="width:8rem"><input type="number" class="form-control form-control-sm text-end" @bind="n.PrlRecovery" disabled="@moved" /></td>
+                                            <td style="width:8rem"><input type="number" class="form-control form-control-sm text-end" @bind="n.IntRecovery" disabled="@moved" /></td>
+                                            <td style="width:8rem"><input type="number" class="form-control form-control-sm text-end" @bind="n.PIRecovery" disabled="@moved" /></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex align-items-center gap-4">
+                            <button class="btn btn-outline-primary btn-sm" @onclick="AddNonDeductableToRecovery" disabled="@(selectedNonDed.Count == 0)">Add to Recovery</button>
+                            <span class="small">Total OS: <b>@F(recov?.NonDeductableOS ?? 0)</b></span>
+                            <span class="small">OS within loan limit: <b>@F(recov?.NonDeductableOSWithinLimit ?? 0)</b></span>
+                            <span class="small">Existing demand: <b>@F(ExistingDemand)</b></span>
+                        </div>
+                    }
+                    break;
+
+                case "pending":
+                    @if (pendingDeposits.Count == 0)
+                    {
+                        <div class="text-muted">No pending deposits.</div>
+                    }
+                    else
+                    {
+                        <table class="table table-sm align-middle">
+                            <thead class="table-light"><tr><th></th><th>Deposit</th><th class="text-end">Balance</th><th class="text-end">Pending</th><th class="text-end">Recovery</th></tr></thead>
+                            <tbody>
+                                @foreach (var p in pendingDeposits)
+                                {
+                                    bool moved = movedDmIds.Contains(p.DMId);
+                                    <tr class="@(moved ? "table-success" : "")">
+                                        <td><input type="checkbox" class="form-check-input" checked="@(moved || selectedPending.Contains(p.DMId))" disabled="@moved" @onchange="e => TogglePending(p.DMId, (bool)e.Value!)" /></td>
+                                        <td>@p.LedName</td>
+                                        <td class="text-end">@F(p.Balance)</td>
+                                        <td class="text-end">@F(p.PendingAmount)</td>
+                                        <td style="width:9rem"><input type="number" class="form-control form-control-sm text-end" @bind="p.RecoveryAmount" disabled="@moved" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <button class="btn btn-outline-primary btn-sm" @onclick="AddPendingToRecovery" disabled="@(selectedPending.Count == 0)">Add to Recovery</button>
+                    }
+                    break;
+
+                case "list":
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-2">
+                            <label class="form-label small">Filter</label>
+                            <select class="form-select form-select-sm" @bind="listFilter.Mode">
+                                <option value="ALL">All</option>
+                                <option value="ID">Sanction Id</option>
+                                <option value="MEM">Member No</option>
+                                <option value="DATE">Date range</option>
+                            </select>
+                        </div>
+                        @if (listFilter.Mode == "ID")
+                        {
+                            <div class="col-md-2"><label class="form-label small">Sanction Id</label><input type="number" class="form-control form-control-sm" @bind="listFilter.SanctionId" /></div>
+                        }
+                        else if (listFilter.Mode == "MEM")
+                        {
+                            <div class="col-md-2"><label class="form-label small">Member No</label><input class="form-control form-control-sm" @bind="listFilter.MemberNo" /></div>
+                        }
+                        else if (listFilter.Mode == "DATE")
+                        {
+                            <div class="col-md-2"><label class="form-label small">From</label><input type="date" class="form-control form-control-sm" @bind="listFilter.From" /></div>
+                            <div class="col-md-2"><label class="form-label small">To</label><input type="date" class="form-control form-control-sm" @bind="listFilter.To" /></div>
+                        }
+                        <div class="col-md-2"><button class="btn btn-sm btn-primary" @onclick="ListSanctions" disabled="@busy"><i class="bi bi-search me-1"></i>List</button></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light"><tr><th>Id</th><th>Date</th><th>Member No</th><th>Per No</th><th>Name</th><th>Scheme</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody>
+                                @if (sanctionList.Count == 0) { <tr><td colspan="7" class="text-muted">No sanctions listed.</td></tr> }
+                                @foreach (var s in sanctionList)
+                                {
+                                    <tr style="cursor:pointer" @onclick="() => LoadSanction(s.LoanSanction_Id)">
+                                        <td>@s.LoanSanction_Id</td><td>@D(s.SanctionDate)</td><td>@s.MemberNo</td><td>@s.PerNo</td><td>@s.MemberName</td><td>@s.SchemeName</td><td class="text-end">@F(s.LoanAmount)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    break;
+            }
+        </div>
+    </div>
+
+    @* ---------- Footer ---------- *@
+    <div class="d-flex gap-2 mb-4">
+        <button class="btn btn-success" @onclick="SaveSanction" disabled="@(!CanSave)">
+            <i class="bi bi-check2-circle me-1"></i>@(IsModify ? "Modify Sanction" : "Save Sanction")
+        </button>
+        <button class="btn btn-outline-danger" @onclick="DeleteSanction" disabled="@(!IsModify || busy)"><i class="bi bi-trash me-1"></i>Delete Sanction</button>
+        <button class="btn btn-outline-secondary" @onclick="PrintOfficeNote" disabled="@(sanctionId == 0 || busy)"><i class="bi bi-printer me-1"></i>Print Office Note</button>
+        <button class="btn btn-outline-secondary ms-auto" @onclick="ResetPage" disabled="@busy"><i class="bi bi-file-earmark me-1"></i>New</button>
+    </div>
+
+    @if (showDemand && eligibility != null)
+    {
+        <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h6 class="modal-title">Demand</h6><button type="button" class="btn-close" @onclick="() => showDemand = false"></button></div>
+                    <div class="modal-body">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><td>Instalment (principal)</td><td class="text-end">@F(instalmentAmount)</td></tr>
+                                <tr><td>Interest in demand</td><td class="text-end">@F(eligibility.NewLoanDemand - instalmentAmount)</td></tr>
+                                <tr><td>Deposit demand</td><td class="text-end">@F(eligibility.DepositDemand)</td></tr>
+                                <tr class="table-light"><th>Demand</th><th class="text-end">@F(eligibility.Demand)</th></tr>
+                                <tr><td>Existing demand (non-deductable loans)</td><td class="text-end">@F(eligibility.ExistingDemand)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private readonly (string key, string title)[] tabs =
+    {
+        ("pay", "1. Member & Pay"), ("loan", "2. Loan & Eligibility"), ("recov", "3. Recoverables"),
+        ("nondeduct", "4. Non-Deductable Loans"), ("pending", "5. Pending Deposits"), ("list", "6. Sanctions")
+    };
+
+    private bool isReady;
+    private bool busy;
+    private string brCode = "";
+    private DateTime currentDate = DateTime.Today;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private string activeTab = "pay";
+
+    // Member + pay
+    private string memberNo = "";
+    private string? lookupMessage;
+    private SuretyLoanSanctionDataVM member = new();
+    private double basicPay, grossPay, societyDeduction, totalDeductions;
+
+    // Scheme + loan terms
+    private List<DropdownItem> schemes = new();
+    private int schemeId;
+    private SuretyLoanSchemeDefaultsVM? defaults;
+    private double loanAmount, rateOfInterest, penalRate, instalmentAmount;
+    private int periodOfLoan, calculatedInstalment;
+    private DateTime firstDueDate = DateTime.Today;
+    private bool overrideStipulatedPeriod;
+
+    // Recoverables
+    private EcsRecoverablesVM? recov;
+    private bool recoverablesStale = true;
+    private List<DeductableLoanRowVM> rows = new();
+    private List<NonDeductableLoanRowVM> nonDeductable = new();
+    private List<PendingDepositRowVM> pendingDeposits = new();
+    private HashSet<decimal> movedLoanIds = new();
+    private HashSet<decimal> selectedNonDed = new();
+    private HashSet<int> movedDmIds = new();
+    private HashSet<int> selectedPending = new();
+    private List<DropdownItem> ledgers = new();
+    private string manualLedId = "0";
+    private double manualAmount;
+
+    // Eligibility / demand
+    private LoanEligibilityResultVM? eligibility;
+    private bool showDemand;
+
+    // Sanction identity + list
+    private decimal sanctionId;
+    private decimal loadedSanctionId; // the sanction being modified (0 when creating)
+    private EcsSanctionListFilterVM listFilter = new();
+    private List<EcsSanctionListItemVM> sanctionList = new();
+
+    // Alerts
+    private string? alertMessage;
+    private bool alertSuccess;
+    private List<string> alertReasons = new();
+
+    private bool IsModify => loadedSanctionId > 0;
+    private double TotalRecoverable => rows.Sum(r => r.Outstanding);
+    private double LoanBalance => loanAmount - TotalRecoverable;
+    private double ExistingDemand => nonDeductable.Where(n => !movedLoanIds.Contains(n.LoanId)).Sum(n => n.DemandAmount);
+    private bool CanSave => !busy && member.Found && schemeId > 0 && !recoverablesStale && recov != null
+                            && eligibility?.IsEligible == true && LoanBalance > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode ?? "";
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
+            firstDueDate = Utilities.FirstOfNextMonth(currentDate);
+
+            if (institution == InstitutionType.ECS)
+            {
+                schemes = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/loansanction/GetEcsLoanSchemes/{brCode}") ?? new();
+                ledgers = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/loansanction/GetLedgers/{brCode}") ?? new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    // =====================================================================
+    // Member + pay
+    // =====================================================================
+
+    private async Task LookupMember()
+    {
+        lookupMessage = null;
+        var keepNo = memberNo;
+        ResetPage();
+        memberNo = keepNo;
+        if (string.IsNullOrWhiteSpace(memberNo)) return;
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<SuretyLoanSanctionDataVM>(
+                $"api/loansanction/GetSuretyLoanMember/{Uri.EscapeDataString(memberNo.Trim())}/{brCode}");
+            if (result is { Found: true })
+                member = result;
+            else
+                lookupMessage = result?.Message ?? "Member details not available.";
+        }
+        catch (Exception ex)
+        {
+            lookupMessage = "Could not load member: " + ex.Message;
+        }
+    }
+
+    private async Task FetchPayroll()
+    {
+        var pay = await _httpClient.GetFromJsonAsync<EcsPayDetailsVM>($"api/loansanction/GetPayDetails/{member.Mem_Id}/{brCode}");
+        if (pay is not { Found: true })
+        {
+            ShowAlert(false, "No payslip found for this member.");
+            return;
+        }
+        basicPay = pay.BasicPay;
+        grossPay = pay.GrossPay;
+        societyDeduction = pay.SocietyDeduction;
+        totalDeductions = pay.TotalDeductions;
+        MarkStale();
+    }
+
+    private void OnBasicPayChanged() => MarkStale(); // basic pay drives the deposit demand
+
+    // =====================================================================
+    // Scheme + loan terms
+    // =====================================================================
+
+    private async Task OnSchemeChanged()
+    {
+        MarkStale();
+        defaults = null;
+        if (schemeId == 0) return;
+
+        var d = await _httpClient.GetFromJsonAsync<SuretyLoanSchemeDefaultsVM>(
+            $"api/loansanction/GetSchemeDefaults/{schemeId}/{member.Mem_Id}/{loadedSanctionId}/{brCode}");
+        if (d == null || !d.Found)
+        {
+            ShowAlert(false, d?.Message ?? "Could not load the loan scheme.");
+            schemeId = 0;
+            return;
+        }
+
+        var blocking = d.Warnings.Where(w => w.Blocking).ToList();
+        if (blocking.Count > 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", string.Join("\n", blocking.Select(w => w.Message)));
+            schemeId = 0;
+            return;
+        }
+
+        overrideStipulatedPeriod = false;
+        var stipulated = d.Warnings.FirstOrDefault(w => w.Code == "STIPULATED_PERIOD");
+        if (stipulated != null)
+        {
+            if (!await JSRuntime.InvokeAsync<bool>("confirm", stipulated.Message))
+            {
+                schemeId = 0;
+                return;
+            }
+            overrideStipulatedPeriod = true;
+        }
+
+        defaults = d;
+        loanAmount = d.LoanAmount;
+        periodOfLoan = d.PeriodOfLoan;
+        rateOfInterest = d.RateOfInterest;
+        penalRate = d.PenalRate;
+        firstDueDate = d.FirstDueDate;
+
+        var info = d.Warnings.Where(w => !w.Blocking && w.Code != "STIPULATED_PERIOD").Select(w => w.Message).ToList();
+        if (info.Count > 0) ShowAlert(false, info);
+    }
+
+    private void MarkStale()
+    {
+        recoverablesStale = true;
+        eligibility = null;
+    }
+
+    private void EnforceInstalmentFloor()
+    {
+        if (instalmentAmount < calculatedInstalment) instalmentAmount = calculatedInstalment;
+        _ = RefreshEligibilityAsync();
+    }
+
+    // =====================================================================
+    // Recoverables
+    // =====================================================================
+
+    private EcsRecoverablesRequestVM BuildRecoverablesRequest() => new()
+    {
+        MemId = member.Mem_Id, SuretyMemId = member.SuretyMem_Id, SchemeId = schemeId, LoanAmount = loanAmount,
+        PeriodOfLoan = periodOfLoan, Roi = rateOfInterest, BasicPay = basicPay, FirstDueDate = firstDueDate
+    };
+
+    private async Task GetRecoverables()
+    {
+        busy = true;
+        try
+        {
+            var result = await FetchRecoverablesAsync();
+            if (result == null) return;
+            rows = result.Recoverables;
+            movedLoanIds.Clear();
+            movedDmIds.Clear();
+            recoverablesStale = false;
+            if (LoanBalance <= 0) ShowAlert(false, "Member does not have adequate loan balance.");
+            await RefreshEligibilityAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    /// <summary>Fetches recoverable sources and the calculated instalment; leaves the chosen rows alone.</summary>
+    private async Task<EcsRecoverablesVM?> FetchRecoverablesAsync()
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/loansanction/GetRecoverables", BuildRecoverablesRequest());
+        var result = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<EcsRecoverablesVM>() : null;
+        if (result == null || !result.Success)
+        {
+            ShowAlert(false, result?.Message ?? "Could not get recoverables.");
+            return null;
+        }
+        recov = result;
+        nonDeductable = result.NonDeductable;
+        pendingDeposits = result.PendingDeposits;
+        selectedNonDed.Clear();
+        selectedPending.Clear();
+        calculatedInstalment = result.InstalmentAmount;
+        if (instalmentAmount < calculatedInstalment) instalmentAmount = calculatedInstalment;
+        return result;
+    }
+
+    private static bool CanRemove(DeductableLoanRowVM r) =>
+        r.IsManual || r.Outstanding == 0 || r.RowType is "NonDeductable" or "Pending";
+
+    private async Task RemoveRow(DeductableLoanRowVM r)
+    {
+        rows.Remove(r);
+        if (r.RowType == "NonDeductable" && !rows.Any(x => x.Loan_Id == r.Loan_Id && x.RowType == "NonDeductable"))
+            movedLoanIds.Remove(r.Loan_Id);
+        if (r.RowType == "Pending") movedDmIds.Remove(r.DM_Id);
+        await RefreshEligibilityAsync();
+    }
+
+    private async Task AddManualRow()
+    {
+        if (!decimal.TryParse(manualLedId, out var ledId) || ledId <= 0 || manualAmount <= 0) return;
+        var row = await _httpClient.GetFromJsonAsync<DeductableLoanRowVM>($"api/loansanction/ResolveDeductionStatus/{ledId}/{brCode}");
+        if (row == null) return;
+        row.Mem_Id = member.Mem_Id;
+        row.Outstanding = manualAmount;
+        row.IsManual = true;
+        row.RowType = "Manual";
+        if (string.IsNullOrEmpty(row.Ledger_Name)) row.Ledger_Name = ledgers.FirstOrDefault(l => l.Value == manualLedId)?.Text;
+        rows.Add(row);
+        manualLedId = "0";
+        manualAmount = 0;
+    }
+
+    private void ToggleNonDed(decimal loanId, bool on)
+    {
+        if (on) selectedNonDed.Add(loanId); else selectedNonDed.Remove(loanId);
+    }
+
+    private void TogglePending(int dmId, bool on)
+    {
+        if (on) selectedPending.Add(dmId); else selectedPending.Remove(dmId);
+    }
+
+    private async Task AddNonDeductableToRecovery()
+    {
+        foreach (var n in nonDeductable.Where(n => selectedNonDed.Contains(n.LoanId) && !movedLoanIds.Contains(n.LoanId)))
+        {
+            void Add(string status, decimal led, string? name, double amount, double cap, double od)
+            {
+                amount = Math.Min(amount, cap);
+                if (amount <= 0) return;
+                rows.Add(new DeductableLoanRowVM
+                {
+                    Loan_Id = n.LoanId, Loan_No = n.LoanNo, Status = status, Mem_Id = member.Mem_Id, Led_Id = led,
+                    Ledger_Name = name, Outstanding = amount, ODAmount = Math.Min(od, amount), Scheme_Id = n.SchemeId,
+                    Loan_SlNo = n.LoanSlNo, RowType = "NonDeductable"
+                });
+            }
+            Add("P", n.PrlLedId, n.PrlLedName, n.PrlRecovery, n.LoanOS, n.PrlOD);
+            Add("I", n.IntLedId, n.IntLedName, n.IntRecovery, n.IntBal, 0);
+            Add("PI", n.PILedId, n.PILedName, n.PIRecovery, n.PIBal, 0);
+            movedLoanIds.Add(n.LoanId);
+        }
+        selectedNonDed.Clear();
+        await RefreshEligibilityAsync();
+    }
+
+    private void AddPendingToRecovery()
+    {
+        foreach (var p in pendingDeposits.Where(p => selectedPending.Contains(p.DMId) && !movedDmIds.Contains(p.DMId)))
+        {
+            double amount = Math.Min(p.RecoveryAmount, p.PendingAmount);
+            if (amount <= 0) continue;
+            rows.Add(new DeductableLoanRowVM
+            {
+                Status = "D", DM_Id = p.DMId, Mem_Id = member.Mem_Id, Led_Id = p.LedId, Ledger_Name = p.LedName,
+                Outstanding = amount, RowType = "Pending"
+            });
+            movedDmIds.Add(p.DMId);
+        }
+        selectedPending.Clear();
+    }
+
+    // =====================================================================
+    // Eligibility
+    // =====================================================================
+
+    private async Task RefreshEligibilityAsync()
+    {
+        if (recov == null || recoverablesStale || defaults == null)
+        {
+            eligibility = null;
+            return;
+        }
+        var input = new LoanEligibilityInputVM
+        {
+            Mem_Id = member.Mem_Id, Scheme_Id = schemeId, BrCode = brCode,
+            LoanAmount = loanAmount, PeriodOfLoan = periodOfLoan, InstallmentAmount = instalmentAmount,
+            RateOfInterest = rateOfInterest, InstType = defaults.InstType,
+            GrossPay = grossPay, TotalDeductions = totalDeductions, SocietyDeduction = societyDeduction,
+            ServiceInMonths = member.ServiceInMonths, DepositDemand = recov.DepositDemand,
+            ExistingDemand = ExistingDemand, AdoptLoanEligibility = defaults.AdoptLoanEligibility
+        };
+        var response = await _httpClient.PostAsJsonAsync("api/loansanction/CalculateEligibility", input);
+        eligibility = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<LoanEligibilityResultVM>() : null;
+        StateHasChanged();
+    }
+
+    // =====================================================================
+    // Save / delete / print
+    // =====================================================================
+
+    private async Task SaveSanction()
+    {
+        if (!CanSave) return;
+        busy = true;
+        try
+        {
+            var vm = new SuretyLoanSanctionSaveVM
+            {
+                LoanSanction_Id = loadedSanctionId, OverrideStipulatedPeriod = overrideStipulatedPeriod,
+                Mem_Id = member.Mem_Id, SuretyMem_Id = member.SuretyMem_Id, Scheme_Id = schemeId,
+                LoanAmount = loanAmount, PeriodOfLoan = periodOfLoan, RateOfInterest = rateOfInterest, PenalRate = penalRate,
+                InstalmentAmount = (int)Math.Round(instalmentAmount, MidpointRounding.AwayFromZero), FirstDueDate = firstDueDate,
+                BasicPay = basicPay, GrossPay = grossPay, SocietyDeduction = societyDeduction, TotalDeductions = totalDeductions,
+                DeductionRows = rows
+            };
+            var response = await _httpClient.PostAsJsonAsync("api/loansanction/SaveSanction", vm);
+            var result = await ReadResultAsync(response);
+            if (result.Success)
+            {
+                sanctionId = result.LoanSanction_Id;
+                loadedSanctionId = result.LoanSanction_Id;
+                ShowAlert(true, (result.Message ?? "Saved.") + " You can now print the Office Note.");
+            }
+            else
+            {
+                ShowAlert(false, result.Reasons.Count > 0 ? result.Reasons : new List<string> { result.Message ?? "Sanction not saved." });
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Sanction not saved: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteSanction()
+    {
+        if (!IsModify) return;
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Delete loan sanction {loadedSanctionId}?")) return;
+        busy = true;
+        try
+        {
+            var response = await _httpClient.PostAsync($"api/loansanction/DeleteSanction/{loadedSanctionId}", null);
+            var result = await ReadResultAsync(response);
+            if (result.Success)
+            {
+                ResetPage();
+                ShowAlert(true, result.Message ?? "Deleted.");
+                await ListSanctions();
+            }
+            else
+            {
+                ShowAlert(false, result.Reasons.Count > 0 ? result.Reasons : new List<string> { result.Message ?? "Not deleted." });
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task PrintOfficeNote()
+    {
+        if (sanctionId == 0) return;
+        var response = await _httpClient.GetAsync($"api/loansanction/OfficeNote/{sanctionId}");
+        if (!response.IsSuccessStatusCode)
+        {
+            ShowAlert(false, "Office Note: " + await response.Content.ReadAsStringAsync());
+            return;
+        }
+        var bytes = await response.Content.ReadFromJsonAsync<byte[]>();
+        if (bytes is { Length: > 0 })
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(bytes));
+    }
+
+    private static async Task<SanctionSaveResultVM> ReadResultAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var result = await response.Content.ReadFromJsonAsync<SanctionSaveResultVM>();
+            if (result != null) return result;
+        }
+        catch
+        {
+            // fall through
+        }
+        return new SanctionSaveResultVM
+        {
+            Success = false,
+            Message = response.StatusCode == HttpStatusCode.Forbidden
+                ? "ECS Loan Sanction is available only to ECS societies."
+                : $"Request failed ({(int)response.StatusCode})."
+        };
+    }
+
+    // =====================================================================
+    // List + load for modify
+    // =====================================================================
+
+    private async Task ListSanctions()
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/loansanction/ListSanctions", listFilter);
+        sanctionList = response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<List<EcsSanctionListItemVM>>() ?? new()
+            : new();
+    }
+
+    private async Task LoadSanction(decimal id)
+    {
+        busy = true;
+        try
+        {
+            var detail = await _httpClient.GetFromJsonAsync<EcsSanctionDetailVM>($"api/loansanction/GetSanction/{id}/{brCode}");
+            if (detail == null) return;
+
+            ResetPage();
+            loadedSanctionId = detail.LoanSanction_Id;
+            sanctionId = detail.LoanSanction_Id;
+            member = detail.Member;
+            memberNo = member.MemberNo ?? "";
+            member.SuretyMem_Id = detail.Sanction.SuretyMem_Id;
+
+            var s = detail.Sanction;
+            basicPay = s.BasicPay; grossPay = s.GrossPay; societyDeduction = s.SocietyDeduction; totalDeductions = s.TotalDeductions;
+
+            schemeId = s.Scheme_Id;
+            await OnSchemeChanged();
+            if (schemeId == 0) return; // blocked or cancelled
+
+            // Saved terms override the scheme defaults.
+            loanAmount = s.LoanAmount; periodOfLoan = s.PeriodOfLoan; rateOfInterest = s.RateOfInterest;
+            penalRate = s.PenalRate; instalmentAmount = s.InstalmentAmount;
+            firstDueDate = s.FirstDueDate ?? Utilities.FirstOfNextMonth(currentDate);
+
+            // Refresh the sources, but keep the recoverables chosen at sanction.
+            if (await FetchRecoverablesAsync() != null)
+            {
+                rows = detail.Recoverables;
+                foreach (var r in rows.Where(r => r.Loan_Id > 0 && nonDeductable.Any(n => n.LoanId == r.Loan_Id)))
+                {
+                    r.RowType = "NonDeductable";
+                    movedLoanIds.Add(r.Loan_Id);
+                }
+                foreach (var r in rows.Where(r => r.Status == "D" && pendingDeposits.Any(p => p.DMId == r.DM_Id)))
+                    movedDmIds.Add(r.DM_Id);
+                recoverablesStale = false;
+                await RefreshEligibilityAsync();
+            }
+            activeTab = "pay";
+            ShowAlert(true, $"Loaded sanction {id}. Change the details and choose Modify Sanction, or Delete Sanction.");
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the sanction: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    // =====================================================================
+    // Helpers
+    // =====================================================================
+
+    private void ResetPage()
+    {
+        memberNo = "";
+        lookupMessage = null;
+        member = new();
+        basicPay = grossPay = societyDeduction = totalDeductions = 0;
+        schemeId = 0;
+        defaults = null;
+        loanAmount = rateOfInterest = penalRate = instalmentAmount = 0;
+        periodOfLoan = calculatedInstalment = 0;
+        firstDueDate = Utilities.FirstOfNextMonth(currentDate);
+        overrideStipulatedPeriod = false;
+        recov = null;
+        recoverablesStale = true;
+        rows = new();
+        nonDeductable = new();
+        pendingDeposits = new();
+        movedLoanIds.Clear(); selectedNonDed.Clear(); movedDmIds.Clear(); selectedPending.Clear();
+        eligibility = null;
+        sanctionId = 0;
+        loadedSanctionId = 0;
+        alertMessage = null;
+        alertReasons.Clear();
+    }
+
+    private bool TabComplete(string key) => key switch
+    {
+        "pay" => member.Found && grossPay > 0,
+        "loan" => !recoverablesStale && eligibility?.IsEligible == true,
+        "recov" => !recoverablesStale && recov != null && LoanBalance > 0,
+        _ => false
+    };
+
+    private void ShowAlert(bool success, string message) => ShowAlert(success, new List<string> { message });
+
+    private void ShowAlert(bool success, List<string> messages)
+    {
+        alertSuccess = success;
+        alertReasons = messages;
+        alertMessage = string.Join(" ", messages);
+    }
+
+    private static string F(double v) => v.ToString("N2");
+    private static string D(DateTime? d) => d?.ToString("dd/MM/yyyy") ?? "-";
+}

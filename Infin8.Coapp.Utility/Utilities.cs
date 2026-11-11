@@ -111,6 +111,10 @@ namespace Infin8.Coapp.Utility
             return returnDate;
         }
 
+        /// <summary>The 1st of the month after <paramref name="dDate"/> (default loan first-due date).</summary>
+        public static DateTime FirstOfNextMonth(DateTime dDate)
+            => new DateTime(dDate.Year, dDate.Month, 1).AddMonths(1);
+
         public static int GetNoOfMonths(DateTime fromDate, DateTime toDate)
         {
             int retVal = 0;
