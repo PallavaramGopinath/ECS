@@ -10,7 +10,8 @@ namespace Infin8.Coapp.Models
         public int LoanElig_Id { get; set; }
         public Nullable<System.DateTime> LoanElig_Date { get; set; }
         public int Loan_Id { get; set; }
-        public int Mem_Id { get; set; }
+        // decimal (numeric): ECS mem_ids such as 110050001301 exceed Int32. See 06-ecs-loan-sanction.sql.
+        public decimal Mem_Id { get; set; }
         public double GrossPay { get; set; }
         public double SocietyDeductions { get; set; }
         public double OtherThanSocietyDeductions { get; set; }

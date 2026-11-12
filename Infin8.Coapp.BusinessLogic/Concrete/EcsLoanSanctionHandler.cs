@@ -458,7 +458,7 @@ namespace Infin8.Coapp.BusinessLogic
 
             var eligibility = new Loan_Eligibility
             {
-                LoanElig_Date = date, Loan_Id = 0, Mem_Id = (int)vm.Mem_Id,
+                LoanElig_Date = date, Loan_Id = 0, Mem_Id = vm.Mem_Id,
                 GrossPay = vm.GrossPay, SocietyDeductions = vm.SocietyDeduction, OtherThanSocietyDeductions = elig.OtherDeductions,
                 TotalDeductions = vm.TotalDeductions, NetPay = vm.GrossPay - vm.TotalDeductions,
                 TotalPrlOS = rows.Where(r => r.Status == "P").Sum(r => r.Outstanding),
