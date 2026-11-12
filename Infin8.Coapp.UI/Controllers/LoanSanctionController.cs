@@ -74,7 +74,10 @@ namespace Infin8.Coapp.API.Controllers
 
         // ----- lookups -----
 
-        /// <summary>Schemes with Loan_Type 10 / 11 / 12 that the ECS policy allows.</summary>
+        /// <summary>
+        /// Schemes with Loan_Type 1 (Thrift &amp; Credit loans; surety, education, draught, etc. differ by
+        /// Scheme_Id) that the ECS policy allows.
+        /// </summary>
         [HttpGet]
         [Route("GetEcsLoanSchemes/{brCode}")]
         [Route("GetSuretyLoanSchemes/{brCode}")] // alias kept for the old page URL

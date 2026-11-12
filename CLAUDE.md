@@ -190,16 +190,20 @@ Two traps here:
 ## ECS extension (in flight)
 
 Institution type is **not** a new entity — it reuses `Gen_Bank_Name.Bank_Type` (`1` = PCARDB,
-`2` = ECS, `0`/other = Unknown, treated as PCARDB so existing visibility never regresses).
+`2` = Cooperative Housing Society, `3` = ECS, `0`/other = Unknown, treated as PCARDB so existing
+visibility never regresses). See `specs/ecs-extension/07-loan-type-society-type.md`.
 
-New loan products are **new `Loan_Type` discriminator values** on the existing single-table loan
-engine, not a new table hierarchy. Values 1–9 are frozen (live PCARDB data depends on them); 10/11/12
-are Surety / Education / Draught, ECS-exclusive.
+Loans use the existing single-table loan engine and its `Loan_Type` discriminator; values 1–9 are
+frozen (live data depends on them). ECS loans are all `Loan_Type 1`, differentiated by `Scheme_Id`;
+10–12 retired. Product-specific behaviour comes from rule columns on `loan_schemes`, never from a
+scheme's id or name. `Loan_Type 6` is Farm Sector (PCARDB) or Housing (Housing Society) — label it via
+`LoanCategoryPolicy.GetDisplayName`, never hard-code it.
 
 - `Utility/LoanCategory.cs` — the single source of truth for `Loan_Type`.
-- `Utility/LoanCategoryPolicy.cs` — `IsAllowed(category, institution)`; the editable visibility policy.
+- `Utility/LoanCategoryPolicy.cs` — per-society allow-list behind `IsAllowed(category, institution)`
+  (the editable visibility policy) plus `GetDisplayName(category, institution)`.
 
-Gating exists on exactly three pages, all under `Pages/Products/`, all keyed off:
+Gating exists on four pages, all under `Pages/Products/`, all keyed off:
 
 ```csharp
 institution = userInfoDto.SocietyType.ToInstitutionType();
@@ -208,12 +212,12 @@ institution = userInfoDto.SocietyType.ToInstitutionType();
 `ECSLoanSanction.razor` (`/ecs-loan-sanction`) is the reference implementation for a whole-page ECS gate — note its
 `isReady` guard, which stops the "ECS only" warning flashing before the claim has been read.
 `Loanproducts.razor` and `LoanProductsCreate.razor` instead filter a category collection through
-`LoanCategoryPolicy.IsAllowed`.
+`LoanCategoryPolicy.IsAllowed`; `LoanProductsView.razor` only uses the institution for labels.
 
 Caveats: gating is **mostly client-side**. Only `LoanSanctionController` checks the institution on the
 server (its `IsEcsAsync` looks up `Gen_Bank_Name.Bank_Type` for the claims `BrCode`, since the JWT carries
 no `SocietyType`); other ECS-only endpoints have no server-side check. Nav-menu gating is deliberately deferred (no menu rows added), so ECS pages are reachable only
-by URL. `specs/ecs-extension/03`–`05` (the three ECS loan types) are still stubs.
+by URL. `specs/ecs-extension/03`–`05` (the three ECS products, all schemes under `Loan_Type 1`) are still stubs.
 
 ## Gotchas
 
