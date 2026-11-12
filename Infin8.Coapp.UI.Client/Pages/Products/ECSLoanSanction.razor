@@ -477,7 +477,7 @@ else
         </button>
         <button class="btn btn-outline-danger" @onclick="DeleteSanction" disabled="@(!IsModify || busy)"><i class="bi bi-trash me-1"></i>Delete Sanction</button>
         <button class="btn btn-outline-secondary" @onclick="PrintOfficeNote" disabled="@(sanctionId == 0 || busy)"><i class="bi bi-printer me-1"></i>Print Office Note</button>
-        <button class="btn btn-outline-secondary ms-auto" @onclick="ResetPage" disabled="@busy"><i class="bi bi-file-earmark me-1"></i>New</button>
+        <button class="btn btn-outline-secondary ms-auto" @onclick="ResetPage" disabled="@busy"><i class="bi bi-file-earmark me-1"></i>Refresh</button>
     </div>
 
     @if (showDemand && eligibility != null)

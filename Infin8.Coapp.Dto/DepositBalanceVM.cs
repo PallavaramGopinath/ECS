@@ -2,12 +2,12 @@
 {
     public class DepositBalanceVM
     {
-        public int MemId { get; set; }
+        public decimal MemId { get; set; }
         public int DMId { get; set; }
         public DateTime TrnDate { get; set; }
-        public int PrlLedId { get; set; }
-        public int IntLedId { get; set; }
-        public int PILedId { get; set; }
+        public decimal PrlLedId { get; set; }
+        public decimal IntLedId { get; set; }
+        public decimal PILedId { get; set; }
         public string? DMName { get; set; }
         public bool ArrearDemandApplication { get; set; }
         public double DemandAmount { get; set; }
