@@ -9,7 +9,7 @@
         public int IntLedId { get; set; }
         public int PILedId { get; set; }
         public string? DMName { get; set; }
-        public int ArrearDemandApplication { get; set; }
+        public bool ArrearDemandApplication { get; set; }
         public double DemandAmount { get; set; }
         public double ReceiptAmount { get; set; }
         public double PaidAmount { get; set; }

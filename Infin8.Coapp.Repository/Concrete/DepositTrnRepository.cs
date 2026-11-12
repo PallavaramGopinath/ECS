@@ -72,7 +72,7 @@ namespace Infin8.Coapp.Repository
                                       PrlLedId = (int)g.Key.Led_Id,
                                       IntLedId = (int)g.Key.Interest_Led_id,
                                       PILedId = (int)g.Key.PI_Led_Id,
-                                      ArrearDemandApplication = (int)g.Key.Is_Arrear_Demand_Applicable
+                                      ArrearDemandApplication = g.Key.Is_Arrear_Demand_Applicable
                                   }).ToListAsync();
                 if(balances != null && balances.Count >0)
                 {
@@ -106,7 +106,7 @@ namespace Infin8.Coapp.Repository
 
                         DepositBalanceVM depBal = new();
                         
-                        if (master.Is_Arrear_Demand_Applicable == 1)
+                        if (master.Is_Arrear_Demand_Applicable)
                         {
                             var depBalance = (from trn in CSISContext.Deposit_Trn
                                           join mas in CSISContext.Deposit_Masters on trn.Deposit_Id equals mas.Deposit_Id
@@ -138,7 +138,7 @@ namespace Infin8.Coapp.Repository
                                               PrlLedId = (int)g.Key.Led_Id,
                                               IntLedId = (int)g.Key.Interest_Led_id,
                                               PILedId = (int)g.Key.PI_Led_Id,
-                                              ArrearDemandApplication = (int)g.Key.Is_Arrear_Demand_Applicable
+                                              ArrearDemandApplication = g.Key.Is_Arrear_Demand_Applicable
                                           }).FirstOrDefault();
 
                             if(depBalance != null && depBalance.DMId >0) depBal = depBalance;
