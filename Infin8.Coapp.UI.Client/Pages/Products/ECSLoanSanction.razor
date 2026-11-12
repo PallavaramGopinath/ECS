@@ -135,11 +135,41 @@ else
                             <h6>Service</h6>
                             <table class="table table-sm mb-0">
                                 <tbody>
-                                    <tr><th class="fw-normal">Date of Birth</th><td class="text-end">@D(member.DateOfBirth)</td></tr>
+                                    <tr>
+                                        <th class="fw-normal">Date of Birth</th>
+                                        <td class="text-end">
+                                            @if (member.Found && member.DateOfBirth == null)
+                                            {
+                                                <div class="d-flex justify-content-end gap-2">
+                                                    <input type="date" class="form-control form-control-sm" style="max-width:11rem" @bind="dobInput" disabled="@busy" />
+                                                    <button class="btn btn-sm btn-outline-primary" @onclick="SaveDob" disabled="@(dobInput == null || busy)">
+                                                        <i class="bi bi-save me-1"></i>Save DOB
+                                                    </button>
+                                                </div>
+                                                <div class="form-text">Not in member master. Saved to the member on Save DOB.</div>
+                                            }
+                                            else
+                                            {
+                                                @D(member.DateOfBirth)
+                                            }
+                                        </td>
+                                    </tr>
                                     <tr><th class="fw-normal">Date of Retirement</th><td class="text-end">@D(member.DateOfRetirement)</td></tr>
                                     <tr><th class="fw-normal">Service in Months</th><td class="text-end">@(member.ServiceInMonths?.ToString() ?? "-")</td></tr>
                                 </tbody>
                             </table>
+                            @if (member.Found && member.ServiceInMonths == null)
+                            {
+                                <div class="text-danger small mt-2">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Service in months is mandatory for loan sanction. Enter the date of birth.
+                                </div>
+                            }
+                            else if (member.Found && member.ServiceInMonths <= 0)
+                            {
+                                <div class="text-danger small mt-2">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Member has no remaining service before retirement.
+                                </div>
+                            }
                         </div>
                     </div>
                     break;
@@ -148,7 +178,7 @@ else
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Select Loan</label>
-                            <select class="form-select" @bind="schemeId" @bind:after="OnSchemeChanged" disabled="@(!member.Found)">
+                            <select class="form-select" @bind="schemeId" @bind:after="OnSchemeChanged" disabled="@(!HasService)">
                                 <option value="0">-- Select --</option>
                                 @foreach (var s in schemes) { <option value="@s.Value">@s.Text</option> }
                             </select>
@@ -159,7 +189,8 @@ else
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Period (months)</label>
-                            <input type="number" class="form-control text-end" @bind="periodOfLoan" @bind:after="MarkStale" />
+                            <input type="number" class="form-control text-end" @bind="periodOfLoan" @bind:after="OnPeriodChanged" />
+                            @if (member.ServiceInMonths > 0) { <div class="form-text">Max @member.ServiceInMonths (remaining service)</div> }
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Rate of Interest</label>
@@ -491,6 +522,7 @@ else
     private string? lookupMessage;
     private SuretyLoanSanctionDataVM member = new();
     private double basicPay, grossPay, societyDeduction, totalDeductions;
+    private DateTime? dobInput;
 
     // Scheme + loan terms
     private List<DropdownItem> schemes = new();
@@ -534,7 +566,8 @@ else
     private double TotalRecoverable => rows.Sum(r => r.Outstanding);
     private double LoanBalance => loanAmount - TotalRecoverable;
     private double ExistingDemand => nonDeductable.Where(n => !movedLoanIds.Contains(n.LoanId)).Sum(n => n.DemandAmount);
-    private bool CanSave => !busy && member.Found && schemeId > 0 && !recoverablesStale && recov != null
+    private bool HasService => member.Found && member.ServiceInMonths > 0;
+    private bool CanSave => !busy && HasService && schemeId > 0 && !recoverablesStale && recov != null
                             && eligibility?.IsEligible == true && LoanBalance > 0;
 
     protected override async Task OnInitializedAsync()
@@ -605,6 +638,55 @@ else
     }
 
     private void OnBasicPayChanged() => MarkStale(); // basic pay drives the deposit demand
+
+    /// <summary>Saves a missing date of birth to the member master; retirement and service are recomputed.</summary>
+    private async Task SaveDob()
+    {
+        if (dobInput == null || !member.Found) return;
+        busy = true;
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/loansanction/UpdateMemberDob",
+                new EcsMemberDobVM { MemId = member.Mem_Id, DateOfBirth = dobInput.Value.Date });
+            var result = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<SuretyLoanSanctionDataVM>() : null;
+            if (result == null)
+            {
+                ShowAlert(false, "Could not save the date of birth.");
+                return;
+            }
+            if (!string.IsNullOrEmpty(result.Message))
+            {
+                ShowAlert(false, result.Message);
+                return;
+            }
+            var suretyMemId = member.SuretyMem_Id;
+            member = result;
+            if (IsModify) member.SuretyMem_Id = suretyMemId; // keep the surety chosen at sanction
+            dobInput = null;
+            MarkStale();
+            ShowAlert(true, $"Date of birth saved. Service in months: {member.ServiceInMonths?.ToString() ?? "not available"}.");
+            if (schemeId > 0) await OnSchemeChanged(); // re-apply the period cap
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not save the date of birth: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    /// <summary>The loan cannot run past retirement: the period is capped at the remaining service.</summary>
+    private void OnPeriodChanged()
+    {
+        if (member.ServiceInMonths > 0 && periodOfLoan > member.ServiceInMonths)
+        {
+            ShowAlert(false, $"Loan period reduced from {periodOfLoan} to {member.ServiceInMonths} months (remaining service).");
+            periodOfLoan = member.ServiceInMonths.Value;
+        }
+        MarkStale();
+    }
 
     // =====================================================================
     // Scheme + loan terms
@@ -960,6 +1042,7 @@ else
             loanAmount = s.LoanAmount; periodOfLoan = s.PeriodOfLoan; rateOfInterest = s.RateOfInterest;
             penalRate = s.PenalRate; instalmentAmount = s.InstalmentAmount;
             firstDueDate = s.FirstDueDate ?? Utilities.FirstOfNextMonth(currentDate);
+            OnPeriodChanged(); // a saved period longer than the remaining service is capped
 
             // Refresh the sources, but keep the recoverables chosen at sanction.
             if (await FetchRecoverablesAsync() != null)
@@ -998,6 +1081,7 @@ else
         lookupMessage = null;
         member = new();
         basicPay = grossPay = societyDeduction = totalDeductions = 0;
+        dobInput = null;
         schemeId = 0;
         defaults = null;
         loanAmount = rateOfInterest = penalRate = instalmentAmount = 0;
@@ -1019,7 +1103,7 @@ else
 
     private bool TabComplete(string key) => key switch
     {
-        "pay" => member.Found && grossPay > 0,
+        "pay" => HasService && grossPay > 0,
         "loan" => !recoverablesStale && eligibility?.IsEligible == true,
         "recov" => !recoverablesStale && recov != null && LoanBalance > 0,
         _ => false

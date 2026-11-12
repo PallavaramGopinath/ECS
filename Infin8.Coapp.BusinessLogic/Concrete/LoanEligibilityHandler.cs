@@ -51,7 +51,13 @@ namespace Infin8.Coapp.BusinessLogic
             }
 
             // The loan cannot run past retirement (business decision on spec §13 Q2).
-            if (input.ServiceInMonths.HasValue && input.ServiceInMonths.Value < input.PeriodOfLoan)
+            // Service in months is mandatory: without a date of birth / retirement date the check cannot pass.
+            if (!input.ServiceInMonths.HasValue)
+            {
+                r.FailsServiceCheck = true;
+                r.Reasons.Add("Service in months is not available. Enter the member's date of birth.");
+            }
+            else if (input.ServiceInMonths.Value < input.PeriodOfLoan)
             {
                 r.FailsServiceCheck = true;
                 r.Reasons.Add($"Remaining service ({input.ServiceInMonths} months) is less than the loan period ({input.PeriodOfLoan} months).");
