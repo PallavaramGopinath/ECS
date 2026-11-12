@@ -20,7 +20,7 @@ namespace Infin8.Coapp.Models
         public double Percentage_Towards_Other_Ledger { get; set; }
         public decimal Other_Led_Id { get; set; }
         public bool Is_Option_Allowed { get; set; }
-        public int Is_Arrear_Demand_Applicable { get; set; }
+        public bool Is_Arrear_Demand_Applicable { get; set; }
         public decimal Usr_Id { get; set; }
         public decimal Yr_Id { get; set; }
         public string? BrCode { get; set; }
