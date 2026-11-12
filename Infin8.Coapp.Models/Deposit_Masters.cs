@@ -7,9 +7,9 @@ namespace Infin8.Coapp.Models
         [Key]
         public int Deposit_Id { get; set; }
         public string? Deposit_Name { get; set; }
-        public int Led_Id { get; set; }
-        public int Interest_Led_id { get; set; }
-        public int PI_Led_Id { get; set; }
+        public decimal Led_Id { get; set; }
+        public decimal Interest_Led_id { get; set; }
+        public decimal PI_Led_Id { get; set; }
         public double Percentage { get; set; }
         public double Maximum_Amount { get; set; }
         public double Fixed_Amount { get; set; }
@@ -18,11 +18,11 @@ namespace Infin8.Coapp.Models
         public bool Is_Active { get; set; }
         public double Percentage_Towards_Deposit { get; set; }
         public double Percentag_Towards_Other_Ledger { get; set; }
-        public int Other_Led_Id { get; set; }
+        public decimal Other_Led_Id { get; set; }
         public bool Is_Option_Allowed { get; set; }
         public int Is_Arrear_Demand_Applicable { get; set; }
-        public int Usr_Id { get; set; }
-        public int Yr_Id { get; set; }
+        public decimal Usr_Id { get; set; }
+        public decimal Yr_Id { get; set; }
         public string? BrCode { get; set; }
         public int Interest_Calculation_Period { get; set; }
     }
