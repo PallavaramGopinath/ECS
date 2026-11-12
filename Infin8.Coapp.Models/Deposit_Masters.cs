@@ -17,7 +17,7 @@ namespace Infin8.Coapp.Models
         public int Demand_Month { get; set; }
         public bool Is_Active { get; set; }
         public double Percentage_Towards_Deposit { get; set; }
-        public double Percentag_Towards_Other_Ledger { get; set; }
+        public double Percentage_Towards_Other_Ledger { get; set; }
         public decimal Other_Led_Id { get; set; }
         public bool Is_Option_Allowed { get; set; }
         public int Is_Arrear_Demand_Applicable { get; set; }
