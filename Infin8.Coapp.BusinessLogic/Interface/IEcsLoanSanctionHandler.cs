@@ -9,6 +9,12 @@ namespace Infin8.Coapp.BusinessLogic
         Task<SuretyLoanSanctionDataVM> GetMemberAsync(string memberNo, DateTime asOn, string brCode);
         Task<EcsPayDetailsVM> GetPayDetailsAsync(decimal memId, string brCode);
 
+        /// <summary>
+        /// Records a missing date of birth in mem_master and returns the member with retirement date and
+        /// service months recomputed. Message is set (and nothing saved) when the date is not acceptable.
+        /// </summary>
+        Task<SuretyLoanSanctionDataVM> UpdateMemberDobAsync(EcsMemberDobVM vm, DateTime asOn, string brCode);
+
         /// <summary>Scheme defaults + warnings: DUPLICATE / ALREADY_SAVED (block), STIPULATED_PERIOD (confirm).</summary>
         Task<SuretyLoanSchemeDefaultsVM> GetSchemeDefaultsAsync(int schemeId, decimal memId, decimal excludeSanctionId,
             DateTime asOn, string brCode);

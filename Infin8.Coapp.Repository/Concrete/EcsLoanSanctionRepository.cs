@@ -59,6 +59,20 @@ namespace Infin8.Coapp.Repository
             return await BuildMemberDataAsync(member, map, asOn, brCode);
         }
 
+        /// <summary>
+        /// Fills mem_master.dob for a member whose date of birth is missing. Change tracker only; the
+        /// handler commits. Returns false when the member is not found or already has a date of birth.
+        /// </summary>
+        public async Task<bool> SetMemberDobAsync(decimal memId, DateTime dob, string brCode)
+        {
+            var member = await (from m in CSISContext.mem_master
+                                where m.mem_id == memId && !m.memberdelete && m.brcode == brCode
+                                select m).FirstOrDefaultAsync();
+            if (member == null || member.dob.HasValue) return false;
+            member.dob = dob.Date;
+            return true;
+        }
+
         private async Task<SuretyLoanSanctionDataVM> BuildMemberDataAsync(mem_master member, Map_General? map,
             DateTime asOn, string brCode)
         {

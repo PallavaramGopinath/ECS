@@ -3,10 +3,17 @@ namespace Infin8.Coapp.Dto
     /// <summary>A scheme-selection warning (spec 06 §3.4 / §3.5).</summary>
     public class SanctionWarningVM
     {
-        /// <summary>DUPLICATE | ALREADY_SAVED | STIPULATED_PERIOD | ROI_NOT_FOUND | NOT_ECS</summary>
+        /// <summary>DUPLICATE | ALREADY_SAVED | STIPULATED_PERIOD | ROI_NOT_FOUND | NOT_ECS | NO_SERVICE | PERIOD_REDUCED</summary>
         public string Code { get; set; } = "";
         public bool Blocking { get; set; }
         public string Message { get; set; } = "";
+    }
+
+    /// <summary>Date of birth entered on the sanction page for a member whose mem_master.dob is empty.</summary>
+    public class EcsMemberDobVM
+    {
+        public decimal MemId { get; set; }
+        public DateTime DateOfBirth { get; set; }
     }
 
     /// <summary>Optional payroll prefill of the pay details (latest Pay_Slip).</summary>

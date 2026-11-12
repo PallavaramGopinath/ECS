@@ -92,6 +92,16 @@ namespace Infin8.Coapp.API.Controllers
         public async Task<ActionResult<SuretyLoanSanctionDataVM>> GetSuretyLoanMember(string memberNo, string brCode)
             => Ok(await _sanctionHandler.GetMemberAsync(memberNo, BusinessDay(), brCode));
 
+        /// <summary>Records a missing date of birth in mem_master; returns the member with service recomputed.</summary>
+        [HttpPost]
+        [Route("UpdateMemberDob")]
+        public async Task<ActionResult<SuretyLoanSanctionDataVM>> UpdateMemberDob([FromBody] EcsMemberDobVM vm)
+        {
+            var ctx = UserContext();
+            if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
+            return Ok(await _sanctionHandler.UpdateMemberDobAsync(vm, ctx.CurrentDate, ctx.BrCode));
+        }
+
         /// <summary>Optional "Fetch from payroll" prefill of the pay details.</summary>
         [HttpGet]
         [Route("GetPayDetails/{memId:decimal}/{brCode}")]

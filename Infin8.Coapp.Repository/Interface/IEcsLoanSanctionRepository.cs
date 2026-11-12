@@ -9,6 +9,8 @@ namespace Infin8.Coapp.Repository
         Task<List<DropdownItem>> GetSchemeItemsAsync(IEnumerable<int> loanTypes, string brCode);
         Task<SuretyLoanSanctionDataVM> GetMemberAsync(string memberNo, DateTime asOn, string brCode);
         Task<SuretyLoanSanctionDataVM> GetMemberByIdAsync(decimal memId, DateTime asOn, string brCode);
+        /// <summary>Sets mem_master.dob only when it is empty. False when not found or already set.</summary>
+        Task<bool> SetMemberDobAsync(decimal memId, DateTime dob, string brCode);
         Task<EcsPayDetailsVM> GetPayDetailsAsync(decimal memId, string brCode);
         Task<Loan_Schemes?> GetSchemeAsync(int schemeId, string brCode);
         /// <summary>Latest ROI / PI from Loan_Roi_Template (agency "S", Wef ≤ asOn). Null when none.</summary>

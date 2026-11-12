@@ -57,6 +57,36 @@ namespace Infin8.Coapp.BusinessLogic
         public Task<EcsPayDetailsVM> GetPayDetailsAsync(decimal memId, string brCode)
             => _unitOfWork.EcsLoanSanction.GetPayDetailsAsync(memId, brCode);
 
+        public async Task<SuretyLoanSanctionDataVM> UpdateMemberDobAsync(EcsMemberDobVM vm, DateTime asOn, string brCode)
+        {
+            var repo = _unitOfWork.EcsLoanSanction;
+            var dob = vm.DateOfBirth.Date;
+            string? error = null;
+            if (vm.MemId <= 0) error = "Select a member first.";
+            else if (dob.Year < 1900) error = "Enter a valid date of birth.";
+            else if (dob > asOn.Date) error = "Date of birth cannot be after the business date.";
+            else if (dob.AddYears(18) > asOn.Date) error = "Member must be at least 18 years old on the business date.";
+
+            if (error == null)
+            {
+                try
+                {
+                    if (!await repo.SetMemberDobAsync(vm.MemId, dob, brCode))
+                        error = "Date of birth was not saved: the member was not found or already has a date of birth.";
+                    else
+                        await _unitOfWork.CompleteAsync();
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(ex.Message + " Something went wrong! Could not save the date of birth.");
+                }
+            }
+
+            var member = await repo.GetMemberByIdAsync(vm.MemId, asOn, brCode);
+            member.Message = error;
+            return member;
+        }
+
         public async Task<SuretyLoanSchemeDefaultsVM> GetSchemeDefaultsAsync(int schemeId, decimal memId,
             decimal excludeSanctionId, DateTime asOn, string brCode)
         {
@@ -110,7 +140,33 @@ namespace Infin8.Coapp.BusinessLogic
             }
 
             if (memId > 0)
+            {
                 d.Warnings.AddRange(await GetSchemeWarningsAsync(memId, schemeId, excludeSanctionId, asOn, map?.MinInstalmentsForLoan ?? 0, brCode));
+
+                // The loan cannot run past retirement: service in months is mandatory and caps the period.
+                var member = await repo.GetMemberByIdAsync(memId, asOn, brCode);
+                if (member.ServiceInMonths == null)
+                    d.Warnings.Add(new SanctionWarningVM
+                    {
+                        Code = "NO_SERVICE", Blocking = true,
+                        Message = "Service in months is not available for this member. Enter the date of birth first."
+                    });
+                else if (member.ServiceInMonths <= 0)
+                    d.Warnings.Add(new SanctionWarningVM
+                    {
+                        Code = "NO_SERVICE", Blocking = true,
+                        Message = "Member has no remaining service before retirement; the loan cannot be sanctioned."
+                    });
+                else if (member.ServiceInMonths < d.PeriodOfLoan)
+                {
+                    d.Warnings.Add(new SanctionWarningVM
+                    {
+                        Code = "PERIOD_REDUCED", Blocking = false,
+                        Message = $"Loan period reduced from {d.PeriodOfLoan} to {member.ServiceInMonths} months (remaining service)."
+                    });
+                    d.PeriodOfLoan = member.ServiceInMonths.Value;
+                }
+            }
             return d;
         }
 
@@ -358,6 +414,10 @@ namespace Infin8.Coapp.BusinessLogic
             // --- Member, scheme, loan terms (§3.11) ---
             var member = await repo.GetMemberByIdAsync(vm.Mem_Id, date, brCode);
             if (!member.Found) return Fail("Member is not selected or not found.");
+            if (member.ServiceInMonths == null)
+                errors.Add("Service in months is not available for this member. Enter the date of birth.");
+            else if (member.ServiceInMonths <= 0)
+                errors.Add("Member has no remaining service before retirement.");
 
             var scheme = await repo.GetSchemeAsync(vm.Scheme_Id, brCode);
             if (scheme == null) return Fail("Select a loan scheme.");
