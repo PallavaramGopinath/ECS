@@ -75,7 +75,9 @@ namespace Infin8.Coapp.Repository
             try
             {
                 perMember = await (from r in CSISContext.Mem_RetirementAge
-                                   where r.Mem_Id == (int)member.mem_id && !r.RetirementAge_Delete && r.BrCode == brCode
+                                   // Compare as decimal: ECS mem_ids (e.g. 110050001301) exceed Int32, so casting
+                                   // member.mem_id to int throws OverflowException while EF evaluates the parameter.
+                                   where r.Mem_Id == member.mem_id && !r.RetirementAge_Delete && r.BrCode == brCode
                                    select (int?)r.RetirementAge).FirstOrDefaultAsync();
             }
             catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P01")

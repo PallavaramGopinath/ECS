@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS loan_eligibility (
     loanelig_id                 integer          NOT NULL PRIMARY KEY,
     loanelig_date               timestamp without time zone NULL,
     loan_id                     integer          NOT NULL DEFAULT 0,
-    mem_id                      integer          NOT NULL DEFAULT 0,
+    mem_id                      numeric          NOT NULL DEFAULT 0,
     grosspay                    double precision NOT NULL DEFAULT 0,
     societydeductions           double precision NOT NULL DEFAULT 0,
     otherthansocietydeductions  double precision NOT NULL DEFAULT 0,
@@ -65,3 +65,14 @@ CREATE TABLE IF NOT EXISTS mem_retirementage (
 -- 4. Schemes. The page lists only loan_schemes with loan_type 10 (Surety), 11 (Education) or 12 (Draught).
 --    Configure them through the Loan Products screen, or re-type an existing ECS scheme, e.g.:
 -- UPDATE loan_schemes SET loan_type = 10 WHERE scheme_id = <id> AND brcode = '<brcode>';
+
+-- loan_eligibility.mem_id must be numeric like mem_master.mem_id: ECS member ids (e.g. 110050001301)
+-- exceed the integer range, so saving a sanction overflowed. Widening is backward compatible for
+-- existing (PCARDB) rows. No-op when the column is already numeric.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_name = 'loan_eligibility' AND column_name = 'mem_id' AND data_type = 'integer') THEN
+        ALTER TABLE loan_eligibility ALTER COLUMN mem_id TYPE numeric;
+    END IF;
+END $$;
