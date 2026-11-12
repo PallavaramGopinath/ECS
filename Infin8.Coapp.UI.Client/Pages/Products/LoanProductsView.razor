@@ -8,6 +8,7 @@
 
 @rendermode InteractiveWebAssembly
 @using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Globalization
@@ -436,10 +437,12 @@
     private Loan_Schemes? loanScheme;
     private string activeTab = "basic";
     private string brCode = "11005";
+    private InstitutionType institution = InstitutionType.Unknown;
     protected override async Task OnInitializedAsync()
     {
         var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
         brCode = userInfoDto.BrCode!;
+        institution = userInfoDto.SocietyType.ToInstitutionType();
         await LoadLoanScheme();
     }
 
@@ -492,21 +495,8 @@
     }
 
     // Helper methods for displaying values
-    private string GetCategoryName(int? loanType)
-    {
-        return loanType switch
-        {
-            2 => "Jewel Loans",
-            3 => "Loans on Fixed Deposits",
-            4 => "Loans on Recurring Deposits",
-            5 => "Staff Loans",
-            6 => "Farm Sector Loans",
-            7 => "Non-Farm Sector Loans",
-            8 => "Rural Housing",
-            9 => "Small Road Transport Loans",
-            _ => "Not Specified"
-        };
-    }
+    // Institution-aware: Loan_Type 6 is Farm Sector (PCARDB) or Housing (Housing Society). See spec 07.
+    private string GetCategoryName(int? loanType) => LoanCategoryPolicy.GetDisplayName(loanType, institution);
 
     private string GetLoanTypeName(int? loanType)
     {

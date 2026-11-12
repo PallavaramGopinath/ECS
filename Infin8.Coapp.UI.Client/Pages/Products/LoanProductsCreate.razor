@@ -371,7 +371,7 @@
                                                 <option value="1">Based on Salry</option>
                                                 <option value="2">Non-Salary Based</option>
                                             </InputSelect>
-                                            <label for="salaryBasis">Salary Eligibility Basis (for Employee Society)</label>
+                                            <label for="salaryBasis">Salary Eligibility Basis (for Thrift & Credit Society)</label>
                                         </div>
                                     </div>
 
@@ -382,7 +382,7 @@
                                                 <option value="1">Enforce Loan Limit</option>
                                                 <option value="2">Bypass Loan Limit</option>
                                             </InputSelect>
-                                            <label for="enforceLoanLimit">Loan Limit Enforcement (for Employee Society)</label>
+                                            <label for="enforceLoanLimit">Loan Limit Enforcement (for Thrift & Credit Society)</label>
                                         </div>
                                     </div>
 
@@ -393,7 +393,7 @@
                                                 <option value="1">Surety Required</option>
                                                 <option value="2">No Surety Required</option>
                                             </InputSelect>
-                                            <label for="requiredSurety">Surety Requirement (for Employee Society)</label>
+                                            <label for="requiredSurety">Surety Requirement (for Thrift & Credit Society)</label>
                                         </div>
                                     </div>
 
@@ -1029,43 +1029,14 @@
     // Helper methods (same as in View page)
     private List<LoanCategoryInfo> GetLoanCategories()
     {
-        return new List<LoanCategoryInfo>
-        {
-            new LoanCategoryInfo { Category = LoanCategory.EmployeeSocietyLoans, Name = "Employee Society Loans" },
-            new LoanCategoryInfo { Category = LoanCategory.JewelLoans, Name = "Jewel Loans" },
-            new LoanCategoryInfo { Category = LoanCategory.LoansOnFixedDeposits, Name = "Loans on Fixed Deposits" },
-            new LoanCategoryInfo { Category = LoanCategory.LoansOnRecurringDeposits, Name = "Loan on Recurring Deposits"},
-            new LoanCategoryInfo { Category = LoanCategory.StaffLoans, Name = "Staff Loans" },
-            new LoanCategoryInfo { Category = LoanCategory.FarmSectorLoans, Name = "Farm Sector Loans" },
-            new LoanCategoryInfo { Category = LoanCategory.NonFarmSectorLoans, Name = "Non-Farm Sector Loans" },
-            new LoanCategoryInfo { Category = LoanCategory.RuralHousing, Name = "Rural Housing" },
-            new LoanCategoryInfo { Category = LoanCategory.SmallRoadTransportLoans, Name = "Small Road Transport Loans" },
-            // new LoanCategoryInfo { Category = LoanCategory.SuretyLoan, Name = "Surety Loans" },
-            // new LoanCategoryInfo { Category = LoanCategory.EducationLoan, Name = "Education Loans" },
-            // new LoanCategoryInfo { Category = LoanCategory.DraughtLoan, Name = "Draught Loans" }
-        }
-        // Show only the loan categories valid for this society's institution type.
-        .Where(c => LoanCategoryPolicy.IsAllowed(c.Category, institution))
-        .ToList();
+        // Only the loan categories this society type may offer, labelled per society type
+        // (Loan_Type 6 = Farm Sector for PCARDB, Housing for a Housing Society). See spec 07.
+        return LoanCategoryPolicy.GetCategoriesFor(institution)
+            .Select(c => new LoanCategoryInfo { Category = c, Name = LoanCategoryPolicy.GetDisplayName(c, institution) })
+            .ToList();
     }
 
-    private string GetCategoryName(int? purId)
-    {
-        return purId switch
-        {
-            2 => "Jewel Loans",
-            3 => "Loans on Fixed Deposits",
-            5 => "Staff Loans",
-            6 => "Farm Sector Loans",
-            7 => "Non-Farm Sector Loans",
-            8 => "Rural Housing",
-            9 => "Small Road Transport Loans",
-            10 => "Surety Loans",
-            11 => "Education Loans",
-            12 => "Draught Loans",
-            _ => "Not Specified"
-        };
-    }
+    private string GetCategoryName(int? loanType) => LoanCategoryPolicy.GetDisplayName(loanType, institution);
 
     private string GetLoanTypeName(int? loanType)
     {

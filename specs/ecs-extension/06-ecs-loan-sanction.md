@@ -2,7 +2,7 @@
 
 > Builds on [01-institution-type.md](./01-institution-type.md) and
 > [02-loan-module-design.md](./02-loan-module-design.md). The companion page,
-> **ECS Loan Disbursement**, will be specified separately in `07-ecs-loan-disbursement.md`.
+> **ECS Loan Disbursement**, will be specified separately in `08-ecs-loan-disbursement.md`.
 >
 > **Source being ported:** the TSIS WinForms form `TSISWF/TSIS/frmLoanDisbursement.cs`, with its
 > `.Designer.cs` and `.resx`. The `.resx` holds only the form icon, so there are no strings or
@@ -40,8 +40,9 @@ The Blazor app splits these into two pages.
 3. **Recoverables are fixed at sanction.** These are old-loan outstanding, share-capital shortfall,
    due-to balances, manual deductions and pending deposits. They are stored in `loan_sanction_trn`;
    the disbursement page only posts them.
-4. **Schemes** are those with `Loan_Type` ∈ {10 SuretyLoan, 11 EducationLoan, 12 DraughtLoan}, filtered
-   through `LoanCategoryPolicy`. The current controller uses `Loan_Type = 1`, which must change.
+4. **Schemes** are those with `Loan_Type = 1` (`LoanCategory.ThriftCreditLoans`), filtered through
+   `LoanCategoryPolicy`. Surety, education, draught, etc. are separate schemes under that type
+   (spec 07 §3.3; this replaces the earlier 10 / 11 / 12 filter).
 
 ---
 

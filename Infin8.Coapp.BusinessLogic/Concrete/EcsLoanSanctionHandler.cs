@@ -12,8 +12,8 @@ namespace Infin8.Coapp.BusinessLogic
     /// </summary>
     public class EcsLoanSanctionHandler : IEcsLoanSanctionHandler
     {
-        private static readonly int[] EcsSanctionLoanTypes =
-            { (int)LoanCategory.SuretyLoan, (int)LoanCategory.EducationLoan, (int)LoanCategory.DraughtLoan };
+        // Every ECS product (surety, education, draught, …) is Loan_Type 1, told apart by Scheme_Id (spec 07 §3.3).
+        private static readonly int[] EcsSanctionLoanTypes = { (int)LoanCategory.ThriftCreditLoans };
         private const double Tolerance = 0.005;
 
         readonly IUnitOfWork _unitOfWork;

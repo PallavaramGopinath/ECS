@@ -13,19 +13,24 @@ through the session. The ECS extension reuses it.
 | Loaded at login | `UserHandler.GetAppStateAsync` → `AppState.SocietyType` — `Infin8.Coapp.BusinessLogic/Concrete/UserHandler.cs` |
 | Session container | `AppState.SocietyType` (int) — `Infin8.Coapp.Utility/AppState.cs` |
 
-## Value mapping (confirmed by project owner)
+## Value mapping
 
-| `Bank_Type` | Institution |
+> **Superseded by [07-loan-type-society-type.md](./07-loan-type-society-type.md) §2.1.** The earlier
+> mapping (`2` = ECS) was wrong; ECS is `3` and `2` is Cooperative Housing Society. ECS rows with
+> `bank_type = 2` must be updated to `3` in the same release.
+
+| `Bank_Type` | Society |
 |---|---|
-| `1` | PCARDB |
-| `2` | ECS |
-| other / `0` | Unknown (treated as the incumbent PCARDB for visibility) |
+| `1` | Cooperative Primary Agriculture and Rural Development Bank (PCARDB) |
+| `2` | Cooperative Housing Society |
+| `3` | Cooperative Thrift & Credit Society (ECS) |
+| `0` / other | Unknown. Treated as PCARDB so that existing PCARDB visibility never regresses. |
 
 ## What this extension added
 
 1. **Typed enum** replacing the bare int — `Infin8.Coapp.Utility/InstitutionType.cs`
    (namespace `Infin8.Coapp.Utility.Enums`):
-   `InstitutionType { Unknown = 0, PCARDB = 1, ECS = 2 }`, plus
+   `InstitutionType { Unknown = 0, PCARDB = 1, Housing = 2, ECS = 3 }`, plus
    `int.ToInstitutionType()` extension.
 
 2. **Client availability via the auth claim pipeline** (the same path `BrCode` travels), so Blazor

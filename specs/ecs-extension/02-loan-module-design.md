@@ -5,6 +5,13 @@
 > [05-draught-loan.md](./05-draught-loan.md). Sanction screen (ported from TSIS WinForms):
 > [06-ecs-loan-sanction.md](./06-ecs-loan-sanction.md).
 
+> **Partly superseded by [07-loan-type-society-type.md](./07-loan-type-society-type.md).** `Loan_Type`
+> values 10 / 11 / 12 are **retired**: every ECS product (surety, education, draught, …) is
+> `Loan_Type 1` (`LoanCategory.ThriftCreditLoans`), told apart by `Scheme_Id` and the scheme's rule
+> columns. `LoanCategoryPolicy` is now a per-society allow-list (PCARDB / Housing / ECS), `Loan_Type 6`
+> is Farm Sector (PCARDB) or Housing (Housing Society), and PCARDB no longer sees `Loan_Type 1`.
+> The table and policy text below are kept for history.
+
 ## Decision: extend the existing `Loan_Type` discriminator ("Option A")
 
 The codebase already models all loans in a **single `Loan_Master` table** distinguished by an integer

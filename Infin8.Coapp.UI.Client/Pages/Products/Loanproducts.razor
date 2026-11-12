@@ -359,13 +359,13 @@
         }
 
         /// get farm sector loan
-        var farmSectorLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.FarmSectorLoans).ToList();
+        var farmSectorLoan = allLoans.Where(l => l.Loan_Type == (int)LoanCategory.FarmSectorOrHousingLoans).ToList();
         foreach (var loan in farmSectorLoan)
         {
             loanCategoryInfo.Add(new LoanCategoryInfo
             {
-                Category = LoanCategory.FarmSectorLoans,
-                Name = "Farm Sector Loans",
+                Category = LoanCategory.FarmSectorOrHousingLoans,
+                Name = LoanCategoryPolicy.GetDisplayName(LoanCategory.FarmSectorOrHousingLoans, institution),
                 Icon = "bi-tree",
                 SubCategories = new List<LoanSubCategory>
                 {
@@ -460,7 +460,7 @@
         //     },
         //     new LoanCategoryInfo
         //     {
-        //         Category = LoanCategory.FarmSectorLoans,
+        //         Category = LoanCategory.FarmSectorOrHousingLoans,
         //         Name = "Farm Sector Loans",
         //         Icon = "bi-tree",
         //         SubCategories = new List<LoanSubCategory>
@@ -536,7 +536,7 @@
             {
                 case 1:
                     icode = "bi-people";
-                    catogery = LoanCategory.EmployeeSocietyLoans;
+                    catogery = LoanCategory.ThriftCreditLoans;
                     break;
                 case 2:
                     catogery = LoanCategory.JewelLoans;
@@ -555,7 +555,7 @@
                     icode = "bi-people";
                     break;
                 case 6:
-                    catogery = LoanCategory.FarmSectorLoans;
+                    catogery = LoanCategory.FarmSectorOrHousingLoans;
                     icode = "bi-tree";
                     break;
                 case 7: /// Non farm sector
@@ -570,18 +570,6 @@
                     catogery = LoanCategory.SmallRoadTransportLoans;
                     icode = "bi-truck";
                     break;
-                case 10: /// ECS surety loan
-                    catogery = LoanCategory.SuretyLoan;
-                    icode = "bi-person-check";
-                    break;
-                case 11: /// ECS education loan
-                    catogery = LoanCategory.EducationLoan;
-                    icode = "bi-mortarboard";
-                    break;
-                case 12: /// ECS draught loan
-                    catogery = LoanCategory.DraughtLoan;
-                    icode = "bi-cash-coin";
-                    break;
                 default:
                     icode = "bi-question-circle";
                     break;
@@ -591,7 +579,9 @@
                 // Name = loan.Scheme_Name , // "Jewel Loans",
                 // Name = schemeGroupList.Where(x=> x.Grp_Id == Convert.ToInt16( catogery) ) .Select(x=> x.Grp_Name ).FirstOrDefault(),
                 Category = catogery,
-                Name = schemeGroupList.Where(x => x.Grp_Id == Convert.ToInt16(catogery)).Select(x => x.Grp_Name).FirstOrDefault(),
+                // Group name from the DB; fall back to the society-aware label (Loan_Type 6 differs by society).
+                Name = schemeGroupList.Where(x => x.Grp_Id == Convert.ToInt16(catogery)).Select(x => x.Grp_Name).FirstOrDefault()
+                       is { Length: > 0 } grpName ? grpName : LoanCategoryPolicy.GetDisplayName(catogery, institution),
                 Icon = icode,
                 SubCategories = new List<LoanSubCategory>
                 {
@@ -599,8 +589,8 @@
                 }
             });
         }
-        // Only surface categories that apply to this society's institution type
-        // (e.g. PCARDB never sees ECS-only Surety/Education/Draught and vice versa).
+        // Only surface categories this society type may offer (spec 07 §4): e.g. PCARDB never sees
+        // Thrift & Credit loans (1), Housing and ECS never see 7–9, ECS never sees 6.
         return loanCategoryInfo
             .Where(c => LoanCategoryPolicy.IsAllowed(c.Category, institution))
             .ToList();
