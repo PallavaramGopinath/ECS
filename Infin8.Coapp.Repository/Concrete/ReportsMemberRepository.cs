@@ -619,32 +619,36 @@ namespace Infin8.Coapp.Repository
             List<rptMemberCancellation> memTrnList = new List<rptMemberCancellation>();
             try
             {
-                decimal cashLedId = CSISContext.Map_General.Select(x => x.Cash_Led_Id).FirstOrDefault();
+                decimal cashLedId = CSISContext.Map_General.Where(x => x.BrCode == brCode).Select(x => x.Cash_Led_Id).FirstOrDefault();
+
+                // Vouchers in the period that carry a share-capital refund line (status "DP").
+                var cancelVocIds = from v in CSISContext.Fin_Voucher
+                                   where !v.Voc_Delete && v.BrCode == brCode && v.Voc_Status == "V"
+                                         && v.Voc_Date >= fromDate && v.Voc_Date <= toDate
+                                         && CSISContext.Fin_Voucher_Trn.Any(t => t.Voc_Id == v.Voc_Id && t.Status == "DP"
+                                                                                  && t.BrCode == brCode && t.Voc_Status == "V")
+                                   select v.Voc_Id;
 
                 var memTrnListTmp = await (from fv in CSISContext.Fin_Voucher
                                            join mm in CSISContext.mem_master on fv.Mem_Id equals mm.mem_id
-                                           join gvb in CSISContext.Fin_Voucher_Bank on fv.Voc_Id equals gvb.Voc_Id into gj
+                                           join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id
+                                           // optional rows: filter inside the join so a missing row keeps the voucher
+                                           join gvb in CSISContext.Fin_Voucher_Bank.Where(b => b.BrCode == brCode && b.Voc_Status == "V")
+                                               on fv.Voc_Id equals gvb.Voc_Id into gj
                                            from gvb in gj.DefaultIfEmpty()
-                                           join fvt in CSISContext.Fin_Voucher_Trn on fv.Voc_Id equals fvt.Voc_Id into fvtj
-                                           from fvt in fvtj.DefaultIfEmpty()
-                                           join fl in CSISContext.Fin_Ledger on fvt.Led_Id equals fl.Led_Id into flj
+                                           join fl in CSISContext.Fin_Ledger.Where(l => l.BrCode == brCode)
+                                               on fvt.Led_Id equals fl.Led_Id into flj
                                            from fl in flj.DefaultIfEmpty()
-                                           where CSISContext.Fin_Voucher.Where(fvSub => fvSub.Voc_Delete == false &&
-                                                                                    CSISContext.Fin_Voucher_Trn.Where(fvtrSub => fvtrSub.Status == "DP")
-                                                                                           .Select(fvtrSub => fvtrSub.Voc_Id)
-                                                                                           .Contains(fvSub.Voc_Id) &&
-                                                                                    fvSub.Voc_Date >= fromDate && fvSub.Voc_Date <= toDate)
-                                                                     .Select(fvSub => fvSub.Voc_Id)
-                                                                     .Contains(fv.Voc_Id) &&
-                                                 !CSISContext.Map_Banks.Select(mb => mb.Led_Id).Contains(fvt.Led_Id) &&
-                                                 fvt.Led_Id != cashLedId
+                                           where cancelVocIds.Contains(fv.Voc_Id)
                                                  && fv.BrCode == brCode && fv.Voc_Status == "V"
-                                                 && gvb.BrCode == brCode && gvb.Voc_Status == "V"
-                                                 && fvt.BrCode == brCode && fvt.Voc_Status == "V"
+                                                 && mm.brcode == brCode
+                                                 && fvt.BrCode == brCode && fvt.Voc_Status == "V" && !fvt.FinVocTr_Delete
+                                                 && fvt.Led_Id != cashLedId
+                                                 && !CSISContext.Map_Banks.Where(mb => mb.BrCode == brCode).Select(mb => mb.Led_Id).Contains(fvt.Led_Id)
                                            orderby mm.memberno ascending
                                            select new rptMemberCancellation
                                            {
-                                               Mem_Id = mm.mem_id, // Assuming Mem_Id is available in Mem_Master
+                                               Mem_Id = mm.mem_id,
                                                MemberNo = mm.memberno,
                                                PerNo = mm.perno,
                                                MemberName = mm.membername,
@@ -913,86 +917,68 @@ namespace Infin8.Coapp.Repository
             return memList;
         }
 
-        public async Task<List<rptMemberVoutersList>> GetMemberAddress(string fromMemNo, string toMemNo, List<int> memberTypeList, List<int> memberStatusList)
+        /// <summary>
+        /// Members' address list (report 140). memberStatus 1 = active, 2 = non-active, 3 = both.
+        /// Only members with a positive share-capital balance are listed, as in TSIS.
+        /// </summary>
+        public async Task<List<rptMemberVoutersList>> GetMemberAddress(List<int> memberTypeList, int memberStatus, string brCode)
         {
-            List<rptMemberVoutersList> memList = new List<rptMemberVoutersList>();
-            try
-            {
-                var memListTmp = await (from mm in CSISContext.mem_master
-                                        join mt in CSISContext.Mem_Trn on mm.mem_id equals mt.Mem_Id into mt_join
-                                        from mt in mt_join.DefaultIfEmpty()
-                                        join rdCaste in CSISContext.Refer_Data on mm.caste_id equals rdCaste.ReferId into rdCaste_join
-                                        from rdCaste in rdCaste_join.DefaultIfEmpty()
-                                        join rdComm in CSISContext.Refer_Data on mm.comm_id equals rdComm.ReferId into rdComm_join
-                                        from rdComm in rdComm_join.DefaultIfEmpty()
-                                        join area in CSISContext.Refer_Area on mm.prearea_id equals area.Area_Id into area_join
-                                        from area in area_join.DefaultIfEmpty()
-                                        where mm.membertype == 1 &&
-                                              mm.memberdelete == false &&
-                                              memberTypeList.Contains(mm.membertype) && // Assuming memberTypeList is List<int>
-                                              memberStatusList.Contains(mm.memberstatus) && // Assuming memberStatusList is List<string>
-                                              mm.isaccountclosed == false &&
-                                              mt.MemTrn_Delete == false
-                                        group new { mm, mt, rdCaste, rdComm, area } by new
-                                        {
-                                            mm.memberno,
-                                            mm.membername,
-                                            mm.fathername,
-                                            mm.perno,
-                                            mm.gender,
-                                            mm.admissiondate,
-                                            mm.dob,
-                                            mm.preadd1,
-                                            mm.preadd2,
-                                            mm.preadd3,
-                                            mm.prepin,
-                                            mm.mobileno,
-                                            area.Area_Name,
-                                            mm.smartcardno,
-                                            mm.aadharno,
-                                            CasteName = rdCaste.ReferName, // Alias for Caste Name
-                                            CommunityName = rdComm.ReferName, // Alias for Community Name
-                                            mm.bankname,
-                                            mm.ifsccode,
-                                            mm.gpf_no,
-                                            mm.panno,
-                                            mm.membertype
-                                        } into g
-                                        where (g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt)) > 0 &&
-                                              g.Key.memberno.CompareTo(fromMemNo) >= 0 &&
-                                              g.Key.memberno.CompareTo(toMemNo) <= 0
-                                        orderby g.Key.membertype, g.Key.memberno
-                                        select new rptMemberVoutersList
-                                        {
-                                            MemberNo = g.Key.memberno,
-                                            MemberName = g.Key.membername,
-                                            FatherName = g.Key.fathername,
-                                            PerNo = g.Key.perno,
-                                            GenderName = g.Key.gender == 1 ? "Male" : "Female",
-                                            Admissiondate = g.Key.admissiondate,
-                                            Dob = g.Key.dob,
-                                            Address = (g.Key.preadd1 != null && g.Key.preadd1.Length > 0 ? g.Key.preadd1 : "") +
-                                                      (g.Key.preadd2 != null && g.Key.preadd2.Length > 0 ? "," + g.Key.preadd2 : "") +
-                                                      (g.Key.preadd3 != null && g.Key.preadd3.Length > 0 ? "," + g.Key.preadd3 : "") +
-                                                      (g.Key.prepin != null && g.Key.prepin.Length > 0 ? "," + g.Key.prepin : ""),
-                                            MobileNo = g.Key.mobileno,
-                                            AreaName = g.Key.Area_Name,
-                                            SmartCardNo = g.Key.smartcardno,
-                                            AadharNo = g.Key.aadharno,
-                                            Caste = g.Key.CasteName,
-                                            Community = g.Key.CommunityName, // Assuming the alias 'commu' maps to ReferName
-                                            BankName = g.Key.bankname,
-                                            IFSCCode = g.Key.ifsccode,
-                                            GPF_No = g.Key.gpf_no,
-                                            PANNo = g.Key.panno
-                                        }).ToListAsync();
-                if (memListTmp != null) memList = memListTmp;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-            return memList;
+            var statuses = memberStatus == 3 ? new List<int> { 1, 2 } : new List<int> { memberStatus };
+            return await (from mm in CSISContext.mem_master
+                          join mt in CSISContext.Mem_Trn on mm.mem_id equals mt.Mem_Id
+                          join rdCaste in CSISContext.Refer_Data.Where(r => r.BrCode == brCode) on mm.caste_id equals rdCaste.ReferId into rdCaste_join
+                          from rdCaste in rdCaste_join.DefaultIfEmpty()
+                          join rdComm in CSISContext.Refer_Data.Where(r => r.BrCode == brCode) on mm.comm_id equals rdComm.ReferId into rdComm_join
+                          from rdComm in rdComm_join.DefaultIfEmpty()
+                          join area in CSISContext.Refer_Area.Where(a => a.BrCode == brCode) on mm.prearea_id equals area.Area_Id into area_join
+                          from area in area_join.DefaultIfEmpty()
+                          where mm.brcode == brCode && mt.BrCode == brCode &&
+                                !mm.memberdelete && !mm.isaccountclosed && !mt.MemTrn_Delete &&
+                                memberTypeList.Contains(mm.membertype) &&
+                                statuses.Contains(mm.memberstatus)
+                          group new { mm, mt, rdCaste, rdComm, area } by new
+                          {
+                              mm.mem_id, mm.memberno, mm.membername, mm.fathername, mm.perno, mm.token_personno,
+                              mm.gender, mm.admissiondate, mm.dob, mm.preadd1, mm.preadd2, mm.preadd3, mm.prepin,
+                              mm.mobileno, area.Area_Name, mm.smartcardno, mm.aadharno,
+                              CasteName = rdCaste.ReferName, CommunityName = rdComm.ReferName,
+                              mm.bankname, mm.ifsccode, mm.gpf_no, mm.panno, mm.membertype, mm.memberstatus
+                          } into g
+                          where g.Sum(x => x.mt.Rpt_Amt) - g.Sum(x => x.mt.Pmt_Amt) > 0
+                          orderby g.Key.membertype, g.Key.memberno
+                          select new rptMemberVoutersList
+                          {
+                              Mem_Id = g.Key.mem_id,
+                              MemberType = g.Key.membertype,
+                              memberStatus = g.Key.memberstatus,
+                              MemberNo = g.Key.memberno,
+                              MemberName = g.Key.membername,
+                              FatherName = g.Key.fathername,
+                              PerNo = g.Key.perno,
+                              Token_PersonNo = g.Key.token_personno,
+                              Gender = g.Key.gender,
+                              GenderName = g.Key.gender == 1 ? "Male" : "Female",
+                              Admissiondate = g.Key.admissiondate,
+                              Dob = g.Key.dob,
+                              PreAdd1 = g.Key.preadd1,
+                              PreAdd2 = g.Key.preadd2,
+                              PreAdd3 = g.Key.preadd3,
+                              PrePin = g.Key.prepin,
+                              Address = (g.Key.preadd1 != null && g.Key.preadd1.Length > 0 ? g.Key.preadd1 : "") +
+                                        (g.Key.preadd2 != null && g.Key.preadd2.Length > 0 ? "," + g.Key.preadd2 : "") +
+                                        (g.Key.preadd3 != null && g.Key.preadd3.Length > 0 ? "," + g.Key.preadd3 : "") +
+                                        (g.Key.prepin != null && g.Key.prepin.Length > 0 ? "," + g.Key.prepin : ""),
+                              MobileNo = g.Key.mobileno,
+                              AreaName = g.Key.Area_Name,
+                              SmartCardNo = g.Key.smartcardno,
+                              AadharNo = g.Key.aadharno,
+                              Caste = g.Key.CasteName,
+                              Community = g.Key.CommunityName,
+                              BankName = g.Key.bankname,
+                              IFSCCode = g.Key.ifsccode,
+                              GPF_No = g.Key.gpf_no,
+                              PANNo = g.Key.panno
+                          }).ToListAsync();
         }
 
         public async Task<List<rptMemberNewAdmission>> GetRptNewMembers(DateTime fromDate, DateTime toDate, string brCode)

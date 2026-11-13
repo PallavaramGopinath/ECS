@@ -16,7 +16,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<rptMemberList>> GetMemberList(DateTime asOnDate, List<int> memberTypeList, int memberStatus, string brCode);
         Task<List<rptMemberRegister>> GetMemberRegister(decimal memId);
         Task<List<rptMemberVoutersList>> GetMemberVoutersList(DateTime asOnDate, List<int> memberTypeList, List<int> memberStatusList, int minimumSCBalance, string brCode);
-        Task<List<rptMemberVoutersList>> GetMemberAddress(string fromMemNo, string toMemNo, List<int> memberTypeList, List<int> memberStatusList);
+        Task<List<rptMemberVoutersList>> GetMemberAddress(List<int> memberTypeList, int memberStatus, string brCode);
         Task<List<rptMemberNewAdmission>> GetRptNewMembers(DateTime fromDate, DateTime toDate, string brCode);
         //Task<List<rptMemberKYC>> GetMemberKYC(decimal memId);
         Task<byte[]> GetShareCapitalToPrintAsBytes(string datasetName, DateTime fromDate, DateTime toDate, int trnType, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
@@ -25,6 +25,8 @@ namespace Infin8.Coapp.BusinessLogic
         Task<byte[]> GetMemberVoutersListToPrintAsBytes(string datasetName, DateTime asOnDate, List<int> memberTypeList, int memberStatus, int minimumSCBalance, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
         Task<byte[]> GetMemberRegisterToPrintAsBytes(string datasetName, decimal memId, FileStream reportStream, Dictionary<string, string> parameters);
 
+        Task<byte[]> GetMemberAddressToPrintAsBytes(string datasetName, List<int> memberTypeList, int memberStatus, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
+        Task<byte[]> GetMemberCancellationToPrintAsBytes(string datasetName, DateTime fromDate, DateTime toDate, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
         Task<byte[]> GetNewMembersToPrintAsBytes(string datasetName, DateTime fromDate, DateTime toDate, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
         Task<byte[]> GetMemberKYCToPrintAsBytes(string datasetName, decimal memId, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
     }

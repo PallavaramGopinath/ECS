@@ -110,9 +110,9 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.ReportsMember.GetMemberVoutersList(asOnDate, memberTypeList, memberStatusList, minimumSCBalance, brCode);
         }
 
-        public async Task<List<rptMemberVoutersList>> GetMemberAddress(string fromMemNo, string toMemNo, List<int> memberTypeList, List<int> memberStatusList)
+        public async Task<List<rptMemberVoutersList>> GetMemberAddress(List<int> memberTypeList, int memberStatus, string brCode)
         {
-            return await _unitOfWork.ReportsMember.GetMemberAddress(fromMemNo, toMemNo, memberTypeList, memberStatusList);
+            return await _unitOfWork.ReportsMember.GetMemberAddress(memberTypeList, memberStatus, brCode);
         }
         public async Task<List<rptMemberNewAdmission>> GetRptNewMembers(DateTime fromDate, DateTime toDate, string brCode)
         {
@@ -166,6 +166,16 @@ namespace Infin8.Coapp.BusinessLogic
             var memberListEnumerable = memberList as IEnumerable<rptMemberNewAdmission> ?? memberList.ToList();
             var pdfAsBytes = _createReportsHandler.CreateLocalReport(datasetName, reportStream, memberListEnumerable, parameters);
             return pdfAsBytes;
+        }
+        public async Task<byte[]> GetMemberAddressToPrintAsBytes(string datasetName, List<int> memberTypeList, int memberStatus, string brCode, FileStream reportStream, Dictionary<string, string> parameters)
+        {
+            var rows = await _unitOfWork.ReportsMember.GetMemberAddress(memberTypeList, memberStatus, brCode);
+            return _createReportsHandler.CreateLocalReport(datasetName, reportStream, rows, parameters);
+        }
+        public async Task<byte[]> GetMemberCancellationToPrintAsBytes(string datasetName, DateTime fromDate, DateTime toDate, string brCode, FileStream reportStream, Dictionary<string, string> parameters)
+        {
+            var rows = await _unitOfWork.ReportsMember.GetMemberCancellation(fromDate, toDate, brCode);
+            return _createReportsHandler.CreateLocalReport(datasetName, reportStream, rows, parameters);
         }
         public async Task<byte[]> GetMemberKYCToPrintAsBytes(string datasetName, decimal memId, string brCode, FileStream reportStream, Dictionary<string, string> parameters)
         {

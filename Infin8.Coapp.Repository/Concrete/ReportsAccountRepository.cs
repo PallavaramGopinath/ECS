@@ -25,22 +25,6 @@ namespace Infin8.Coapp.Repository
             List<rptLedgerNameList> ledList = new List<rptLedgerNameList>();
             try
             {
-                #region query
-                ledList = CSISContext.Database.SqlQueryRaw<rptLedgerNameList>(
-                        @"SELECT Fin_Ledger_Fnl.Fnl_Id, 
-                        Fin_Ledger_Fnl.Fnl_Name, 
-                        Fin_Ledger_Grp.Grp_SlNo, 
-                        Fin_Ledger_Grp.Grp_Id, 
-                        Fin_Ledger_Grp.Grp_Name, 
-                        Fin_Ledger.Led_SlNo, 
-                        Fin_Ledger.Led_Id, 
-                        Fin_Ledger.Led_Name
-                        FROM  Fin_Ledger INNER JOIN Fin_Ledger_Grp ON Fin_Ledger.Grp_Id = Fin_Ledger_Grp.Grp_Id 
-                        INNER JOIN Fin_Ledger_Fnl  ON Fin_Ledger_Grp.Fnl_Id = Fin_Ledger_Fnl.Fnl_Id
-                        WHERE (Fin_Ledger.Led_Delete = false) AND (Fin_Ledger_Grp.Grp_Delete = false)
-                        ORDER BY Fin_Ledger_Fnl.Fnl_Id, Fin_Ledger_Grp.Grp_SlNo, Fin_Ledger.Led_SlNo").ToList();
-                #endregion 
-
                 var ledListTmp = await (from fl in CSISContext.Fin_Ledger // Replace YourFinLedgerEntity
                                         join flg in CSISContext.Fin_Ledger_Grp // Replace YourFinLedgerGrpEntity
                                             on fl.Grp_Id equals flg.Grp_Id

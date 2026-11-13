@@ -317,6 +317,7 @@ else
             switch (rptAccObject.ReportId)
             {
                 case 31:    /// Ledger name list
+                    await Print_LedgerNameList();
                     break;
                 case 32:    /// Chitta book
                     await Print_ChittaBook();
@@ -347,6 +348,32 @@ else
             _isFetchingData = false;
         }
         _isFetchingData = false;
+    }
+
+    private async Task Print_LedgerNameList()
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync<rptReportAccountObject>($"api/ReportsAccount/print-ledgerName", rptAccObject);
+            if (response.IsSuccessStatusCode)
+            {
+                fileBytes = await response.Content.ReadAsByteArrayAsync();
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    Console.WriteLine("Error: API returned a success status code but with no content.");
+                    return;
+                }
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(fileBytes));
+            }
+            else
+            {
+                Console.WriteLine($"Error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
     }
 
     private async Task Print_ChittaBook()

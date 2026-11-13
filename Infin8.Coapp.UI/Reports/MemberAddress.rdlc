@@ -462,7 +462,7 @@
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="address">
-          <DataField>address</DataField>
+          <DataField>Address</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="Admissiondate">
@@ -486,7 +486,7 @@
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="DOB">
-          <DataField>DOB</DataField>
+          <DataField>Dob</DataField>
           <rd:TypeName>System.Nullable`1[[System.DateTime, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
         <Field Name="FatherName">
@@ -506,19 +506,19 @@
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="IFCCode">
-          <DataField>IFCCode</DataField>
+          <DataField>IFSCCode</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="mem_Id">
-          <DataField>mem_Id</DataField>
+          <DataField>Mem_Id</DataField>
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
         <Field Name="memberName">
-          <DataField>memberName</DataField>
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="memberNo">
-          <DataField>memberNo</DataField>
+          <DataField>MemberNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="memberStatus">
@@ -526,7 +526,7 @@
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="memberType">
-          <DataField>memberType</DataField>
+          <DataField>MemberType</DataField>
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
         <Field Name="memberTypeName">
@@ -534,7 +534,7 @@
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="mobileNo">
-          <DataField>mobileNo</DataField>
+          <DataField>MobileNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="PANNo">

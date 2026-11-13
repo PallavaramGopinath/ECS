@@ -188,6 +188,43 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpGet]
+        [Route("GetMemberAddress")]
+        public async Task<byte[]> GetMemberAddress([FromQuery] List<int> memberTypeList, [FromQuery] int memberStatus, [FromQuery] int reportId, [FromQuery] string brCode)
+        {
+            var report = await _reportsHandler.GetReportNameWithSignature(reportId);
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
+            // MemberAddress.rdlc is an address-label sheet and declares no report parameters.
+            var parameters = new Dictionary<string, string>();
+            byte[] pdfAsBytes;
+            using (FileStream stream = System.IO.File.OpenRead(path))
+            {
+                pdfAsBytes = await _reportsMemberHandler.GetMemberAddressToPrintAsBytes("DS_MemberAddress", memberTypeList, memberStatus, brCode, stream, parameters);
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        [HttpGet]
+        [Route("GetMemberCancellation/{fromDateStr}/{toDateStr}/{reportId:int}/{brCode}")]
+        public async Task<byte[]> GetMemberCancellation(string fromDateStr, string toDateStr, int reportId, string brCode)
+        {
+            DateTime.TryParse(fromDateStr, out DateTime fromDate);
+            DateTime.TryParse(toDateStr, out DateTime toDate);
+            var report = await _reportsHandler.GetReportNameWithSignature(reportId);
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
+            var parameters = new Dictionary<string, string>
+            {
+                { "paramSocietyName", await _generalHandler.GetSocietyName(brCode) },
+                { "paramReportHeader", "Members Cancellation from " + fromDate.ToString("dd-MM-yyyy") + " to " + toDate.ToString("dd-MM-yyyy") }
+            };
+            byte[] pdfAsBytes;
+            using (FileStream stream = System.IO.File.OpenRead(path))
+            {
+                pdfAsBytes = await _reportsMemberHandler.GetMemberCancellationToPrintAsBytes("Ds_MemberCancellation", fromDate, toDate, brCode, stream, parameters);
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        [HttpGet]
         [Route("GetMemberKYC/{memId:decimal}/{reportId:int}/{brCode}")]
         public async Task<byte[]> GetMemberKYC(decimal memId, int reportId, string brCode)
         {

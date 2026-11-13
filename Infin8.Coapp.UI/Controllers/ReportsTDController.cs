@@ -143,7 +143,7 @@ namespace Infin8.Coapp.UI.Controllers
                     if (rptObject.ReportId == 41)
                     {
                         reportHeader = "Fixed Deposit Outstanding as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy") + " Mem No-Wise";
-                        tdList = tdList!.OrderBy(x => x.MemberNo).ThenBy(x => x.TD_No).ToList();
+                        tdOutstandingList = tdOutstandingList.OrderBy(x => x.MemberNo).ThenBy(x => x.TD_No).ToList();
                     }
                     if (rptObject.ReportId == 123)
                     {
@@ -156,7 +156,10 @@ namespace Infin8.Coapp.UI.Controllers
                     if (rptObject.ReportId == 52)
                         reportHeader = "Recurring Deposit Outstanding as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy") + " RD No-wise";
                     if (rptObject.ReportId == 51)
+                    {
                         reportHeader = "Recurring Deposit Outstanding as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy") + " Mem No-wise";
+                        tdOutstandingList = tdOutstandingList.OrderBy(x => x.MemberNo).ThenBy(x => x.TD_No).ToList();
+                    }
                 }
                 var parameters = new[]
                 {
@@ -213,7 +216,7 @@ namespace Infin8.Coapp.UI.Controllers
                     if (rptObject.ReportId == 41)
                     {
                         reportHeader = "Fixed Deposit Outstanding as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy") + " Mem No-Wise";
-                        tdList = tdList!.OrderBy(x => x.MemberNo).ThenBy(x => x.TD_No).ToList();
+                        tdOutstandingList = tdOutstandingList.OrderBy(x => x.MemberNo).ThenBy(x => x.TD_No).ToList();
                     }
                     if (rptObject.ReportId == 123)
                     {
@@ -226,7 +229,10 @@ namespace Infin8.Coapp.UI.Controllers
                     if (rptObject.ReportId == 52)
                         reportHeader = "Recurring Deposit Outstanding as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy") + " RD No-wise";
                     if (rptObject.ReportId == 51)
+                    {
                         reportHeader = "Recurring Deposit Outstanding as on " + rptObject.AsOnDate.ToString("dd-MM-yyyy") + " Mem No-wise";
+                        tdOutstandingList = tdOutstandingList.OrderBy(x => x.MemberNo).ThenBy(x => x.TD_No).ToList();
+                    }
                 }
                 var parameters = new[]
                 {

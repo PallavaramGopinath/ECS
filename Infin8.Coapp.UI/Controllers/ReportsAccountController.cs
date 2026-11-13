@@ -31,6 +31,31 @@ namespace Infin8.Coapp.UI.Controllers
         }
 
         [HttpPost]
+        [Route("print-ledgerName")]
+        public async Task<FileContentResult> Print_LedgerNameList(rptReportAccountObject rptObject)
+        {
+            byte[] pdfAsBytes = Array.Empty<byte>();
+            societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
+            Reports_Master report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
+            LocalReport localReport = new LocalReport { EnableExternalImages = true };
+            using (FileStream stream = System.IO.File.OpenRead(path))
+            {
+                localReport.LoadReportDefinition(stream);
+            }
+
+            var ledgers = await _reportsAccountHandler.GetLedgerNameList(rptObject.BrCode!);
+            localReport.DataSources.Add(new ReportDataSource("Ds_LedgerNameList", ledgers));
+            localReport.SetParameters(new[]
+            {
+                new ReportParameter("paramSocietyName", societyName),
+                new ReportParameter("paramReportHeader", "Ledger Name List")
+            });
+            pdfAsBytes = localReport.Render("PDF");
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        [HttpPost]
         [Route("print-chitta")]
         public async Task<FileContentResult> Print_Chtta(rptReportAccountObject rptObject)
         {

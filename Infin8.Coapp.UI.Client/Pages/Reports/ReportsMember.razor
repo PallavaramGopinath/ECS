@@ -353,6 +353,7 @@ else
                     isAsonDate = true;
                     break;
                 case 140: /// Member address in A4 sheet
+                    isMemberTypeStatus = true;
                     break;
                 case 142:   /// Member new admission
                     isBetweenDates = true;
@@ -433,7 +434,7 @@ else
                     await Print_MemberTrnOSLedgerWise(rptObject.ToDate, 1, rptObject.ReportId, rptObject.BrCode!);
                     break;
                 case 9:    /// Member cancellation
-                    isBetweenDates = true;
+                    await Print_MemberCancellation(rptObject.FromDate, rptObject.ToDate, rptObject.ReportId, rptObject.BrCode!);
                     break;
                 case 10:   /// Members List
                     await Print_MembersList();
@@ -445,6 +446,7 @@ else
                     await Print_MembersVoutersList();
                     break;
                 case 140: /// Member address in A4 sheet
+                    await Print_MemberAddress();
                     break;
                 case 142:   /// Member new admission
                     await Print_MembersNewAdmission(rptObject.FromDate, rptObject.ToDate, rptObject.ReportId, rptObject.BrCode!);
@@ -578,6 +580,19 @@ else
 
             throw;
         }
+    }
+    private async Task Print_MemberAddress()
+    {
+        var query = new System.Text.StringBuilder();
+        foreach (var t in selectedItems) query.Append($"memberTypeList={t.Value}&");
+        query.Append($"memberStatus={rptObject.MemberStatus}&reportId={rptObject.ReportId}&brCode={rptObject.BrCode}");
+        var fileBytes = await _httpClient.GetFromJsonAsync<byte[]>($"api/ReportsMember/GetMemberAddress?{query}");
+        await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(fileBytes!));
+    }
+    private async Task Print_MemberCancellation(DateTime fromDate, DateTime toDate, int reportId, string brCode)
+    {
+        var fileBytes = await _httpClient.GetFromJsonAsync<byte[]>($"api/ReportsMember/GetMemberCancellation/{fromDate:yyyy-MM-dd}/{toDate:yyyy-MM-dd}/{reportId}/{brCode}");
+        await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(fileBytes!));
     }
     private async Task Print_MembersNewAdmission(DateTime fromDate, DateTime toDate, int reportId, string brCode)
     {
