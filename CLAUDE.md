@@ -317,9 +317,14 @@ Every controller builds that path with `Path.Combine(ContentRootPath, "Reports",
 used `$"{ContentRootPath}\\Reports\\"` with Windows backslashes, which throws `FileNotFoundException` on a Mac
 before the renderer is reached; don't reintroduce it.
 
-`reports_master` names ~47 report files (`.rdlc` and a few Crystal `.rpt`) that are **not** in
-`Infin8.Coapp.UI/Reports/` (e.g. `LoanLedger.rdlc`, `Demand_Vertical.rdlc`). Those reports fail on every host
-with `FileNotFoundException`; check the file exists before debugging the RDLC or the data.
+About 40 `reports_master` rows came over in the Access migration from the old TSIS WinForms system and have
+**no ECS code behind them** — no controller builds their dataset. Their `.rdlc` files were copied unchanged
+from TSIS (e.g. `LoanLedger.rdlc`, `Demand_Vertical.rdlc`, the `Dividend*` and `IT*` reports), so they will not
+render until someone writes the controller and dataset; most ECS reports were adapted from their TSIS
+originals, so expect to edit the `.rdlc` too (its `<DataSet Name>` must match the C# side). Seven files exist
+nowhere and are still missing: five Crystal `.rpt` files (`DepositFWDFWS`, `JLMemberWiseOutstanding`,
+`JLMembewiseOutstanding`, `JLVerificationStatement_ornaments`, `MembersDividendIntOnTDPendingList`),
+`PersonalRegisterSociety.rdlc` and `RecurringDepositRegister_New.rdlc`.
 
 Reports are **discovered from the `Reports_Master` database table**, not the filesystem — adding a
 report requires a DB row, not just a file. The `.rdlc` `<DataSet Name="...">` must match the dataset
