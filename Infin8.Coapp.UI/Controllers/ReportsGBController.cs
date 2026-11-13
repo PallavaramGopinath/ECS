@@ -43,7 +43,7 @@ namespace Infin8.Coapp.UI.Controllers
                 master = await _memPayableMasterHandler.GetMemPayableMasterByPbleMasterId(pbleMasterId, brCode);
                 societyName = await _generalHandler.GetSocietyName(brCode);
                 report = await _reportHandler.GetReportNameWithSignature(reportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
 
                 if (reportId == 56)
                     reportHeader = "Dividend working sheet  from " + master.FromDate .ToString("dd-MM-yyyy") + " to " + master.ToDate .ToString("dd-MM-yyyy");
@@ -86,7 +86,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptLoanOutstanding> loanList = new();
                 societyName = await _generalHandler.GetSocietyName(brCode);
                 report = await _reportHandler.GetReportNameWithSignature(reportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
 
                 if (reportId == 97)
                     reportHeader = "Dividend Pending List Year-Wise as on " + asOnDate;
@@ -128,7 +128,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptLoanOutstanding> loanList = new();
                 societyName = await _generalHandler.GetSocietyName(brCode);
                 report = await _reportHandler.GetReportNameWithSignature(reportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
               
                 reportHeader = "Dividend Paid for the period from " + fromDate + "to " + toDate ;
 

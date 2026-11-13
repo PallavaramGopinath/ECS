@@ -48,7 +48,7 @@ namespace Infin8.Coapp.UI.Controllers
             DateTime.TryParse(fromDateStr, out DateTime fromDate);
             DateTime.TryParse(toDateStr, out DateTime toDate);
             var report = await _reportsHandler.GetReportNameWithSignature(reportId);
-            var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
             var societyName = await _generalHandler.GetSocietyName(brCode);
             var parameters = new Dictionary<string, string>
             {
@@ -84,7 +84,7 @@ namespace Infin8.Coapp.UI.Controllers
             }
             DateTime.TryParse(toDateStr, out DateTime toDate);
             var report = await _reportsHandler.GetReportNameWithSignature(reportId);
-            var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
             var societyName = await _generalHandler.GetSocietyName(brCode);
             var parameters = new Dictionary<string, string>
             {
@@ -105,7 +105,7 @@ namespace Infin8.Coapp.UI.Controllers
         public async Task<byte[]> GetMemberList([FromQuery] DateTime asOnDate,[FromQuery] List<int> memberTypeList, [FromQuery] int memberStatus, [FromQuery] int reportId, [FromQuery] string brCode)
         {
             var report = await _reportsHandler.GetReportNameWithSignature(reportId);
-            var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
             var societyName = await _generalHandler.GetSocietyName(brCode);
             var parameters = new Dictionary<string, string>
             {
@@ -126,7 +126,7 @@ namespace Infin8.Coapp.UI.Controllers
         public async Task<byte[]> GetMemberVoutersList([FromQuery] DateTime asOnDate, [FromQuery] List<int> memberTypeList, [FromQuery] int memberStatus,[FromQuery] int minimumSCBalance, [FromQuery] int reportId, [FromQuery] string brCode)
         {
             var report = await _reportsHandler.GetReportNameWithSignature(reportId);
-            var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
             var societyName = await _generalHandler.GetSocietyName(brCode);
             var parameters = new Dictionary<string, string>
             {
@@ -147,7 +147,7 @@ namespace Infin8.Coapp.UI.Controllers
         public async Task<byte[]> GetMemberRegister(decimal memId, int reportId,string brCode)
         {
             var report = await _reportsHandler.GetReportNameWithSignature(reportId);
-            var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
             var societyName = await _generalHandler.GetSocietyName(brCode);
             //var kyc = await _reportsMemberHandler.GetMemberKYC(memId);
             var parameters = new Dictionary<string, string>
@@ -171,7 +171,7 @@ namespace Infin8.Coapp.UI.Controllers
             DateTime.TryParse(fromDateStr, out DateTime fromDate);
             DateTime.TryParse(toDateStr, out DateTime toDate);
             var report = await _reportsHandler.GetReportNameWithSignature(reportId);
-            var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
             var societyName = await _generalHandler.GetSocietyName(brCode);
             var parameters = new Dictionary<string, string>
             {
@@ -192,7 +192,7 @@ namespace Infin8.Coapp.UI.Controllers
         public async Task<byte[]> GetMemberKYC(decimal memId, int reportId, string brCode)
         {
             var report = await _reportsHandler.GetReportNameWithSignature(reportId);
-            var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
             var societyName = await _generalHandler.GetSocietyName(brCode);
             //var kyc = await _reportsMemberHandler.GetMemberKYC(memId);
             var parameters = new Dictionary<string, string>

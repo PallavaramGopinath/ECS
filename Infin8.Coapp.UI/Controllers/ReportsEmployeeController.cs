@@ -40,7 +40,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptEmpPayBill> payList = new();
                
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -87,7 +87,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptEmpPF> pfList = new List<rptEmpPF>();
                 string roiList = "";
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -145,7 +145,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptEmp12MonthsSalary> payList = new();
                 //string roiList = "";
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,

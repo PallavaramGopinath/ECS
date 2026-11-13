@@ -41,7 +41,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptMemberTrn> memTrnList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -108,7 +108,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptFALoanOutstanding> jlList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -159,7 +159,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptTermDepositOutstanding> tdList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -211,7 +211,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptFALedgerTrn> ledgetList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
 
                 LocalReport localReport = new LocalReport
                 {
@@ -287,7 +287,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptFADividend> dividendList = new();
                 societyName = await _generalHandler.GetSocietyName(brCode);
                 report = await _reportHandler.GetReportNameWithSignature(reportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
 
                 reportHeader = "Members Dividend from " + fromDate  + " to " + toDate ;
                 var parameters = new Dictionary<string, string>

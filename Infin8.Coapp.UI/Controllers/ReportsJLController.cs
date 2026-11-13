@@ -60,7 +60,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptJewelLoanVerificationList> verificationList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -134,7 +134,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptJewelLoanStockRegisterList> stockList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -184,7 +184,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptJewelLoanOutstandingList> osList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -234,7 +234,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptJewelLoanOverdueList> odList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -284,7 +284,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptJewelLoanOverdueList> odList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -334,7 +334,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptJewelLoanIssueRegister> loanList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -384,7 +384,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptJewelLoanRedemption> loanList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -435,7 +435,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptJewelLoanClaim> loanList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -524,7 +524,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptJewelLoanLedgerMain> loanList = new();
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -538,14 +538,14 @@ namespace Infin8.Coapp.UI.Controllers
                     localReport.LoadReportDefinition(stream);
                 }
 
-                var subreportPath = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\JewelLoan_LedgerSubOrnments.rdlc";
+                var subreportPath = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", "JewelLoan_LedgerSubOrnments.rdlc");
 
                 using (var stream = System.IO.File.OpenRead(subreportPath))
                 {
                     localReport.LoadSubreportDefinition("Ornments", stream);
                 }
 
-                var subreportPath2 = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\JewelLoan_LedgerSubTrn.rdlc";
+                var subreportPath2 = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", "JewelLoan_LedgerSubTrn.rdlc");
 
                 using (var stream = System.IO.File.OpenRead(subreportPath2))
                 {
@@ -748,7 +748,7 @@ namespace Infin8.Coapp.UI.Controllers
 
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
 
                 LocalReport localReport = new LocalReport
                 {
@@ -850,7 +850,7 @@ namespace Infin8.Coapp.UI.Controllers
 
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
 
                 LocalReport localReport = new LocalReport
                 {

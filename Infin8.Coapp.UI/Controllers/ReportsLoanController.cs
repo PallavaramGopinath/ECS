@@ -43,7 +43,7 @@ namespace Infin8.Coapp.UI.Controllers
                 //societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 societyName = await _generalHandler.GetSocietyName(brCode);
                 report = await _reportHandler.GetReportNameWithSignature(reportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 reportHeader = "Fixed Deposit Loan outstanding as on " + asOnDate;
                 var parameters = new Dictionary<string, string>
                 {
@@ -79,7 +79,7 @@ namespace Infin8.Coapp.UI.Controllers
                 //societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 societyName = await _generalHandler.GetSocietyName(brCode);
                 report = await _reportHandler.GetReportNameWithSignature(reportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 switch(loanType)
                 {
                     case 3:

@@ -44,7 +44,7 @@ namespace Infin8.Coapp.UI.Controllers
                 List<rptDayBook2> _chittaPmtList = new();
 
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -98,7 +98,7 @@ namespace Infin8.Coapp.UI.Controllers
 
 
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -150,7 +150,7 @@ namespace Infin8.Coapp.UI.Controllers
 
 
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -205,7 +205,7 @@ namespace Infin8.Coapp.UI.Controllers
 
 
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -256,7 +256,7 @@ namespace Infin8.Coapp.UI.Controllers
 
 
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -308,7 +308,7 @@ namespace Infin8.Coapp.UI.Controllers
 
 
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,

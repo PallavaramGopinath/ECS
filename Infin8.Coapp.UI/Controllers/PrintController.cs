@@ -148,7 +148,7 @@ namespace Infin8.Coapp.API.Controllers
                 string receiptHeader = rptObject.vocTrnType == 1 ? "CASH RECEIPT" : "ADJUSTMENT RECEIPT";
                 List<rptReceiptMemberList> rptList = new List<rptReceiptMemberList>();
                 report = await _reportHandler.GetReportNameWithSignature("Receipt");
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -228,7 +228,7 @@ namespace Infin8.Coapp.API.Controllers
                 string receiptHeader = rptObject.vocTrnType == 1 ? "CASH RECEIPT" : "ADJUSTMENT RECEIPT";
                 List<rptReceiptMemberList> rptList = new List<rptReceiptMemberList>();
                 report = await _reportHandler.GetReportNameWithSignature("Receipt General");
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -286,7 +286,7 @@ namespace Infin8.Coapp.API.Controllers
                 string receiptHeader = rptObject.VocTrnType == 1 ? "CASH RECEIPT" : "ADJUSTMENT RECEIPT";
                 List<rptPaymentVoucher> voucherList = new ();
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId); /// .GetReportNameWithSignature("Receipt General");
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -358,7 +358,7 @@ namespace Infin8.Coapp.API.Controllers
                 //string receiptHeader = rptObject.vocTrnType == 1 ? "CASH RECEIPT" : "ADJUSTMENT RECEIPT";
                
                 report = await _reportHandler.GetReportNameWithSignature(92);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -427,7 +427,7 @@ namespace Infin8.Coapp.API.Controllers
             {
                 societyName = await _generalHandler.GetSocietyName(rptObject.brCode!);
                 report = await _reportHandler.GetReportNameWithSignature(116);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,
@@ -483,7 +483,7 @@ namespace Infin8.Coapp.API.Controllers
             {
                 societyName = await _generalHandler.GetSocietyName(rptObject.BrCode!);
                 report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
-                var path = $"{this._webHostEnvironment.ContentRootPath}\\Reports\\" + report.ReportFileName;
+                var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
                 LocalReport localReport = new LocalReport
                 {
                     EnableExternalImages = true,

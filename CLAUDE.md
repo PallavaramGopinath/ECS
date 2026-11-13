@@ -313,10 +313,13 @@ from a data endpoint instead; the ECS Office Note does this (`api/loansanction/O
 with `printElement` in `UI.Client/wwwroot/js/pdfViewer.js`). Definitions live in `Infin8.Coapp.UI/Reports/*.rdlc` and are resolved at runtime as
 `{ContentRootPath}/Reports/{ReportFileName}`.
 
-The receipt printed after every Checker approval fails even earlier on a Mac: `PrintController` builds its
-path with Windows backslashes (`$"{ContentRootPath}\\Reports\\"`), so it throws `FileNotFoundException` for
-`…Infin8.Coapp.UI\Reports\ReceiptMember.rdlc`. The approval has already committed by then — that exception
-does not mean the transaction failed.
+Every controller builds that path with `Path.Combine(ContentRootPath, "Reports", ReportFileName)`. Older code
+used `$"{ContentRootPath}\\Reports\\"` with Windows backslashes, which throws `FileNotFoundException` on a Mac
+before the renderer is reached; don't reintroduce it.
+
+`reports_master` names ~47 report files (`.rdlc` and a few Crystal `.rpt`) that are **not** in
+`Infin8.Coapp.UI/Reports/` (e.g. `LoanLedger.rdlc`, `Demand_Vertical.rdlc`). Those reports fail on every host
+with `FileNotFoundException`; check the file exists before debugging the RDLC or the data.
 
 Reports are **discovered from the `Reports_Master` database table**, not the filesystem — adding a
 report requires a DB row, not just a file. The `.rdlc` `<DataSet Name="...">` must match the dataset
