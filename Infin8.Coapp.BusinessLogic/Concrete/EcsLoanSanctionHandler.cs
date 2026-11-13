@@ -769,6 +769,24 @@ namespace Infin8.Coapp.BusinessLogic
             var loanNos = await repo.GetLoanNumbersAsync(lines.Select(l => l.Loan_Id), brCode);
             var asOn = h.SanctionDate ?? DateTime.Today;
             var member = await repo.GetMemberByIdAsync(h.Mem_Id, asOn, brCode);
+            var scheme = await repo.GetSchemeAsync(h.Scheme_Id, brCode);
+
+            // The surety recorded on the sanction; the member's current surety may have changed since.
+            string? suretyNo = null, suretyName = null;
+            if (h.SuretyMem_Id > 0)
+            {
+                if (h.SuretyMem_Id == member.SuretyMem_Id)
+                {
+                    suretyNo = member.SuretyMemberNo;
+                    suretyName = member.SuretyMemberName;
+                }
+                else
+                {
+                    var surety = await repo.GetMemberByIdAsync(h.SuretyMem_Id, asOn, brCode);
+                    suretyNo = surety.MemberNo;
+                    suretyName = surety.MemberName;
+                }
+            }
 
             var recoverables = lines.Where(l => l.ReceiptItem > 0 || !string.IsNullOrEmpty(l.Status))
                 .Select(l => new DeductableLoanRowVM
@@ -790,6 +808,9 @@ namespace Infin8.Coapp.BusinessLogic
                 LoanSanction_Id = h.LoanSanction_Id,
                 SanctionDate = h.SanctionDate,
                 TotalReceiptAmount = h.TotalReceiptAmount,
+                SchemeName = scheme?.Scheme_Name,
+                SuretyMemberNo = suretyNo,
+                SuretyMemberName = suretyName,
                 Member = member,
                 Recoverables = recoverables,
                 Sanction = new SuretyLoanSanctionSaveVM
