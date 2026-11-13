@@ -14,6 +14,8 @@ namespace Infin8.Coapp.BusinessLogic
         //Task<List<rptLoanDCB>> GetLoanDCB(DateTime fromDate, DateTime toDate);
         //Task<List<rptLoanDisbursementHSIS>> GetLoanDisbursement(DateTime fromDate, DateTime toDate, int loanType);
         Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate, string brCode);
+        Task<byte[]> GetLoanLedgerToPrint(string datasetName, List<decimal> loanIdList, DateTime fromDate, DateTime toDate, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
+        Task<List<DtoLoanNo>> GetMemberLoansAsync(decimal memId, int loanType, string brCode);
         Task<byte[]> GetLoanOutstanding(string datasetName, DateTime toDate, int loanType, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
         Task<byte[]> GetLoanOutstandingWithAgewise(string datasetName, DateTime toDate, int loanType, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
         Task<List<rptLoanDCB>> GetLoanDCB(DateTime fromDate, DateTime toDate, string brCode);

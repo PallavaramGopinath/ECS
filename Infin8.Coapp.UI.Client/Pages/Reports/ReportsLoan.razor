@@ -113,6 +113,23 @@ else
         </div>
     }
 
+    @if (isLedgerMember)
+    {
+        <div class="card mt-2">
+            <div class="card-body">
+                <label class="form-label">Member No</label>
+                <div class="input-group" style="max-width: 360px;">
+                    <input class="form-control shadow-none" @bind="ledgerMemberNo" @bind:event="oninput" />
+                    <button type="button" class="btn btn-outline-secondary" @onclick="LoadLedgerLoans">Find loans</button>
+                </div>
+                @if (!string.IsNullOrEmpty(ledgerMessage))
+                {
+                    <div class="small text-muted mt-1">@ledgerMessage</div>
+                }
+            </div>
+        </div>
+    }
+
     <!-- Loan No List -->
     @if (LoanNoList != null && LoanNoList.Any())
     {
@@ -175,6 +192,9 @@ else
         new DropdownItem{Value ="9",Text="SRTO Loans"}
     };
     private List<DtoLoanNo> LoanNoList = new();
+    private bool isLedgerMember;
+    private string ledgerMemberNo = "";
+    private string? ledgerMessage;
 
     private List<DtoLoanNo> selectedLoans = new List<DtoLoanNo>();
 
@@ -268,6 +288,11 @@ else
             }
             // filteredReportList = new();
 
+            isLedgerMember = reportId == 16;
+            LoanNoList = new();
+            selectedLoans.Clear();
+            ledgerMemberNo = "";
+            ledgerMessage = null;
             switch (reportId)
             {
                 case 15:    /// Loan Sanction Office Note
@@ -367,8 +392,7 @@ else
 
                     break;
                 case 16:    /// Loan Ledger
-                    isBetweenDates = true;
-
+                    await Print_LoanLedger();
                     break;
                 case 17:    /// Loan Ledger
                     isBetweenDates = true;
@@ -379,8 +403,7 @@ else
 
                     break;
                 case 19:    /// Loan Outstanding Member-wise
-                    isAsonDate = true;
-
+                    await Print_LoanOutstandingAgewise();
                     break;
                 case 20:    /// Loan Outstanding Member-wise
                     isAsonDate = true;
@@ -473,6 +496,56 @@ else
         {
             var fileBytes = await _httpClient.GetFromJsonAsync<byte[]>($"api/ReportsLoan/print-LoanDisbursement/{rptObject.ReportId}/{rptObject.LoanType}/{rptObject.FromDate:yyyy-MM-dd}/{rptObject.ToDate:yyyy-MM-dd}/{rptObject.BrCode}");
             await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(fileBytes!));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task Print_LoanOutstandingAgewise()
+    {
+        try
+        {
+            var fileBytes = await _httpClient.GetFromJsonAsync<byte[]>($"api/ReportsLoan/print-LoanOutstanding-Agewise/{rptObject.ReportId}/{rptObject.LoanType}/{rptObject.AsOnDate:yyyy-MM-dd}/{rptObject.BrCode}");
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(fileBytes!));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    /// <summary>Loads the member's loans of the chosen loan type into the checkbox list (report 16).</summary>
+    private async Task LoadLedgerLoans()
+    {
+        LoanNoList = new();
+        selectedLoans.Clear();
+        ledgerMessage = null;
+        if (string.IsNullOrWhiteSpace(ledgerMemberNo) || rptObject.LoanType <= 0) { ledgerMessage = "Choose the loan type and enter a member number."; return; }
+        try
+        {
+            var member = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"api/Member/GetMemberDetails/{Uri.EscapeDataString(ledgerMemberNo.Trim())}/{rptObject.BrCode}");
+            if (member == null || member.Mem_Id <= 0) { ledgerMessage = "Member not found."; return; }
+            LoanNoList = await _httpClient.GetFromJsonAsync<List<DtoLoanNo>>($"api/ReportsLoan/LedgerLoans/{member.Mem_Id}/{rptObject.LoanType}/{rptObject.BrCode}") ?? new();
+            ledgerMessage = LoanNoList.Count == 0 ? $"{member.MemberName} has no loans of this type." : member.MemberName;
+        }
+        catch (HttpRequestException)
+        {
+            ledgerMessage = "Member not found.";
+        }
+    }
+
+    private async Task Print_LoanLedger()
+    {
+        rptObject.LoanNoList = selectedLoans.Select(l => l.Loan_Id).ToList();
+        if (rptObject.LoanNoList.Count == 0) { ledgerMessage = "Tick at least one loan."; return; }
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/ReportsLoan/print-LoanLedger", rptObject);
+            if (!response.IsSuccessStatusCode) { ledgerMessage = $"Could not print the ledger ({(int)response.StatusCode})."; return; }
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(bytes));
         }
         catch (Exception ex)
         {

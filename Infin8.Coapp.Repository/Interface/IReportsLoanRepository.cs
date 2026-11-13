@@ -10,6 +10,8 @@ namespace Infin8.Coapp.Repository
     public interface IReportsLoanRepository
     {
         Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate, string brCode);
+        /// <summary>The member's loans of one loan type (not deleted, 'V'), for the ledger picker.</summary>
+        Task<List<DtoLoanNo>> GetMemberLoansAsync(decimal memId, int loanType, string brCode);
         Task<List<rptLoanOutstanding>> GetLoanOutstanding(DateTime toDate, int loanType, string brCode);
         Task<List<rptLoanOutstanding>> GetLoanOutstandingWithAgewise(DateTime toDate, int loanType,string brCode);
         Task<List<rptLoanDCB>> GetLoanDCB(DateTime fromDate, DateTime toDate,string brCode);

@@ -74,19 +74,19 @@
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
         <Field Name="memberName">
-          <DataField>memberName</DataField>
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="memberNo">
-          <DataField>memberNo</DataField>
+          <DataField>MemberNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="mobileNo">
-          <DataField>mobileNo</DataField>
+          <DataField>MobileNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="Mort_slno">
-          <DataField>Mort_slno</DataField>
+          <DataField>Mort_SlNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="PerNo">
@@ -94,7 +94,7 @@
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="pi">
-          <DataField>pi</DataField>
+          <DataField>Pi</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="PI_Bal">
@@ -130,27 +130,27 @@
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="Reim_dvno">
-          <DataField>Reim_dvno</DataField>
+          <DataField>Reim_DvNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="Reim_lno">
-          <DataField>Reim_lno</DataField>
+          <DataField>Reim_LNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="Res_date">
-          <DataField>Res_date</DataField>
+          <DataField>Res_Date</DataField>
           <rd:TypeName>System.Nullable`1[[System.DateTime, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
         <Field Name="Res_no">
-          <DataField>Res_no</DataField>
+          <DataField>Res_No</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="roi">
-          <DataField>roi</DataField>
+          <DataField>Roi</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="San_amt">
-          <DataField>San_amt</DataField>
+          <DataField>San_Amt</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="Scheme_Name">

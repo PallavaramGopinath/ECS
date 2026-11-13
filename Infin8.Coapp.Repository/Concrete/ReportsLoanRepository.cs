@@ -21,220 +21,205 @@ namespace Infin8.Coapp.Repository
         {
         }
 
+        /// <summary>
+        /// Loan ledger (report 16; also the staff loan ledger), ported from TSIS GetLoanLedgerList_HSIS +
+        /// GetLoanLedgerBalances: one opening row (Trn_Status "A") per loan for everything before the period,
+        /// then every transaction in it, with running balances. Principal overdue uses Prl_Dem (the ECS rule;
+        /// migrated TSIS demand rows carry the same value in Prl_Sched). BrCode on every alias; only 'V' rows.
+        /// </summary>
         public async Task<List<rptLoanLedger>> GetLoanLedger(List<decimal> loanIdList, DateTime fromDate, DateTime toDate, string brCode)
         {
-            List<rptLoanLedger> loanList = new List<rptLoanLedger>();
-            try
-            {
-                var loanListTmp = await GetLoanBalanceByLedIdList(loanIdList, fromDate, toDate);
+            var ids = loanIdList.Distinct().ToList();
+            if (ids.Count == 0) return new List<rptLoanLedger>();
+            DateTime periodFrom = fromDate.Date, periodEnd = toDate.Date.AddDays(1);
 
-                #region union
-                var loanListUnion = (from x in loanListTmp
-                                     from lnMaster in CSISContext.Loan_Master.Where(y => y.Loan_Id == x.Loan_Id).DefaultIfEmpty()
-                                     from lnScheme in CSISContext.Loan_Schemes.Where(y => y.Scheme_Id == lnMaster.Scheme_Id).DefaultIfEmpty()
-                                     from memMaster in CSISContext.mem_master.Where(y => y.mem_id == lnMaster.Mem_Id).DefaultIfEmpty()
-                                     from sro in CSISContext.Refer_Data.Where(y => y.ReferId == lnMaster.Mort_Sro).DefaultIfEmpty()
-                                     where lnMaster.BrCode == brCode 
-                                     && lnScheme.BrCode == brCode 
-                                     && memMaster.brcode == brCode 
-                                     select new rptLoanLedger
-                                     {
-                                         Trn_Id = x.Trn_Id,
-                                         Mem_Id = lnMaster.Mem_Id,
-                                         MemberNo = memMaster.memberno,
-                                         PerNo = memMaster.perno,
-                                         MemberName = memMaster.membername,
-                                         Loan_Id = x.Loan_Id,
-                                         Loan_No = lnMaster.Loan_No,
-                                         App_No = lnMaster.App_No,
-                                         Res_No = lnMaster.Res_No,
-                                         Res_Date = lnMaster.Res_Date,
-                                         San_Amt = lnMaster.San_Amt,
-                                         Prl_Prd = lnMaster.Prl_Prd,
-                                         Int_Prd = lnMaster.Int_Prd,
-                                         Reim_LNo = lnMaster.Reim_LNo,
-                                         Reim_DvNo = lnMaster.Reim_DvNo,
-                                         Mort_SlNo = lnMaster.Mort_SlNo,
-                                         SRO_Name = sro == null ? null : sro.ReferName,
-                                         Roi = lnMaster.Roi,
-                                         Pi = lnMaster.Pi,
-                                         Inst_Amt = lnMaster.Inst_Amt,
-                                         Scheme_Name = lnScheme.Scheme_Name,
-                                         Trn_Date = x.Trn_Date,
-                                         Disb_Amt = x.Disb_Amt,
-                                         Prl_Dem = x.Prl_Dem,
-                                         PICalc_Amt = x.PICalc_Amt,
-                                         IODCalc_Amt = x.IODCalc_Amt,
-                                         IntCalc_Amt = x.IntCalc_Amt,
-                                         PIColl_Amt = x.PIColl_Amt,
-                                         IODColl_Amt = x.IODColl_Amt,
-                                         IntColl_Amt = x.IntColl_Amt,
-                                         PrlColl_Amt = x.PrlColl_Amt,
-                                         Prl_OS = x.Prl_OS,
-                                         Prl_OD = x.Prl_OD,
-                                         Int_Bal = x.Int_Bal,
-                                         PI_Bal = x.PI_Bal,
-                                         IOD_Bal = x.IOD_Bal,
-                                         MobileNo = memMaster.mobileno,
-                                         Trn_Status = x.Trn_Status,
-                                         Address = String.Concat(memMaster.peradd1, " ", memMaster.peradd2, " ", memMaster.peradd3, " ", memMaster.perpin),
-                                         PANNo = memMaster.panno,
-                                         AadharNo = memMaster.aadharno,
-                                         SmartCardNo = memMaster.smartcardno,
-                                         MemberPhoto = memMaster.memberphoto
-                                     }).ToList();
-                #endregion 
+            var trns = await (from t in CSISContext.Loan_Trn
+                              where ids.Contains(t.Loan_Id) && !t.TrnTr_Delete && t.Voc_Status == "V"
+                                    && t.Trn_Date < periodEnd && t.BrCode == brCode
+                              select t).AsNoTracking().ToListAsync();
 
-                if (loanListUnion != null) loanList = loanListUnion;
-            }
-            catch (Exception)
+            var headers = await (from lm in CSISContext.Loan_Master
+                                 join ls in CSISContext.Loan_Schemes on lm.Scheme_Id equals ls.Scheme_Id
+                                 join mm in CSISContext.mem_master on lm.Mem_Id equals mm.mem_id
+                                 join sro in CSISContext.Refer_Data.Where(r => r.BrCode == brCode) on lm.Mort_Sro equals sro.ReferId into sroJoin
+                                 from sro in sroJoin.DefaultIfEmpty()
+                                 where ids.Contains(lm.Loan_Id) && lm.BrCode == brCode && ls.BrCode == brCode && mm.brcode == brCode
+                                 select new rptLoanLedger
+                                 {
+                                     Loan_Id = lm.Loan_Id,
+                                     Mem_Id = lm.Mem_Id,
+                                     Loan_No = lm.Loan_No,
+                                     App_No = lm.App_No,
+                                     Res_No = lm.Res_No,
+                                     Res_Date = lm.Res_Date,
+                                     San_Amt = lm.San_Amt,
+                                     Prl_Prd = lm.Prl_Prd,
+                                     Int_Prd = lm.Int_Prd,
+                                     Reim_LNo = lm.Reim_LNo,
+                                     Reim_DvNo = lm.Reim_DvNo,
+                                     Mort_SlNo = lm.Mort_SlNo,
+                                     Roi = lm.Roi,
+                                     Pi = lm.Pi,
+                                     Inst_Amt = lm.Inst_Amt,
+                                     Scheme_Name = ls.Scheme_Name,
+                                     SRO_Name = sro.ReferName,
+                                     MemberNo = mm.memberno,
+                                     PerNo = mm.perno,
+                                     MemberName = mm.membername,
+                                     Token_PersonNo = mm.token_personno,
+                                     MobileNo = mm.mobileno,
+                                     PANNo = mm.panno,
+                                     AadharNo = mm.aadharno,
+                                     SmartCardNo = mm.smartcardno,
+                                     Address = (mm.peradd1 ?? "") + " " + (mm.peradd2 ?? "") + " " + (mm.peradd3 ?? "") + " " + (mm.perpin ?? "")
+                                 }).AsNoTracking().ToListAsync();
+
+            var result = new List<rptLoanLedger>();
+            foreach (var h in headers.OrderBy(h => h.Loan_No))
             {
-                throw;
+                var rows = trns.Where(t => t.Loan_Id == h.Loan_Id).ToList();
+                var before = rows.Where(t => t.Trn_Date < periodFrom).ToList();
+                var lines = new List<rptLoanLedger>();
+                if (before.Count > 0)
+                {
+                    var ob = Line(h, null);
+                    ob.Trn_Status = "A";
+                    ob.Trn_Date = before.Max(t => t.Trn_Date);
+                    ob.Trn_Id = before.Max(t => t.Trn_Id);
+                    ob.Trn_SlNo = before.Max(t => t.Trn_SlNo);
+                    ob.Prl_OS = before.Sum(t => t.Disb_Amt - t.PrlColl_Amt);
+                    ob.Prl_OD = before.Sum(t => t.Prl_Dem - t.PrlColl_Amt);
+                    ob.Int_Bal = before.Sum(t => t.IntCalc_Amt - t.IntColl_Amt);
+                    ob.IOD_Bal = before.Sum(t => t.IODCalc_Amt - t.IODColl_Amt);
+                    ob.PI_Bal = before.Sum(t => t.PICalc_Amt - t.PIColl_Amt);
+                    lines.Add(ob);
+                }
+                lines.AddRange(rows.Where(t => t.Trn_Date >= periodFrom)
+                                   .OrderBy(t => t.Trn_Date).ThenBy(t => t.Trn_Status).ThenBy(t => t.Trn_SlNo)
+                                   .Select(t => Line(h, t)));
+
+                // running balances: the opening row seeds them, each transaction moves them
+                double prlOs = 0, prlOd = 0, intBal = 0, iodBal = 0, piBal = 0;
+                foreach (var l in lines)
+                {
+                    prlOs += l.Prl_OS + l.Disb_Amt - l.PrlColl_Amt;
+                    prlOd += l.Prl_OD + l.Prl_Dem - l.PrlColl_Amt;
+                    intBal += l.Int_Bal + l.IntCalc_Amt - l.IntColl_Amt;
+                    iodBal += l.IOD_Bal + l.IODCalc_Amt - l.IODColl_Amt;
+                    piBal += l.PI_Bal + l.PICalc_Amt - l.PIColl_Amt;
+                    (l.Prl_OS, l.Prl_OD, l.Int_Bal, l.IOD_Bal, l.PI_Bal) = (prlOs, prlOd, intBal, iodBal, piBal);
+                }
+                result.AddRange(lines);
             }
-            return loanList;
+            return result;
         }
+
+        public async Task<List<DtoLoanNo>> GetMemberLoansAsync(decimal memId, int loanType, string brCode)
+        {
+            return await (from lm in CSISContext.Loan_Master
+                          where lm.Mem_Id == memId && lm.Loan_Type == loanType && !lm.Loan_Delete && lm.Voc_Status == "V" && lm.BrCode == brCode
+                          orderby lm.Loan_No
+                          select new DtoLoanNo { Loan_Id = lm.Loan_Id, Loan_No = lm.Loan_No }).AsNoTracking().ToListAsync();
+        }
+
+        /// <summary>A ledger line: the loan/member header copied, plus the transaction's amounts when given.</summary>
+        private static rptLoanLedger Line(rptLoanLedger h, Loan_Trn? t) => new rptLoanLedger
+        {
+            Loan_Id = h.Loan_Id, Mem_Id = h.Mem_Id, Loan_No = h.Loan_No, App_No = h.App_No, Res_No = h.Res_No, Res_Date = h.Res_Date,
+            San_Amt = h.San_Amt, Prl_Prd = h.Prl_Prd, Int_Prd = h.Int_Prd, Reim_LNo = h.Reim_LNo, Reim_DvNo = h.Reim_DvNo,
+            Mort_SlNo = h.Mort_SlNo, Roi = h.Roi, Pi = h.Pi, Inst_Amt = h.Inst_Amt, Scheme_Name = h.Scheme_Name, SRO_Name = h.SRO_Name,
+            MemberNo = h.MemberNo, PerNo = h.PerNo, MemberName = h.MemberName, Token_PersonNo = h.Token_PersonNo, MobileNo = h.MobileNo,
+            PANNo = h.PANNo, AadharNo = h.AadharNo, SmartCardNo = h.SmartCardNo, Address = h.Address,
+            Trn_Id = t?.Trn_Id ?? 0, Trn_SlNo = t?.Trn_SlNo ?? 0, Trn_Status = t?.Trn_Status, Trn_Date = t?.Trn_Date ?? default,
+            Disb_Amt = t?.Disb_Amt ?? 0, Prl_Dem = t?.Prl_Dem ?? 0, PrlColl_Amt = t?.PrlColl_Amt ?? 0,
+            IntCalc_Amt = t?.IntCalc_Amt ?? 0, IntColl_Amt = t?.IntColl_Amt ?? 0,
+            IODCalc_Amt = t?.IODCalc_Amt ?? 0, IODColl_Amt = t?.IODColl_Amt ?? 0,
+            PICalc_Amt = t?.PICalc_Amt ?? 0, PIColl_Amt = t?.PIColl_Amt ?? 0
+        };
         public async Task<List<rptLoanOutstanding>> GetLoanOutstandingWithAgewise(DateTime toDate, int loanType, string brCode)
         {
-            int noOfMonths = 0;
-            DateTime? minDueDate = null;
-            bool minDueDateObtained = false;
-            double accruedInt = 0;
-            bool isPrlOD = false;
-            List<rptLoanOutstanding> OsList = new List<rptLoanOutstanding>();
-            try
+            DateTime asOn = toDate.Date, periodEnd = toDate.Date.AddDays(1);
+            var loans = await (from t in CSISContext.Loan_Trn
+                               join lm in CSISContext.Loan_Master on t.Loan_Id equals lm.Loan_Id
+                               join ls in CSISContext.Loan_Schemes on lm.Scheme_Id equals ls.Scheme_Id
+                               join mm in CSISContext.mem_master on lm.Mem_Id equals mm.mem_id
+                               where lm.Loan_Type == loanType && !lm.Loan_Delete && !t.TrnTr_Delete && t.Voc_Status == "V"
+                                     && t.Trn_Date < periodEnd
+                                     && t.BrCode == brCode && lm.BrCode == brCode && ls.BrCode == brCode && mm.brcode == brCode
+                               group t by new { lm.Loan_Id, lm.Loan_No, lm.Mem_Id, mm.memberno, mm.perno, mm.membername, lm.Scheme_Id, ls.Scheme_Name, lm.Roi, lm.Prl_Prd, lm.San_Date } into g
+                               select new rptLoanOutstanding
+                               {
+                                   Loan_Id = g.Key.Loan_Id,
+                                   Loan_No = g.Key.Loan_No,
+                                   Mem_Id = g.Key.Mem_Id,
+                                   MemberNo = g.Key.memberno,
+                                   PerNo = g.Key.perno,
+                                   MemberName = g.Key.membername,
+                                   Scheme_Id = g.Key.Scheme_Id,
+                                   Scheme_Name = g.Key.Scheme_Name,
+                                   Roi = g.Key.Roi,
+                                   Prl_Prd = g.Key.Prl_Prd,
+                                   Disb_Date = g.Key.San_Date,
+                                   Trn_Date = g.Max(x => x.Trn_Date),
+                                   Disb_Amt = g.Sum(x => x.Disb_Amt),
+                                   PrlColl_Amt = g.Sum(x => x.PrlColl_Amt),
+                                   Prl_Sched = g.Sum(x => x.Prl_Sched),
+                                   Prl_Dem = g.Sum(x => x.Prl_Dem),
+                                   IntCalc_Amt = g.Sum(x => x.IntCalc_Amt),
+                                   IntCalc_Date = g.Max(x => x.IntCalc_Date),
+                                   IntColl_Amt = g.Sum(x => x.IntColl_Amt),
+                                   IODCalc_Amt = g.Sum(x => x.IODCalc_Amt),
+                                   IODColl_Amt = g.Sum(x => x.IODColl_Amt),
+                                   PICalc_Amt = g.Sum(x => x.PICalc_Amt),
+                                   PICalc_Date = g.Max(x => x.PICalc_Date),
+                                   PIColl_Amt = g.Sum(x => x.PIColl_Amt)
+                               }).AsNoTracking().ToListAsync();
+
+            loans = loans.Where(l => l.Disb_Amt - l.PrlColl_Amt > 0 || l.IntCalc_Amt - l.IntColl_Amt > 0
+                                     || l.IODCalc_Amt - l.IODColl_Amt > 0 || l.PICalc_Amt - l.PIColl_Amt > 0)
+                         .OrderBy(l => l.Scheme_Id).ThenBy(l => l.Loan_No).ToList();
+
+            // every principal demand up to the date, oldest first, for the age buckets
+            var demands = (await (from t in CSISContext.Loan_Trn
+                                  join lm in CSISContext.Loan_Master on t.Loan_Id equals lm.Loan_Id
+                                  where lm.Loan_Type == loanType && !lm.Loan_Delete && !t.TrnTr_Delete && t.Voc_Status == "V"
+                                        && t.Prl_Dem > 0 && t.Trn_Date < periodEnd
+                                        && t.BrCode == brCode && lm.BrCode == brCode
+                                  select new { t.Loan_Id, DueDate = t.Due_Date ?? t.Trn_Date, t.Prl_Dem }).AsNoTracking().ToListAsync())
+                          .GroupBy(d => d.Loan_Id)
+                          .ToDictionary(g => g.Key, g => g.OrderBy(d => d.DueDate).ToList());
+
+            foreach (var os in loans)
             {
-                OsList = await GetLoanOutstanding(toDate, loanType,brCode);
-                foreach (var os in OsList)
+                os.Prl_OS = os.Disb_Amt - os.PrlColl_Amt;
+                os.Prl_OD = Math.Max(0, os.Prl_Dem - os.PrlColl_Amt);
+                os.Int_Bal = Math.Max(0, os.IntCalc_Amt - os.IntColl_Amt);
+                os.IOD_Bal = Math.Max(0, os.IODCalc_Amt - os.IODColl_Amt);
+                os.PI_Bal = Math.Max(0, os.PICalc_Amt - os.PIColl_Amt);
+                if (os.Prl_OD <= 0 || !demands.TryGetValue(os.Loan_Id, out var dueList)) continue;
+
+                // collections clear the oldest demands first; the oldest one left unpaid dates the overdue
+                double collected = os.PrlColl_Amt;
+                DateTime? oldestUnpaid = null;
+                foreach (var d in dueList)
                 {
-                    // LINQ for the first SQL query:
-                    var dueDateWiseDemandList = await (from lt in CSISContext.Loan_Trn
-                                                       where lt.Prl_Sched > 0 &&
-                                                             lt.TrnTr_Delete == false &&
-                                                             lt.Loan_Id == os.Loan_Id &&
-                                                             lt.Trn_Date.Date <= toDate.Date
-                                                             && lt.BrCode == brCode 
-                                                             && lt.Voc_Status == "V"
-                                                       orderby lt.Loan_Id, lt.Due_Date
-                                                       select new rptLoanDemand
-                                                       {
-                                                           Loan_Id = lt.Loan_Id,
-                                                           Trn_Date = lt.Trn_Date,
-                                                           Due_Date = lt.Due_Date,
-                                                           Prl_Sched = lt.Prl_Sched,
-                                                           PrlColl_Amt = 0,
-                                                           Prl_OS = 0,
-                                                           Prl_OD = 0
-                                                       }).ToListAsync();
-                    // LINQ for the second SQL query:
-                    var prlColl = await (from lt in CSISContext.Loan_Trn
-                                         where lt.Loan_Id == os.Loan_Id &&
-                                               lt.Trn_Date <= toDate.Date &&
-                                               lt.TrnTr_Delete == false
-                                         select lt.PrlColl_Amt).SumAsync();
-                    minDueDate = null;
-                    minDueDateObtained = false;
-                    foreach (var dueDateWiseDemand in dueDateWiseDemandList)
-                    {
-                        if (dueDateWiseDemand.Prl_Sched <= prlColl)
-                        {
-                            dueDateWiseDemand.PrlColl_Amt = dueDateWiseDemand.Prl_Sched;
-                            prlColl -= dueDateWiseDemand.Prl_Sched;
-                        }
-                        else
-                        {
-                            dueDateWiseDemand.PrlColl_Amt = prlColl;
-                            prlColl = 0;
-                        }
-                        dueDateWiseDemand.Prl_Bal = dueDateWiseDemand.Prl_Sched - dueDateWiseDemand.PrlColl_Amt;
-                        if (minDueDateObtained == false)
-                        {
-                            if (dueDateWiseDemand.Prl_Bal > 0)
-                            {
-                                minDueDate = dueDateWiseDemand.Due_Date;
-                                minDueDateObtained = true;
-                            }
-                        }
-                    }
-
-                    /// prepare age-wise od
-                    if (minDueDate != null)
-                    {
-                        //noOfMonths = Utilities.GetNoOfMonths(toDate, (DateTime)minDueDate);
-                        noOfMonths = Utilities.GetMonthsBetweenDates(toDate, (DateTime)minDueDate);
-                        if (noOfMonths == 1) isPrlOD = false;
-                        else isPrlOD = true;
-                        if (noOfMonths <= 3)
-                            os.OD3M = os.Prl_OD;
-                        if (noOfMonths > 3 && noOfMonths <= 6)
-                            os.OD3M_6M = os.Prl_OD;
-                        if (noOfMonths > 6 && noOfMonths <= 12)
-                            os.OD7M_12M = os.Prl_OD;
-                        if (noOfMonths > 12 && noOfMonths <= 24)
-                            os.OD25M_36M = os.Prl_OD;
-                        if (noOfMonths > 24 && noOfMonths <= 36)
-                            os.OD25M_36M = os.Prl_OD;
-                        if (noOfMonths > 36)
-                            os.OD37M_Above = os.Prl_OD;
-                    }
-                    var intCalcDateList = await (from lt in CSISContext.Loan_Trn
-                                                 join lm in CSISContext.Loan_Master on lt.Loan_Id equals lm.Loan_Id
-                                                 where lt.TrnTr_Delete == false &&
-                                                       lt.Trn_Date.Date <= toDate.Date &&
-                                                       lt.Loan_Id == os.Loan_Id &&
-                                                       lm.Loan_Type == loanType &&
-                                                       lt.IntCalc_Amt > 0 &&
-                                                       lt.BrCode == brCode  &&
-                                                       lt.Voc_Status == "V" &&
-                                                       lm.BrCode == brCode && lm.Voc_Status =="V"
-                                                 group lt by new { lt.Loan_Id, lt.IntCalc_Date } into g
-                                                 orderby g.Key.Loan_Id, g.Key.IntCalc_Date
-                                                 select new rptLoanDemand
-                                                 {
-                                                     Loan_Id = g.Key.Loan_Id,
-                                                     IntCalc_Date = g.Key.IntCalc_Date,
-                                                     IntCalc_Amt = g.Sum(x => x.IntCalc_Amt)
-                                                 }).ToListAsync();
-                    var intColl = (from lt in CSISContext.Loan_Trn
-                                   where lt.Loan_Id == os.Loan_Id &&
-                                         lt.Trn_Date <= toDate &&
-                                         lt.TrnTr_Delete == false &&
-                                         lt.BrCode == brCode &&
-                                         lt.Voc_Status == "V"
-                                   select lt.IntColl_Amt).Sum();
-
-                    // If Sum() can return null (if no matching records), handle it:
-                    //double intCollValue = intColl ?? 0;
-                    foreach (var intCalcDate in intCalcDateList)
-                    {
-                        if (intCalcDate.IntCalc_Amt <= intColl)
-                        {
-                            intCalcDate.IntColl_Amt = intCalcDate.IntColl_Amt;
-                            intColl -= intCalcDate.IntCalc_Amt;
-                        }
-                        else
-                        {
-                            intCalcDate.IntColl_Amt = intColl;
-                            intColl = 0;
-                        }
-                        intCalcDate.Int_Bal = intCalcDate.IntCalc_Amt - intCalcDate.IntColl_Amt;
-                    }
-                    if (isPrlOD == false)
-                    {
-                        var lastdueDate = intCalcDateList.LastOrDefault();
-                        if (lastdueDate != null)
-                            accruedInt = lastdueDate.IntCalc_Amt - lastdueDate.IntColl_Amt;
-                        else
-                            accruedInt = 0;
-                        os.AccruedInt = accruedInt;
-                    }
+                    if (collected >= d.Prl_Dem) { collected -= d.Prl_Dem; continue; }
+                    oldestUnpaid = d.DueDate;
+                    break;
                 }
+                if (oldestUnpaid == null) continue;
+
+                int months = Utilities.GetMonthsBetween(oldestUnpaid.Value, asOn);
+                if (months <= 3) os.OD3M = os.Prl_OD;
+                else if (months <= 6) os.OD3M_6M = os.Prl_OD;
+                else if (months <= 12) os.OD7M_12M = os.Prl_OD;
+                else if (months <= 24) os.OD13M_24M = os.Prl_OD;    // TSIS put this band into OD25M_36M
+                else if (months <= 36) os.OD25M_36M = os.Prl_OD;
+                else os.OD37M_Above = os.Prl_OD;
             }
-            catch (Exception)
-            {
-                throw;
-            }
-            return OsList;
+            return loans;
         }
+
         public  async Task<List<rptLoanDCB>> GetLoanDCB(DateTime fromDate, DateTime toDate,string brCode)
         {
             
@@ -559,107 +544,6 @@ namespace Infin8.Coapp.Repository
                     item.Int_Bal = item.IntCalc_Amt - item.IntColl_Amt;
                     item.IOD_Bal = item.IODCalc_Amt - item.IODColl_Amt;
                     item.PI_Bal = item.PICalc_Amt - item.PIColl_Amt;
-                }
-                if (loanListTmp != null) loanList = loanListTmp;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-            return loanList;
-        }
-        public async Task<List<rptLoanLedger>> GetLoanBalanceByLedIdList(List<decimal> loanIdList, DateTime fromDate, DateTime toDate)
-        {
-            List<rptLoanLedger> loanList = new List<rptLoanLedger>();
-            try
-            {
-                var loanListTmp = await (from lt in CSISContext.Loan_Trn
-                                         where lt.TrnTr_Delete == false &&
-                                               lt.Trn_Date.Date < fromDate.Date &&
-                                               loanIdList.Contains(lt.Loan_Id) && // Assuming resultStr is a comma-separated string of Loan_ids
-                                               lt.Voc_Status =="V"
-                                         group lt by lt.Loan_Id into g
-                                         select new rptLoanLedger
-                                         {
-                                             Loan_Id = g.Key,
-                                             Prl_OS = g.Sum(x => x.Disb_Amt) - g.Sum(x => x.PrlColl_Amt),
-                                             Prl_OD = g.Sum(x => x.Prl_Sched) - g.Sum(x => x.PrlColl_Amt),
-                                             Int_Bal = g.Sum(x => x.IntCalc_Amt) - g.Sum(x => x.IntColl_Amt),
-                                             IOD_Bal = g.Sum(x => x.IODCalc_Amt) - g.Sum(x => x.IODColl_Amt),
-                                             PI_Bal = g.Sum(x => x.PICalc_Amt) - g.Sum(x => x.PIColl_Amt),
-                                             Disb_Amt = 0,
-                                             PrlColl_Amt = 0,
-                                             Prl_Dem = 0,
-                                             IntCalc_Amt = 0,
-                                             IntColl_Amt = 0,
-                                             IODCalc_Amt = 0,
-                                             IODColl_Amt = 0,
-                                             PICalc_Amt = 0,
-                                             PIColl_Amt = 0,
-                                             Trn_Date = g.Max(x => x.Trn_Date),
-                                             Trn_Id = g.Max(x => x.Trn_Id),
-                                             // Assuming Trn_SlNo exists in your Loan_Trn entity
-                                             // If not, you might need to adjust this based on your actual column name
-                                             // or how you determine the maximum serial number.
-                                             // Example if the column name is different: TrnSlNo = g.Max(x => x.YourTrnSlNoColumn),
-                                             Trn_SlNo = g.Max(x => x.Trn_SlNo),
-                                             Trn_Status = "A"
-                                         })
-                                 .Union(from lt in CSISContext.Loan_Trn
-                                        where lt.TrnTr_Delete == false &&
-                                              lt.Trn_Date.Date >= fromDate.Date &&
-                                              lt.Trn_Date.Date <= toDate.Date &&
-                                              lt.Voc_Status =="V" &&
-                                              loanIdList.Contains(lt.Loan_Id)
-                                        select new rptLoanLedger
-                                        {
-                                            Loan_Id = lt.Loan_Id,
-                                            Prl_OS = 0,
-                                            Prl_OD = 0,
-                                            Int_Bal = 0,
-                                            IOD_Bal = 0,
-                                            PI_Bal = 0,
-                                            Disb_Amt = lt.Disb_Amt,
-                                            PrlColl_Amt = lt.PrlColl_Amt,
-                                            Prl_Dem = lt.Prl_Dem,
-                                            IntCalc_Amt = lt.IntCalc_Amt,
-                                            IntColl_Amt = lt.IntColl_Amt,
-                                            IODCalc_Amt = lt.IODCalc_Amt,
-                                            IODColl_Amt = lt.IODColl_Amt,
-                                            PICalc_Amt = lt.PICalc_Amt,
-                                            PIColl_Amt = lt.PIColl_Amt,
-                                            Trn_Date = lt.Trn_Date,
-                                            Trn_Id = lt.Trn_Id,
-                                            Trn_SlNo = lt.Trn_SlNo,
-                                            Trn_Status = lt.Trn_Status
-                                        })
-                                 .OrderBy(x => x.Loan_Id)
-                                 .ThenBy(x => x.Trn_Date)
-                                 .ThenBy(x => x.Trn_Status)
-                                 .ThenBy(x => x.Trn_SlNo)
-                                 .ToListAsync();
-
-                double PrlOS = 0, PrlOD = 0, IntBal = 0, IODBal = 0, PIBal = 0;
-                decimal loanId = 0;
-                //string sql = "";
-                foreach (var loan in loanListTmp)
-                {
-                    if (loanId != loan.Loan_Id)
-                    {
-                        PrlOS = 0; PrlOD = 0; IntBal = 0; IODBal = 0; PIBal = 0;
-                        loanId = loan.Loan_Id;
-                    }
-                    PrlOS += loan.Prl_OS + loan.Disb_Amt - loan.PrlColl_Amt;
-                    PrlOD += loan.Prl_OD + loan.Prl_Dem - loan.PrlColl_Amt;
-                    IntBal += loan.Int_Bal + loan.IntCalc_Amt - loan.IntColl_Amt;
-                    IODBal += loan.IOD_Bal + loan.IODCalc_Amt - loan.IODColl_Amt;
-                    PIBal += loan.PI_Bal + loan.PICalc_Amt - loan.PIColl_Amt;
-
-                    loan.Prl_OS = PrlOS;
-                    loan.Prl_OD = PrlOD;
-                    loan.Int_Bal = IntBal;
-                    loan.IOD_Bal = IODBal;
-                    loan.PI_Bal = PIBal;
                 }
                 if (loanListTmp != null) loanList = loanListTmp;
             }

@@ -38,6 +38,15 @@ namespace Infin8.Coapp.BusinessLogic
             var pdfAsBytes = _createReportsHandler.CreateLocalReport(datasetName, reportStream, rptResultEnumerable, parameters);
             return pdfAsBytes;
         }
+        public async Task<byte[]> GetLoanLedgerToPrint(string datasetName, List<decimal> loanIdList, DateTime fromDate, DateTime toDate, string brCode, FileStream reportStream, Dictionary<string, string> parameters)
+        {
+            var rows = await _unitOfWork.ReportsLoan.GetLoanLedger(loanIdList, fromDate, toDate, brCode);
+            return _createReportsHandler.CreateLocalReport(datasetName, reportStream, rows, parameters);
+        }
+
+        public Task<List<DtoLoanNo>> GetMemberLoansAsync(decimal memId, int loanType, string brCode) =>
+            _unitOfWork.ReportsLoan.GetMemberLoansAsync(memId, loanType, brCode);
+
         public async Task<byte[]> GetLoanDisbursementToPrint(string datasetName, DateTime fromDate, DateTime toDate, int loanType, string brCode, FileStream reportStream, Dictionary<string, string> parameters)
         {
             var rows = await _unitOfWork.ReportsLoan.GetLoanDisbursement(fromDate, toDate, loanType, brCode);

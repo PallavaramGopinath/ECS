@@ -148,5 +148,54 @@ namespace Infin8.Coapp.UI.Controllers
             }
             return CreatePDFAsBytes(pdfAsBytes);
         }
+
+        /// <summary>Loan outstanding member-wise with age-wise principal overdue (report 19).</summary>
+        [HttpGet]
+        [Route("print-LoanOutstanding-Agewise/{reportId:int}/{loanType:int}/{asOnDate}/{brCode}")]
+        public async Task<byte[]> Print_LoanOutstanding_Agewise(int reportId, int loanType, string asOnDate, string brCode)
+        {
+            DateTime.TryParse(asOnDate, out DateTime asOn);
+            var report = await _reportHandler.GetReportNameWithSignature(reportId);
+            var path = Path.Combine(_webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
+            var parameters = new Dictionary<string, string>
+            {
+                { "paramSocietyName", await _generalHandler.GetSocietyName(brCode) },
+                { "paramReportHeader", "Loan outstanding as on " + asOn.ToString("dd-MM-yyyy") }
+            };
+            byte[] pdfAsBytes;
+            using (FileStream stream = System.IO.File.OpenRead(path))
+            {
+                pdfAsBytes = await _reportsLoanHandler.GetLoanOutstandingWithAgewise("Ds_LoanOutstanding", asOn, loanType, brCode, stream, parameters);
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
+
+        /// <summary>The member's loans of one type, for the loan ledger picker.</summary>
+        [HttpGet]
+        [Route("LedgerLoans/{memId:decimal}/{loanType:int}/{brCode}")]
+        public async Task<List<DtoLoanNo>> LedgerLoans(decimal memId, int loanType, string brCode) =>
+            await _reportsLoanHandler.GetMemberLoansAsync(memId, loanType, brCode);
+
+        /// <summary>Loan ledger (report 16) for the chosen loans between two dates.</summary>
+        [HttpPost]
+        [Route("print-LoanLedger")]
+        public async Task<IActionResult> Print_LoanLedger(rptReportLoanObject rptObject)
+        {
+            var loanIds = rptObject.LoanNoList ?? new List<decimal>();
+            if (loanIds.Count == 0) return BadRequest("Select at least one loan.");
+            var report = await _reportHandler.GetReportNameWithSignature(rptObject.ReportId);
+            var path = Path.Combine(_webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
+            var parameters = new Dictionary<string, string>
+            {
+                { "paramSocietyName", await _generalHandler.GetSocietyName(rptObject.BrCode ?? "") },
+                { "paramReportHeader", "Loan Ledger from " + rptObject.FromDate.ToString("dd-MM-yyyy") + " to " + rptObject.ToDate.ToString("dd-MM-yyyy") }
+            };
+            byte[] pdfAsBytes;
+            using (FileStream stream = System.IO.File.OpenRead(path))
+            {
+                pdfAsBytes = await _reportsLoanHandler.GetLoanLedgerToPrint("Ds_LoanLedger", loanIds, rptObject.FromDate, rptObject.ToDate, rptObject.BrCode ?? "", stream, parameters);
+            }
+            return File(pdfAsBytes, "application/pdf");
+        }
     }
 }
