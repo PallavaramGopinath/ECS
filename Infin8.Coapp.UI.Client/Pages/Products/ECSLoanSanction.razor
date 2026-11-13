@@ -494,12 +494,37 @@ else
                         <table class="table table-sm mb-0">
                             <tbody>
                                 <tr><td>Instalment (principal)</td><td class="text-end">@F(instalmentAmount)</td></tr>
-                                <tr><td>Interest in demand</td><td class="text-end">@F(eligibility.NewLoanDemand - instalmentAmount)</td></tr>
+                                <tr><td>Interest in demand</td><td class="text-end">@F(eligibility.InterestDemand)</td></tr>
                                 <tr><td>Deposit demand</td><td class="text-end">@F(eligibility.DepositDemand)</td></tr>
                                 <tr class="table-light"><th>Demand</th><th class="text-end">@F(eligibility.Demand)</th></tr>
                                 <tr><td>Existing demand (non-deductable loans)</td><td class="text-end">@F(eligibility.ExistingDemand)</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showEligibility && eligibility != null)
+    {
+        <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h6 class="modal-title">Eligibility</h6>
+                        <button type="button" class="btn-close" @onclick="() => showEligibility = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex">
+                            <i class="bi @(eligibility.IsEligible ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-4 me-3"></i>
+                            <div class="@(eligibility.IsEligible ? "text-success" : "text-danger")">
+                                @foreach (var r in eligibility.Reasons) { <div class="mb-1">@r</div> }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" @onclick="() => showEligibility = false">OK</button>
                     </div>
                 </div>
             </div>
@@ -580,6 +605,7 @@ else
     // Eligibility / demand
     private LoanEligibilityResultVM? eligibility;
     private bool showDemand;
+    private bool showEligibility;
 
     // Sanction identity
     private decimal sanctionId;
@@ -806,6 +832,7 @@ else
     {
         recoverablesStale = true;
         eligibility = null;
+        showEligibility = false;
     }
 
     private void EnforceInstalmentFloor()
@@ -1000,11 +1027,30 @@ else
         StateHasChanged();
     }
 
-    /// <summary>Check Eligibility: recomputes; when the recoverables are out of date, fetches them first.</summary>
+    /// <summary>Check Eligibility: recomputes (fetching the recoverables first when they are out of date) and shows the result in a popup.</summary>
     private async Task CheckEligibilityAsync()
     {
-        if (recov == null || recoverablesStale) await GetRecoverables();
-        else await RefreshEligibilityAsync();
+        await RecomputeEligibilityAsync();
+        showEligibility = eligibility != null;
+    }
+
+    /// <summary>Recomputes eligibility; when the recoverables are out of date, fetches them first.</summary>
+    private async Task RecomputeEligibilityAsync()
+    {
+        if (recov == null || recoverablesStale)
+        {
+            await GetRecoverables();
+            return;
+        }
+        busy = true;
+        try
+        {
+            await RefreshEligibilityAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     /// <summary>Display Demand: computes eligibility first when it is not yet available, then shows the demand.</summary>
@@ -1017,7 +1063,7 @@ else
                 ShowAlert(false, "Select a member and a loan to display the demand.");
                 return;
             }
-            await CheckEligibilityAsync();
+            await RecomputeEligibilityAsync();
         }
         if (eligibility != null) showDemand = true;
     }
@@ -1240,6 +1286,8 @@ else
         pendingDeposits = new();
         movedLoanIds.Clear(); selectedNonDed.Clear(); movedDmIds.Clear(); selectedPending.Clear();
         eligibility = null;
+        showEligibility = false;
+        showDemand = false;
         sanctionId = 0;
         loadedSanctionId = 0;
         savedThisEntry = false;

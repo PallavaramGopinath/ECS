@@ -32,7 +32,8 @@ namespace Infin8.Coapp.Dto
     /// <summary>Result of the eligibility calculation (spec 06 §3.3).</summary>
     public class LoanEligibilityResultVM
     {
-        public double NewLoanDemand { get; set; }        // instalment (+ monthly interest for Inst_Type 3)
+        public double InterestDemand { get; set; }       // first month's interest (0 for Inst_Type 2 EMI)
+        public double NewLoanDemand { get; set; }        // instalment + InterestDemand
         public double DepositDemand { get; set; }
         public double Demand { get; set; }               // NewLoanDemand + DepositDemand
         public double ExistingDemand { get; set; }

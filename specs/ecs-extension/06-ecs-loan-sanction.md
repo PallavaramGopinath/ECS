@@ -243,8 +243,10 @@ if scheme.AdoptLoanEligibility = 1:
    FAIL if 25% > NetPay                       "Net Pay is less than 25% of gross pay"
 ```
 - `LoanEligibilityHandler.CalculateAsync` already implements this. Reconcile three differences:
-  - It adds `LoanAmount×ROI/1200` interest to every loan demand. **Apply it only to Inst_Type 3
-    (principal + interest)**, matching TSIS `GetLoanDemandAmount` type 3.
+  - It adds `LoanAmount×ROI/1200` interest to every loan demand. ~~Apply it only to Inst_Type 3
+    (principal + interest)~~ **Changed by business decision (2026-11-13):** the first month's interest
+    is part of the demand for every scheme except Inst_Type 2 (EMI), whose instalment already includes
+    interest. It is returned as `InterestDemand` and shown on the Display Demand popup.
   - It applies the 25 % floor even when `AdoptLoanEligibility = 0`. TSIS applies **both** checks only
     when the flag is 1.
   - It compares `ServiceInMonths < Map_General.TSISRetirementAgeInMonths`. That is not a TSIS rule
