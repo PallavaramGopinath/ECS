@@ -260,7 +260,16 @@ by URL. `specs/ecs-extension/03`–`05` (the three ECS products, all schemes und
 ## Reports
 
 RDLC via `ReportViewerCore.NETCore`, PDF only (`LocalReport.Render("PDF")`); the Excel/Word calls are
-commented out. Definitions live in `Infin8.Coapp.UI/Reports/*.rdlc` and are resolved at runtime as
+commented out.
+
+**PDF rendering works only on a Windows host.** On macOS/Linux, `Render("PDF")` throws
+`PlatformNotSupportedException`: `System.Drawing.Common` is Windows-only from .NET 7 on, and the
+renderer also needs Uniscribe. Installing `libgdiplus` does not fix it. `MicrosoftReport.CreateLocalReport`
+catches the exception, writes it to the console and returns an **empty byte array**, so on a Mac dev
+machine every report endpoint returns `200` with no bytes and the page shows a blank or "empty" report.
+Don't debug the RDLC for that symptom on a Mac. When a document must render on any host, draw it as HTML
+from a data endpoint instead; the ECS Office Note does this (`api/loansanction/OfficeNoteData`, printed
+with `printElement` in `UI.Client/wwwroot/js/pdfViewer.js`). Definitions live in `Infin8.Coapp.UI/Reports/*.rdlc` and are resolved at runtime as
 `{ContentRootPath}/Reports/{ReportFileName}`.
 
 Reports are **discovered from the `Reports_Master` database table**, not the filesystem — adding a
