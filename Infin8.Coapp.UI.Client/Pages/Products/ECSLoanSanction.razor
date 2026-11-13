@@ -244,8 +244,8 @@ else
                         <button class="btn btn-primary" @onclick="GetRecoverables" disabled="@(!member.Found || schemeId == 0 || busy)">
                             <i class="bi bi-arrow-repeat me-1"></i>Get Recoverables
                         </button>
-                        <button class="btn btn-outline-secondary" @onclick="() => showDemand = true" disabled="@(eligibility == null)">Display Demand</button>
-                        <button class="btn btn-outline-secondary" @onclick="RefreshEligibilityAsync" disabled="@(recov == null || busy)">Check Eligibility</button>
+                        <button class="btn btn-outline-secondary" @onclick="DisplayDemandAsync" disabled="@busy">Display Demand</button>
+                        <button class="btn btn-outline-secondary" @onclick="CheckEligibilityAsync" disabled="@(recov == null || busy)">Check Eligibility</button>
                         @if (recoverablesStale && schemeId != 0)
                         {
                             <span class="text-warning align-self-center small"><i class="bi bi-exclamation-triangle me-1"></i>Recoverables are out of date. Get Recoverables again.</span>
@@ -847,8 +847,22 @@ else
     /// <summary>Fetches recoverable sources and the calculated instalment; leaves the chosen rows alone.</summary>
     private async Task<EcsRecoverablesVM?> FetchRecoverablesAsync()
     {
-        var response = await _httpClient.PostAsJsonAsync("api/loansanction/GetRecoverables", BuildRecoverablesRequest());
-        var result = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<EcsRecoverablesVM>() : null;
+        EcsRecoverablesVM? result;
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/loansanction/GetRecoverables", BuildRecoverablesRequest());
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, await DescribeFailureAsync(response, "Could not get recoverables"));
+                return null;
+            }
+            result = await response.Content.ReadFromJsonAsync<EcsRecoverablesVM>();
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not get recoverables: " + ex.Message);
+            return null;
+        }
         if (result == null || !result.Success)
         {
             ShowAlert(false, result?.Message ?? "Could not get recoverables.");
@@ -964,9 +978,65 @@ else
             ServiceInMonths = member.ServiceInMonths, DepositDemand = recov.DepositDemand,
             ExistingDemand = ExistingDemand, AdoptLoanEligibility = defaults.AdoptLoanEligibility
         };
-        var response = await _httpClient.PostAsJsonAsync("api/loansanction/CalculateEligibility", input);
-        eligibility = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<LoanEligibilityResultVM>() : null;
+        // On failure keep the last computed eligibility on screen and say why.
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/loansanction/CalculateEligibility", input);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoanEligibilityResultVM>();
+                if (result != null) eligibility = result;
+                else ShowAlert(false, "Could not check eligibility.");
+            }
+            else
+            {
+                ShowAlert(false, await DescribeFailureAsync(response, "Could not check eligibility"));
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not check eligibility: " + ex.Message);
+        }
         StateHasChanged();
+    }
+
+    /// <summary>Check Eligibility: recomputes; when the recoverables are out of date, fetches them first.</summary>
+    private async Task CheckEligibilityAsync()
+    {
+        if (recov == null || recoverablesStale) await GetRecoverables();
+        else await RefreshEligibilityAsync();
+    }
+
+    /// <summary>Display Demand: computes eligibility first when it is not yet available, then shows the demand.</summary>
+    private async Task DisplayDemandAsync()
+    {
+        if (eligibility == null)
+        {
+            if (!member.Found || schemeId == 0)
+            {
+                ShowAlert(false, "Select a member and a loan to display the demand.");
+                return;
+            }
+            await CheckEligibilityAsync();
+        }
+        if (eligibility != null) showDemand = true;
+    }
+
+    /// <summary>Turns a failed API response into a message the user can act on.</summary>
+    private static async Task<string> DescribeFailureAsync(HttpResponseMessage response, string what)
+    {
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            return "Your session has expired. Please log out and log in again.";
+        try
+        {
+            var body = await response.Content.ReadFromJsonAsync<SanctionSaveResultVM>();
+            if (!string.IsNullOrWhiteSpace(body?.Message)) return body.Message!;
+        }
+        catch
+        {
+            // not a JSON message body
+        }
+        return $"{what} (HTTP {(int)response.StatusCode}).";
     }
 
     // =====================================================================

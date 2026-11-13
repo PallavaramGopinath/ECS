@@ -164,6 +164,30 @@ namespace Infin8.Coapp.API.Controllers
 
         }
 
+        /// <summary>
+        /// Silent refresh used by the WASM client when an API call returns 401. Reads the HttpOnly
+        /// refresh-token cookie, rotates it and re-issues the auth-token cookie.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh()
+        {
+            var refreshToken = Request.Cookies["refresh-token"];
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return Unauthorized(new { Message = "Login again. No refresh token." });
+            try
+            {
+                var (accessToken, newRefreshToken) = await _authenticationHandler.RotateTokensAsync(refreshToken);
+                Response.Cookies.Append("auth-token", accessToken, CookieOptions());
+                Response.Cookies.Append("refresh-token", newRefreshToken, CookieOptions());
+                return Ok(new { Message = "Session refreshed." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+        }
+
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
         {

@@ -77,21 +77,27 @@ namespace Infin8.Coapp.BusinessLogic
         }
 
         public async Task<string> RefreshTokenAsync(string refreshToken)
+            => (await RotateTokensAsync(refreshToken)).AccessToken;
+
+        public async Task<(string AccessToken, string RefreshToken)> RotateTokensAsync(string refreshToken)
         {
             var tokenEntity = await _unitOfWork.RefreshTokenRepository.GetByTokenAsync(refreshToken);
-            if (tokenEntity == null || (DateTime.UtcNow >= tokenEntity.Expires))
+            if (tokenEntity == null || DateTime.UtcNow >= tokenEntity.Expires)
             {
                 throw new UnauthorizedAccessException("Invalid or expired refresh token.");
             }
-            // Generate a new access token
-            var member = await _unitOfWork.Members.GetMemberDetailsByMemIdAsync(tokenEntity.User_Id);
-            var roles = _unitOfWork.UserRepository.GetUserRoles(tokenEntity.User_Id);
-            if(member == null || member.MemberName==null) throw new UnauthorizedAccessException("Invalid member.");
-            var daybeginInfo = await _unitOfWork.FinYearMaster.GetDayBeginInfo(member.BrCode ?? "");
-            // Pass proper role from DB or from the decision JSON file.
-            var accessToken = _jwtService.GenerateAccessToken(member.Mem_Id, member.MemberName, roles!,member.BrCode!,daybeginInfo.YearId,daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate,daybeginInfo.CalendarStatus! ); 
 
-            // Optionally, generate a new refresh token and update the database
+            // The refresh token belongs to a login user (users.id), not a member.
+            var user = _unitOfWork.UserRepository.GetUserById(tokenEntity.User_Id);
+            if (user == null) throw new UnauthorizedAccessException("Invalid user.");
+
+            // Re-read the business day so a Day Begin / Day End since login is picked up.
+            var daybeginInfo = await _unitOfWork.FinYearMaster.GetDayBeginInfo(user.BrCode ?? "");
+            var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Username!, user.Role!, user.BrCode!,
+                daybeginInfo.YearId, daybeginInfo.YearBeginningDate, daybeginInfo.YearEndDate,
+                daybeginInfo.CurrentDate, daybeginInfo.CalendarStatus!);
+
+            // Rotate: the old refresh token stops working once the new one is issued.
             var newRefreshToken = _jwtService.GenerateRefreshToken();
             tokenEntity.Token = newRefreshToken;
             tokenEntity.Expires = DateTime.UtcNow.AddDays(_jwtService.GetRefreshTokenExpireDays());
@@ -100,7 +106,7 @@ namespace Infin8.Coapp.BusinessLogic
             _unitOfWork.RefreshTokenRepository.UpdateRefreshToken(tokenEntity);
             await _unitOfWork.CompleteAsync();
 
-            return accessToken;
+            return (accessToken, newRefreshToken);
         }
 
         public async Task<bool> RevokeTokenAsync(string token)

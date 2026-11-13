@@ -77,6 +77,11 @@ namespace Infin8.Coapp.Repository
             return user;
         }
 
+        public Users? GetUserById(decimal userId)
+        {
+            return CSISContext.Users.Where(x => x.Id == userId).FirstOrDefault();
+        }
+
         public string GetUserRoles(decimal userId)
         {
             var user = CSISContext.Users.Where(x => x.Id == userId).FirstOrDefault();
