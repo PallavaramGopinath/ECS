@@ -1,0 +1,103 @@
+@* Read-only view of an acc 58 ECS Loan Recovery staging line (spec 11 §3). Hosts pass stagingId / relatedAccountId. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using System.Globalization
+@using System.Text.Json
+@inject HttpClient _httpClient
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (recovery != null)
+{
+    <div class="card mt-2">
+        <div class="card-header">
+            <h5 class="mb-0">ECS Loan Recovery</h5>
+            <div class="small text-muted">
+                Member @recovery.MemberNo — @recovery.MemberName · Application date @recovery.ApplicationDate.ToString("dd-MM-yyyy")
+                · @(recovery.CashOrAdjustment == 2 ? "Adjustment" : "Cash")
+            </div>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-sm table-bordered table-striped small">
+                <thead class="table-light">
+                    <tr>
+                        <th>Loan No</th>
+                        <th>Scheme</th>
+                        <th class="text-end">ROI % / PI %</th>
+                        <th class="text-end">Int now</th>
+                        <th class="text-end">PI now</th>
+                        <th class="text-end">Penal coll</th>
+                        <th class="text-end">Interest coll</th>
+                        <th class="text-end">Principal coll</th>
+                        <th class="text-end">Total</th>
+                        <th>Closes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var l in recovery.Lines)
+                    {
+                        <tr>
+                            <td>@l.Loan_No</td>
+                            <td>@l.Scheme_Name</td>
+                            <td class="text-end">@l.Soc_Roi.ToString("0.##") / @l.SocPI_Rate.ToString("0.##")</td>
+                            <td class="text-end">@F(l.IntNow)</td>
+                            <td class="text-end">@F(l.PINow)</td>
+                            <td class="text-end">@F(l.PIColl)</td>
+                            <td class="text-end">@F(l.IntColl)</td>
+                            <td class="text-end">@F(l.PrlColl)</td>
+                            <td class="text-end fw-semibold">@F(l.PIColl + l.IntColl + l.PrlColl)</td>
+                            <td>@(l.ClosesLoan ? "Yes" : "")</td>
+                        </tr>
+                    }
+                    <tr class="table-info fw-bold">
+                        <td colspan="5" class="text-end">Total</td>
+                        <td class="text-end">@F(recovery.Lines.Sum(l => l.PIColl))</td>
+                        <td class="text-end">@F(recovery.Lines.Sum(l => l.IntColl))</td>
+                        <td class="text-end">@F(recovery.Lines.Sum(l => l.PrlColl))</td>
+                        <td class="text-end">@F(recovery.RecoveryAmount)</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private DtoEcsLoanRecovery? recovery;
+    private string? errorMessage;
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        recovery = null;
+        errorMessage = null;
+        if (stagingId <= 0 || relatedAccountId <= 0) return;
+        try
+        {
+            var details = await _httpClient.GetFromJsonAsync<Staging_Details>($"api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+            if (!string.IsNullOrWhiteSpace(details?.Related_Account_Data))
+            {
+                recovery = JsonSerializer.Deserialize<DtoEcsLoanRecovery>(details.Related_Account_Data,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the recovery: {ex.Message}";
+        }
+    }
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+}

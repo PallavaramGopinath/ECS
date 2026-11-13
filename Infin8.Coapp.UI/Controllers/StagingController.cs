@@ -223,6 +223,7 @@ namespace Infin8.Coapp.UI.Controllers
                 case "Staff Transaction":
                     var response = await _transactionsHandler.SaveTransaction(stagingId, stagingMaster.Type!.Trim() == "Member Transaction" ? "MTRN" : "STRN", checkedBy, yrId);
                     if (response.Voc_Id >0) result = true; else result = false;
+                    voucherData.Message = response.Message;
                     voucherData.Voc_Id = response.Voc_Id;
                     voucherData.brCode = response.brCode;
                     voucherData.Transactions = response.Transactions;
@@ -242,7 +243,7 @@ namespace Infin8.Coapp.UI.Controllers
             }
             else
             {
-                return BadRequest("Failed to approve staging");
+                return BadRequest(voucherData.Message ?? "Failed to approve staging");
             }
         }
 

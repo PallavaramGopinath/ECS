@@ -60,6 +60,7 @@ namespace Infin8.Coapp.Repository
         private LoanSanctionTrnRepository? _loanSanctionTrnRepository;
         private EcsLoanSanctionRepository? _ecsLoanSanctionRepository;
         private EcsLoanDisbursementRepository? _ecsLoanDisbursementRepository;
+        private EcsLoanRecoveryRepository? _ecsLoanRecoveryRepository;
         private LoanEligibilityRepository? _loanEligibilityRepository;
         private LoanTrnRepository? _loanTrnRepository;
         private JLDailyMarketRateRepository? _jldailyMarketRateRepository;
@@ -227,6 +228,7 @@ namespace Infin8.Coapp.Repository
         public ILoanSanctionTrnRepository LoanSanctionTrn => _loanSanctionTrnRepository ??= new LoanSanctionTrnRepository(_context);
         public IEcsLoanSanctionRepository EcsLoanSanction => _ecsLoanSanctionRepository ??= new EcsLoanSanctionRepository(_context);
         public IEcsLoanDisbursementRepository EcsLoanDisbursement => _ecsLoanDisbursementRepository ??= new EcsLoanDisbursementRepository(_context);
+        public IEcsLoanRecoveryRepository EcsLoanRecovery => _ecsLoanRecoveryRepository ??= new EcsLoanRecoveryRepository(_context);
         public ILoanEligibilityRepository LoanEligibility => _loanEligibilityRepository ??= new LoanEligibilityRepository(_context);
         public ILoanTrnRepository LoanTrn => _loanTrnRepository ??= new LoanTrnRepository(_context);
         public IJLDailyMarketRateRepository JLDailyMarketRate => _jldailyMarketRateRepository ??= new JLDailyMarketRateRepository(_context);    

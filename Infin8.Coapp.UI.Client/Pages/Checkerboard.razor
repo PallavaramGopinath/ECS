@@ -499,7 +499,11 @@ else
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Approval of Transaction failed!");
+            // The server returns a reason for failures meant for the Checker (e.g. a stale ECS loan recovery).
+            var reason = await response.Content.ReadAsStringAsync();
+            await JSRuntime.InvokeVoidAsync("alert", string.IsNullOrWhiteSpace(reason) || reason.Contains("Failed to approve staging")
+                ? "Approval of Transaction failed!"
+                : "Approval of Transaction failed: " + reason.Trim('"'));
         }
     }
 
@@ -572,6 +576,9 @@ else
                     case 31:    /// Jewel Loan Recovery
                     case 37:    /// Jewel Loan disbursement
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.JewelLoan"}.{componentName},{assemblyName}";
+                        break;
+                    case 58:    /// ECS Loan Receipt (spec 11)
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.ECSLoan"}.{componentName},{assemblyName}";
                         break;
                     case 18: /// New SB Account creation
                     case 36:    /// SB Account Transaction

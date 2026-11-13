@@ -1,0 +1,368 @@
+@* ECS Loan Recovery — acc 58 "Loan Receipt" (spec 11). Hosted by Member_Transaction.razor through DynamicComponent. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@using System.Text.Json
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<div>
+    <h3 class="mb-2">ECS Loan Recovery</h3>
+    <hr class="mt-0" />
+
+    @if (!isReady)
+    {
+        <div class="d-flex align-items-center gap-2 text-muted">
+            <div class="spinner-border spinner-border-sm" role="status"></div> Loading…
+        </div>
+    }
+    else if (institution != InstitutionType.ECS)
+    {
+        <div class="alert alert-warning">ECS Loan Recovery is available only for Employees' Society (ECS) institutions.</div>
+        <button type="button" class="btn btn-secondary" @onclick="CloseRecovery"><i class="bi bi-x-circle"></i> Close</button>
+    }
+    else
+    {
+        <div class="mb-2 text-muted small">
+            Member <strong>@MemberNumber</strong> — @MemberName · Application date <strong>@preview.ApplicationDate.ToString("dd-MM-yyyy")</strong>
+            · @(CashOrAdjustment == 2 ? "Adjustment" : "Cash")
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        @if (preview.Loans.Count == 0)
+        {
+            <div class="alert alert-info">@(preview.Message ?? "No ECS loans with dues for this member")</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Select</th>
+                            <th>Loan No</th>
+                            <th>Scheme</th>
+                            <th>Disb. date</th>
+                            <th class="text-end">ROI % / PI %</th>
+                            <th class="text-end">Prl outstanding</th>
+                            <th class="text-end">Prl overdue</th>
+                            <th class="text-end">Int overdue</th>
+                            <th class="text-end">Int now</th>
+                            <th class="text-end">PI overdue</th>
+                            <th class="text-end">PI now</th>
+                            <th class="text-end">Recoverable</th>
+                            <th class="text-end">To close</th>
+                            <th class="text-end">Penal coll</th>
+                            <th class="text-end">Interest coll</th>
+                            <th class="text-end">Principal coll</th>
+                            <th class="text-end">Prl outstanding after</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loan in preview.Loans)
+                        {
+                            var a = appropriation.TryGetValue(loan.Loan_Id, out var x) ? x : null;
+                            <tr class="@(loan.IsPending ? "text-muted" : "")">
+                                <td>
+                                    <input type="checkbox" class="form-check-input" disabled="@loan.IsPending"
+                                           checked="@selectedIds.Contains(loan.Loan_Id)"
+                                           @onchange="e => ToggleLoan(loan.Loan_Id, (bool)(e.Value ?? false))" />
+                                </td>
+                                <td>
+                                    @loan.Loan_No
+                                    @if (loan.IsPending)
+                                    {
+                                        <div class="small text-warning">Pending recovery awaiting approval</div>
+                                    }
+                                    @if (a?.ClosesLoan == true)
+                                    {
+                                        <span class="badge bg-success ms-1">Closes</span>
+                                    }
+                                </td>
+                                <td>@loan.Scheme_Name</td>
+                                <td>@D(loan.Disb_Date)</td>
+                                <td class="text-end">@loan.CurrentRoi.ToString("0.##") / @loan.CurrentPi.ToString("0.##")</td>
+                                <td class="text-end">@F(loan.PrlOutstanding)</td>
+                                <td class="text-end">@F(loan.PrlOverdue)</td>
+                                <td class="text-end">@F(loan.IntOverdue)</td>
+                                <td class="text-end">
+                                    @F(loan.IntNow)
+                                    <div class="text-muted" style="font-size:.75em">@Period(loan.IntFrom, loan.IntTo, loan.IntDays)</div>
+                                </td>
+                                <td class="text-end">@F(loan.PIOverdue)</td>
+                                <td class="text-end">
+                                    @F(loan.PINow)
+                                    <div class="text-muted" style="font-size:.75em">@Period(loan.PIFrom, loan.PITo, loan.PIDays)</div>
+                                </td>
+                                <td class="text-end fw-semibold">@F(loan.Recoverable)</td>
+                                <td class="text-end fw-semibold">@F(loan.ToClose)</td>
+                                <td class="text-end">@(a == null ? "" : F(a.PIColl))</td>
+                                <td class="text-end">@(a == null ? "" : F(a.IntColl))</td>
+                                <td class="text-end">@(a == null ? "" : F(a.PrlColl))</td>
+                                <td class="text-end">@(a == null ? "" : F(a.PrlOsAfter))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <div>Total amount to be recovered: <strong>₹@F(totalRecoverable)</strong></div>
+                    <div>Total amount to close the selected loan(s): <strong>₹@F(totalToClose)</strong></div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Recovery amount</label>
+                    <input type="number" step="0.01" min="0" class="form-control @(amountError != null && amountText.Length > 0 ? "is-invalid" : "")"
+                           disabled="@(selectedIds.Count == 0)"
+                           value="@amountText" @oninput="OnAmountInput" />
+                    @if (amountError != null && amountText.Length > 0)
+                    {
+                        <div class="invalid-feedback">@amountError</div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="mt-3 d-flex gap-2">
+            @if (preview.Loans.Count > 0)
+            {
+                <button type="button" class="btn btn-primary" disabled="@(!CanInitiate)" @onclick="InitiateRecovery">
+                    @if (isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    <i class="bi bi-check2-circle"></i> Initiate
+                </button>
+            }
+            <button type="button" class="btn btn-secondary" @onclick="CloseRecovery"><i class="bi bi-x-circle"></i> Close</button>
+        </div>
+    }
+</div>
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnECSLoanRecoveryComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoEcsLoanRecovery> OnECSLoanRecoveryInitiate { get; set; }
+    #endregion
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    private bool isReady;
+    private bool isSubmitting;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private string brCode = "";
+    private decimal userId;
+    private string? errorMessage;
+
+    private EcsLoanRecoveryPreviewVM preview = new();
+    private readonly HashSet<decimal> selectedIds = new();
+    private Dictionary<decimal, EcsAppropriationLineVM> appropriation = new();
+    private double totalRecoverable, totalToClose;
+    private string amountText = "";
+    private double amount;
+    private string? amountError;
+
+    private bool CanInitiate => !isSubmitting && selectedIds.Count > 0 && amountError == null && amount > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode ?? "";
+            userId = userInfoDto.UserId;
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            preview.ApplicationDate = TransactionDate;
+            if (institution == InstitutionType.ECS) await LoadLoansAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the member's loans: {ex.Message}";
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LoadLoansAsync()
+    {
+        var response = await _httpClient.GetAsync($"api/loansanction/RecoveryLoans/{MemberId}");
+        if (response.IsSuccessStatusCode)
+        {
+            preview = await response.Content.ReadFromJsonAsync<EcsLoanRecoveryPreviewVM>() ?? new();
+            if (preview.Loans.Count == 0 && preview.Message != null && !preview.Message.StartsWith("No ECS loans"))
+                errorMessage = preview.Message;
+        }
+        else
+        {
+            errorMessage = response.StatusCode == HttpStatusCode.Forbidden
+                ? "ECS Loan Recovery is available only to ECS societies."
+                : $"Could not load the member's loans ({(int)response.StatusCode}).";
+        }
+        Recompute();
+    }
+
+    private void ToggleLoan(decimal loanId, bool selected)
+    {
+        if (selected) selectedIds.Add(loanId); else selectedIds.Remove(loanId);
+        if (selectedIds.Count == 0) amountText = "";
+        Recompute();
+    }
+
+    private void OnAmountInput(ChangeEventArgs e)
+    {
+        amountText = e.Value?.ToString()?.Trim() ?? "";
+        Recompute();
+    }
+
+    private List<EcsLoanRecoveryLoanVM> SelectedLoans() =>
+        preview.Loans.Where(l => selectedIds.Contains(l.Loan_Id) && !l.IsPending).ToList();
+
+    /// <summary>Totals, validation and the live appropriation columns (spec 11 §7, §8).</summary>
+    private void Recompute()
+    {
+        var selected = SelectedLoans();
+        totalRecoverable = EcsRecoveryAppropriator.TotalRecoverable(selected);
+        totalToClose = EcsRecoveryAppropriator.TotalToClose(selected);
+
+        amount = double.TryParse(amountText, NumberStyles.Number, CultureInfo.InvariantCulture, out var v)
+            ? Math.Round(v, 2, MidpointRounding.AwayFromZero) : 0;
+        amountError = amountText.Length > 0 && !double.TryParse(amountText, NumberStyles.Number, CultureInfo.InvariantCulture, out _)
+            ? "Enter a valid amount."
+            : EcsRecoveryAppropriator.Validate(selected, amount);
+
+        appropriation = selected.Count > 0 && amount > 0 && amountError == null
+            ? EcsRecoveryAppropriator.Appropriate(selected, amount).ToDictionary(a => a.Loan_Id)
+            : new();
+    }
+
+    private async Task CloseRecovery()
+    {
+        await OnECSLoanRecoveryComponentClose.InvokeAsync(true);
+    }
+
+    private async Task InitiateRecovery()
+    {
+        Recompute();
+        if (!CanInitiate) return;
+        isSubmitting = true;
+        errorMessage = null;
+        try
+        {
+            var selected = EcsRecoveryAppropriator.Order(SelectedLoans());
+            var model = new DtoEcsLoanRecovery
+            {
+                MemId = MemberId,
+                MemberNo = MemberNumber,
+                MemberName = MemberName,
+                ApplicationDate = preview.ApplicationDate,
+                RecoveryAmount = amount,
+                CashOrAdjustment = CashOrAdjustment,
+                Lines = selected.Select(l =>
+                {
+                    var a = appropriation[l.Loan_Id];
+                    return new DtoEcsLoanRecoveryLine
+                    {
+                        Loan_Id = l.Loan_Id,
+                        Loan_No = l.Loan_No,
+                        Scheme_Name = l.Scheme_Name,
+                        IntNow = l.IntNow,
+                        IntCalcDate = preview.ApplicationDate,
+                        PINow = l.PI_Application is 2 or 3 ? l.PINow : 0,
+                        PICalcDate = l.PI_Application is 2 or 3 ? preview.ApplicationDate : null,
+                        PIColl = a.PIColl,
+                        IntColl = a.IntColl,
+                        PrlColl = a.PrlColl,
+                        Soc_Roi = l.CurrentRoi,
+                        SocPI_Rate = l.CurrentPi,
+                        ClosesLoan = a.ClosesLoan
+                    };
+                }).ToList()
+            };
+
+            string accountName = "Loan Receipt";
+            try
+            {
+                var nameResponse = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
+                if (nameResponse.IsSuccessStatusCode) accountName = await nameResponse.Content.ReadAsStringAsync();
+            }
+            catch (HttpRequestException)
+            {
+                // keep the default module name
+            }
+
+            var stagingDetails = new DtoStaging_Details
+            {
+                Id = 0,
+                Staging_Id = 0,
+                Member_Id = MemberId,
+                Ledger_Id = 0,
+                Related_Account_Id = AccountId,
+                Receipt_Amount = amount,
+                Payment_Amount = 0,
+                Module_Name = accountName,
+                Cash_Or_Adjustment = CashOrAdjustment,
+                Related_Account_Data = JsonSerializer.Serialize(model),
+                Created_By = userId,
+                Created_Date = TransactionDate,
+                Checked_By = 0,
+                Checked_Date = null,
+                Staging_Status = "I",
+                BrCode = brCode,
+                CashReceipt_Amount = CashOrAdjustment == 1 ? amount : 0,
+                AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? amount : 0,
+                CashPayment_Amount = 0,
+                AdjustmentPayment_Amount = 0,
+                Transaction_Type = "Member Transaction"
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("api/Staging/AddStaging", stagingDetails);
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Could not initiate the recovery ({(int)response.StatusCode}).";
+                return;
+            }
+            await OnECSLoanRecoveryInitiate.InvokeAsync(model);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not initiate the recovery: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private static string Period(DateTime? from, DateTime? to, int days) =>
+        from.HasValue && to.HasValue && days > 0 ? $"{from:dd-MM-yy} – {to:dd-MM-yy}, {days} d" : "";
+
+    private static string D(DateTime? d) => d.HasValue ? d.Value.ToString("dd-MM-yyyy") : "";
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+}

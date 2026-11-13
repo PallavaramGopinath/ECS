@@ -16,5 +16,7 @@ namespace Infin8.Coapp.Dto
         public string? Voc_Narration { get; set; }
         public string? brCode { get; set; }
         public List<DtoVoucherTrn> Transactions { get; set; } = new();
+        /// <summary>Why approval failed, when the failure carries a message meant for the Checker.</summary>
+        public string? Message { get; set; }
     }
 }

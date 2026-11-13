@@ -19,9 +19,11 @@ namespace Infin8.Coapp.BusinessLogic
     public class TransactionsHandler : ITransactionsHandler
     {
         readonly IUnitOfWork _unitOfWork;
-        public TransactionsHandler(IUnitOfWork unitOfWork)
+        readonly IEcsLoanRecoveryHandler _ecsLoanRecoveryHandler;
+        public TransactionsHandler(IUnitOfWork unitOfWork, IEcsLoanRecoveryHandler ecsLoanRecoveryHandler)
         {
             _unitOfWork = unitOfWork;
+            _ecsLoanRecoveryHandler = ecsLoanRecoveryHandler;
         }
         public async Task<List<DropdownItem>> GetTransactionAccounts(string accountStatus, string accountBelongTo)
         {
@@ -822,6 +824,17 @@ namespace Infin8.Coapp.BusinessLogic
                             #endregion
                             break;
                         case 32:    /// Dividend/TD Interest payment (bulk)
+                            break;
+                        case 58:    /// ECS Loan Receipt (spec 11 §11)
+                            #region ECS loan recovery
+                            DtoEcsLoanRecovery ecsRecovery = System.Text.Json.JsonSerializer.Deserialize<DtoEcsLoanRecovery>(
+                                trns.Related_Account_Data!, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                                ?? throw new EcsRecoveryException("ECS loan recovery data is missing. Reject it and re-initiate.");
+                            var ecsPosting = await _ecsLoanRecoveryHandler.BuildPostingAsync(ecsRecovery, stagingId, Transacted_Date, brCode,
+                                yrId, Checked_By, vocId, trns.Cash_Or_Adjustment, Transacted_MemNo.Trim() + Transacted_MemName.Trim());
+                            loanTrnList.AddRange(ecsPosting.LoanTrns);
+                            finVoucherTrns.AddRange(ecsPosting.VoucherTrns);
+                            #endregion
                             break;
                         case 33:    /// Ex-Gratia payment
                             #region Ex-gratia
@@ -1732,6 +1745,8 @@ namespace Infin8.Coapp.BusinessLogic
                 string er = ex.Message;
                 result = false;
                 voucherData = new();
+                // Only ECS recovery messages are meant for the Checker; everything else keeps the generic text.
+                if (ex is EcsRecoveryException) voucherData.Message = ex.Message;
                 _unitOfWork.RollBack();
             }
             return voucherData;

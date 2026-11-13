@@ -20,6 +20,7 @@ namespace Infin8.Coapp.API.Controllers
 
         readonly IEcsLoanSanctionHandler _sanctionHandler;
         readonly IEcsLoanDisbursementHandler _disbursementHandler;
+        readonly IEcsLoanRecoveryHandler _recoveryHandler;
         readonly IFinLedgerHandler _finLedgerHandler;
         readonly IGeneralHandler _generalHandler;
         readonly IReportsHandler _reportsHandler;
@@ -27,10 +28,11 @@ namespace Infin8.Coapp.API.Controllers
 
         public LoanSanctionController(IEcsLoanSanctionHandler sanctionHandler, IFinLedgerHandler finLedgerHandler,
             IGeneralHandler generalHandler, IReportsHandler reportsHandler, IWebHostEnvironment webHostEnvironment,
-            IEcsLoanDisbursementHandler disbursementHandler)
+            IEcsLoanDisbursementHandler disbursementHandler, IEcsLoanRecoveryHandler recoveryHandler)
         {
             _sanctionHandler = sanctionHandler;
             _disbursementHandler = disbursementHandler;
+            _recoveryHandler = recoveryHandler;
             _finLedgerHandler = finLedgerHandler;
             _generalHandler = generalHandler;
             _reportsHandler = reportsHandler;
@@ -237,6 +239,28 @@ namespace Infin8.Coapp.API.Controllers
             {
                 var result = await _disbursementHandler.DisburseAsync(request, ctx);
                 return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return ServerError(ex);
+            }
+        }
+
+        // ----- recovery (spec 11, acc 58) -----
+
+        /// <summary>
+        /// The member's ECS loans with dues as on the caller's business day, with interest / penal accrued
+        /// to the day before. BrCode and the date come from claims. Writes nothing.
+        /// </summary>
+        [HttpGet]
+        [Route("RecoveryLoans/{memId}")]
+        public async Task<ActionResult<EcsLoanRecoveryPreviewVM>> RecoveryLoans(decimal memId)
+        {
+            var ctx = UserContext();
+            if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
+            try
+            {
+                return Ok(await _recoveryHandler.GetRecoveryLoansAsync(memId, ctx));
             }
             catch (Exception ex)
             {
