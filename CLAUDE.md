@@ -217,11 +217,48 @@ whole-page gate is copied into `ECSLoanSanctionList.razor` and `ECSLoanDisbursem
 
 Caveats: gating is **mostly client-side**. Only `LoanSanctionController` checks the institution on the
 server (its `IsEcsAsync` looks up `Gen_Bank_Name.Bank_Type` for the claims `BrCode`, since the JWT carries
-no `SocietyType`) — this covers sanction save/list/delete and the disbursement endpoints
-(`DisbursementPreview`, `Disburse`); other ECS-only endpoints have no server-side check. ECS disbursement
+no `SocietyType`) — this covers sanction save/list/delete, the disbursement endpoints
+(`DisbursementPreview`, `Disburse`) and `RecoveryLoans`; other ECS-only endpoints have no server-side check. ECS disbursement
 allocates ids with its own in-memory MAX+1 allocator (`EcsLoanDisbursementRepository`) because the shared
 add-methods collide when one transaction adds several rows to a table — see spec 10 §13.2. Nav-menu gating is deliberately deferred (no menu rows added), so ECS pages are reachable only
 by URL. `specs/ecs-extension/03`–`05` (the three ECS products, all schemes under `Loan_Type 1`) are still stubs.
+
+### ECS loan recovery (acc 58, "Loan Receipt")
+
+Not a page: a component on Member Transaction (`/member-transactions`) for `account_transactions.acc_id = 58`.
+Spec: `specs/ecs-extension/11-ecs-loan-recovey-component.md` (sic — "recovey" is the committed file name;
+§16 lists where the code departs from the draft).
+
+- **Wiring.** `Components/ECSLoan/ECSLoanRecovery.razor` (Maker input) and `ECSLoanRecovery_View.razor`
+  (Checker view). The view's name must match `account_transactions.view_component_name` — the DB row says
+  `ECSLoanRecovery_View`, with the underscore. `case 58` sits in four switches in `Member_Transaction.razor`
+  (`GetComponentName`, the receipt switch, `GetViewComponentName`, the delete switch) and in
+  `Checkerboard.razor`'s `GetViewComponentName`. A view component receives only `stagingId` and
+  `relatedAccountId` and fetches its own JSON via `api/Staging/GetStagingDetailsById`.
+- **Flow.** `GET api/loansanction/RecoveryLoans/{memId}` → `EcsLoanRecoveryHandler.GetRecoveryLoansAsync`
+  (BrCode and date from claims; refuses when the token's `CurrentDate` is no longer the branch's first `N`
+  business day). Initiate posts one `staging_details` row with the serialised `DtoEcsLoanRecovery` in
+  `Related_Account_Data`. Approval: `TransactionsHandler.SaveTransaction` `case 58` →
+  `EcsLoanRecoveryHandler.BuildPostingAsync`, which recomputes everything and adds rows to
+  `SaveTransaction`'s own `loanTrnList` / `finVoucherTrns` (no separate allocator: `AddLoanTrnListAsync`
+  saves per row, so several loans in one approval do not collide). `TransactionsHandler` now injects
+  `IEcsLoanRecoveryHandler` — the one handler-into-handler dependency in the approval path.
+- **Two pure calculators, deliberately DB-free so they can be checked by hand.**
+  `BusinessLogic/Concrete/EcsInterestCalculator.cs` (segment-wise diminishing product, Σ base × rate × days /
+  36500, rounded **once** per head with `AwayFromZero`) and `Utility/EcsRecoveryAppropriator.cs` (penal →
+  interest → principal overdue → principal in advance, oldest loan first). The appropriator lives in
+  `Utility` so the WASM grid and the server's approval recheck run the *same* code; keep it there.
+- **Balances come from `loan_trn`, never `San_Amt`.** Principal outstanding = Σ `Disb_Amt` − Σ `PrlColl_Amt`.
+  Don't reuse `EcsLoanSanctionRepository.GetLoanBalancesAsync` for this — it uses `San_Amt` and has no
+  `Voc_Status` / date filter.
+- **`pi_application` 0 means no penal**, the same as 1 (live schemes carry 0); only 2 and 3 accrue penal or
+  stamp `PICalc_Date` (`EcsInterestCalculator.PenalApplies`).
+- **Approval errors now reach the Checker.** `SaveTransaction`'s catch used to swallow everything. An
+  `EcsRecoveryException` (stale figures, wrong business day, closed/pending loan, non-ECS branch) sets
+  `DtoVoucher.Message`; `ApproveStaging` returns it as the 400 body and `Checkerboard.razor` alerts it. Every
+  other failure still shows the generic text — throw `EcsRecoveryException` only for messages meant for the user.
+- A loan already in a pending (I/M) acc 58 staging line is locked: its JSON is deserialised to find the
+  `Loan_Id`s. The approving staging excludes itself from that check.
 
 ## Gotchas
 
@@ -275,6 +312,11 @@ Don't debug the RDLC for that symptom on a Mac. When a document must render on a
 from a data endpoint instead; the ECS Office Note does this (`api/loansanction/OfficeNoteData`, printed
 with `printElement` in `UI.Client/wwwroot/js/pdfViewer.js`). Definitions live in `Infin8.Coapp.UI/Reports/*.rdlc` and are resolved at runtime as
 `{ContentRootPath}/Reports/{ReportFileName}`.
+
+The receipt printed after every Checker approval fails even earlier on a Mac: `PrintController` builds its
+path with Windows backslashes (`$"{ContentRootPath}\\Reports\\"`), so it throws `FileNotFoundException` for
+`…Infin8.Coapp.UI\Reports\ReceiptMember.rdlc`. The approval has already committed by then — that exception
+does not mean the transaction failed.
 
 Reports are **discovered from the `Reports_Master` database table**, not the filesystem — adding a
 report requires a DB row, not just a file. The `.rdlc` `<DataSet Name="...">` must match the dataset
