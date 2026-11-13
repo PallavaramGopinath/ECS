@@ -194,6 +194,7 @@ builder.Services.AddScoped<IReportsMemberHandler, ReportsMemberHandler>();
 builder.Services.AddScoped<IReportsLoanHandler, ReportsLoanHandler>();
 builder.Services.AddScoped<IReportsFinalAccountsHandler, ReportsFinalAccountsHandler>();
 builder.Services.AddScoped<IReportsAccountHandler, ReportsAccountHandler>();
+builder.Services.AddScoped<IReportsCertificateHandler, ReportsCertificateHandler>();
 builder.Services.AddScoped<IReportsEmployeeHandler, ReportsEmployeeHandler>();
 //builder.Services.AddScoped<IReportsAudit, ReportsAudit>();
 builder.Services.AddScoped<IReportsGBHandler , ReportsGBHandler>();

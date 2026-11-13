@@ -26,7 +26,7 @@ namespace Infin8.Coapp.Repository
             {
                 var result = await  (from rpt in CSISContext.Mem_Payable
                                      join mem in CSISContext.mem_master on rpt.Mem_Id equals mem.mem_id 
-                              where rpt.PbleMaster_Id == pbleMasterId && rpt.Pble_Delete == false
+                              where rpt.PbleMaster_Id == pbleMasterId && rpt.Pble_Delete == false && rpt.BrCode == brCode && mem.brcode == brCode
                               select new rptDividendTDFWDWorking
                               {
                                   PbleMaster_Id = rpt.PbleMaster_Id,
@@ -63,7 +63,7 @@ namespace Infin8.Coapp.Repository
                             join pble in CSISContext.Mem_Payable_Master on trn.PbleMaster_Id equals pble.PbleMaster_Id
                             where trn.Trn_Type == 3
                                && !trn.MemTrn_Delete
-                               && trn.Trn_Date <= asOnDate 
+                               && trn.Trn_Date <= asOnDate && trn.BrCode == brCode && mem.brcode == brCode && pble.BrCode == brCode
                             group new { trn, mem, pble } by new
                             {
                                 mem.memberno,
@@ -86,8 +86,8 @@ namespace Infin8.Coapp.Repository
                                  PbleMaster_Id = g.Key.PbleMaster_Id,
                                  Mem_Id =   g.Key.Mem_Id,
                                  PendingAmt =  (double)g.Sum(x => x.trn.IntCalc_Amt) - (double)g.Sum(x => x.trn.IntPaid_Amt),
-                                 PendingYear = g.Key.FromDate.ToString("dd-MM-yyyy") + " to " + g.Key.ToDate.ToString(g.Key.ToDate.ToString("dd-MM-yyyy")
-                            )}).ToListAsync ();
+                                 PendingYear = g.Key.FromDate.ToString("dd-MM-yyyy") + " to " + g.Key.ToDate.ToString("dd-MM-yyyy")
+                            }).ToListAsync ();
 
                 if (query != null && query.Count >0)
                     rptList = [.. query];
@@ -110,6 +110,7 @@ namespace Infin8.Coapp.Repository
                                    where trn.Trn_Type == 3
                                       && !trn.MemTrn_Delete
                                       && (trn.Trn_Date >= fromDate && trn.Trn_Date <= toDate) 
+                                      && trn.BrCode == brCode && mem.brcode == brCode && pble.BrCode == brCode
                                    group new { trn, mem, pble } by new
                                    {
                                        mem.memberno,

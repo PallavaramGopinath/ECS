@@ -1,0 +1,195 @@
+@page "/reports-certificate"
+@* Certificate reports (reports_master group 15): 117 loan, 118 FD loan, 119 FD interest payment. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Net
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<h3 class="mb-2">Certificates</h3>
+<hr class="mt-0" />
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-info")">@message</div>
+}
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <label class="form-label">Certificate</label>
+        <select class="form-select" value="@request.ReportId" @onchange="OnReportChanged">
+            <option value="0">-- Select certificate --</option>
+            @foreach (var r in reportList)
+            {
+                <option value="@r.Value">@r.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Member No</label>
+        <div class="input-group">
+            <input class="form-control" @bind="memberNo" @bind:event="oninput" @onkeydown="OnMemberKey" />
+            <button type="button" class="btn btn-outline-secondary" @onclick="LoadMember">Find</button>
+        </div>
+        @if (!string.IsNullOrEmpty(memberName))
+        {
+            <div class="small text-muted mt-1">@memberName</div>
+        }
+    </div>
+    @if (request.ReportId == LoanCertificate)
+    {
+        <div class="col-md-5">
+            <label class="form-label">Loan</label>
+            <select class="form-select" @bind="loanIdText" disabled="@(loans.Count == 0)">
+                <option value="">-- Select loan --</option>
+                @foreach (var l in loans)
+                {
+                    <option value="@l.Value">@l.Text</option>
+                }
+            </select>
+        </div>
+    }
+</div>
+
+<div class="row g-3 mt-1">
+    <div class="col-md-3">
+        <label class="form-label">From date</label>
+        <input type="date" class="form-control" @bind="request.FromDate" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">To date</label>
+        <input type="date" class="form-control" @bind="request.ToDate" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Certificate date</label>
+        <input type="date" class="form-control" @bind="request.AsOnDate" />
+    </div>
+</div>
+
+<div class="mt-3">
+    <button type="button" class="btn btn-primary" disabled="@(!CanPrint)" @onclick="Print">
+        @if (isPrinting)
+        {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+        }
+        <i class="bi bi-printer"></i> Print
+    </button>
+</div>
+
+@code {
+    private const int LoanCertificate = 117;
+    private const int CertificateGroup = 15;
+
+    private readonly rptReportCertificateObject request = new();
+    private List<DropdownItem> reportList = new();
+    private List<DropdownItem> loans = new();
+    private string memberNo = "";
+    private string? memberName;
+    private string loanIdText = "";
+    private string? message;
+    private bool isError;
+    private bool isPrinting;
+
+    private bool CanPrint => !isPrinting && request.ReportId > 0 && request.MemId > 0
+                             && (request.ReportId != LoanCertificate || !string.IsNullOrEmpty(loanIdText))
+                             && request.FromDate <= request.ToDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        request.BrCode = userInfoDto.BrCode;
+        request.FromDate = userInfoDto.YrBeginningDate;
+        request.ToDate = userInfoDto.YrEndDate;
+        request.AsOnDate = userInfoDto.CurrentDate;
+        try
+        {
+            reportList = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Print/GetReportNameList/{CertificateGroup}/{request.BrCode}") ?? new();
+        }
+        catch (HttpRequestException)
+        {
+            Show("Could not load the certificate list.", true);
+        }
+    }
+
+    private async Task OnReportChanged(ChangeEventArgs e)
+    {
+        request.ReportId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
+        message = null;
+        if (request.ReportId == LoanCertificate && request.MemId > 0) await LoadLoans();
+    }
+
+    private async Task OnMemberKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await LoadMember();
+    }
+
+    private async Task LoadMember()
+    {
+        message = null;
+        request.MemId = 0; memberName = null; loans.Clear(); loanIdText = "";
+        if (string.IsNullOrWhiteSpace(memberNo)) return;
+        try
+        {
+            var m = await _httpClient.GetFromJsonAsync<MemberDetailsVM>($"api/Member/GetMemberDetails/{Uri.EscapeDataString(memberNo.Trim())}/{request.BrCode}");
+            if (m == null || m.Mem_Id <= 0) { Show("Member not found.", true); return; }
+            request.MemId = m.Mem_Id;
+            memberName = m.MemberName;
+            if (request.ReportId == LoanCertificate) await LoadLoans();
+        }
+        catch (HttpRequestException)
+        {
+            Show("Member not found.", true);
+        }
+    }
+
+    private async Task LoadLoans()
+    {
+        loans = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/ReportsCertificate/MemberLoans/{request.MemId}") ?? new();
+        loanIdText = "";
+        if (loans.Count == 0) Show("This member has no loans.", false);
+    }
+
+    private async Task Print()
+    {
+        message = null;
+        isPrinting = true;
+        try
+        {
+            request.LoanId = decimal.TryParse(loanIdText, out var loanId) ? loanId : 0;
+            var response = await _httpClient.PostAsJsonAsync("api/ReportsCertificate/print", request);
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                if (bytes.Length == 0) { Show("The report server returned an empty PDF.", true); return; }
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(bytes));
+            }
+            else if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                Show((await response.Content.ReadAsStringAsync()).Trim('"'), false);
+            }
+            else
+            {
+                Show($"Could not print the certificate ({(int)response.StatusCode}).", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Show($"Could not print the certificate: {ex.Message}", true);
+        }
+        finally
+        {
+            isPrinting = false;
+        }
+    }
+
+    private void Show(string text, bool error)
+    {
+        message = text;
+        isError = error;
+    }
+}
