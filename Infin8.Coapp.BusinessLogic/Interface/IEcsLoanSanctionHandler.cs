@@ -21,6 +21,9 @@ namespace Infin8.Coapp.BusinessLogic
 
         Task<EcsRecoverablesVM> GetRecoverablesAsync(EcsRecoverablesRequestVM req, DateTime asOn, string brCode);
 
+        /// <summary>Surety's share capital and loans in overdue, for the Surety Details panel.</summary>
+        Task<EcsSuretyDetailsVM> GetSuretyDetailsAsync(int schemeId, decimal suretyMemId, string brCode);
+
         /// <summary>Status / DM_Id / ledger name for a manual deduction row (§3.8).</summary>
         Task<DeductableLoanRowVM> ResolveDeductionAsync(decimal ledId, string brCode);
 
