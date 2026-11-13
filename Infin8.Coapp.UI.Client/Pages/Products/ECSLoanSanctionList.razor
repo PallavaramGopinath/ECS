@@ -1,0 +1,555 @@
+@page "/ecs-loan-sanction-list"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+@* ECS Loan Sanction list (spec 09): sanctions awaiting disbursement (status E) with View / Modify / Delete. *@
+
+<PageTitle>ECS Loan Sanctions</PageTitle>
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">ECS Loan Sanctions</li>
+    </ol>
+</nav>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
+    </div>
+}
+else if (institution != InstitutionType.ECS)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        ECS Loan Sanction is available only for Employees' Society (ECS) institutions.
+    </div>
+}
+else
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h4 class="mb-0"><i class="bi bi-cash-coin me-2 text-primary"></i>ECS Loan Sanctions</h4>
+        <span class="text-muted small">awaiting disbursement</span>
+        <button class="btn btn-primary ms-auto" @onclick="AddNew"><i class="bi bi-plus-lg me-1"></i>Add New ECS Loan Sanction</button>
+    </div>
+
+    @* ---------- Filter ---------- *@
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" id="fAll" name="filterMode" checked="@(mode == "ALL")" @onchange='() => mode = "ALL"' />
+                        <label class="form-check-label" for="fAll">All</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="radio" id="fId" name="filterMode" checked="@(mode == "ID")" @onchange='() => mode = "ID"' />
+                        <label class="form-check-label" for="fId">Sanction Id</label>
+                    </div>
+                    <input type="number" class="form-control form-control-sm" style="width:120px" @bind="filterSanctionId"
+                           @onfocus='() => mode = "ID"' />
+                </div>
+                <div class="col-auto">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="radio" id="fMem" name="filterMode" checked="@(mode == "MEM")" @onchange='() => mode = "MEM"' />
+                        <label class="form-check-label" for="fMem">Member No / Per No</label>
+                    </div>
+                    <input class="form-control form-control-sm" style="width:140px" @bind="filterMemberNo" @onfocus='() => mode = "MEM"' />
+                </div>
+                <div class="col-auto">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="radio" id="fDate" name="filterMode" checked="@(mode == "DATE")" @onchange='() => mode = "DATE"' />
+                        <label class="form-check-label" for="fDate">Sanction Date</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <input type="date" class="form-control form-control-sm" @bind="filterFrom" @onfocus='() => mode = "DATE"' />
+                        <span>–</span>
+                        <input type="date" class="form-control form-control-sm" @bind="filterTo" @onfocus='() => mode = "DATE"' />
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-primary btn-sm" @onclick="SearchAsync" disabled="@busy"><i class="bi bi-search me-1"></i>Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert @(alertSuccess ? "alert-success" : "alert-danger") alert-dismissible" role="alert">
+            @if (alertReasons.Count > 1)
+            {
+                <ul class="mb-0">
+                    @foreach (var r in alertReasons) { <li>@r</li> }
+                </ul>
+            }
+            else
+            {
+                @alertMessage
+            }
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    @* ---------- Grid ---------- *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Sl</th>
+                            <th>Sanction Id</th>
+                            <th>Sanction Date</th>
+                            <th>Member No</th>
+                            <th>Member Name</th>
+                            <th>Scheme</th>
+                            <th class="text-end">Loan Amount</th>
+                            <th class="text-end pe-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (sanctions.Count == 0)
+                        {
+                            <tr><td colspan="8" class="text-center text-muted py-4">@(busy ? "Loading…" : "No sanctions awaiting disbursement.")</td></tr>
+                        }
+                        @for (int i = 0; i < sanctions.Count; i++)
+                        {
+                            var s = sanctions[i];
+                            <tr>
+                                <td class="ps-3">@(i + 1)</td>
+                                <td>@s.LoanSanction_Id</td>
+                                <td>@s.SanctionDate?.ToString("dd-MM-yyyy")</td>
+                                <td>@s.MemberNo</td>
+                                <td>@s.MemberName</td>
+                                <td>@s.SchemeName</td>
+                                <td class="text-end">@F(s.LoanAmount)</td>
+                                <td class="text-end pe-3 text-nowrap">
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ViewAsync(s.LoanSanction_Id)" disabled="@busy"><i class="bi bi-eye me-1"></i>View</button>
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => Modify(s.LoanSanction_Id)" disabled="@busy"><i class="bi bi-pencil-square me-1"></i>Modify</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(s)" disabled="@busy"><i class="bi bi-trash me-1"></i>Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    @if (sanctions.Count > 0)
+                    {
+                        <tfoot class="table-light">
+                            <tr class="fw-semibold">
+                                <td colspan="6" class="ps-3">Total: @sanctions.Count sanction(s)</td>
+                                <td class="text-end">@F(sanctions.Sum(s => s.LoanAmount))</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+        </div>
+    </div>
+    @if (sanctions.Count >= ListCap)
+    {
+        <div class="text-muted small mb-3">Only the first @ListCap sanctions are shown. Narrow the filter to see the rest.</div>
+    }
+
+    @* ---------- View ---------- *@
+    @if (detail != null)
+    {
+        var m = detail.Member;
+        var sv = detail.Sanction;
+        <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h6 class="modal-title">ECS Loan Sanction @detail.LoanSanction_Id</h6>
+                        <button type="button" class="btn-close" @onclick="CloseView"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <fieldset class="border rounded p-2 h-100">
+                                    <legend class="float-none w-auto px-2 fs-6 mb-0">Sanction</legend>
+                                    <dl class="row mb-0 small">
+                                        @Item("Sanction Id", detail.LoanSanction_Id.ToString())
+                                        @Item("Sanction Date", detail.SanctionDate?.ToString("dd-MM-yyyy"))
+                                        @Item("Scheme", detail.SchemeName)
+                                        @Item("Status", "Awaiting disbursement")
+                                    </dl>
+                                </fieldset>
+                            </div>
+                            <div class="col-md-6">
+                                <fieldset class="border rounded p-2 h-100">
+                                    <legend class="float-none w-auto px-2 fs-6 mb-0">Member</legend>
+                                    <dl class="row mb-0 small">
+                                        @Item("Member No / Per No", $"{m.MemberNo} / {m.PerNo}")
+                                        @Item("Name", m.MemberName)
+                                        @Item("DOB / DOR", $"{m.DateOfBirth?.ToString("dd-MM-yyyy")} / {m.DateOfRetirement?.ToString("dd-MM-yyyy")}")
+                                        @Item("Service (months)", m.ServiceInMonths?.ToString())
+                                    </dl>
+                                </fieldset>
+                            </div>
+                            <div class="col-md-6">
+                                <fieldset class="border rounded p-2 h-100">
+                                    <legend class="float-none w-auto px-2 fs-6 mb-0">Surety</legend>
+                                    <dl class="row mb-0 small">
+                                        @Item("Surety No", string.IsNullOrEmpty(detail.SuretyMemberNo) ? "—" : detail.SuretyMemberNo)
+                                        @Item("Surety Name", string.IsNullOrEmpty(detail.SuretyMemberName) ? "—" : detail.SuretyMemberName)
+                                    </dl>
+                                </fieldset>
+                            </div>
+                            <div class="col-md-6">
+                                <fieldset class="border rounded p-2 h-100">
+                                    <legend class="float-none w-auto px-2 fs-6 mb-0">Pay Details</legend>
+                                    <dl class="row mb-0 small">
+                                        @Item("Basic Pay", F(sv.BasicPay))
+                                        @Item("Gross Pay", F(sv.GrossPay))
+                                        @Item("Society Deduction", F(sv.SocietyDeduction))
+                                        @Item("Total Deductions", F(sv.TotalDeductions))
+                                        @Item("Net Salary", F(sv.GrossPay - sv.TotalDeductions))
+                                    </dl>
+                                </fieldset>
+                            </div>
+                            <div class="col-12">
+                                <fieldset class="border rounded p-2">
+                                    <legend class="float-none w-auto px-2 fs-6 mb-0">Loan Terms</legend>
+                                    <div class="row small">
+                                        <div class="col-md-4"><dl class="row mb-0">
+                                            @Item("Loan Amount", F(sv.LoanAmount))
+                                            @Item("Period", $"{sv.PeriodOfLoan} months")
+                                        </dl></div>
+                                        <div class="col-md-4"><dl class="row mb-0">
+                                            @Item("Rate of Interest", $"{sv.RateOfInterest:0.##} %")
+                                            @Item("Penal Rate", $"{sv.PenalRate:0.##} %")
+                                        </dl></div>
+                                        <div class="col-md-4"><dl class="row mb-0">
+                                            @Item("Instalment", F(sv.InstalmentAmount))
+                                            @Item("First Due Date", sv.FirstDueDate?.ToString("dd-MM-yyyy"))
+                                        </dl></div>
+                                    </div>
+                                </fieldset>
+                            </div>
+                            <div class="col-12">
+                                <fieldset class="border rounded p-2">
+                                    <legend class="float-none w-auto px-2 fs-6 mb-0">Recoverables</legend>
+                                    <table class="table table-sm mb-0 small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Loan No</th><th>Status</th><th>Ledger</th>
+                                                <th class="text-end">Outstanding</th><th class="text-end">Calc Amt</th><th class="text-end">OD Amt</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @if (detail.Recoverables.Count == 0)
+                                            {
+                                                <tr><td colspan="6" class="text-muted text-center">No recoverables.</td></tr>
+                                            }
+                                            @foreach (var r in detail.Recoverables)
+                                            {
+                                                <tr>
+                                                    <td>@r.Loan_No</td><td>@r.Status</td><td>@r.Ledger_Name</td>
+                                                    <td class="text-end">@F(r.Outstanding)</td><td class="text-end">@F(r.CalcAmount)</td><td class="text-end">@F(r.ODAmount)</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="fw-semibold">
+                                                <td colspan="3">Total Recoverable</td>
+                                                <td class="text-end">@F(detail.TotalReceiptAmount)</td><td colspan="2"></td>
+                                            </tr>
+                                            <tr class="fw-semibold">
+                                                <td colspan="3">Net Disbursable (Loan Amount − Total Recoverable)</td>
+                                                <td class="text-end">@F(sv.LoanAmount - detail.TotalReceiptAmount)</td><td colspan="2"></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </fieldset>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" @onclick="() => Modify(detail.LoanSanction_Id)"><i class="bi bi-pencil-square me-1"></i>Modify</button>
+                        <button class="btn btn-outline-secondary" @onclick="PrintOfficeNoteAsync" disabled="@busy"><i class="bi bi-printer me-1"></i>Print Office Note</button>
+                        <button class="btn btn-outline-secondary" @onclick="CloseView">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <EcsOfficeNote Note="officeNote" SanctionId="officeNoteSanctionId" OnClose="() => officeNote = null" />
+}
+
+@code {
+    private const int ListCap = 500; // GetSanctionListAsync returns at most this many rows
+
+    private bool isReady;
+    private bool busy;
+    private string brCode = "";
+    private DateTime currentDate = DateTime.Today;
+    private InstitutionType institution = InstitutionType.Unknown;
+
+    // Filter (maps to EcsSanctionListFilterVM)
+    private string mode = "ALL";
+    private decimal? filterSanctionId;
+    private string? filterMemberNo;
+    private DateTime? filterFrom;
+    private DateTime? filterTo;
+
+    private List<EcsSanctionListItemVM> sanctions = new();
+    private EcsSanctionDetailVM? detail;        // View modal; null when closed
+    private OfficeNoteVM? officeNote;           // Office Note modal; null when closed
+    private decimal officeNoteSanctionId;
+
+    private string? alertMessage;
+    private bool alertSuccess;
+    private List<string> alertReasons = new();
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode ?? "";
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
+            filterFrom = new DateTime(currentDate.Year, currentDate.Month, 1);
+            filterTo = currentDate;
+
+            if (institution == InstitutionType.ECS) await LoadListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    // =====================================================================
+    // List
+    // =====================================================================
+
+    private async Task SearchAsync()
+    {
+        alertMessage = null;
+        if (mode == "ID" && filterSanctionId is not > 0) { ShowAlert(false, "Enter a Sanction Id."); return; }
+        if (mode == "MEM" && string.IsNullOrWhiteSpace(filterMemberNo)) { ShowAlert(false, "Enter a Member No or Per No."); return; }
+        if (mode == "DATE" && (filterFrom == null || filterTo == null || filterFrom > filterTo))
+        {
+            ShowAlert(false, "Enter a valid date range (From on or before To).");
+            return;
+        }
+        await LoadListAsync();
+    }
+
+    private async Task LoadListAsync()
+    {
+        busy = true;
+        try
+        {
+            var filter = new EcsSanctionListFilterVM
+            {
+                Mode = mode,
+                SanctionId = filterSanctionId,
+                MemberNo = filterMemberNo?.Trim(),
+                From = filterFrom,
+                To = filterTo
+            };
+            var response = await _httpClient.PostAsJsonAsync("api/loansanction/ListSanctions", filter);
+            if (response.IsSuccessStatusCode)
+            {
+                sanctions = await response.Content.ReadFromJsonAsync<List<EcsSanctionListItemVM>>() ?? new();
+            }
+            else
+            {
+                sanctions = new();
+                var result = await ReadResultAsync(response);
+                ShowAlert(false, result.Message ?? "Could not load the sanctions.");
+            }
+        }
+        catch (Exception ex)
+        {
+            sanctions = new();
+            ShowAlert(false, "Could not load the sanctions: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void AddNew() => Navigation.NavigateTo("/ecs-loan-sanction");
+
+    private void Modify(decimal sanctionId) => Navigation.NavigateTo($"/ecs-loan-sanction?id={sanctionId}");
+
+    // =====================================================================
+    // View + Office Note
+    // =====================================================================
+
+    private async Task ViewAsync(decimal sanctionId)
+    {
+        busy = true;
+        alertMessage = null;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/loansanction/GetSanction/{sanctionId}/{brCode}");
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                ShowAlert(false, $"Sanction {sanctionId} was not found. It may have been modified or deleted.");
+                return;
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                var result = await ReadResultAsync(response);
+                ShowAlert(false, result.Message ?? "Could not load the sanction.");
+                return;
+            }
+            detail = await response.Content.ReadFromJsonAsync<EcsSanctionDetailVM>();
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the sanction: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void CloseView() => detail = null;
+
+    private async Task PrintOfficeNoteAsync()
+    {
+        if (detail == null) return;
+        var id = detail.LoanSanction_Id;
+        busy = true;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/loansanction/OfficeNoteData/{id}");
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, "Office Note: " + await response.Content.ReadAsStringAsync());
+                return;
+            }
+            var note = await response.Content.ReadFromJsonAsync<OfficeNoteVM>();
+            if (note is not { Lines.Count: > 0 })
+            {
+                ShowAlert(false, "Office Note: the note is empty.");
+                return;
+            }
+            officeNoteSanctionId = id;
+            detail = null; // the Office Note replaces the View modal
+            officeNote = note;
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Office Note: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    // =====================================================================
+    // Delete
+    // =====================================================================
+
+    private async Task DeleteAsync(EcsSanctionListItemVM s)
+    {
+        var prompt = $"Delete ECS loan sanction {s.LoanSanction_Id} for {s.MemberNo} – {s.MemberName}, Rs.{F(s.LoanAmount)}?\n"
+                     + "This cannot be undone from the screen.";
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", prompt)) return;
+
+        busy = true;
+        alertMessage = null;
+        try
+        {
+            var response = await _httpClient.PostAsync($"api/loansanction/DeleteSanction/{s.LoanSanction_Id}", null);
+            var result = await ReadResultAsync(response);
+            if (result.Success)
+            {
+                busy = false;
+                await LoadListAsync();
+                ShowAlert(true, result.Message ?? $"Loan sanction {s.LoanSanction_Id} deleted.");
+            }
+            else
+            {
+                ShowAlert(false, result.Reasons.Count > 0 ? result.Reasons : new List<string> { result.Message ?? "Sanction not deleted." });
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Sanction not deleted: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    // =====================================================================
+    // Helpers
+    // =====================================================================
+
+    private static async Task<SanctionSaveResultVM> ReadResultAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var result = await response.Content.ReadFromJsonAsync<SanctionSaveResultVM>();
+            if (result != null) return result;
+        }
+        catch
+        {
+            // fall through
+        }
+        return new SanctionSaveResultVM
+        {
+            Success = false,
+            Message = response.StatusCode == HttpStatusCode.Forbidden
+                ? "ECS Loan Sanction is available only to ECS societies."
+                : $"Request failed ({(int)response.StatusCode})."
+        };
+    }
+
+    private void ShowAlert(bool success, string message) => ShowAlert(success, new List<string> { message });
+
+    private void ShowAlert(bool success, List<string> reasons)
+    {
+        alertSuccess = success;
+        alertReasons = reasons;
+        alertMessage = string.Join(" ", reasons);
+    }
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+
+    private static RenderFragment Item(string label, string? value) => __builder =>
+    {
+        <dt class="col-6 fw-normal text-muted">@label</dt>
+        <dd class="col-6 mb-1">@value</dd>
+    };
+}

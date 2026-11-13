@@ -152,6 +152,10 @@ namespace Infin8.Coapp.Dto
         public SuretyLoanSanctionDataVM Member { get; set; } = new();
         public List<DeductableLoanRowVM> Recoverables { get; set; } = new();
         public double TotalReceiptAmount { get; set; }
+        public string? SchemeName { get; set; }
+        /// <summary>The surety recorded on the sanction (may differ from the member's current surety).</summary>
+        public string? SuretyMemberNo { get; set; }
+        public string? SuretyMemberName { get; set; }
     }
 
     /// <summary>Server-side user context for writes, taken from claims (never from the body).</summary>

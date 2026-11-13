@@ -199,13 +199,23 @@ namespace Infin8.Coapp.API.Controllers
         [HttpPost]
         [Route("ListSanctions")]
         public async Task<ActionResult<List<EcsSanctionListItemVM>>> ListSanctions([FromBody] EcsSanctionListFilterVM filter)
-            => Ok(await _sanctionHandler.ListAsync(filter, UserContext().BrCode));
+        {
+            var brCode = UserContext().BrCode;
+            if (!await IsEcsAsync(brCode)) return NotEcs();
+            return Ok(await _sanctionHandler.ListAsync(filter, brCode));
+        }
 
+        /// <summary>
+        /// Loads a saved sanction (View / Modify, spec 09). The route keeps its brCode segment for
+        /// compatibility, but the claims BrCode is used so another branch's sanction cannot be read.
+        /// </summary>
         [HttpGet]
         [Route("GetSanction/{sanctionId:decimal}/{brCode}")]
         public async Task<ActionResult<EcsSanctionDetailVM>> GetSanction(decimal sanctionId, string brCode)
         {
-            var detail = await _sanctionHandler.GetAsync(sanctionId, brCode);
+            var claimsBrCode = UserContext().BrCode;
+            if (!await IsEcsAsync(claimsBrCode)) return NotEcs();
+            var detail = await _sanctionHandler.GetAsync(sanctionId, claimsBrCode);
             return detail == null ? NotFound() : Ok(detail);
         }
 
@@ -218,6 +228,7 @@ namespace Infin8.Coapp.API.Controllers
         public async Task<ActionResult<OfficeNoteVM>> OfficeNoteData(decimal sanctionId)
         {
             var brCode = UserContext().BrCode;
+            if (!await IsEcsAsync(brCode)) return NotEcs();
             var note = await _sanctionHandler.GetOfficeNoteAsync(sanctionId, brCode);
             if (note == null) return NotFound("Sanction not found.");
 
