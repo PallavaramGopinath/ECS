@@ -19,10 +19,12 @@ namespace Infin8.Coapp.BusinessLogic
         {
             var r = new LoanEligibilityResultVM();
 
-            // Demand. Monthly interest is part of the demand only for Inst_Type 3 (principal + interest).
-            double interest = input.InstType == 3
-                ? Math.Round(input.LoanAmount * input.RateOfInterest / 1200.0, 0, MidpointRounding.AwayFromZero)
-                : 0;
+            // Demand. The first month's interest is part of the demand for every scheme except
+            // Inst_Type 2 (EMI), whose instalment already includes the interest.
+            double interest = input.InstType == 2
+                ? 0
+                : Math.Round(input.LoanAmount * input.RateOfInterest / 1200.0, 0, MidpointRounding.AwayFromZero);
+            r.InterestDemand = interest;
             r.NewLoanDemand = input.InstallmentAmount + interest;
             r.DepositDemand = input.DepositDemand;
             r.Demand = r.NewLoanDemand + r.DepositDemand;
@@ -41,12 +43,12 @@ namespace Infin8.Coapp.BusinessLogic
                 if (r.Demand + r.ExistingDemand > r.FiftyPercentOfGross)
                 {
                     r.FailsDemandCeiling = true;
-                    r.Reasons.Add("Demand amount is greater than 50% of gross pay.");
+                    r.Reasons.Add($"Demand amount ({r.Demand + r.ExistingDemand:N2}) is greater than 50% of gross pay ({r.FiftyPercentOfGross:N2}).");
                 }
                 if (r.TwentyFivePercentOfGross > r.NetPay)
                 {
                     r.FailsNetPayFloor = true;
-                    r.Reasons.Add("Net Pay is less than 25% of gross pay.");
+                    r.Reasons.Add($"Carry home salary (net pay {r.NetPay:N2}) is less than 25% of gross pay ({r.TwentyFivePercentOfGross:N2}).");
                 }
             }
 
@@ -64,7 +66,7 @@ namespace Infin8.Coapp.BusinessLogic
             }
 
             r.IsEligible = !r.FailsDemandCeiling && !r.FailsNetPayFloor && !r.FailsServiceCheck;
-            if (r.IsEligible) r.Reasons.Add("Eligible.");
+            if (r.IsEligible) r.Reasons.Add($"Loan applied amount ({input.LoanAmount:N2}) is eligible.");
             return r;
         }
     }
