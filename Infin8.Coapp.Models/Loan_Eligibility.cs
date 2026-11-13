@@ -9,7 +9,8 @@ namespace Infin8.Coapp.Models
         [Key]
         public int LoanElig_Id { get; set; }
         public Nullable<System.DateTime> LoanElig_Date { get; set; }
-        public int Loan_Id { get; set; }
+        // decimal (numeric): ECS loan/voucher/user/year ids (e.g. 110050000001) exceed Int32.
+        public decimal Loan_Id { get; set; }
         // decimal (numeric): ECS mem_ids such as 110050001301 exceed Int32. See 06-ecs-loan-sanction.sql.
         public decimal Mem_Id { get; set; }
         public double GrossPay { get; set; }
@@ -37,9 +38,9 @@ namespace Infin8.Coapp.Models
         public bool IsMemberBecomeDefaulter { get; set; }
         public bool IsSurityBecomeDefaulter { get; set; }
         public bool LoanElig_Delete { get; set; }
-        public int Voc_Id { get; set; }
-        public int Usr_Id { get; set; }
-        public int Yr_Id { get; set; }
+        public decimal Voc_Id { get; set; }
+        public decimal Usr_Id { get; set; }
+        public decimal Yr_Id { get; set; }
         public string? BrCode { get; set; }
     }
 }

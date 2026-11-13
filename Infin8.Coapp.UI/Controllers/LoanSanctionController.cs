@@ -72,6 +72,17 @@ namespace Infin8.Coapp.API.Controllers
             StatusCode(StatusCodes.Status403Forbidden,
                 new SanctionSaveResultVM { Success = false, Message = "ECS Loan Sanction is available only to ECS societies." });
 
+        /// <summary>
+        /// Logs an unexpected write failure and returns its message as JSON, so the page shows the cause
+        /// instead of a bare "Request failed (500)".
+        /// </summary>
+        private ObjectResult ServerError(Exception ex)
+        {
+            Console.WriteLine(ex);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new SanctionSaveResultVM { Success = false, Message = ex.Message });
+        }
+
         // ----- lookups -----
 
         /// <summary>
@@ -155,8 +166,15 @@ namespace Infin8.Coapp.API.Controllers
         {
             var ctx = UserContext();
             if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
-            var result = await _sanctionHandler.SaveAsync(vm, ctx);
-            return result.Success ? Ok(result) : BadRequest(result);
+            try
+            {
+                var result = await _sanctionHandler.SaveAsync(vm, ctx);
+                return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return ServerError(ex);
+            }
         }
 
         [HttpPost]
@@ -165,8 +183,15 @@ namespace Infin8.Coapp.API.Controllers
         {
             var ctx = UserContext();
             if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
-            var result = await _sanctionHandler.DeleteAsync(sanctionId, ctx);
-            return result.Success ? Ok(result) : BadRequest(result);
+            try
+            {
+                var result = await _sanctionHandler.DeleteAsync(sanctionId, ctx);
+                return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return ServerError(ex);
+            }
         }
 
         // ----- list / load / print -----

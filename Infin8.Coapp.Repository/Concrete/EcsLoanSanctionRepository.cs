@@ -532,7 +532,7 @@ namespace Infin8.Coapp.Repository
             var hdr = header.s;
             return lines.Select(t => new rptOfficeNote
             {
-                LoanSanction_Id = (int)hdr.LoanSanction_Id,
+                LoanSanction_Id = hdr.LoanSanction_Id,
                 SanctionDate = hdr.SanctionDate ?? DateTime.MinValue,
                 LoanAmount = hdr.LoanAmount,
                 PeriodOfLoan = hdr.PeriodOfLoan,

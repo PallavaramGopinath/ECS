@@ -2,7 +2,7 @@
 {
     public class rptOfficeNote
     {
-        public int LoanSanction_Id { get; set; }
+        public decimal LoanSanction_Id { get; set; }
         public DateTime SanctionDate { get; set; }
         public double LoanAmount { get; set; }
         public int PeriodOfLoan { get; set; }

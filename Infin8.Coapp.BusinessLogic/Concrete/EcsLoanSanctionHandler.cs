@@ -565,7 +565,7 @@ namespace Infin8.Coapp.BusinessLogic
                 TwentyFivePercentOnGP = elig.TwentyFivePercentOfGross, DemandAmt = elig.Demand, NetPayAfterDemand = elig.NetPay,
                 LoanAppliedAmt = vm.LoanAmount, PeriodOfLoan = vm.PeriodOfLoan,
                 IsMemberBecomeDefaulter = memberOd > 0, IsSurityBecomeDefaulter = suretyOd > 0,
-                LoanElig_Delete = false, Voc_Id = 0, Usr_Id = (int)ctx.UsrId, Yr_Id = (int)ctx.YrId, BrCode = brCode
+                LoanElig_Delete = false, Voc_Id = 0, Usr_Id = ctx.UsrId, Yr_Id = ctx.YrId, BrCode = brCode
             };
 
             var payments = new (string desc, double amount)[]
