@@ -45,3 +45,24 @@
     //}
 }
 
+
+// Office Note modal (ECSLoanSanction): a Blob URL shown in an on-page iframe, so no pop-up is needed.
+function createPdfObjectUrl(base64String) {
+    const binaryString = window.atob(base64String);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+}
+
+function revokePdfObjectUrl(url) {
+    if (url) URL.revokeObjectURL(url);
+}
+
+function printPdfFrame(frameId) {
+    const frame = document.getElementById(frameId);
+    if (!frame || !frame.contentWindow) return;
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+}

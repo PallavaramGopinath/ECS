@@ -49,7 +49,11 @@ else
                 <div class="col-md-2">
                     <label class="form-label">Member No</label>
                     <input class="form-control" @bind="memberNo" @bind:event="onchange" @bind:after="LookupMember"
-                           placeholder="Member / Per No" disabled="@IsModify" />
+                           placeholder="Member / Per No" disabled="@(member.Found || busy)" />
+                    @if (member.Found)
+                    {
+                        <div class="form-text">Click Refresh to change the member.</div>
+                    }
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Member Name</label>
@@ -467,48 +471,6 @@ else
                         <button class="btn btn-outline-primary btn-sm" @onclick="AddPendingToRecovery" disabled="@(selectedPending.Count == 0)">Add to Recovery</button>
                     }
                     break;
-
-                case "list":
-                    <div class="row g-2 align-items-end mb-3">
-                        <div class="col-md-2">
-                            <label class="form-label small">Filter</label>
-                            <select class="form-select form-select-sm" @bind="listFilter.Mode">
-                                <option value="ALL">All</option>
-                                <option value="ID">Sanction Id</option>
-                                <option value="MEM">Member No</option>
-                                <option value="DATE">Date range</option>
-                            </select>
-                        </div>
-                        @if (listFilter.Mode == "ID")
-                        {
-                            <div class="col-md-2"><label class="form-label small">Sanction Id</label><input type="number" class="form-control form-control-sm" @bind="listFilter.SanctionId" /></div>
-                        }
-                        else if (listFilter.Mode == "MEM")
-                        {
-                            <div class="col-md-2"><label class="form-label small">Member No</label><input class="form-control form-control-sm" @bind="listFilter.MemberNo" /></div>
-                        }
-                        else if (listFilter.Mode == "DATE")
-                        {
-                            <div class="col-md-2"><label class="form-label small">From</label><input type="date" class="form-control form-control-sm" @bind="listFilter.From" /></div>
-                            <div class="col-md-2"><label class="form-label small">To</label><input type="date" class="form-control form-control-sm" @bind="listFilter.To" /></div>
-                        }
-                        <div class="col-md-2"><button class="btn btn-sm btn-primary" @onclick="ListSanctions" disabled="@busy"><i class="bi bi-search me-1"></i>List</button></div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead class="table-light"><tr><th>Id</th><th>Date</th><th>Member No</th><th>Per No</th><th>Name</th><th>Scheme</th><th class="text-end">Amount</th></tr></thead>
-                            <tbody>
-                                @if (sanctionList.Count == 0) { <tr><td colspan="7" class="text-muted">No sanctions listed.</td></tr> }
-                                @foreach (var s in sanctionList)
-                                {
-                                    <tr style="cursor:pointer" @onclick="() => LoadSanction(s.LoanSanction_Id)">
-                                        <td>@s.LoanSanction_Id</td><td>@D(s.SanctionDate)</td><td>@s.MemberNo</td><td>@s.PerNo</td><td>@s.MemberName</td><td>@s.SchemeName</td><td class="text-end">@F(s.LoanAmount)</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                    break;
             }
         </div>
     </div>
@@ -518,9 +480,8 @@ else
         <button class="btn btn-success" @onclick="SaveSanction" disabled="@(!CanSave)">
             <i class="bi bi-check2-circle me-1"></i>@(IsModify ? "Modify Sanction" : "Save Sanction")
         </button>
-        <button class="btn btn-outline-danger" @onclick="DeleteSanction" disabled="@(!IsModify || busy)"><i class="bi bi-trash me-1"></i>Delete Sanction</button>
         <button class="btn btn-outline-secondary" @onclick="PrintOfficeNote" disabled="@(sanctionId == 0 || busy)"><i class="bi bi-printer me-1"></i>Print Office Note</button>
-        <button class="btn btn-outline-secondary ms-auto" @onclick="ResetPage" disabled="@busy"><i class="bi bi-file-earmark me-1"></i>Refresh</button>
+        <button class="btn btn-outline-secondary ms-auto" @onclick="RefreshAsync" disabled="@busy"><i class="bi bi-file-earmark me-1"></i>Refresh</button>
     </div>
 
     @if (showDemand && eligibility != null)
@@ -544,13 +505,34 @@ else
             </div>
         </div>
     }
+
+    @if (officeNoteUrl != null)
+    {
+        <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h6 class="modal-title">Office Note — Sanction @sanctionId</h6>
+                        <button type="button" class="btn-close" @onclick="CloseOfficeNote"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <iframe id="officeNoteFrame" src="@officeNoteUrl" title="Office Note" style="width:100%;height:75vh;border:0"></iframe>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" @onclick="PrintOfficeNoteFrame"><i class="bi bi-printer me-1"></i>Print</button>
+                        <button class="btn btn-outline-secondary" @onclick="CloseOfficeNote">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 }
 
 @code {
     private readonly (string key, string title)[] tabs =
     {
         ("pay", "1. Member & Pay"), ("loan", "2. Loan & Eligibility"), ("recov", "3. Recoverables"),
-        ("nondeduct", "4. Non-Deductable Loans"), ("pending", "5. Pending Deposits"), ("list", "6. Sanctions")
+        ("nondeduct", "4. Non-Deductable Loans"), ("pending", "5. Pending Deposits")
     };
 
     private bool isReady;
@@ -599,11 +581,11 @@ else
     private LoanEligibilityResultVM? eligibility;
     private bool showDemand;
 
-    // Sanction identity + list
+    // Sanction identity
     private decimal sanctionId;
     private decimal loadedSanctionId; // the sanction being modified (0 when creating)
-    private EcsSanctionListFilterVM listFilter = new();
-    private List<EcsSanctionListItemVM> sanctionList = new();
+    private bool savedThisEntry;      // saved on this screen — Save stays disabled until Refresh
+    private string? officeNoteUrl;    // Blob URL of the Office Note PDF while its modal is open
 
     // Alerts
     private string? alertMessage;
@@ -615,7 +597,7 @@ else
     private double LoanBalance => loanAmount - TotalRecoverable;
     private double ExistingDemand => nonDeductable.Where(n => !movedLoanIds.Contains(n.LoanId)).Sum(n => n.DemandAmount);
     private bool HasService => member.Found && member.ServiceInMonths > 0;
-    private bool CanSave => !busy && HasService && schemeId > 0 && !recoverablesStale && recov != null
+    private bool CanSave => !busy && !savedThisEntry && HasService && schemeId > 0 && !recoverablesStale && recov != null
                             && eligibility?.IsEligible == true && LoanBalance > 0 && !SuretyHasBlockingOverdue;
     /// <summary>The surety has an overdue in an ECS (Loan_Type 1) loan — the sanction cannot be saved.</summary>
     private bool SuretyHasBlockingOverdue => suretyOverdues.Any(o => o.BlocksSanction);
@@ -1012,7 +994,12 @@ else
             {
                 sanctionId = result.LoanSanction_Id;
                 loadedSanctionId = result.LoanSanction_Id;
-                ShowAlert(true, (result.Message ?? "Saved.") + " You can now print the Office Note.");
+                savedThisEntry = true;
+                var saved = $"Sanction {sanctionId} saved. Click Refresh to start a new sanction.";
+                var noteError = await ShowOfficeNoteAsync();
+                ShowAlert(true, noteError == null
+                    ? new List<string> { saved }
+                    : new List<string> { saved, "The Office Note could not be shown: " + noteError });
             }
             else
             {
@@ -1029,44 +1016,46 @@ else
         }
     }
 
-    private async Task DeleteSanction()
+    /// <summary>Footer button: reopens the Office Note of the sanction on screen.</summary>
+    private async Task PrintOfficeNote()
     {
-        if (!IsModify) return;
-        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Delete loan sanction {loadedSanctionId}?")) return;
-        busy = true;
+        var error = await ShowOfficeNoteAsync();
+        if (error != null) ShowAlert(false, "Office Note: " + error);
+    }
+
+    /// <summary>
+    /// Fetches the Office Note PDF and shows it in the on-page modal. An iframe is used rather than a new
+    /// tab: after an awaited save, window.open is no longer a user gesture and pop-up blockers stop it.
+    /// Returns an error message, or null when the note is shown.
+    /// </summary>
+    private async Task<string?> ShowOfficeNoteAsync()
+    {
+        if (sanctionId == 0) return "No sanction to print.";
         try
         {
-            var response = await _httpClient.PostAsync($"api/loansanction/DeleteSanction/{loadedSanctionId}", null);
-            var result = await ReadResultAsync(response);
-            if (result.Success)
-            {
-                ResetPage();
-                ShowAlert(true, result.Message ?? "Deleted.");
-                await ListSanctions();
-            }
-            else
-            {
-                ShowAlert(false, result.Reasons.Count > 0 ? result.Reasons : new List<string> { result.Message ?? "Not deleted." });
-            }
+            var response = await _httpClient.GetAsync($"api/loansanction/OfficeNote/{sanctionId}");
+            if (!response.IsSuccessStatusCode)
+                return await response.Content.ReadAsStringAsync();
+            var bytes = await response.Content.ReadFromJsonAsync<byte[]>();
+            if (bytes is not { Length: > 0 }) return "The Office Note is empty.";
+            await CloseOfficeNote();
+            officeNoteUrl = await JSRuntime.InvokeAsync<string>("createPdfObjectUrl", Convert.ToBase64String(bytes));
+            return null;
         }
-        finally
+        catch (Exception ex)
         {
-            busy = false;
+            return ex.Message;
         }
     }
 
-    private async Task PrintOfficeNote()
+    private async Task PrintOfficeNoteFrame() => await JSRuntime.InvokeVoidAsync("printPdfFrame", "officeNoteFrame");
+
+    private async Task CloseOfficeNote()
     {
-        if (sanctionId == 0) return;
-        var response = await _httpClient.GetAsync($"api/loansanction/OfficeNote/{sanctionId}");
-        if (!response.IsSuccessStatusCode)
-        {
-            ShowAlert(false, "Office Note: " + await response.Content.ReadAsStringAsync());
-            return;
-        }
-        var bytes = await response.Content.ReadFromJsonAsync<byte[]>();
-        if (bytes is { Length: > 0 })
-            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(bytes));
+        if (officeNoteUrl == null) return;
+        var url = officeNoteUrl;
+        officeNoteUrl = null;
+        await JSRuntime.InvokeVoidAsync("revokePdfObjectUrl", url);
     }
 
     private static async Task<SanctionSaveResultVM> ReadResultAsync(HttpResponseMessage response)
@@ -1090,16 +1079,9 @@ else
     }
 
     // =====================================================================
-    // List + load for modify
+    // Load for modify — kept for the separate sanctioned-loans page (spec 08 §6); not reachable from this
+    // page now that the Sanctions tab is gone.
     // =====================================================================
-
-    private async Task ListSanctions()
-    {
-        var response = await _httpClient.PostAsJsonAsync("api/loansanction/ListSanctions", listFilter);
-        sanctionList = response.IsSuccessStatusCode
-            ? await response.Content.ReadFromJsonAsync<List<EcsSanctionListItemVM>>() ?? new()
-            : new();
-    }
 
     private async Task LoadSanction(decimal id)
     {
@@ -1144,7 +1126,7 @@ else
                 await RefreshEligibilityAsync();
             }
             activeTab = "pay";
-            ShowAlert(true, $"Loaded sanction {id}. Change the details and choose Modify Sanction, or Delete Sanction.");
+            ShowAlert(true, $"Loaded sanction {id}. Change the details and choose Modify Sanction.");
         }
         catch (Exception ex)
         {
@@ -1159,6 +1141,13 @@ else
     // =====================================================================
     // Helpers
     // =====================================================================
+
+    /// <summary>Refresh button: the only way to unlock Member No and start a new sanction.</summary>
+    private async Task RefreshAsync()
+    {
+        await CloseOfficeNote();
+        ResetPage();
+    }
 
     private void ResetPage()
     {
@@ -1183,6 +1172,7 @@ else
         eligibility = null;
         sanctionId = 0;
         loadedSanctionId = 0;
+        savedThisEntry = false;
         alertMessage = null;
         alertReasons.Clear();
     }
