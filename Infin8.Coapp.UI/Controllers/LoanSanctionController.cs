@@ -16,7 +16,7 @@ namespace Infin8.Coapp.API.Controllers
     [Authorize]
     public class LoanSanctionController : ControllerBase
     {
-        private const string OfficeNoteReportName = "Office Note";
+        private const string OfficeNoteReportName = "Loan Sanction Office Note";
 
         readonly IEcsLoanSanctionHandler _sanctionHandler;
         readonly IFinLedgerHandler _finLedgerHandler;
