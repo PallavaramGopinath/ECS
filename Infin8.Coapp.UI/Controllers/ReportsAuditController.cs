@@ -273,6 +273,28 @@ namespace Infin8.Coapp.UI.Controllers
             return CreatePDFAsBytes(pdfAsBytes);
         }
 
+        /// <summary>Interest paid and payable on fixed deposits (report 150). Dates as yyyy-MM-dd.</summary>
+        [HttpGet]
+        [Route("print-audit-fd-interest/{fromDate}/{toDate}/{reportId:int}/{brCode}")]
+        public async Task<byte[]> Print_Audit_FDInterestPaidPayable(string fromDate, string toDate, int reportId, string brCode)
+        {
+            DateTime.TryParse(fromDate, out DateTime from);
+            DateTime.TryParse(toDate, out DateTime to);
+            var report = await _reportHandler.GetReportNameWithSignature(reportId);
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
+            var parameters = new Dictionary<string, string>
+            {
+                { "paramSocietyName", await _generalHandler.GetSocietyName(brCode) },
+                { "paramReportHeader", "Interest Paid and Payable on Fixed deposit From " + from.ToString("dd-MM-yyyy") + " to " + to.ToString("dd-MM-yyyy") }
+            };
+            byte[] pdfAsBytes;
+            using (FileStream stream = System.IO.File.OpenRead(path))
+            {
+                pdfAsBytes = await _reportsFinalAccountHandler.GetFDInterestPaidAndPayableReport("Ds_IntPaidPayableOnFD", from, to, brCode, stream, parameters);
+            }
+            return CreatePDFAsBytesNew(pdfAsBytes);
+        }
+
         [HttpGet]
         [Route("print-audit-dividend/{fromDate}/{toDate}/{reportId:int}/{brCode}")]
         public async Task<byte[]> Print_Audit_Dividend(string fromDate, string toDate, int reportId, string brCode)

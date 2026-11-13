@@ -308,7 +308,9 @@ commented out.
 renderer also needs Uniscribe. Installing `libgdiplus` does not fix it. `MicrosoftReport.CreateLocalReport`
 catches the exception, writes it to the console and returns an **empty byte array**, so on a Mac dev
 machine every report endpoint returns `200` with no bytes and the page shows a blank or "empty" report.
-Don't debug the RDLC for that symptom on a Mac. When a document must render on any host, draw it as HTML
+Don't debug the RDLC for that symptom on a Mac. To check field binding on a Mac anyway, render to `"CSV"` instead of `"PDF"`: the CSV
+renderer needs no GDI, and an unbound field comes out as an empty column (binding is **case-sensitive** —
+`memberNo` does not bind `MemberNo`, a common fault in reports copied from TSIS). When a document must render on any host, draw it as HTML
 from a data endpoint instead; the ECS Office Note does this (`api/loansanction/OfficeNoteData`, printed
 with `printElement` in `UI.Client/wwwroot/js/pdfViewer.js`). Definitions live in `Infin8.Coapp.UI/Reports/*.rdlc` and are resolved at runtime as
 `{ContentRootPath}/Reports/{ReportFileName}`.
@@ -325,6 +327,10 @@ originals, so expect to edit the `.rdlc` too (its `<DataSet Name>` must match th
 nowhere and are still missing: five Crystal `.rpt` files (`DepositFWDFWS`, `JLMemberWiseOutstanding`,
 `JLMembewiseOutstanding`, `JLVerificationStatement_ornaments`, `MembersDividendIntOnTDPendingList`),
 `PersonalRegisterSociety.rdlc` and `RecurringDepositRegister_New.rdlc`.
+
+Report pages pick a report by `Report_Id` in a hard-coded `switch`, not by name, and load their dropdown by
+`ReportGrp_Id`. Three pages added for the TSIS port have **no menu row** yet and are reachable only by URL:
+`/reports-certificate` (group 15), `/reports-income-tax` (group 14) and `/utility-emi-schedule` (report 126).
 
 Reports are **discovered from the `Reports_Master` database table**, not the filesystem — adding a
 report requires a DB row, not just a file. The `.rdlc` `<DataSet Name="...">` must match the dataset

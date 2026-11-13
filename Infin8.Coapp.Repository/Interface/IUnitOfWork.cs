@@ -120,6 +120,7 @@ namespace Infin8.Coapp.Repository
         IReportsLoanRepository ReportsLoan { get; }
         IReportsAccountRepository ReportsAccount { get; }
         IReportsCertificateRepository ReportsCertificate { get; }
+        IReportsITRepository ReportsIT { get; }
         IReportsTermDepositsRepository ReportsTermDeposits { get; }
         IReportsFinalAccountsRepository ReportsFinalAccounts { get; }
         IReportsEmployeeRepository ReportsEmployee { get; }

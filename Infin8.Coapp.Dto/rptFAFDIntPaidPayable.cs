@@ -2,7 +2,7 @@
 {
     public  class rptFAFDIntPaidPayable
     {
-        public int Td_Id { get; set; }
+        public decimal Td_Id { get; set; }
         public string? MemberNo { get; set; }
         public string? MemberName { get; set; }
         public string? TDH_Name { get; set; }
@@ -14,6 +14,8 @@
         public int PeriodInMonths { get; set; }
         public int PeriodInDays { get; set; }
         public DateTime? InterestAppliedDate { get; set; }
+        public double IntOB { get; set; }
+        public double IntCalcDuringPeriod { get; set; }
         public double IntPaidBeforePeriod { get; set; }
         public double IntPaidDuringPeriod { get; set; }
         public double IntPayable { get; set; }

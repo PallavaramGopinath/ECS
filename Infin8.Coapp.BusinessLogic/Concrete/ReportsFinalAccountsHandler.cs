@@ -31,6 +31,12 @@ namespace Infin8.Coapp.BusinessLogic
             return pdfAsBytes;
         }
 
+        public async Task<byte[]> GetFDInterestPaidAndPayableReport(string datasetName, DateTime fromDate, DateTime toDate, string brCode, FileStream reportStream, Dictionary<string, string> parameters)
+        {
+            var rows = await _unitOfWork.ReportsFinalAccounts.GetFDInterestPaidAndPayable(fromDate, toDate, brCode);
+            return _createReportsHandler.CreateLocalReport(datasetName, reportStream, rows, parameters);
+        }
+
         public async Task<List<rptFAShareCapitalDevidend>> GetFAShareCapitalDividend(DateTime fromDate, DateTime todate, string brCode)
         {
             return await _unitOfWork.ReportsFinalAccounts.GetFAShareCapitalDividend(fromDate, todate, brCode);

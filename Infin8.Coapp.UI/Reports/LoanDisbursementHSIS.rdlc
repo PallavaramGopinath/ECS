@@ -26,15 +26,15 @@
           <rd:TypeName>System.DateTime</rd:TypeName>
         </Field>
         <Field Name="gvb_Bank_Name">
-          <DataField>gvb_Bank_Name</DataField>
+          <DataField>Fvb_Bank_Name</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="gvb_Cheque_Date">
-          <DataField>gvb_Cheque_Date</DataField>
+          <DataField>Fvb_Cheque_Date</DataField>
           <rd:TypeName>System.Nullable`1[[System.DateTime, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
         <Field Name="gvb_Cheque_No">
-          <DataField>gvb_Cheque_No</DataField>
+          <DataField>Fvb_Cheque_No</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="Loan_No">
@@ -46,11 +46,11 @@
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
         <Field Name="memberName">
-          <DataField>memberName</DataField>
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="memberNo">
-          <DataField>memberNo</DataField>
+          <DataField>MemberNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="PerNo">
@@ -58,7 +58,7 @@
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="pi">
-          <DataField>pi</DataField>
+          <DataField>Pi</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="Prl_Prd">
@@ -66,15 +66,15 @@
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
         <Field Name="roi">
-          <DataField>roi</DataField>
+          <DataField>Roi</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="San_amt">
-          <DataField>San_amt</DataField>
+          <DataField>San_Amt</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="San_date">
-          <DataField>San_date</DataField>
+          <DataField>San_Date</DataField>
           <rd:TypeName>System.DateTime</rd:TypeName>
         </Field>
         <Field Name="Scheme_Name">

@@ -2,7 +2,7 @@
 {
     public class rptITShareCapital
     {
-        public int Mem_Id { get; set; }
+        public decimal Mem_Id { get; set; }
         public string? MemberNo { get; set; }
         public string? PerNo { get; set; }
         public string? MemberName { get; set; }
@@ -11,7 +11,7 @@
         public string? Address { get; set; }
         public string? PANNo { get; set; }
         public string? AadharNo { get; set; }
-        public int Led_Id { get; set; }
+        public decimal Led_Id { get; set; }
         public string? Led_Name { get; set; }
         public double Amt_OB { get; set; }
         public double Rpt_Amt { get; set; }

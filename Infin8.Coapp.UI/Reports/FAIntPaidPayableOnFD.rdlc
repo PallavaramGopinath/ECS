@@ -54,11 +54,11 @@
           <rd:TypeName>System.DateTime</rd:TypeName>
         </Field>
         <Field Name="memberName">
-          <DataField>memberName</DataField>
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="memberNo">
-          <DataField>memberNo</DataField>
+          <DataField>MemberNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="PeriodInDays">

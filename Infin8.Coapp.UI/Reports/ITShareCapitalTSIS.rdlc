@@ -42,15 +42,15 @@
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="mem_Id">
-          <DataField>mem_Id</DataField>
+          <DataField>Mem_Id</DataField>
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
         <Field Name="memberName">
-          <DataField>memberName</DataField>
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="memberNo">
-          <DataField>memberNo</DataField>
+          <DataField>MemberNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="MemberType">

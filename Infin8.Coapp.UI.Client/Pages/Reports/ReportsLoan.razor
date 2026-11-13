@@ -8,6 +8,7 @@
 @rendermode InteractiveWebAssembly
 @using Infin8.Coapp.Models
 @using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -186,8 +187,12 @@ else
             var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
             rptObject.BrCode = userInfoDto.BrCode;
             rptObject.FromDate = userInfoDto.YrBeginningDate;
-            rptObject.ToDate = DateTime.UtcNow;
-            rptObject.AsOnDate = DateTime.UtcNow;
+            rptObject.ToDate = userInfoDto.CurrentDate;      // the business day, not the clock
+            rptObject.AsOnDate = userInfoDto.CurrentDate;
+            // Loan_Type 1 (ECS loans live here) was missing from the list; show it where the society allows it.
+            var institution = userInfoDto.SocietyType.ToInstitutionType();
+            if (LoanCategoryPolicy.IsAllowed(LoanCategory.ThriftCreditLoans, institution) && !loanTypeList.Any(x => x.Value == "1"))
+                loanTypeList.Insert(0, new DropdownItem { Value = "1", Text = LoanCategoryPolicy.GetDisplayName(LoanCategory.ThriftCreditLoans, institution) });
             var result = await _httpClient.GetFromJsonAsync<List<Reports_Master>>($"api/Reports/GetReportsList");
             if (result != null && result.Any())
             {
@@ -213,9 +218,8 @@ else
             filteredReportList = new();
             switch (loanType)
             {
-                case 1:    /// Employee society loan
-                    // isBetweenDates = true;
-                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 0).ToList();
+                case 1:    /// Employee society loan: the general loan reports (group 2)
+                    filteredReportList = reportList.Where(x => x.ReportGrp_Id == 2).ToList();
                     break;
                 case 2:    /// Jewel loan
                     // isBetweenDates = true;
@@ -407,8 +411,7 @@ else
 
                     break;
                 case 141:    /// Loan Disbursement (HSIS)
-                    isBetweenDates = true;
-
+                    await Print_LoanDisbursement();
                     break;
                 case 68:    /// Fixed Loan Outstanding Loan No-wise
                     isAsonDate = true;
@@ -457,6 +460,19 @@ else
             var base64String = Convert.ToBase64String(fileBytes!);
             // 2. Call the new JavaScript function to open the PDF in a new tab
             await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64String);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task Print_LoanDisbursement()
+    {
+        try
+        {
+            var fileBytes = await _httpClient.GetFromJsonAsync<byte[]>($"api/ReportsLoan/print-LoanDisbursement/{rptObject.ReportId}/{rptObject.LoanType}/{rptObject.FromDate:yyyy-MM-dd}/{rptObject.ToDate:yyyy-MM-dd}/{rptObject.BrCode}");
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(fileBytes!));
         }
         catch (Exception ex)
         {

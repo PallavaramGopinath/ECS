@@ -134,6 +134,7 @@ namespace Infin8.Coapp.Repository
         private ReportsLoanRepository? _reportsLoanRepository;
         private ReportsAccountRepository? _reportsAccountRepository;
         private ReportsCertificateRepository? _reportsCertificateRepository;
+        private ReportsITRepository? _reportsITRepository;
         private ReportsTermDepositsRepository? _reportsTermDepositsRepository;
         private ReportsFinalAccountsRepository? _reportsFinalAccountsRepository;
         private ReportsEmployeeRepository? _reportsEmployeeRepository;
@@ -313,6 +314,7 @@ namespace Infin8.Coapp.Repository
         public IReportsLoanRepository ReportsLoan => _reportsLoanRepository ??= new ReportsLoanRepository(_context);
         public IReportsAccountRepository ReportsAccount => _reportsAccountRepository ??= new ReportsAccountRepository(_context);
         public IReportsCertificateRepository ReportsCertificate => _reportsCertificateRepository ??= new ReportsCertificateRepository(_context);
+        public IReportsITRepository ReportsIT => _reportsITRepository ??= new ReportsITRepository(_context);
         public IReportsTermDepositsRepository ReportsTermDeposits => _reportsTermDepositsRepository ??= new ReportsTermDepositsRepository(_context);
         public IReportsFinalAccountsRepository ReportsFinalAccounts => _reportsFinalAccountsRepository ??= new ReportsFinalAccountsRepository(_context);
         public IReportsEmployeeRepository ReportsEmployee => _reportsEmployeeRepository ??= new ReportsEmployeeRepository(_context);

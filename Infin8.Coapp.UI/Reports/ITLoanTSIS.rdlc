@@ -62,15 +62,15 @@
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="mem_Id">
-          <DataField>mem_Id</DataField>
+          <DataField>Mem_Id</DataField>
           <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
         <Field Name="memberName">
-          <DataField>memberName</DataField>
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="memberNo">
-          <DataField>memberNo</DataField>
+          <DataField>MemberNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="MemberType">
@@ -90,7 +90,7 @@
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="ROI">
-          <DataField>ROI</DataField>
+          <DataField>Roi</DataField>
           <rd:TypeName>System.Double</rd:TypeName>
         </Field>
         <Field Name="Scheme_Name">

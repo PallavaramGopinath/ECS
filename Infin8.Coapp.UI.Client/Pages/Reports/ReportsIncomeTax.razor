@@ -1,0 +1,159 @@
+@page "/reports-income-tax"
+@* Income tax reports (reports_master group 14): 109 loans, 110 share capital, 111 members, 112 fixed deposits. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Net
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<h3 class="mb-2">Income Tax Reports</h3>
+<hr class="mt-0" />
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-info")">@message</div>
+}
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <label class="form-label">Report</label>
+        <select class="form-select" value="@request.ReportId" @onchange="OnReportChanged">
+            <option value="0">-- Select report --</option>
+            @foreach (var r in reportList)
+            {
+                <option value="@r.Value">@r.Text</option>
+            }
+        </select>
+    </div>
+    @if (request.ReportId == ITLoans)
+    {
+        <div class="col-md-4">
+            <label class="form-label">Loan type</label>
+            <select class="form-select" @bind="request.LoanType">
+                @foreach (var c in loanCategories)
+                {
+                    <option value="@((int)c)">@LoanCategoryPolicy.GetDisplayName(c, institution)</option>
+                }
+            </select>
+        </div>
+    }
+</div>
+
+<div class="row g-3 mt-1">
+    @if (request.ReportId == ITMembers)
+    {
+        <div class="col-md-3">
+            <label class="form-label">As on date</label>
+            <input type="date" class="form-control" @bind="request.AsOnDate" />
+        </div>
+    }
+    else
+    {
+        <div class="col-md-3">
+            <label class="form-label">From date</label>
+            <input type="date" class="form-control" @bind="request.FromDate" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">To date</label>
+            <input type="date" class="form-control" @bind="request.ToDate" />
+        </div>
+    }
+</div>
+
+<div class="mt-3">
+    <button type="button" class="btn btn-primary" disabled="@(!CanPrint)" @onclick="Print">
+        @if (isPrinting)
+        {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+        }
+        <i class="bi bi-printer"></i> Print
+    </button>
+</div>
+
+@code {
+    private const int ITGroup = 14;
+    private const int ITLoans = 109;
+    private const int ITMembers = 111;
+
+    private readonly rptReportITObject request = new();
+    private List<DropdownItem> reportList = new();
+    private List<LoanCategory> loanCategories = new();
+    private InstitutionType institution = InstitutionType.Unknown;
+    private string? message;
+    private bool isError;
+    private bool isPrinting;
+
+    private bool CanPrint => !isPrinting && request.ReportId > 0
+                             && (request.ReportId == ITMembers || request.FromDate <= request.ToDate);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        request.BrCode = userInfoDto.BrCode;
+        request.FromDate = userInfoDto.YrBeginningDate;
+        request.ToDate = userInfoDto.YrEndDate;
+        request.AsOnDate = userInfoDto.CurrentDate;
+        institution = userInfoDto.SocietyType.ToInstitutionType();
+        loanCategories = LoanCategoryPolicy.GetCategoriesFor(institution).ToList();
+        if (loanCategories.Count > 0 && !loanCategories.Contains((LoanCategory)request.LoanType))
+            request.LoanType = (int)loanCategories[0];
+        try
+        {
+            reportList = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Print/GetReportNameList/{ITGroup}/{request.BrCode}") ?? new();
+        }
+        catch (HttpRequestException)
+        {
+            Show("Could not load the report list.", true);
+        }
+    }
+
+    private void OnReportChanged(ChangeEventArgs e)
+    {
+        request.ReportId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
+        message = null;
+    }
+
+    private async Task Print()
+    {
+        message = null;
+        isPrinting = true;
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/ReportsIT/print", request);
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                if (bytes.Length == 0) { Show("The report server returned an empty PDF.", true); return; }
+                await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(bytes));
+            }
+            else if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                Show((await response.Content.ReadAsStringAsync()).Trim('"'), true);
+            }
+            else
+            {
+                Show($"Could not print the report ({(int)response.StatusCode}).", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Show($"Could not print the report: {ex.Message}", true);
+        }
+        finally
+        {
+            isPrinting = false;
+        }
+    }
+
+    private void Show(string text, bool error)
+    {
+        message = text;
+        isError = error;
+    }
+}

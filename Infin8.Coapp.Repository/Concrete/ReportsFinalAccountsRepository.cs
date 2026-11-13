@@ -2261,143 +2261,74 @@ namespace Infin8.Coapp.Repository
             return ledListFnl;
         }
 
+        /// <summary>
+        /// Interest paid and payable on fixed deposits (report 150), ported from TSIS GetFDInterestPaidAndPayable
+        /// (the active query): a deposit is listed if it had a deposit balance before the period or any transaction
+        /// in it. IntOB = interest booked and unpaid before the period; IntCalc/IntPaid DuringPeriod = booked / paid
+        /// inside it. IntPayable is ECS's accrual since the last application, up to the to-date or maturity.
+        /// </summary>
         public async Task<List<rptFAFDIntPaidPayable>> GetFDInterestPaidAndPayable(DateTime fromDate, DateTime toDate, string brCode)
         {
-            List<rptFAFDIntPaidPayable> tdList = new List<rptFAFDIntPaidPayable>();
-            double intCalc = 0;
-            DateTime maxIntCalcDate = DateTime.MinValue;
-            try
-            {
-                #region sql server query
-                //tdList = await CSISContext.Database.SqlQueryRaw<rptFAFDIntPaidPayable>(
-                //            @"With Db1
-                //            AS
-                //            (
-                //            SELECT TermDeposit_Trn.TD_Id,Max(TermDeposit_Trn.InterestAppliedDate) AS IntAppliedDate, CAST(SUM(TermDeposit_Trn.InterestPaidAmount) AS Float) AS IntPaidBeforeBegining,CAST(0 AS Float) AS IntPaidDuringPeriod , CAST(0 AS Float) AS IntPayable, Sum(DepositPaidAmount) AS DepositPaidAmount
-                //            FROM    TermDeposit_Trn 
-                //            WHERE  (TermDeposit_Trn.Trn_Date < CONVERT(DATETIME, @fromDate, 102)) AND (TermDeposit_Trn.TD_Delete = 0) 
-                //            GROUP BY TermDeposit_Trn.TD_Id 
-                //            HAVING  (SUM(TermDeposit_Trn.DepositReceiptAmount) -  SUM(TermDeposit_Trn.DepositPaidAmount ) >0)
-                //            UNION
-                //            SELECT TermDeposit_Trn.TD_Id,Max(TermDeposit_Trn.InterestAppliedDate) AS IntAppliedDate, CAST(0 AS Float) AS IntPaidBeforeBegining, CAST(SUM(TermDeposit_Trn.InterestPaidAmount) AS Float) AS IntPaidDuringPeriod, CAST(0 AS Float) AS IntPayable, Sum(DepositPaidAmount) AS DepositPaidAmount
-                //            FROM    TermDeposit_Trn 
-                //            WHERE (TermDeposit_Trn.InterestPaidAmount >0) AND (TermDeposit_Trn.Trn_Date BETWEEN CONVERT(DATETIME, @fromDate, 102) AND  CONVERT(DATETIME, @toDate, 102)) AND (TermDeposit_Trn.TD_Delete = 0) 
-                //            GROUP BY TermDeposit_Trn.TD_Id 
-                //            )
-                //            SELECT Db1.TD_Id, Mem_Master.memberNo, Mem_Master.memberName,TermDeposit_Master.TDH_Name,TermDeposit_Master.TD_No,  TermDeposit_Master.DepositAmount, TermDeposit_Master.ValueDate, 
-                //             TermDeposit_Master.MaturityDate, TermDeposit_Master.RateOfInterest, TermDeposit_Master.PeriodInMonths, TermDeposit_Master.PeriodInDays, 
-                //             Max(Db1.IntAppliedDate) AS InterestAppliedDate,Sum(Db1.IntPaidBeforeBegining) AS IntPaidBeforePeriod, sum(Db1.IntPaidDuringPeriod) AS IntPaidDuringPeriod, sum(Db1.IntPayable) AS IntPayable, Sum(Db1.DepositPaidAmount) AS DepositPaidAmount
-                //                FROM Db1 INNER JOIN TermDeposit_Master ON Db1.TD_Id = TermDeposit_Master.TD_Id 
-                //             INNER JOIN Mem_Master ON TermDeposit_Master.Mem_Id = Mem_Master.mem_Id 
-                //             WHERE TermDeposit_Master.TDScheme_Id <40000
-                //             GROUP BY Db1.TD_Id, TermDeposit_Master.TD_No, Mem_Master.memberNo, Mem_Master.memberName, TermDeposit_Master.TDH_Name,TermDeposit_Master.DepositAmount,TermDeposit_Master.ValueDate,TermDeposit_Master.MaturityDate,
-                //                  TermDeposit_Master.RateOfInterest, TermDeposit_Master.PeriodInMonths, TermDeposit_Master.PeriodInDays
-                //             ORDER BY  TermDeposit_Master.TD_No"
-                //            , new NpgsqlParameter("@fromDate", fromDate)
-                //            , new NpgsqlParameter("@toDate", toDate)).ToListAsync();
-                #endregion
+            DateTime periodFrom = fromDate.Date, periodEnd = toDate.Date.AddDays(1);
+            var rows = await (from tt in CSISContext.TermDeposit_Trn
+                              join tm in CSISContext.TermDeposit_Master on tt.TD_Id equals tm.TD_Id
+                              join ts in CSISContext.TermDeposit_Schemes on tm.TDScheme_Id equals ts.TDScheme_Id
+                              join mm in CSISContext.mem_master on tm.Mem_Id equals mm.mem_id
+                              where !tt.TD_Delete && tt.Voc_Status == "V" && tt.Trn_Date < periodEnd
+                                    && ts.TDSchemeType == "F"
+                                    && tt.BrCode == brCode && tm.BrCode == brCode && ts.BrCode == brCode && mm.brcode == brCode
+                              group tt by new
+                              {
+                                  tm.TD_Id, tm.TD_No, mm.memberno, mm.membername, tm.TDH_Name, tm.DepositAmount, tm.ValueDate,
+                                  tm.MaturityDate, tm.RateOfInterest, tm.PeriodInMonths, tm.PeriodInDays
+                              } into g
+                              select new
+                              {
+                                  g.Key,
+                                  DepositBalanceBefore = g.Where(x => x.Trn_Date < periodFrom).Sum(x => x.DepositReceiptAmount)
+                                                       - g.Where(x => x.Trn_Date < periodFrom).Sum(x => x.DepositPaidAmount),
+                                  IntCalcBefore = g.Where(x => x.Trn_Date < periodFrom).Sum(x => x.InterestCalculatedAmount),
+                                  IntPaidBefore = g.Where(x => x.Trn_Date < periodFrom).Sum(x => x.InterestPaidAmount),
+                                  TrnsInPeriod = g.Count(x => x.Trn_Date >= periodFrom),
+                                  IntCalcDuring = g.Where(x => x.Trn_Date >= periodFrom).Sum(x => x.InterestCalculatedAmount),
+                                  IntPaidDuring = g.Where(x => x.Trn_Date >= periodFrom).Sum(x => x.InterestPaidAmount),
+                                  DepositPaid = g.Sum(x => x.DepositPaidAmount),
+                                  InterestAppliedDate = g.Max(x => x.InterestAppliedDate)
+                              }).AsNoTracking().ToListAsync();
 
-                #region postgresql query
-                tdList = await CSISContext.Database.SqlQueryRaw<rptFAFDIntPaidPayable>
-                (
-                @"WITH Db1 AS(
-                    SELECT
-                        TermDeposit_Trn.TD_Id,
-                        MAX(TermDeposit_Trn.InterestAppliedDate) AS IntAppliedDate,
-                        SUM(TermDeposit_Trn.InterestPaidAmount)::DOUBLE PRECISION AS IntPaidBeforeBegining,
-                        0::DOUBLE PRECISION AS IntPaidDuringPeriod,
-                        0::DOUBLE PRECISION AS IntPayable,
-                        SUM(DepositPaidAmount) AS DepositPaidAmount
-                    FROM TermDeposit_Trn
-                    WHERE TermDeposit_Trn.Trn_Date < TO_DATE(@fromDate, 'YYYY.MM.DD')
-                      AND TermDeposit_Trn.TD_Delete = false AND TermDeposit_Trn.brcode = @brCode AND TermDeposit_Trn.voc_status = 'V'
-                    GROUP BY TermDeposit_Trn.TD_Id
-                    HAVING SUM(TermDeposit_Trn.DepositReceiptAmount) - SUM(TermDeposit_Trn.DepositPaidAmount) > 0
-
-                UNION
-
-                    SELECT
-                        TermDeposit_Trn.TD_Id,
-                        MAX(TermDeposit_Trn.InterestAppliedDate) AS IntAppliedDate,
-                        0::DOUBLE PRECISION AS IntPaidBeforeBegining,
-                        SUM(TermDeposit_Trn.InterestPaidAmount)::DOUBLE PRECISION AS IntPaidDuringPeriod,
-                        0::DOUBLE PRECISION AS IntPayable,
-                        SUM(DepositPaidAmount) AS DepositPaidAmount
-                    FROM TermDeposit_Trn
-                    WHERE TermDeposit_Trn.InterestPaidAmount > 0
-                      AND TermDeposit_Trn.Trn_Date BETWEEN TO_DATE(@fromDate, 'YYYY.MM.DD') AND TO_DATE(@toDate, 'YYYY.MM.DD')
-                      AND TermDeposit_Trn.TD_Delete = false AND TermDeposit_Trn.brCode = @brCode  AND TermDeposit_Trn.voc_status = 'V'
-                    GROUP BY TermDeposit_Trn.TD_Id
-                )
-
-                    SELECT
-                        Db1.TD_Id,
-                        Mem_Master.memberNo,
-                        Mem_Master.memberName,
-                        TermDeposit_Master.TDH_Name,
-                        TermDeposit_Master.TD_No,
-                        TermDeposit_Master.DepositAmount,
-                        TermDeposit_Master.ValueDate,
-                        TermDeposit_Master.MaturityDate,
-                        TermDeposit_Master.RateOfInterest,
-                        TermDeposit_Master.PeriodInMonths,
-                        TermDeposit_Master.PeriodInDays,
-                        MAX(Db1.IntAppliedDate) AS InterestAppliedDate,
-                        SUM(Db1.IntPaidBeforeBegining) AS IntPaidBeforePeriod,
-                        SUM(Db1.IntPaidDuringPeriod) AS IntPaidDuringPeriod,
-                        SUM(Db1.IntPayable) AS IntPayable,
-                        SUM(Db1.DepositPaidAmount) AS DepositPaidAmount
-                    FROM Db1
-                    INNER JOIN TermDeposit_Master ON Db1.TD_Id = TermDeposit_Master.TD_Id
-                    INNER JOIN Mem_Master ON TermDeposit_Master.Mem_Id = Mem_Master.mem_Id
-                    WHERE TermDeposit_Master.TDScheme_Id < 40000 
-                    GROUP BY
-                        Db1.TD_Id,
-                        TermDeposit_Master.TD_No,
-                        Mem_Master.memberNo,
-                        Mem_Master.memberName,
-                        TermDeposit_Master.TDH_Name,
-                        TermDeposit_Master.DepositAmount,
-                        TermDeposit_Master.ValueDate,
-                        TermDeposit_Master.MaturityDate,
-                        TermDeposit_Master.RateOfInterest,
-                        TermDeposit_Master.PeriodInMonths,
-                        TermDeposit_Master.PeriodInDays
-                    ORDER BY TermDeposit_Master.TD_No"
-                    , new NpgsqlParameter("@fromDate", fromDate)
-                    , new NpgsqlParameter("@toDate", toDate)
-                    , new NpgsqlParameter("@brCode",brCode)).ToListAsync();
-
-                #endregion 
-
-                //tdList = tdList.Where(x => x.Td_Id == 4286).ToList();
-                foreach (var td in tdList)
+            var tdList = rows
+                .Where(r => r.DepositBalanceBefore > 0 || r.TrnsInPeriod > 0)
+                .Select(r => new rptFAFDIntPaidPayable
                 {
-                    if (td.InterestAppliedDate != null)
-                        maxIntCalcDate = (DateTime)td.InterestAppliedDate;
-                    else
-                        maxIntCalcDate = td.ValueDate;
-                    if (td.DepositAmount - td.DepositPaidAmount > 0)
-                    {
-                        if (Utilities.GetNoOfDays(toDate, td.MaturityDate) > 0)
-                        {
-                            intCalc = Utilities.Calculate_Interest(td.DepositAmount, td.RateOfInterest, Utilities.GetNoOfDays(td.MaturityDate, maxIntCalcDate));
-                        }
-                        else
-                        {
-                            intCalc = Utilities.Calculate_Interest(td.DepositAmount, td.RateOfInterest, Utilities.GetNoOfDays(toDate, maxIntCalcDate) + 1);
-                        }
-                        //td.IntPayable += intCalc;
-                    }
-                    else
-                        intCalc = 0;
-                    td.IntPayable += intCalc;
-                }
+                    Td_Id = r.Key.TD_Id,
+                    TD_No = r.Key.TD_No,
+                    MemberNo = r.Key.memberno,
+                    MemberName = r.Key.membername,
+                    TDH_Name = r.Key.TDH_Name,
+                    DepositAmount = r.Key.DepositAmount,
+                    ValueDate = r.Key.ValueDate,
+                    MaturityDate = r.Key.MaturityDate,
+                    RateOfInterest = r.Key.RateOfInterest,
+                    PeriodInMonths = r.Key.PeriodInMonths,
+                    PeriodInDays = r.Key.PeriodInDays,
+                    InterestAppliedDate = r.InterestAppliedDate,
+                    // the opening interest only counts for deposits still running before the period, as in TSIS
+                    IntOB = r.DepositBalanceBefore > 0 ? r.IntCalcBefore - r.IntPaidBefore : 0,
+                    IntPaidBeforePeriod = r.IntPaidBefore,
+                    IntCalcDuringPeriod = r.IntCalcDuring,
+                    IntPaidDuringPeriod = r.IntPaidDuring,
+                    DepositPaidAmount = r.DepositPaid
+                })
+                .OrderBy(x => x.TD_No)
+                .ToList();
 
-            }
-            catch (Exception)
+            foreach (var td in tdList)
             {
-                throw;
+                if (td.DepositAmount - td.DepositPaidAmount <= 0) continue;
+                DateTime lastApplied = td.InterestAppliedDate ?? td.ValueDate;
+                td.IntPayable = Utilities.GetNoOfDays(toDate, td.MaturityDate) > 0
+                    ? Utilities.Calculate_Interest(td.DepositAmount, td.RateOfInterest, Utilities.GetNoOfDays(td.MaturityDate, lastApplied))
+                    : Utilities.Calculate_Interest(td.DepositAmount, td.RateOfInterest, Utilities.GetNoOfDays(toDate, lastApplied) + 1);
             }
             return tdList;
         }

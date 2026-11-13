@@ -126,5 +126,27 @@ namespace Infin8.Coapp.UI.Controllers
             }
         }
 
+
+        /// <summary>Loan disbursement statement (report 141, TSIS LoanDisbursementHSIS) for one loan type between two dates.</summary>
+        [HttpGet]
+        [Route("print-LoanDisbursement/{reportId:int}/{loanType:int}/{fromDate}/{toDate}/{brCode}")]
+        public async Task<byte[]> Print_LoanDisbursement(int reportId, int loanType, string fromDate, string toDate, string brCode)
+        {
+            DateTime.TryParse(fromDate, out DateTime from);
+            DateTime.TryParse(toDate, out DateTime to);
+            var report = await _reportHandler.GetReportNameWithSignature(reportId);
+            var path = Path.Combine(_webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
+            var parameters = new Dictionary<string, string>
+            {
+                { "paramSocietyName", await _generalHandler.GetSocietyName(brCode) },
+                { "paramReportHeader", "Loan Disbursement Statement From " + from.ToString("dd-MM-yyyy") + " To " + to.ToString("dd-MM-yyyy") }
+            };
+            byte[] pdfAsBytes;
+            using (FileStream stream = System.IO.File.OpenRead(path))
+            {
+                pdfAsBytes = await _reportsLoanHandler.GetLoanDisbursementToPrint("Ds_LoanDisbursementHSIS", from, to, loanType, brCode, stream, parameters);
+            }
+            return CreatePDFAsBytes(pdfAsBytes);
+        }
     }
 }

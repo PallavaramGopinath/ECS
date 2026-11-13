@@ -437,19 +437,20 @@ namespace Infin8.Coapp.Repository
                                     on lm.Voc_Id equals fv.Voc_Id
                                 join mm in CSISContext.mem_master // Replace YourMemMasterEntity
                                     on lm.Mem_Id equals mm.mem_id
-                                join fvb in CSISContext.Fin_Voucher_Bank // Replace YourFinVoucherBankEntity
-                                    on fv.Voc_Id equals fvb.Voc_Id into fvbLeft
+                                // optional bank row: filter inside the join so cash disbursements are kept. A batch
+                                // disbursement voucher carries one bank row per member, so match the member as well.
+                                join fvb in CSISContext.Fin_Voucher_Bank.Where(b => b.BrCode == brCode && b.Voc_Status == "V")
+                                    on new { fv.Voc_Id, lm.Mem_Id } equals new { fvb.Voc_Id, fvb.Mem_Id } into fvbLeft
                                 from fvb in fvbLeft.DefaultIfEmpty()
                                 where lm.Loan_Type == loanType &&
                                       lm.Loan_Delete == false &&
-                                      lt.TrnTr_Delete == false &&
+                                      lt.TrnTr_Delete == false && lt.Disb_Amt > 0 &&
                                       lt.Disb_Date >= fromDate.Date &&
-                                      lt.Disb_Date <= toDate.Date &&
+                                      lt.Disb_Date < toDate.Date.AddDays(1) &&
                                       lm.BrCode == brCode && lm.Voc_Status == "V" &&
                                       lt.BrCode == brCode && lt.Voc_Status == "V" &&
                                       fv.BrCode == brCode && fv.Voc_Status == "V" &&
-                                      mm.brcode == brCode &&
-                                      fvb.BrCode == brCode && fvb.Voc_Status == "V"
+                                      mm.brcode == brCode && ls.BrCode == brCode
                                 orderby ls.Scheme_Name, lm.Loan_No
                                 select new rptLoanDisbursementHSIS
                                 {
@@ -466,7 +467,7 @@ namespace Infin8.Coapp.Repository
                                     Scheme_Name = ls.Scheme_Name,
                                     Disb_Date = lt.Disb_Date,
                                     Disb_Amt = lt.Disb_Amt,
-                                    Voc_Id = fv.Voc_Id,
+                                    Voc_Id = lt.Voc_Id,
                                     Voc_No = fv.Voc_No,
                                     Fvb_Cheque_No = fvb.Fvb_Cheque_No,
                                     Fvb_Cheque_Date = fvb.Fvb_Cheque_Date,
