@@ -14,6 +14,7 @@ namespace Infin8.Coapp.Repository
         Task<bool> AddUser(Users users);
         Task<bool> EditUser(Users users);
         Users? GetUserByUsername(string username);
+        Users? GetUserById(decimal userId);
         string? GetUserRoles(decimal userId);
         //Task<AuthenticationResponse> AuthenticateAsync(string username, string password);
         void CreatePasswordHash(string password, out byte[] passwordHash,out byte[] passwordSalt);
