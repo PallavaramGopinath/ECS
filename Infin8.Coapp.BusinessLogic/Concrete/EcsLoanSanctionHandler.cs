@@ -303,7 +303,9 @@ namespace Infin8.Coapp.BusinessLogic
             result.RequiredSC = (int)(Math.Round(req.LoanAmount * pct / 100.0, 2) + 0.5);
             decimal scLed = map?.ShareCapital_Led_Id ?? 0;
             result.MemberSC = await repo.GetLedgerBalanceAsync(req.MemId, scLed, brCode);
-            if (req.SuretyMemId > 0) result.SuretySC = await repo.GetLedgerBalanceAsync(req.SuretyMemId, scLed, brCode);
+            var surety = await BuildSuretyDetailsAsync(scheme, req.SuretyMemId, scLed, brCode);
+            result.SuretySC = surety.SuretySC;
+            result.SuretyOverdues = surety.SuretyOverdues;
             var scName = (await repo.GetLedgerNamesAsync(new[] { scLed }, brCode)).GetValueOrDefault(scLed) ?? "Share Capital";
 
             if (scheme.MatchShareCapital == 1 || scheme.MatchShareCapital == 2)
@@ -335,21 +337,45 @@ namespace Infin8.Coapp.BusinessLogic
             }
             result.PendingDeposits = await repo.GetPendingDepositsAsync(req.MemId, asOn, brCode);
 
-            if (scheme.IssurityMemberRequired == 1 && req.SuretyMemId > 0)
-            {
-                var suretyLoans = await repo.GetLoanBalancesAsync(req.SuretyMemId, brCode);
-                result.SuretyOverdues = suretyLoans.Where(l => l.PrlOD > 0 || l.IntOS > 0)
-                    .Select(l => new SuretyLoanOverdueVM
-                    {
-                        Loan_Id = l.Loan_Id, LoanNo = l.Loan_No, Purpose = l.Scheme_Name,
-                        OverdueAmount = Math.Round(l.PrlOD + l.IntOS + l.PIBal, 2)
-                    }).ToList();
-            }
-
             // --- Demand inputs ---
             var demandDate = req.FirstDueDate ?? Utilities.FirstOfNextMonth(asOn);
             result.DepositDemand = await repo.GetCurrentDepositDemandAsync(req.MemId, req.BasicPay, asOn, demandDate, brCode);
             result.InstalmentAmount = CalculateInstalment(req.LoanAmount, req.PeriodOfLoan, req.Roi, scheme.Inst_Type);
+            return result;
+        }
+
+        public async Task<EcsSuretyDetailsVM> GetSuretyDetailsAsync(int schemeId, decimal suretyMemId, string brCode)
+        {
+            var scheme = await _unitOfWork.EcsLoanSanction.GetSchemeAsync(schemeId, brCode);
+            if (scheme == null || !IsEcsScheme(scheme.Loan_Type)) return new EcsSuretyDetailsVM();
+            var map = await _unitOfWork.MapGeneral.GetMapGeneralAsync(brCode);
+            return await BuildSuretyDetailsAsync(scheme, suretyMemId, map?.ShareCapital_Led_Id ?? 0, brCode);
+        }
+
+        /// <summary>
+        /// Surety's share capital and loans in overdue. Only an overdue in an ECS (Loan_Type 1) loan
+        /// stops the sanction; other loan types (FD / RD loans) are listed only.
+        /// </summary>
+        private async Task<EcsSuretyDetailsVM> BuildSuretyDetailsAsync(Loan_Schemes scheme, decimal suretyMemId,
+            decimal scLed, string brCode)
+        {
+            var result = new EcsSuretyDetailsVM();
+            if (suretyMemId <= 0) return result;
+            var repo = _unitOfWork.EcsLoanSanction;
+            result.SuretySC = await repo.GetLedgerBalanceAsync(suretyMemId, scLed, brCode);
+
+            if (scheme.IssurityMemberRequired == 1)
+            {
+                var suretyLoans = await repo.GetLoanBalancesAsync(suretyMemId, brCode);
+                result.SuretyOverdues = suretyLoans.Where(l => l.PrlOD > 0 || l.IntOS > 0)
+                    .Select(l => new SuretyLoanOverdueVM
+                    {
+                        Loan_Id = l.Loan_Id, LoanNo = l.Loan_No, Purpose = l.Scheme_Name,
+                        OverdueAmount = Math.Round(l.PrlOD + l.IntOS + l.PIBal, 2),
+                        Loan_Type = l.Loan_Type,
+                        BlocksSanction = l.Loan_Type == (int)LoanCategory.ThriftCreditLoans
+                    }).ToList();
+            }
             return result;
         }
 
@@ -455,6 +481,14 @@ namespace Infin8.Coapp.BusinessLogic
                 PeriodOfLoan = vm.PeriodOfLoan, Roi = vm.RateOfInterest, BasicPay = vm.BasicPay, FirstDueDate = vm.FirstDueDate
             }, date, brCode);
             if (!recov.Success) return Fail(recov.Message ?? "Could not compute recoverables.");
+
+            var suretyBlocking = recov.SuretyOverdues.Where(o => o.BlocksSanction).ToList();
+            if (suretyBlocking.Count > 0)
+                errors.Add((member.SuretyMem_Id == vm.SuretyMem_Id && !string.IsNullOrEmpty(member.SuretyMemberNo)
+                               ? $"Surety {member.SuretyMemberNo} {member.SuretyMemberName}" : "The surety")
+                           + " has overdue in loan(s) "
+                           + string.Join(", ", suretyBlocking.Select(o => o.LoanNo))
+                           + ". Loan sanction cannot be saved.");
 
             if (vm.InstalmentAmount < recov.InstalmentAmount)
                 errors.Add($"Instalment amount cannot be less than the calculated instalment of {recov.InstalmentAmount}.");

@@ -260,7 +260,7 @@ namespace Infin8.Coapp.Repository
                       && master.BrCode == brCode && trn.BrCode == brCode && scheme.BrCode == brCode
                 group new { master, trn, scheme } by new
                 {
-                    master.Loan_Id, master.Loan_No, master.Scheme_Id, scheme.Scheme_Name,
+                    master.Loan_Id, master.Loan_No, master.Scheme_Id, scheme.Scheme_Name, scheme.Loan_Type,
                     scheme.PrlLed_Id, scheme.IntLed_Id, scheme.PILed_Id,
                     master.San_Amt, master.Roi, master.Inst_Amt,
                     scheme.Int_Application, scheme.AdoptLoanLimit, scheme.MatchShareCapital
@@ -271,6 +271,7 @@ namespace Infin8.Coapp.Repository
                     Loan_No = g.Key.Loan_No,
                     Scheme_Id = g.Key.Scheme_Id,
                     Scheme_Name = g.Key.Scheme_Name,
+                    Loan_Type = g.Key.Loan_Type,
                     PrlLed_Id = g.Key.PrlLed_Id,
                     IntLed_Id = g.Key.IntLed_Id,
                     PILed_Id = g.Key.PILed_Id,

@@ -79,6 +79,14 @@ else
         </div>
     </div>
 
+    @* Stays until the member changes, Refresh, or the page is left — not dismissable, not replaced by other alerts. *@
+    @if (SuretyHasBlockingOverdue)
+    {
+        <div class="alert alert-danger d-flex align-items-center fw-semibold" role="alert">
+            <i class="bi bi-exclamation-octagon-fill me-2"></i>@SuretyOverdueMessage
+        </div>
+    }
+
     @if (!string.IsNullOrEmpty(alertMessage))
     {
         <div class="alert @(alertSuccess ? "alert-success" : "alert-danger") alert-dismissible" role="alert">
@@ -257,19 +265,8 @@ else
                                     <tr><td>Required Share Capital</td><td class="text-end">@F(recov?.RequiredSC ?? 0)</td></tr>
                                     <tr><td>Thrift Deposit</td><td class="text-end">@F(recov?.MemberTD ?? member.MemberThriftDeposit)</td></tr>
                                     <tr><td>Family Welfare Deposit</td><td class="text-end">@F(recov?.MemberFWD ?? member.MemberFamilyWelfareDeposit)</td></tr>
-                                    <tr><td>Surety's Share Capital</td><td class="text-end">@F(recov?.SuretySC ?? member.SuretyShareCapital)</td></tr>
                                 </tbody>
                             </table>
-                            @if (recov?.SuretyOverdues.Count > 0)
-                            {
-                                <span class="badge bg-danger mb-1">Surety has overdue</span>
-                                <table class="table table-sm small">
-                                    <thead><tr><th>Loan</th><th class="text-end">Overdue</th></tr></thead>
-                                    <tbody>
-                                        @foreach (var o in recov.SuretyOverdues) { <tr><td>@o.LoanNo @o.Purpose</td><td class="text-end">@F(o.OverdueAmount)</td></tr> }
-                                    </tbody>
-                                </table>
-                            }
                         </div>
                         <div class="col-md-4">
                             <h6>Eligibility</h6>
@@ -297,6 +294,52 @@ else
                             }
                         </div>
                     </div>
+
+                    @if (defaults?.IsSuretyRequired == true)
+                    {
+                        <fieldset class="border rounded p-3 mt-2">
+                            <legend class="float-none w-auto px-2 fs-6 mb-0">Surety Details</legend>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Surety's Share Capital</label>
+                                    <input class="form-control text-end" value="@F(suretySC ?? member.SuretyShareCapital)" readonly />
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Surety Member's Loan Overdue</label>
+                                    <table class="table table-sm table-bordered small mb-1">
+                                        <thead class="table-light"><tr><th style="width:4rem">Sl.No</th><th>Loan No</th><th>Loan Name</th><th class="text-end">Overdue Amount</th></tr></thead>
+                                        <tbody>
+                                            @if (!suretyLoaded)
+                                            {
+                                                <tr><td colspan="4" class="text-muted">Select a loan to load.</td></tr>
+                                            }
+                                            else if (suretyOverdues.Count == 0)
+                                            {
+                                                <tr><td colspan="4" class="text-muted">No overdue.</td></tr>
+                                            }
+                                            else
+                                            {
+                                                @for (int i = 0; i < suretyOverdues.Count; i++)
+                                                {
+                                                    var o = suretyOverdues[i];
+                                                    <tr class="@(o.BlocksSanction ? "table-danger" : "")">
+                                                        <td>@(i + 1)</td><td>@o.LoanNo</td><td>@o.Purpose</td><td class="text-end">@F(o.OverdueAmount)</td>
+                                                    </tr>
+                                                }
+                                                <tr class="table-light fw-bold">
+                                                    <td colspan="3">Total Overdue</td><td class="text-end">@F(suretyOverdues.Sum(o => o.OverdueAmount))</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                    @if (SuretyHasBlockingOverdue)
+                                    {
+                                        <div class="text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>@SuretyOverdueMessage</div>
+                                    }
+                                </div>
+                            </div>
+                        </fieldset>
+                    }
                     break;
 
                 case "recov":
@@ -547,6 +590,11 @@ else
     private string manualLedId = "0";
     private double manualAmount;
 
+    // Surety details — loaded on scheme selection and refreshed by Get Recoverables; independent of recov
+    private List<SuretyLoanOverdueVM> suretyOverdues = new();
+    private double? suretySC;
+    private bool suretyLoaded;
+
     // Eligibility / demand
     private LoanEligibilityResultVM? eligibility;
     private bool showDemand;
@@ -568,7 +616,39 @@ else
     private double ExistingDemand => nonDeductable.Where(n => !movedLoanIds.Contains(n.LoanId)).Sum(n => n.DemandAmount);
     private bool HasService => member.Found && member.ServiceInMonths > 0;
     private bool CanSave => !busy && HasService && schemeId > 0 && !recoverablesStale && recov != null
-                            && eligibility?.IsEligible == true && LoanBalance > 0;
+                            && eligibility?.IsEligible == true && LoanBalance > 0 && !SuretyHasBlockingOverdue;
+    /// <summary>The surety has an overdue in an ECS (Loan_Type 1) loan — the sanction cannot be saved.</summary>
+    private bool SuretyHasBlockingOverdue => suretyOverdues.Any(o => o.BlocksSanction);
+    private string SuretyOverdueMessage =>
+        $"The surety {member.SuretyMemberNo} {member.SuretyMemberName} has overdue in loan(s) "
+        + string.Join(", ", suretyOverdues.Where(o => o.BlocksSanction).Select(o => o.LoanNo))
+        + ". Loan sanction cannot be saved.";
+
+    private async Task LoadSuretyDetailsAsync()
+    {
+        ClearSurety();
+        if (schemeId == 0 || member.SuretyMem_Id <= 0) return;
+        try
+        {
+            var s = await _httpClient.GetFromJsonAsync<EcsSuretyDetailsVM>(
+                $"api/loansanction/GetSuretyDetails/{schemeId}/{member.SuretyMem_Id}/{brCode}");
+            if (s == null) return;
+            suretySC = s.SuretySC;
+            suretyOverdues = s.SuretyOverdues;
+            suretyLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void ClearSurety()
+    {
+        suretyOverdues = new();
+        suretySC = null;
+        suretyLoaded = false;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -696,6 +776,7 @@ else
     {
         MarkStale();
         defaults = null;
+        ClearSurety();
         if (schemeId == 0) return;
 
         var d = await _httpClient.GetFromJsonAsync<SuretyLoanSchemeDefaultsVM>(
@@ -733,6 +814,7 @@ else
         rateOfInterest = d.RateOfInterest;
         penalRate = d.PenalRate;
         firstDueDate = d.FirstDueDate;
+        await LoadSuretyDetailsAsync();
 
         var info = d.Warnings.Where(w => !w.Blocking && w.Code != "STIPULATED_PERIOD").Select(w => w.Message).ToList();
         if (info.Count > 0) ShowAlert(false, info);
@@ -791,6 +873,9 @@ else
             return null;
         }
         recov = result;
+        suretySC = result.SuretySC;
+        suretyOverdues = result.SuretyOverdues;
+        suretyLoaded = true;
         nonDeductable = result.NonDeductable;
         pendingDeposits = result.PendingDeposits;
         selectedNonDed.Clear();
@@ -1089,6 +1174,7 @@ else
         firstDueDate = Utilities.FirstOfNextMonth(currentDate);
         overrideStipulatedPeriod = false;
         recov = null;
+        ClearSurety();
         recoverablesStale = true;
         rows = new();
         nonDeductable = new();
@@ -1104,7 +1190,7 @@ else
     private bool TabComplete(string key) => key switch
     {
         "pay" => HasService && grossPay > 0,
-        "loan" => !recoverablesStale && eligibility?.IsEligible == true,
+        "loan" => !recoverablesStale && eligibility?.IsEligible == true && !SuretyHasBlockingOverdue,
         "recov" => !recoverablesStale && recov != null && LoanBalance > 0,
         _ => false
     };

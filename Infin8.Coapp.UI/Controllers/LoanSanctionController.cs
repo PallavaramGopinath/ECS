@@ -114,6 +114,11 @@ namespace Infin8.Coapp.API.Controllers
             decimal excludeSanctionId, string brCode)
             => Ok(await _sanctionHandler.GetSchemeDefaultsAsync(schemeId, memId, excludeSanctionId, BusinessDay(), brCode));
 
+        [HttpGet]
+        [Route("GetSuretyDetails/{schemeId:int}/{suretyMemId:decimal}/{brCode}")]
+        public async Task<ActionResult<EcsSuretyDetailsVM>> GetSuretyDetails(int schemeId, decimal suretyMemId, string brCode)
+            => Ok(await _sanctionHandler.GetSuretyDetailsAsync(schemeId, suretyMemId, brCode));
+
         /// <summary>Ledger dropdown for manual deductions — excludes cash and bank ledgers.</summary>
         [HttpGet]
         [Route("GetLedgers/{brCode}")]

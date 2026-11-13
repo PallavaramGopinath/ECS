@@ -50,6 +50,9 @@ namespace Infin8.Coapp.Dto
         public string? LoanNo { get; set; }
         public string? Purpose { get; set; }
         public double OverdueAmount { get; set; }
+        public int Loan_Type { get; set; }
+        /// <summary>True when the overdue is in a Loan_Type 1 (ECS) loan — the sanction cannot be saved.</summary>
+        public bool BlocksSanction { get; set; }
     }
 
     /// <summary>

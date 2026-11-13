@@ -39,6 +39,13 @@ namespace Infin8.Coapp.Dto
         public DateTime? FirstDueDate { get; set; }
     }
 
+    /// <summary>Surety Details panel: surety's share capital and loans in overdue.</summary>
+    public class EcsSuretyDetailsVM
+    {
+        public double SuretySC { get; set; }
+        public List<SuretyLoanOverdueVM> SuretyOverdues { get; set; } = new();
+    }
+
     /// <summary>Everything the Loan Details / Recoverables / Non-Deductable / Pending Deposits tabs need.</summary>
     public class EcsRecoverablesVM
     {
@@ -165,6 +172,7 @@ namespace Infin8.Coapp.Dto
         public string? Loan_No { get; set; }
         public int Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
+        public int Loan_Type { get; set; }
         public decimal PrlLed_Id { get; set; }
         public decimal IntLed_Id { get; set; }
         public decimal PILed_Id { get; set; }
