@@ -141,6 +141,9 @@ namespace Infin8.Coapp.Dto
         public double LoanAmount { get; set; }
         public int Scheme_Id { get; set; }
         public string? SchemeName { get; set; }
+        /// <summary>Σ recoverables (loan_sanction.totalreceiptamount) — spec 10 grid.</summary>
+        public double TotalReceiptAmount { get; set; }
+        public string? SuretyMemberNo { get; set; }
     }
 
     /// <summary>A saved sanction loaded back for Modify / Delete / Print.</summary>

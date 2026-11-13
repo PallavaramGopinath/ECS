@@ -1,0 +1,748 @@
+@page "/ecs-loan-disbursement"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@* ECS Loan Disbursement (spec 10): tick status-E sanctions, pay by cheque / NEFT, post one voc_type 14 voucher. *@
+
+<PageTitle>ECS Loan Disbursement</PageTitle>
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">ECS Loan Disbursement</li>
+    </ol>
+</nav>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
+    </div>
+}
+else if (institution != InstitutionType.ECS)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        ECS Loan Disbursement is available only for Employees' Society (ECS) institutions.
+    </div>
+}
+else
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h4 class="mb-0"><i class="bi bi-bank me-2 text-primary"></i>ECS Loan Disbursement</h4>
+        <span class="ms-auto text-muted">Business day: <strong>@currentDate.ToString("dd-MM-yyyy")</strong></span>
+    </div>
+
+    @* ---------- Filter ---------- *@
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" id="fAll" name="filterMode" checked="@(mode == "ALL")" @onchange='() => mode = "ALL"' />
+                        <label class="form-check-label" for="fAll">All</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="radio" id="fId" name="filterMode" checked="@(mode == "ID")" @onchange='() => mode = "ID"' />
+                        <label class="form-check-label" for="fId">Sanction Id</label>
+                    </div>
+                    <input type="number" class="form-control form-control-sm" style="width:120px" @bind="filterSanctionId" @onfocus='() => mode = "ID"' />
+                </div>
+                <div class="col-auto">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="radio" id="fMem" name="filterMode" checked="@(mode == "MEM")" @onchange='() => mode = "MEM"' />
+                        <label class="form-check-label" for="fMem">Member No / Per No</label>
+                    </div>
+                    <input class="form-control form-control-sm" style="width:140px" @bind="filterMemberNo" @onfocus='() => mode = "MEM"' />
+                </div>
+                <div class="col-auto">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="radio" id="fDate" name="filterMode" checked="@(mode == "DATE")" @onchange='() => mode = "DATE"' />
+                        <label class="form-check-label" for="fDate">Sanction Date</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <input type="date" class="form-control form-control-sm" @bind="filterFrom" @onfocus='() => mode = "DATE"' />
+                        <span>–</span>
+                        <input type="date" class="form-control form-control-sm" @bind="filterTo" @onfocus='() => mode = "DATE"' />
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-primary btn-sm" @onclick="SearchAsync" disabled="@busy"><i class="bi bi-search me-1"></i>Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert @(alertSuccess ? "alert-success" : "alert-danger") alert-dismissible" role="alert">
+            @if (alertReasons.Count > 1)
+            {
+                <ul class="mb-0">
+                    @foreach (var r in alertReasons) { <li>@r</li> }
+                </ul>
+            }
+            else
+            {
+                @alertMessage
+            }
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    @* ---------- Result of the last disbursement ---------- *@
+    @if (lastResult is { Success: true })
+    {
+        <div class="card border-success shadow-sm mb-3">
+            <div class="card-header bg-success-subtle d-flex align-items-center">
+                <span><i class="bi bi-check-circle me-2"></i>Disbursed — voucher <strong>@lastResult.VocNo</strong></span>
+                <div class="ms-auto d-flex gap-2">
+                    @if (postedPreview != null)
+                    {
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => showPosted = true"><i class="bi bi-printer me-1"></i>Print Voucher</button>
+                    }
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => { lastResult = null; postedPreview = null; }">Dismiss</button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0 small">
+                    <thead class="table-light">
+                        <tr><th class="ps-3">Sanction Id</th><th>Member No</th><th>Name</th><th>Loan No</th><th class="text-end">Loan Amount</th><th class="text-end pe-3">Net Paid</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in lastResult.Loans)
+                        {
+                            <tr><td class="ps-3">@l.SanctionId</td><td>@l.MemberNo</td><td>@l.MemberName</td><td>@l.LoanNo</td><td class="text-end">@F(l.LoanAmount)</td><td class="text-end pe-3">@F(l.Net)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @* ---------- Grid ---------- *@
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3" style="width:36px">
+                                <input class="form-check-input" type="checkbox" title="Select all"
+                                       checked="@(sanctions.Count > 0 && selected.Count == sanctions.Count)"
+                                       @onchange="ToggleAll" disabled="@(busy || sanctions.Count == 0)" />
+                            </th>
+                            <th>Sl</th>
+                            <th>Sanction Id</th>
+                            <th>Date</th>
+                            <th>Member No</th>
+                            <th>Name</th>
+                            <th>Surety</th>
+                            <th>Scheme</th>
+                            <th class="text-end">Loan Amt</th>
+                            <th class="text-end">Recoverable</th>
+                            <th class="text-end">Net</th>
+                            <th class="text-end pe-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (sanctions.Count == 0)
+                        {
+                            <tr><td colspan="12" class="text-center text-muted py-4">@(busy ? "Loading…" : "No sanctions awaiting disbursement.")</td></tr>
+                        }
+                        @for (int i = 0; i < sanctions.Count; i++)
+                        {
+                            var s = sanctions[i];
+                            var isSel = selected.Contains(s.LoanSanction_Id);
+                            <tr class="@(isSel ? "table-primary" : "")">
+                                <td class="ps-3">
+                                    <input class="form-check-input" type="checkbox" checked="@isSel"
+                                           @onchange="() => Toggle(s.LoanSanction_Id)" disabled="@busy" />
+                                </td>
+                                <td>@(i + 1)</td>
+                                <td>@s.LoanSanction_Id</td>
+                                <td>@s.SanctionDate?.ToString("dd-MM-yyyy")</td>
+                                <td>@s.MemberNo</td>
+                                <td>@s.MemberName</td>
+                                <td>@(string.IsNullOrEmpty(s.SuretyMemberNo) ? "—" : s.SuretyMemberNo)</td>
+                                <td>@s.SchemeName</td>
+                                <td class="text-end">@F(s.LoanAmount)</td>
+                                <td class="text-end">@F(s.TotalReceiptAmount)</td>
+                                <td class="text-end fw-semibold">@F(s.LoanAmount - s.TotalReceiptAmount)</td>
+                                <td class="text-end pe-3">
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => ViewAsync(s.LoanSanction_Id)" disabled="@busy"><i class="bi bi-eye me-1"></i>View</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    @if (sanctions.Count > 0)
+                    {
+                        var sel = SelectedRows;
+                        <tfoot class="table-light">
+                            <tr class="fw-semibold">
+                                <td colspan="8" class="ps-3">Selected: @sel.Count of @sanctions.Count sanction(s)</td>
+                                <td class="text-end">@F(sel.Sum(s => s.LoanAmount))</td>
+                                <td class="text-end">@F(sel.Sum(s => s.TotalReceiptAmount))</td>
+                                <td class="text-end">@F(sel.Sum(s => s.LoanAmount - s.TotalReceiptAmount))</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+        </div>
+    </div>
+    @if (sanctions.Count >= ListCap)
+    {
+        <div class="text-muted small mb-3">Only the first @ListCap sanctions are shown. Narrow the filter to see the rest.</div>
+    }
+
+    @* ---------- Payment ---------- *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">Payment</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-1">Mode</label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="pmC" name="payMode" checked="@(payMode == "C")" @onchange='() => SetMode("C")' disabled="@busy" />
+                            <label class="form-check-label" for="pmC">Cheque</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" id="pmN" name="payMode" checked="@(payMode == "N")" @onchange='() => SetMode("N")' disabled="@busy" />
+                            <label class="form-check-label" for="pmN">NEFT</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small text-muted mb-1" for="bankLed">Bank ledger</label>
+                    <select id="bankLed" class="form-select form-select-sm" @bind="bankLedId" disabled="@busy">
+                        @if (bankLedgers.Count == 0) { <option value="0">— no bank ledgers —</option> }
+                        @foreach (var b in bankLedgers) { <option value="@b.LedId">@b.LedName</option> }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1" for="instNo">@(payMode == "C" ? "Cheque No" : "NEFT Ref")</label>
+                    <input id="instNo" class="form-control form-control-sm" maxlength="50" @bind="instrumentNo" disabled="@busy" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1" for="instDate">@(payMode == "C" ? "Cheque Date" : "Value Date")</label>
+                    <input id="instDate" type="date" class="form-control form-control-sm" @bind="instrumentDate"
+                           max="@currentDate.ToString("yyyy-MM-dd")" disabled="@busy" />
+                </div>
+                @if (payMode == "N")
+                {
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted mb-1" for="neftBank">Bank name (NEFT)</label>
+                        <input id="neftBank" class="form-control form-control-sm" maxlength="100" @bind="neftBankName" disabled="@busy" />
+                    </div>
+                }
+                <div class="col">
+                    <label class="form-label small text-muted mb-1" for="narr">Narration</label>
+                    <input id="narr" class="form-control form-control-sm" maxlength="200" @bind="narration" disabled="@busy" />
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button class="btn btn-outline-primary" @onclick="PreviewAsync" disabled="@(busy || selected.Count == 0)">
+                    <i class="bi bi-receipt me-1"></i>Preview Voucher
+                </button>
+                <button class="btn btn-success" @onclick="DisburseAsync" disabled="@(busy || !CanDisburse)"
+                        title="@(CanDisburse ? "" : "Preview the voucher first")">
+                    @if (busy) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                    <i class="bi bi-send-check me-1"></i>Disburse
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <EcsSanctionDetailModal Detail="detail" OnClose="() => detail = null" />
+
+    @* ---------- Voucher preview / posted voucher ---------- *@
+    var shown = showPosted ? postedPreview : (showPreview ? preview : null);
+    @if (shown != null)
+    {
+        var posted = showPosted;
+        <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h6 class="modal-title">@(posted ? $"Voucher {lastResult?.VocNo}" : "Voucher preview")</h6>
+                        <button type="button" class="btn-close" @onclick="CloseVoucher"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (!posted && shown.Messages.Count > 0)
+                        {
+                            <div class="alert alert-danger small">
+                                <div class="fw-semibold mb-1">Cannot disburse:</div>
+                                <ul class="mb-0">@foreach (var m in shown.Messages) { <li>@m</li> }</ul>
+                            </div>
+                        }
+                        @if (!posted && shown.Warnings.Count > 0)
+                        {
+                            <div class="alert alert-warning small">
+                                <ul class="mb-0">@foreach (var w in shown.Warnings) { <li>@w</li> }</ul>
+                            </div>
+                        }
+
+                        @* Inline styles only: this element is copied into a bare print frame without Bootstrap. *@
+                        <div id="disbVoucherPrint" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000">
+                            <div style="text-align:center;font-weight:bold;font-size:14px">ECS Loan Disbursement Voucher</div>
+                            <div style="display:flex;justify-content:space-between;margin:6px 0 10px">
+                                <span>Voucher No: <b>@(posted ? lastResult?.VocNo : "(on save)")</b></span>
+                                <span>Date: <b>@shown.VoucherDate.ToString("dd-MM-yyyy")</b></span>
+                            </div>
+                            <table style="width:100%;border-collapse:collapse">
+                                <thead>
+                                    <tr>
+                                        <th style="@Th">Sanction</th><th style="@Th">Ledger</th><th style="@Th">St</th>
+                                        <th style="@Th">Member</th><th style="@Th">Narration</th>
+                                        <th style="@ThR">Debit</th><th style="@ThR">Credit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var l in shown.Lines)
+                                    {
+                                        <tr>
+                                            <td style="@Td">@(l.SanctionId > 0 ? l.SanctionId.ToString() : "")</td>
+                                            <td style="@Td">@l.LedgerName</td>
+                                            <td style="@Td">@l.Status</td>
+                                            <td style="@Td">@l.MemberNo @l.MemberName</td>
+                                            <td style="@Td">@l.Narration</td>
+                                            <td style="@TdR">@(l.Debit > 0 ? F(l.Debit) : "")</td>
+                                            <td style="@TdR">@(l.Credit > 0 ? F(l.Credit) : "")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr style="font-weight:bold">
+                                        <td style="@Td" colspan="5">
+                                            Total
+                                            @if (Math.Abs(shown.TotalDebit - shown.TotalCredit) < 0.005)
+                                            {
+                                                <span style="color:#198754;margin-left:8px">balanced ✓</span>
+                                            }
+                                            else
+                                            {
+                                                <span style="color:#dc3545;margin-left:8px">NOT balanced</span>
+                                            }
+                                        </td>
+                                        <td style="@TdR">@F(shown.TotalDebit)</td>
+                                        <td style="@TdR">@F(shown.TotalCredit)</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+
+                            <div style="font-weight:bold;margin:14px 0 4px">Bank payments — @shown.BankLedgerName</div>
+                            <table style="width:100%;border-collapse:collapse">
+                                <thead>
+                                    <tr><th style="@Th">Sanction</th><th style="@Th">Member</th><th style="@Th">Instrument</th><th style="@ThR">Amount</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var b in shown.BankRows)
+                                    {
+                                        <tr>
+                                            <td style="@Td">@b.SanctionId</td>
+                                            <td style="@Td">@b.MemberNo @b.MemberName</td>
+                                            <td style="@Td">@b.Instrument</td>
+                                            <td style="@TdR">@F(b.Amount)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr style="font-weight:bold"><td style="@Td" colspan="3">Net payable</td><td style="@TdR">@F(shown.TotalNet)</td></tr>
+                                </tfoot>
+                            </table>
+                            <div style="margin-top:8px">Loan amount @F(shown.TotalLoan) − recoverables @F(shown.TotalRecoverable) = net @F(shown.TotalNet)</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" @onclick="PrintVoucherAsync"><i class="bi bi-printer me-1"></i>Print</button>
+                        @if (!posted)
+                        {
+                            <button class="btn btn-success" @onclick="DisburseAsync" disabled="@(busy || !CanDisburse)"><i class="bi bi-send-check me-1"></i>Disburse</button>
+                        }
+                        <button class="btn btn-outline-secondary" @onclick="CloseVoucher">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private const int ListCap = 500;
+    private const string Th = "border:1px solid #999;padding:3px 5px;text-align:left;background:#f0f0f0";
+    private const string ThR = "border:1px solid #999;padding:3px 5px;text-align:right;background:#f0f0f0";
+    private const string Td = "border:1px solid #999;padding:3px 5px";
+    private const string TdR = "border:1px solid #999;padding:3px 5px;text-align:right;white-space:nowrap";
+
+    private bool isReady;
+    private bool busy;
+    private string brCode = "";
+    private DateTime currentDate = DateTime.Today;
+    private InstitutionType institution = InstitutionType.Unknown;
+
+    // Filter
+    private string mode = "ALL";
+    private decimal? filterSanctionId;
+    private string? filterMemberNo;
+    private DateTime? filterFrom;
+    private DateTime? filterTo;
+
+    private List<EcsSanctionListItemVM> sanctions = new();
+    private readonly HashSet<decimal> selected = new();
+    private EcsSanctionDetailVM? detail;
+
+    // Payment
+    private string payMode = "C";
+    private bool payModeTouched;
+    private List<EcsBankLedgerVM> bankLedgers = new();
+    private decimal bankLedId;
+    private string instrumentNo = "";
+    private DateTime? instrumentDate;
+    private string? neftBankName;
+    private string narration = "ECS Loan Disbursement";
+
+    // Preview / result
+    private EcsDisbursementPreviewVM? preview;
+    private string? previewKey;      // request fingerprint of the last clean preview
+    private bool showPreview;
+    private EcsDisbursementResultVM? lastResult;
+    private EcsDisbursementPreviewVM? postedPreview;
+    private bool showPosted;
+
+    private string? alertMessage;
+    private bool alertSuccess;
+    private List<string> alertReasons = new();
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    private List<EcsSanctionListItemVM> SelectedRows => sanctions.Where(s => selected.Contains(s.LoanSanction_Id)).ToList();
+
+    /// <summary>Disburse needs a clean preview of exactly the current selection and payment fields.</summary>
+    private bool CanDisburse => preview is { IsValid: true } && previewKey != null && previewKey == RequestKey(BuildRequest());
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode ?? "";
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
+            filterFrom = new DateTime(currentDate.Year, currentDate.Month, 1);
+            filterTo = currentDate;
+            instrumentDate = currentDate;
+
+            if (institution == InstitutionType.ECS)
+            {
+                await LoadBankLedgersAsync();
+                await LoadListAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    // =====================================================================
+    // List and selection
+    // =====================================================================
+
+    private async Task SearchAsync()
+    {
+        alertMessage = null;
+        if (mode == "ID" && filterSanctionId is not > 0) { ShowAlert(false, "Enter a Sanction Id."); return; }
+        if (mode == "MEM" && string.IsNullOrWhiteSpace(filterMemberNo)) { ShowAlert(false, "Enter a Member No or Per No."); return; }
+        if (mode == "DATE" && (filterFrom == null || filterTo == null || filterFrom > filterTo))
+        {
+            ShowAlert(false, "Enter a valid date range (From on or before To).");
+            return;
+        }
+        await LoadListAsync();
+    }
+
+    private async Task LoadListAsync()
+    {
+        busy = true;
+        try
+        {
+            var filter = new EcsSanctionListFilterVM
+            {
+                Mode = mode,
+                SanctionId = filterSanctionId,
+                MemberNo = filterMemberNo?.Trim(),
+                From = filterFrom,
+                To = filterTo
+            };
+            var response = await _httpClient.PostAsJsonAsync("api/loansanction/ListSanctions", filter);
+            if (response.IsSuccessStatusCode)
+            {
+                sanctions = await response.Content.ReadFromJsonAsync<List<EcsSanctionListItemVM>>() ?? new();
+            }
+            else
+            {
+                sanctions = new();
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "Could not load the sanctions.");
+            }
+            selected.IntersectWith(sanctions.Select(s => s.LoanSanction_Id));
+            ApplyDefaultMode();
+        }
+        catch (Exception ex)
+        {
+            sanctions = new();
+            selected.Clear();
+            ShowAlert(false, "Could not load the sanctions: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task LoadBankLedgersAsync()
+    {
+        try
+        {
+            bankLedgers = await _httpClient.GetFromJsonAsync<List<EcsBankLedgerVM>>("api/loansanction/DisbursementBankLedgers") ?? new();
+            if (bankLedgers.Count > 0 && bankLedgers.All(b => b.LedId != bankLedId)) bankLedId = bankLedgers[0].LedId;
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the bank ledgers: " + ex.Message);
+        }
+    }
+
+    private void Toggle(decimal id)
+    {
+        if (!selected.Remove(id)) selected.Add(id);
+        ApplyDefaultMode();
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        if (e.Value is true) foreach (var s in sanctions) selected.Add(s.LoanSanction_Id);
+        else selected.Clear();
+        ApplyDefaultMode();
+    }
+
+    /// <summary>Spec 10 D2: Cheque for one sanction, NEFT for several — until the user picks a mode.</summary>
+    private void ApplyDefaultMode()
+    {
+        if (!payModeTouched) payMode = selected.Count > 1 ? "N" : "C";
+    }
+
+    private void SetMode(string m)
+    {
+        payMode = m;
+        payModeTouched = true;
+    }
+
+    private async Task ViewAsync(decimal sanctionId)
+    {
+        busy = true;
+        alertMessage = null;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/loansanction/GetSanction/{sanctionId}/{brCode}");
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                ShowAlert(false, $"Sanction {sanctionId} was not found. It may have been modified or deleted.");
+                return;
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "Could not load the sanction.");
+                return;
+            }
+            detail = await response.Content.ReadFromJsonAsync<EcsSanctionDetailVM>();
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the sanction: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    // =====================================================================
+    // Preview and disburse
+    // =====================================================================
+
+    private EcsDisbursementRequestVM BuildRequest() => new()
+    {
+        SanctionIds = sanctions.Where(s => selected.Contains(s.LoanSanction_Id)).Select(s => s.LoanSanction_Id).ToList(),
+        Mode = payMode,
+        BankLedId = bankLedId,
+        InstrumentNo = instrumentNo?.Trim() ?? "",
+        InstrumentDate = instrumentDate ?? DateTime.MinValue,
+        BankName = payMode == "N" ? neftBankName?.Trim() : null,
+        Narration = narration?.Trim()
+    };
+
+    private static string RequestKey(EcsDisbursementRequestVM r) =>
+        string.Join(",", r.SanctionIds.OrderBy(i => i)) + "|" + r.Mode + "|" + r.BankLedId + "|" + r.InstrumentNo
+        + "|" + r.InstrumentDate.ToString("yyyyMMdd") + "|" + r.BankName + "|" + r.Narration;
+
+    private string? ClientCheck(EcsDisbursementRequestVM r)
+    {
+        if (r.SanctionIds.Count == 0) return "Select at least one sanction.";
+        if (r.BankLedId <= 0) return "Select the bank ledger.";
+        if (string.IsNullOrWhiteSpace(r.InstrumentNo)) return payMode == "C" ? "Enter the cheque no." : "Enter the NEFT reference.";
+        if (r.InstrumentDate == DateTime.MinValue) return "Enter the cheque / NEFT date.";
+        if (r.InstrumentDate.Date > currentDate) return "Cheque / NEFT date cannot be after the business day.";
+        return null;
+    }
+
+    private async Task PreviewAsync()
+    {
+        alertMessage = null;
+        var req = BuildRequest();
+        var problem = ClientCheck(req);
+        if (problem != null) { ShowAlert(false, problem); return; }
+
+        busy = true;
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/loansanction/DisbursementPreview", req);
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "Preview failed.");
+                return;
+            }
+            preview = await response.Content.ReadFromJsonAsync<EcsDisbursementPreviewVM>();
+            previewKey = preview is { IsValid: true } ? RequestKey(req) : null;
+            showPreview = preview != null;
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Preview failed: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DisburseAsync()
+    {
+        if (!CanDisburse || preview == null) return;
+        var req = BuildRequest();
+        var modeText = req.Mode == "C" ? "cheque" : "NEFT";
+        var prompt = $"Disburse {req.SanctionIds.Count} loan(s), Rs.{F(preview.TotalLoan)} (net Rs.{F(preview.TotalNet)}) "
+                     + $"by {modeText} {req.InstrumentNo}?\nThis cannot be undone from the screen.";
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", prompt)) return;
+
+        busy = true;
+        alertMessage = null;
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/loansanction/Disburse", req);
+            EcsDisbursementResultVM? result = null;
+            try { result = await response.Content.ReadFromJsonAsync<EcsDisbursementResultVM>(); } catch { /* non-JSON */ }
+
+            if (response.IsSuccessStatusCode && result is { Success: true })
+            {
+                lastResult = result;
+                postedPreview = preview;
+                showPreview = false;
+                preview = null;
+                previewKey = null;
+                selected.Clear();
+                payModeTouched = false;
+                instrumentNo = "";
+                busy = false;
+                await LoadListAsync();
+                ShowAlert(true, result.Message ?? "Disbursed.");
+            }
+            else
+            {
+                showPreview = false;
+                previewKey = null;
+                var reasons = result?.Reasons is { Count: > 0 } ? result.Reasons
+                    : new List<string> { result?.Message ?? (response.StatusCode == HttpStatusCode.Forbidden
+                        ? "ECS Loan Disbursement is available only to ECS societies."
+                        : $"Disbursement failed ({(int)response.StatusCode}).") };
+                ShowAlert(false, reasons);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Disbursement failed: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void CloseVoucher()
+    {
+        showPreview = false;
+        showPosted = false;
+    }
+
+    private async Task PrintVoucherAsync()
+    {
+        var title = showPosted && lastResult != null ? $"Voucher {lastResult.VocNo}" : "Voucher preview";
+        await JSRuntime.InvokeVoidAsync("printElement", "disbVoucherPrint", title);
+    }
+
+    // =====================================================================
+    // Helpers
+    // =====================================================================
+
+    private static async Task<string?> ReadMessageAsync(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            return "ECS Loan Disbursement is available only to ECS societies.";
+        try
+        {
+            var r = await response.Content.ReadFromJsonAsync<SanctionSaveResultVM>();
+            if (!string.IsNullOrEmpty(r?.Message)) return r.Message;
+        }
+        catch
+        {
+            // fall through
+        }
+        return $"Request failed ({(int)response.StatusCode}).";
+    }
+
+    private void ShowAlert(bool success, string message) => ShowAlert(success, new List<string> { message });
+
+    private void ShowAlert(bool success, List<string> reasons)
+    {
+        alertSuccess = success;
+        alertReasons = reasons;
+        alertMessage = string.Join(" ", reasons);
+    }
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+}

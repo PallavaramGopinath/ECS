@@ -447,6 +447,9 @@ namespace Infin8.Coapp.Repository
             var query = from s in CSISContext.Loan_Sanction
                         join sc in CSISContext.Loan_Schemes on s.Scheme_Id equals sc.Scheme_Id
                         join m in CSISContext.mem_master on s.Mem_Id equals m.mem_id
+                        join su in CSISContext.mem_master.Where(x => x.brcode == brCode)
+                            on s.SuretyMem_Id equals su.mem_id into suj
+                        from su in suj.DefaultIfEmpty()
                         where s.LoanSanction_Status == "E" && !s.LoanSanction_Delete
                               && s.BrCode == brCode && sc.BrCode == brCode && m.brcode == brCode
                               && (sanctionId == null || s.LoanSanction_Id == sanctionId)
@@ -465,7 +468,9 @@ namespace Infin8.Coapp.Repository
                             SanctionDate = s.SanctionDate,
                             LoanAmount = s.LoanAmount,
                             Scheme_Id = s.Scheme_Id,
-                            SchemeName = sc.Scheme_Name
+                            SchemeName = sc.Scheme_Name,
+                            TotalReceiptAmount = s.TotalReceiptAmount,
+                            SuretyMemberNo = su != null ? su.memberno : null
                         };
             return await query.Take(500).ToListAsync();
         }

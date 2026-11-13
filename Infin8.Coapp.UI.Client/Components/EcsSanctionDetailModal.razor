@@ -1,0 +1,149 @@
+@using Infin8.Coapp.Dto
+@using System.Globalization
+
+@* Read-only view of a saved ECS loan sanction (spec 09 §3.2). Shared by the sanction list and the
+   disbursement page (spec 10 §4). Extra footer buttons are passed as FooterButtons. *@
+
+@if (Detail != null)
+{
+    var m = Detail.Member;
+    var sv = Detail.Sanction;
+    <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">ECS Loan Sanction @Detail.LoanSanction_Id</h6>
+                    <button type="button" class="btn-close" @onclick="OnClose"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <fieldset class="border rounded p-2 h-100">
+                                <legend class="float-none w-auto px-2 fs-6 mb-0">Sanction</legend>
+                                <dl class="row mb-0 small">
+                                    @Item("Sanction Id", Detail.LoanSanction_Id.ToString())
+                                    @Item("Sanction Date", Detail.SanctionDate?.ToString("dd-MM-yyyy"))
+                                    @Item("Scheme", Detail.SchemeName)
+                                    @Item("Status", "Awaiting disbursement")
+                                </dl>
+                            </fieldset>
+                        </div>
+                        <div class="col-md-6">
+                            <fieldset class="border rounded p-2 h-100">
+                                <legend class="float-none w-auto px-2 fs-6 mb-0">Member</legend>
+                                <dl class="row mb-0 small">
+                                    @Item("Member No / Per No", $"{m.MemberNo} / {m.PerNo}")
+                                    @Item("Name", m.MemberName)
+                                    @Item("DOB / DOR", $"{m.DateOfBirth?.ToString("dd-MM-yyyy")} / {m.DateOfRetirement?.ToString("dd-MM-yyyy")}")
+                                    @Item("Service (months)", m.ServiceInMonths?.ToString())
+                                </dl>
+                            </fieldset>
+                        </div>
+                        <div class="col-md-6">
+                            <fieldset class="border rounded p-2 h-100">
+                                <legend class="float-none w-auto px-2 fs-6 mb-0">Surety</legend>
+                                <dl class="row mb-0 small">
+                                    @Item("Surety No", string.IsNullOrEmpty(Detail.SuretyMemberNo) ? "—" : Detail.SuretyMemberNo)
+                                    @Item("Surety Name", string.IsNullOrEmpty(Detail.SuretyMemberName) ? "—" : Detail.SuretyMemberName)
+                                </dl>
+                            </fieldset>
+                        </div>
+                        <div class="col-md-6">
+                            <fieldset class="border rounded p-2 h-100">
+                                <legend class="float-none w-auto px-2 fs-6 mb-0">Pay Details</legend>
+                                <dl class="row mb-0 small">
+                                    @Item("Basic Pay", F(sv.BasicPay))
+                                    @Item("Gross Pay", F(sv.GrossPay))
+                                    @Item("Society Deduction", F(sv.SocietyDeduction))
+                                    @Item("Total Deductions", F(sv.TotalDeductions))
+                                    @Item("Net Salary", F(sv.GrossPay - sv.TotalDeductions))
+                                </dl>
+                            </fieldset>
+                        </div>
+                        <div class="col-12">
+                            <fieldset class="border rounded p-2">
+                                <legend class="float-none w-auto px-2 fs-6 mb-0">Loan Terms</legend>
+                                <div class="row small">
+                                    <div class="col-md-4"><dl class="row mb-0">
+                                        @Item("Loan Amount", F(sv.LoanAmount))
+                                        @Item("Period", $"{sv.PeriodOfLoan} months")
+                                    </dl></div>
+                                    <div class="col-md-4"><dl class="row mb-0">
+                                        @Item("Rate of Interest", $"{sv.RateOfInterest:0.##} %")
+                                        @Item("Penal Rate", $"{sv.PenalRate:0.##} %")
+                                    </dl></div>
+                                    <div class="col-md-4"><dl class="row mb-0">
+                                        @Item("Instalment", F(sv.InstalmentAmount))
+                                        @Item("First Due Date", sv.FirstDueDate?.ToString("dd-MM-yyyy"))
+                                    </dl></div>
+                                </div>
+                            </fieldset>
+                        </div>
+                        <div class="col-12">
+                            <fieldset class="border rounded p-2">
+                                <legend class="float-none w-auto px-2 fs-6 mb-0">Recoverables</legend>
+                                <table class="table table-sm mb-0 small">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Loan No</th><th>Status</th><th>Ledger</th>
+                                            <th class="text-end">Outstanding</th><th class="text-end">Calc Amt</th><th class="text-end">OD Amt</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Detail.Recoverables.Count == 0)
+                                        {
+                                            <tr><td colspan="6" class="text-muted text-center">No recoverables.</td></tr>
+                                        }
+                                        @foreach (var r in Detail.Recoverables)
+                                        {
+                                            <tr>
+                                                <td>@r.Loan_No</td><td>@r.Status</td><td>@r.Ledger_Name</td>
+                                                <td class="text-end">@F(r.Outstanding)</td><td class="text-end">@F(r.CalcAmount)</td><td class="text-end">@F(r.ODAmount)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="fw-semibold">
+                                            <td colspan="3">Total Recoverable</td>
+                                            <td class="text-end">@F(Detail.TotalReceiptAmount)</td><td colspan="2"></td>
+                                        </tr>
+                                        <tr class="fw-semibold">
+                                            <td colspan="3">Net Disbursable (Loan Amount − Total Recoverable)</td>
+                                            <td class="text-end">@F(sv.LoanAmount - Detail.TotalReceiptAmount)</td><td colspan="2"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    @FooterButtons
+                    <button class="btn btn-outline-secondary" @onclick="OnClose">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public EcsSanctionDetailVM? Detail { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? FooterButtons { get; set; }
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+
+    private static RenderFragment Item(string label, string? value) => __builder =>
+    {
+        <dt class="col-6 fw-normal text-muted">@label</dt>
+        <dd class="col-6 mb-1">@value</dd>
+    };
+}

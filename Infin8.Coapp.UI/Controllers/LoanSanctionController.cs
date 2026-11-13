@@ -19,15 +19,18 @@ namespace Infin8.Coapp.API.Controllers
         private const string OfficeNoteReportName = "Loan Sanction Office Note";
 
         readonly IEcsLoanSanctionHandler _sanctionHandler;
+        readonly IEcsLoanDisbursementHandler _disbursementHandler;
         readonly IFinLedgerHandler _finLedgerHandler;
         readonly IGeneralHandler _generalHandler;
         readonly IReportsHandler _reportsHandler;
         readonly IWebHostEnvironment _webHostEnvironment;
 
         public LoanSanctionController(IEcsLoanSanctionHandler sanctionHandler, IFinLedgerHandler finLedgerHandler,
-            IGeneralHandler generalHandler, IReportsHandler reportsHandler, IWebHostEnvironment webHostEnvironment)
+            IGeneralHandler generalHandler, IReportsHandler reportsHandler, IWebHostEnvironment webHostEnvironment,
+            IEcsLoanDisbursementHandler disbursementHandler)
         {
             _sanctionHandler = sanctionHandler;
+            _disbursementHandler = disbursementHandler;
             _finLedgerHandler = finLedgerHandler;
             _generalHandler = generalHandler;
             _reportsHandler = reportsHandler;
@@ -186,6 +189,53 @@ namespace Infin8.Coapp.API.Controllers
             try
             {
                 var result = await _sanctionHandler.DeleteAsync(sanctionId, ctx);
+                return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return ServerError(ex);
+            }
+        }
+
+        // ----- disbursement (spec 10) -----
+
+        /// <summary>Bank ledgers (map_banks) of the caller's branch for the disbursement payment panel.</summary>
+        [HttpGet]
+        [Route("DisbursementBankLedgers")]
+        public async Task<ActionResult<List<EcsBankLedgerVM>>> DisbursementBankLedgers()
+        {
+            var brCode = UserContext().BrCode;
+            if (!await IsEcsAsync(brCode)) return NotEcs();
+            return Ok(await _disbursementHandler.GetBankLedgersAsync(brCode));
+        }
+
+        /// <summary>Builds and validates the disbursement voucher without saving anything.</summary>
+        [HttpPost]
+        [Route("DisbursementPreview")]
+        public async Task<ActionResult<EcsDisbursementPreviewVM>> DisbursementPreview([FromBody] EcsDisbursementRequestVM request)
+        {
+            var ctx = UserContext();
+            if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
+            try
+            {
+                return Ok(await _disbursementHandler.PreviewAsync(request, ctx));
+            }
+            catch (Exception ex)
+            {
+                return ServerError(ex);
+            }
+        }
+
+        /// <summary>Disburses the selected sanctions in one transaction (all or none).</summary>
+        [HttpPost]
+        [Route("Disburse")]
+        public async Task<ActionResult<EcsDisbursementResultVM>> Disburse([FromBody] EcsDisbursementRequestVM request)
+        {
+            var ctx = UserContext();
+            if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
+            try
+            {
+                var result = await _disbursementHandler.DisburseAsync(request, ctx);
                 return result.Success ? Ok(result) : BadRequest(result);
             }
             catch (Exception ex)
