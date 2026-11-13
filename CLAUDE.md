@@ -210,13 +210,17 @@ institution = userInfoDto.SocietyType.ToInstitutionType();
 ```
 
 `ECSLoanSanction.razor` (`/ecs-loan-sanction`) is the reference implementation for a whole-page ECS gate — note its
-`isReady` guard, which stops the "ECS only" warning flashing before the claim has been read.
+`isReady` guard, which stops the "ECS only" warning flashing before the claim has been read. The same
+whole-page gate is copied into `ECSLoanSanctionList.razor` and `ECSLoanDisbursement.razor` (`/ecs-loan-disbursement`).
 `Loanproducts.razor` and `LoanProductsCreate.razor` instead filter a category collection through
 `LoanCategoryPolicy.IsAllowed`; `LoanProductsView.razor` only uses the institution for labels.
 
 Caveats: gating is **mostly client-side**. Only `LoanSanctionController` checks the institution on the
 server (its `IsEcsAsync` looks up `Gen_Bank_Name.Bank_Type` for the claims `BrCode`, since the JWT carries
-no `SocietyType`); other ECS-only endpoints have no server-side check. Nav-menu gating is deliberately deferred (no menu rows added), so ECS pages are reachable only
+no `SocietyType`) — this covers sanction save/list/delete and the disbursement endpoints
+(`DisbursementPreview`, `Disburse`); other ECS-only endpoints have no server-side check. ECS disbursement
+allocates ids with its own in-memory MAX+1 allocator (`EcsLoanDisbursementRepository`) because the shared
+add-methods collide when one transaction adds several rows to a table — see spec 10 §13.2. Nav-menu gating is deliberately deferred (no menu rows added), so ECS pages are reachable only
 by URL. `specs/ecs-extension/03`–`05` (the three ECS products, all schemes under `Loan_Type 1`) are still stubs.
 
 ## Gotchas
