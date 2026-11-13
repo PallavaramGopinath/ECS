@@ -54,13 +54,13 @@ CREATE TABLE IF NOT EXISTS mem_retirementage (
 );
 
 -- 3. Office Note report row — REQUIRED for Print Office Note. Replace the placeholders.
---    The controller looks the row up by ReportName = 'Office Note'.
+--    The controller looks the row up by ReportName = 'Loan Sanction Office Note'.
 -- INSERT INTO reports_master (report_id, reportgrp_id, reportname, reportfilename, reportdelete,
 --                             firstsignature, secondsignature, thirdsignature, brcode)
--- SELECT COALESCE(MAX(report_id), 0) + 1, <report group id>, 'Office Note', 'OfficeNote.rdlc', false,
+-- SELECT COALESCE(MAX(report_id), 0) + 1, <report group id>, 'Loan Sanction Office Note', 'OfficeNote.rdlc', false,
 --        '<first signature>', '<second signature>', '<third signature>', '<brcode>'
 -- FROM reports_master
--- WHERE NOT EXISTS (SELECT 1 FROM reports_master WHERE reportname = 'Office Note');
+-- WHERE NOT EXISTS (SELECT 1 FROM reports_master WHERE reportname = 'Loan Sanction Office Note');
 
 -- 4. Schemes. The page lists only loan_schemes with loan_type 10 (Surety), 11 (Education) or 12 (Draught).
 --    Configure them through the Loan Products screen, or re-type an existing ECS scheme, e.g.:
