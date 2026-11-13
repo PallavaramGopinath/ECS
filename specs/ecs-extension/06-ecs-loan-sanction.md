@@ -2,7 +2,7 @@
 
 > Builds on [01-institution-type.md](./01-institution-type.md) and
 > [02-loan-module-design.md](./02-loan-module-design.md). The companion page,
-> **ECS Loan Disbursement**, will be specified separately in `08-ecs-loan-disbursement.md`.
+> **ECS Loan Disbursement**, will be specified separately later, as a new page. Its spec number is not yet assigned.
 >
 > **Source being ported:** the TSIS WinForms form `TSISWF/TSIS/frmLoanDisbursement.cs`, with its
 > `.Designer.cs` and `.resx`. The `.resx` holds only the form icon, so there are no strings or
@@ -23,7 +23,7 @@ The Blazor app splits these into two pages.
 | Page | Covers | Writes |
 |---|---|---|
 | **ECSLoanSanction** (this spec) | Member and pay details, loan terms, recoverables, eligibility, save, modify, delete and list of sanctions, and the Office Note | `loan_sanction`, `loan_sanction_trn`, `loan_eligibility`. **No voucher and no `loan_master`.** |
-| ECS Loan Disbursement (spec 07) | Pick a sanction (status `E`), receipt and payment numbers, the voucher entry grid, and the disbursement itself | `fin_voucher*`, `loan_master`, `loan_trn`, `loan_disb`, `mem_trn`; sets `loan_sanction.loan_id` and moves the status on from `E` |
+| ECS Loan Disbursement (separate spec, to follow) | Pick a sanction (status `E`), receipt and payment numbers, the voucher entry grid, and the disbursement itself | `fin_voucher*`, `loan_master`, `loan_trn`, `loan_disb`, `mem_trn`; sets `loan_sanction.loan_id` and moves the status on from `E` |
 
 ### Decisions taken
 
@@ -373,7 +373,7 @@ If `maxNow > maxSnap`, add the message `"Subsequent transaction made in loan acc
 | `loansanction_status` | Meaning | Set by |
 |---|---|---|
 | `E` | Sanctioned, awaiting disbursement | ECSLoanSanction save |
-| `S` / `C` | Disbursed | ECS Loan Disbursement (spec 07) |
+| `S` / `C` | Disbursed | ECS Loan Disbursement (separate spec, to follow) |
 
 > **Change from the current code.** `SuretyLoanSanctionHandler` saves `"S"`. Under TSIS semantics
 > that means *disbursed*, and it would hide the sanction from the disbursement page. Switch it to
