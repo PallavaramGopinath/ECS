@@ -209,6 +209,33 @@ namespace Infin8.Coapp.API.Controllers
             return detail == null ? NotFound() : Ok(detail);
         }
 
+        /// <summary>
+        /// Office Note data (spec 06 §9) for the on-page HTML note. Works on any host, unlike the PDF below.
+        /// Signatures come from the reports_master row when present; a missing row just leaves them blank.
+        /// </summary>
+        [HttpGet]
+        [Route("OfficeNoteData/{sanctionId:decimal}")]
+        public async Task<ActionResult<OfficeNoteVM>> OfficeNoteData(decimal sanctionId)
+        {
+            var brCode = UserContext().BrCode;
+            var note = await _sanctionHandler.GetOfficeNoteAsync(sanctionId, brCode);
+            if (note == null) return NotFound("Sanction not found.");
+
+            note.SocietyName = await _generalHandler.GetSocietyName(brCode);
+            try
+            {
+                var report = await _reportsHandler.GetReportNameWithSignature(OfficeNoteReportName);
+                note.FirstSignature = report?.FirstSignature;
+                note.SecondSignature = report?.SecondSignature;
+                note.ThirdSignature = report?.ThirdSignature;
+            }
+            catch
+            {
+                // No reports_master row: show the note without signature captions.
+            }
+            return Ok(note);
+        }
+
         /// <summary>Office Note PDF (spec 06 §9), returned as bytes (base64 in JSON) like the other report endpoints.</summary>
         [HttpGet]
         [Route("OfficeNote/{sanctionId:decimal}")]
@@ -240,7 +267,14 @@ namespace Infin8.Coapp.API.Controllers
             byte[]? pdf;
             using (var stream = System.IO.File.OpenRead(path))
                 pdf = await _sanctionHandler.GetOfficeNotePdfAsync(sanctionId, brCode, stream, parameters);
-            return pdf == null ? NotFound("Sanction not found.") : Ok(pdf);
+            if (pdf == null) return NotFound("Sanction not found.");
+            // MicrosoftReport swallows render exceptions and returns an empty array. The usual cause is a
+            // non-Windows host: ReportViewerCore's PDF renderer needs GDI+/Uniscribe (Windows only).
+            if (pdf.Length == 0)
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "The PDF could not be rendered on this server. RDLC PDF reports need a Windows host; " +
+                    "see the server console for the error.");
+            return Ok(pdf);
         }
     }
 }

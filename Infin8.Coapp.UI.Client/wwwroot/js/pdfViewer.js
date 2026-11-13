@@ -66,3 +66,23 @@ function printPdfFrame(frameId) {
     frame.contentWindow.focus();
     frame.contentWindow.print();
 }
+
+// Prints one element's HTML through a hidden iframe, so the page chrome is not printed and no pop-up opens.
+function printElement(elementId, title) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const frame = document.createElement("iframe");
+    frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    document.body.appendChild(frame);
+    const doc = frame.contentDocument;
+    doc.open();
+    doc.write("<!doctype html><html><head><meta charset='utf-8'><title></title>" +
+        "<style>@page{size:A4;margin:12mm}body{margin:0}</style></head><body></body></html>");
+    doc.close();
+    doc.title = title || "";
+    doc.body.innerHTML = el.outerHTML;
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+    setTimeout(() => frame.remove(), 1000);
+}
+

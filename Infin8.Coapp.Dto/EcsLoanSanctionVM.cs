@@ -192,4 +192,19 @@ namespace Infin8.Coapp.Dto
         /// <summary>Number of demand rows with principal collected.</summary>
         public int DemandsRecovered { get; set; }
     }
+
+    /// <summary>
+    /// Office Note content (spec 06 §9) for on-page HTML rendering. The RDLC PDF renderer needs a Windows
+    /// host, so the sanction screen draws the note from this data instead.
+    /// </summary>
+    public class OfficeNoteVM
+    {
+        public string? SocietyName { get; set; }
+        public string? ReportHeader { get; set; }
+        public string? Notes { get; set; }
+        public string? FirstSignature { get; set; }
+        public string? SecondSignature { get; set; }
+        public string? ThirdSignature { get; set; }
+        public List<rptOfficeNote> Lines { get; set; } = new();
+    }
 }

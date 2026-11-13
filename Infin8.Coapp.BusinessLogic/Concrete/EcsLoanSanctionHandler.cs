@@ -804,8 +804,7 @@ namespace Infin8.Coapp.BusinessLogic
             };
         }
 
-        public async Task<byte[]?> GetOfficeNotePdfAsync(decimal sanctionId, string brCode, Stream reportStream,
-            Dictionary<string, string> parameters)
+        public async Task<OfficeNoteVM?> GetOfficeNoteAsync(decimal sanctionId, string brCode)
         {
             var rows = await _unitOfWork.EcsLoanSanction.GetOfficeNoteAsync(sanctionId, brCode);
             if (rows.Count == 0) return null;
@@ -815,11 +814,24 @@ namespace Infin8.Coapp.BusinessLogic
             var first = rows[0];
             double byCheque = first.LoanAmount - first.TotalReceiptAmount;
 
-            parameters["paramReportHeader"] = "OFFICE NOTE - " + (scheme?.Scheme_Name ?? "");
-            parameters["paramNotes"] =
-                $"Received Loan of Rs.{first.LoanAmount:0.00}/- {_utilityHandler.RupeesInWords(byCheque)} " +
-                $"by way of cheque Rs.{byCheque:0.00}/- and by adjustment Rs.{first.TotalReceiptAmount:0.00}/-";
-            return _createReportsHandler.CreateLocalReport("Ds_OfficeNote", reportStream, rows, parameters);
+            return new OfficeNoteVM
+            {
+                ReportHeader = "OFFICE NOTE - " + (scheme?.Scheme_Name ?? ""),
+                Notes = $"Received Loan of Rs.{first.LoanAmount:0.00}/- {_utilityHandler.RupeesInWords(byCheque)} " +
+                        $"by way of cheque Rs.{byCheque:0.00}/- and by adjustment Rs.{first.TotalReceiptAmount:0.00}/-",
+                Lines = rows
+            };
+        }
+
+        public async Task<byte[]?> GetOfficeNotePdfAsync(decimal sanctionId, string brCode, Stream reportStream,
+            Dictionary<string, string> parameters)
+        {
+            var note = await GetOfficeNoteAsync(sanctionId, brCode);
+            if (note == null) return null;
+
+            parameters["paramReportHeader"] = note.ReportHeader ?? "";
+            parameters["paramNotes"] = note.Notes ?? "";
+            return _createReportsHandler.CreateLocalReport("Ds_OfficeNote", reportStream, note.Lines, parameters);
         }
 
         // =====================================================================
