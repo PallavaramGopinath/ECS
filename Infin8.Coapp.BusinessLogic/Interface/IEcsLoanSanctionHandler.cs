@@ -35,6 +35,10 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<EcsSanctionListItemVM>> ListAsync(EcsSanctionListFilterVM filter, string brCode);
         Task<EcsSanctionDetailVM?> GetAsync(decimal sanctionId, string brCode);
 
+        /// <summary>Office Note data (header, notes, lines); null when the sanction is not found.
+        /// Society name and signatures are left for the caller.</summary>
+        Task<OfficeNoteVM?> GetOfficeNoteAsync(decimal sanctionId, string brCode);
+
         /// <summary>Renders the Office Note PDF; null when the sanction is not found.</summary>
         Task<byte[]?> GetOfficeNotePdfAsync(decimal sanctionId, string brCode, Stream reportStream,
             Dictionary<string, string> parameters);

@@ -531,8 +531,9 @@ else
         </div>
     }
 
-    @if (officeNoteUrl != null)
+    @if (officeNote != null)
     {
+        var h = officeNote.Lines[0];
         <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content">
@@ -540,11 +541,69 @@ else
                         <h6 class="modal-title">Office Note — Sanction @sanctionId</h6>
                         <button type="button" class="btn-close" @onclick="CloseOfficeNote"></button>
                     </div>
-                    <div class="modal-body p-0">
-                        <iframe id="officeNoteFrame" src="@officeNoteUrl" title="Office Note" style="width:100%;height:75vh;border:0"></iframe>
+                    <div class="modal-body">
+                        @* Inline styles only: this element is copied into a bare print frame without Bootstrap. *@
+                        <div id="officeNotePrint" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;max-width:760px;margin:0 auto">
+                            <div style="text-align:center;font-weight:bold;font-size:16px">@officeNote.SocietyName</div>
+                            <div style="text-align:center;font-weight:bold;font-size:14px;margin:4px 0 12px">@officeNote.ReportHeader</div>
+
+                            <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+                                <tbody>
+                                    @NoteRow("Sanction Id", h.LoanSanction_Id.ToString(), "Sanction Date", h.SanctionDate.ToString("dd/MM/yyyy"))
+                                    @NoteRow("Member No / Per No", $"{h.MemberNo} / {h.PerNo}", "Member Name", h.MemberName)
+                                    @NoteRow("Surety No / Per No", $"{h.SuretymemberNo} / {h.SuretyPerNo}", "Surety Name", h.SuretymemberName)
+                                    @NoteRow("Loan Amount", F(h.LoanAmount), "Period / Instalment", $"{h.PeriodOfLoan} months / Rs.{h.InstalmentAmount}")
+                                    @NoteRow("Gross Pay", h.GrossPay.ToString("N0"), "Total Recovery", F(h.TotalReceiptAmount))
+                                    @NoteRow("Member Share Capital", h.MemberShareCapitalAmount.ToString("N0"), "Surety Share Capital", h.SurityShareCapitalAmount.ToString("N0"))
+                                    @NoteRow("Instalments Completed", h.NoOfInstalmentsCompleted.ToString(), "Instalments Recovered", h.NoOfInstalmentsRecovered.ToString())
+                                    @NoteRow("Member Defaulter", h.IsMemberBecomeDefaulter ? "Yes" : "No", "Surety Defaulter", h.isSurityBecomeDefaulter ? "Yes" : "No")
+                                </tbody>
+                            </table>
+
+                            <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+                                <thead>
+                                    <tr style="background:#eee">
+                                        <th style="@NoteCell;width:50px">Sl No</th>
+                                        <th style="@NoteCell">Recoveries</th>
+                                        <th style="@NoteCell;text-align:right;width:110px">Amount</th>
+                                        <th style="@NoteCell">Particulars</th>
+                                        <th style="@NoteCell;text-align:right;width:110px">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in officeNote.Lines)
+                                    {
+                                        <tr>
+                                            <td style="@NoteCell">@line.SlNo</td>
+                                            <td style="@NoteCell">@line.ReceiptDescription</td>
+                                            <td style="@NoteCell;text-align:right">@(string.IsNullOrEmpty(line.ReceiptDescription) ? "" : F(line.ReceiptItem))</td>
+                                            <td style="@NoteCell">@line.PaymentDescription</td>
+                                            <td style="@NoteCell;text-align:right">@(string.IsNullOrEmpty(line.PaymentDescription) ? "" : F(line.PaymentItem))</td>
+                                        </tr>
+                                    }
+                                    <tr style="font-weight:bold">
+                                        <td style="@NoteCell"></td>
+                                        <td style="@NoteCell">Total Recovery</td>
+                                        <td style="@NoteCell;text-align:right">@F(officeNote.Lines.Sum(l => l.ReceiptItem))</td>
+                                        <td style="@NoteCell"></td>
+                                        <td style="@NoteCell"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <p style="margin:12px 0 56px">@officeNote.Notes</p>
+
+                            <table style="width:100%">
+                                <tr>
+                                    <td style="width:33%;text-align:left">@officeNote.FirstSignature</td>
+                                    <td style="width:34%;text-align:center">@officeNote.SecondSignature</td>
+                                    <td style="width:33%;text-align:right">@officeNote.ThirdSignature</td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-primary" @onclick="PrintOfficeNoteFrame"><i class="bi bi-printer me-1"></i>Print</button>
+                        <button class="btn btn-primary" @onclick="PrintOfficeNoteHtml"><i class="bi bi-printer me-1"></i>Print</button>
                         <button class="btn btn-outline-secondary" @onclick="CloseOfficeNote">Close</button>
                     </div>
                 </div>
@@ -611,7 +670,7 @@ else
     private decimal sanctionId;
     private decimal loadedSanctionId; // the sanction being modified (0 when creating)
     private bool savedThisEntry;      // saved on this screen — Save stays disabled until Refresh
-    private string? officeNoteUrl;    // Blob URL of the Office Note PDF while its modal is open
+    private OfficeNoteVM? officeNote;   // Office Note shown in its modal; null when closed
 
     // Alerts
     private string? alertMessage;
@@ -1140,22 +1199,21 @@ else
     }
 
     /// <summary>
-    /// Fetches the Office Note PDF and shows it in the on-page modal. An iframe is used rather than a new
-    /// tab: after an awaited save, window.open is no longer a user gesture and pop-up blockers stop it.
-    /// Returns an error message, or null when the note is shown.
+    /// Fetches the Office Note data and shows it as HTML in the on-page modal. HTML rather than the RDLC
+    /// PDF because ReportViewerCore can only render PDF on a Windows host. Returns an error message, or
+    /// null when the note is shown.
     /// </summary>
     private async Task<string?> ShowOfficeNoteAsync()
     {
         if (sanctionId == 0) return "No sanction to print.";
         try
         {
-            var response = await _httpClient.GetAsync($"api/loansanction/OfficeNote/{sanctionId}");
+            var response = await _httpClient.GetAsync($"api/loansanction/OfficeNoteData/{sanctionId}");
             if (!response.IsSuccessStatusCode)
                 return await response.Content.ReadAsStringAsync();
-            var bytes = await response.Content.ReadFromJsonAsync<byte[]>();
-            if (bytes is not { Length: > 0 }) return "The Office Note is empty.";
-            await CloseOfficeNote();
-            officeNoteUrl = await JSRuntime.InvokeAsync<string>("createPdfObjectUrl", Convert.ToBase64String(bytes));
+            var note = await response.Content.ReadFromJsonAsync<OfficeNoteVM>();
+            if (note is not { Lines.Count: > 0 }) return "The Office Note is empty.";
+            officeNote = note;
             return null;
         }
         catch (Exception ex)
@@ -1164,15 +1222,26 @@ else
         }
     }
 
-    private async Task PrintOfficeNoteFrame() => await JSRuntime.InvokeVoidAsync("printPdfFrame", "officeNoteFrame");
+    private async Task PrintOfficeNoteHtml() =>
+        await JSRuntime.InvokeVoidAsync("printElement", "officeNotePrint", $"Office Note {sanctionId}");
 
-    private async Task CloseOfficeNote()
+    private Task CloseOfficeNote()
     {
-        if (officeNoteUrl == null) return;
-        var url = officeNoteUrl;
-        officeNoteUrl = null;
-        await JSRuntime.InvokeVoidAsync("revokePdfObjectUrl", url);
+        officeNote = null;
+        return Task.CompletedTask;
     }
+
+    private const string NoteCell = "border:1px solid #999;padding:3px 6px";
+
+    private static RenderFragment NoteRow(string l1, string? v1, string l2, string? v2) => __builder =>
+    {
+        <tr>
+            <td style="padding:3px 6px;width:22%;font-weight:bold">@l1</td>
+            <td style="padding:3px 6px;width:28%">@v1</td>
+            <td style="padding:3px 6px;width:22%;font-weight:bold">@l2</td>
+            <td style="padding:3px 6px;width:28%">@v2</td>
+        </tr>
+    };
 
     private static async Task<SanctionSaveResultVM> ReadResultAsync(HttpResponseMessage response)
     {
