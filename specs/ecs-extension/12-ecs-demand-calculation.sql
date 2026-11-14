@@ -4,6 +4,7 @@
 --   /ecs-demand-calculation  <- revives the "Demand Calculation" placeholder (was under-development)
 --   /ecs-stop-demand         <- re-points the "Stop Demand" placeholder (was loan-sanction)
 --   /ecs-expired-demand      <- revives the "Delete Demand for Expired Members" placeholder (was under-development)
+--   /ecs-recovery-refund     <- revives the "Recovery Refund" placeholder (was under-development; spec 13 §16)
 --
 -- A branch without a placeholder gets a new row.
 --
@@ -34,6 +35,10 @@ BEGIN
          WHERE menu_id = r.menu_id AND trim(submenu_name) = 'Delete Demand for Expired Members'
            AND trim(coalesce(form_name, '')) <> 'ecs-expired-demand';
 
+        UPDATE menu_sub SET form_name = 'ecs-recovery-refund', submenu_delete = false, voc_status = 'V'
+         WHERE menu_id = r.menu_id AND trim(submenu_name) = 'Recovery Refund'
+           AND trim(coalesce(form_name, '')) <> 'ecs-recovery-refund';
+
         -- no placeholder: new row; ids follow the branch-prefixed MAX+1 numbering the existing rows use
         IF NOT EXISTS (SELECT 1 FROM menu_sub WHERE menu_id = r.menu_id AND trim(form_name) = 'ecs-demand-calculation') THEN
             SELECT COALESCE(MAX(submenu_id), 0) + 1 INTO next_id FROM menu_sub WHERE brcode IS NOT DISTINCT FROM r.brcode;
@@ -49,6 +54,11 @@ BEGIN
             SELECT COALESCE(MAX(submenu_id), 0) + 1 INTO next_id FROM menu_sub WHERE brcode IS NOT DISTINCT FROM r.brcode;
             INSERT INTO menu_sub (submenu_id, menu_id, submenu_name, form_name, submenu_delete, brcode, voc_status, submenu_icon)
             VALUES (next_id, r.menu_id, 'Delete Demand for Expired Members', 'ecs-expired-demand', false, r.brcode, 'V', 'oi oi-circle-x');
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM menu_sub WHERE menu_id = r.menu_id AND trim(form_name) = 'ecs-recovery-refund') THEN
+            SELECT COALESCE(MAX(submenu_id), 0) + 1 INTO next_id FROM menu_sub WHERE brcode IS NOT DISTINCT FROM r.brcode;
+            INSERT INTO menu_sub (submenu_id, menu_id, submenu_name, form_name, submenu_delete, brcode, voc_status, submenu_icon)
+            VALUES (next_id, r.menu_id, 'Recovery Refund', 'ecs-recovery-refund', false, r.brcode, 'V', 'oi oi-external-link');
         END IF;
     END LOOP;
 END $$;

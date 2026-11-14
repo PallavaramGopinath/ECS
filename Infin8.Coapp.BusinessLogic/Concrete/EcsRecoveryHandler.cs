@@ -809,6 +809,299 @@ namespace Infin8.Coapp.BusinessLogic
         }
 
         // =====================================================================
+        // Recovery refund (§16)
+        // =====================================================================
+
+        private sealed class RefundContext
+        {
+            public Mem_Demand_Master Master { get; set; } = null!;
+            public Mem_Demand_Status? Status { get; set; }
+            public EcsRecoveryMemberRow Member { get; set; } = null!;
+            public EcsRecoveryReceipts Receipts { get; set; } = new();
+            public decimal VocId { get; set; }
+            public decimal ExcessLedId { get; set; }
+            public List<string> Blockers { get; } = new();
+        }
+
+        /// <summary>Loads a member's saved recovery for a demand and everything that stops a refund.</summary>
+        private async Task<(RefundContext? rc, string? error)> LoadRefundAsync(decimal demandId, Func<EcsRecoveryMemberRow, bool> match, string brCode)
+        {
+            var masters = await _unitOfWork.EcsDemand.GetLiveMastersAsync(brCode, 1000);
+            var master = await _unitOfWork.EcsDemand.GetMasterForUpdateAsync(demandId, brCode);
+            if (master?.DemandDate == null || !master.IsDemandUpdated) return (null, "The demand no longer exists or is not posted.");
+            var member = (await _unitOfWork.EcsRecovery.GetBranchMembersAsync(brCode)).FirstOrDefault(match);
+            if (member == null) return (null, "No open member with that number in this branch.");
+
+            var rc = new RefundContext { Master = master, Member = member };
+            rc.Status = (await _unitOfWork.EcsDemand.GetStatusRowsForUpdateAsync(demandId, brCode)).FirstOrDefault(s => s.Office_Id == member.OfficeId);
+            decimal zero = decimal.TryParse(brCode + "0000000", out var z) ? z : 0;
+            if (rc.Status == null) { rc.Blockers.Add("The member's pay office has no demand on this date."); return (rc, null); }
+            if (!rc.Status.Is_Recovery_Saved) { rc.Blockers.Add("The recovery of the member's pay office is not saved yet."); return (rc, null); }
+            rc.VocId = rc.Status.Voc_Id;
+            if (rc.VocId == 0 || rc.VocId == zero) { rc.Blockers.Add("The office's recovery was saved as a nil recovery; there is nothing to refund."); return (rc, null); }
+
+            rc.Receipts = await _unitOfWork.EcsRecovery.GetMemberReceiptsForUpdateAsync(rc.VocId, member.MemId, brCode);
+            var later = masters.Where(m => m.DemandDate > master.DemandDate).OrderBy(m => m.DemandDate).FirstOrDefault();
+            if (later != null) rc.Blockers.Add($"The demand for {later.DemandDate:dd-MM-yyyy} is already calculated; its arrears assume these receipts.");
+            var trns = await _unitOfWork.EcsRecovery.GetLaterMemberTransactionsAsync(rc.VocId, member.MemId, brCode);
+            if (trns.Count > 0) rc.Blockers.Add("These accounts have transactions after the recovery: " + string.Join(", ", trns));
+            rc.ExcessLedId = (await _unitOfWork.EcsRecovery.GetPrioritiesAsync(brCode))
+                .FirstOrDefault(p => (p.PriorityType ?? "").Trim().ToUpperInvariant() == "DBY")?.PriorityLed_Id ?? 0;
+            if (rc.ExcessLedId == 0 || rc.ExcessLedId == zero) rc.Blockers.Add("No DBY (excess recovery) ledger is set in the collection priority.");
+            return (rc, null);
+        }
+
+        private static Func<EcsRecoveryMemberRow, bool> MatchMember(string key)
+        {
+            var k = (key ?? "").Trim();
+            return m => string.Equals((m.MemberNo ?? "").Trim(), k, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals((m.PerNo ?? "").Trim(), k, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public async Task<EcsRefundVM?> GetRefundAsync(decimal demandId, string memberNo, EcsUserContextVM ctx)
+        {
+            var brCode = ctx.BrCode;
+            var (rc, error) = await LoadRefundAsync(demandId, MatchMember(memberNo), brCode);
+            if (rc == null) return error == null ? null : new EcsRefundVM { DemandId = demandId, BlockedReasons = { error } };
+
+            var names = await _unitOfWork.EcsRecovery.GetOfficeNamesAsync(brCode);
+            var vm = new EcsRefundVM
+            {
+                DemandId = demandId,
+                DueDate = rc.Master.DemandDate!.Value.Date,
+                MemId = rc.Member.MemId,
+                MemberNo = rc.Member.MemberNo,
+                PerNo = rc.Member.PerNo,
+                MemberName = rc.Member.MemberName,
+                OfficeName = names.GetValueOrDefault(rc.Member.OfficeId),
+                VocNo = rc.Receipts.Vouchers.FirstOrDefault()?.Voc_No,
+                BlockedReasons = rc.Blockers.ToList()
+            };
+            if (rc.ExcessLedId != 0)
+                vm.ExcessLedgerName = (await _unitOfWork.EcsRecovery.GetLedgersAsync(brCode)).FirstOrDefault(l => l.LedId == rc.ExcessLedId)?.LedName;
+
+            var loanLabels = await _unitOfWork.EcsRecovery.GetLoanLabelsAsync(rc.Receipts.LoanTrns.Select(t => t.Loan_Id), brCode);
+            var depNames = await _unitOfWork.EcsRecovery.GetDepositNamesAsync(brCode);
+            var rdNos = await _unitOfWork.EcsRecovery.GetRdNosAsync(rc.Receipts.RdTrns.Select(t => t.TD_Id), brCode);
+            foreach (var t in rc.Receipts.LoanTrns.Where(t => t.PrlColl_Amt + t.IntColl_Amt + t.PIColl_Amt > 0))
+                vm.Lines.Add(new EcsRefundLineVM { Kind = "L", TrnId = t.Trn_Id, Account = loanLabels.GetValueOrDefault(t.Loan_Id) ?? $"Loan id {t.Loan_Id}",
+                                                   Principal = t.PrlColl_Amt, Interest = t.IntColl_Amt, Penal = t.PIColl_Amt });
+            foreach (var t in rc.Receipts.DepositTrns.Where(t => t.Receipt_Amount + t.Penal_Interest_Received_Amount > 0))
+                vm.Lines.Add(new EcsRefundLineVM { Kind = "D", TrnId = t.Trn_Id, Account = depNames.GetValueOrDefault(t.Deposit_Id) ?? $"Deposit {t.Deposit_Id}",
+                                                   Principal = t.Receipt_Amount, Penal = t.Penal_Interest_Received_Amount });
+            foreach (var t in rc.Receipts.RdTrns.Where(t => t.DepositReceiptAmount + t.PenalReceivedAmount > 0))
+                vm.Lines.Add(new EcsRefundLineVM { Kind = "R", TrnId = t.TDTrn_Id, Account = rdNos.GetValueOrDefault(t.TD_Id) ?? $"RD id {t.TD_Id}",
+                                                   Principal = t.DepositReceiptAmount, Penal = t.PenalReceivedAmount });
+
+            var lines = await _unitOfWork.EcsRecovery.GetMemberLinesAsync(demandId, rc.Member.MemId, brCode, forUpdate: false);
+            vm.Excess = R(lines.Where(l => l.Demand_Type == "B").Sum(l => l.Creditor_Collection));
+            if (vm.Lines.Count == 0 && vm.BlockedReasons.Count == 0) vm.BlockedReasons.Add("The member has no loan, deposit or RD receipt in this recovery.");
+            vm.CanRefund = vm.BlockedReasons.Count == 0;
+            return vm;
+        }
+
+        public async Task<EcsRecoveryResultVM> RefundAsync(EcsRefundRequestVM request, EcsUserContextVM ctx)
+        {
+            var brCode = ctx.BrCode;
+            var guard = await CommonGuardsAsync(ctx);
+            if (guard != null) return Fail(guard);
+
+            _unitOfWork.BeginTransaction();
+            try
+            {
+                var (rc, error) = await LoadRefundAsync(request.DemandId, m => m.MemId == request.MemId, brCode);
+                if (rc == null) { _unitOfWork.RollBack(); return Fail(error ?? "The member was not found."); }
+                if (rc.Blockers.Count > 0) { _unitOfWork.RollBack(); return Fail("The recovery cannot be refunded.", rc.Blockers); }
+
+                var reasons = new List<string>();
+                var wanted = request.Lines.Where(l => l.Principal != 0 || l.Interest != 0 || l.Penal != 0).ToList();
+                if (wanted.Count == 0) { _unitOfWork.RollBack(); return Fail("Enter the amount to refund."); }
+                bool Bad(double asked, double have) => asked < 0 || R(asked) - R(have) > Tolerance;
+
+                // ----- check every amount against its receipt -----
+                foreach (var w in wanted)
+                {
+                    switch (w.Kind)
+                    {
+                        case "L":
+                            var lt = rc.Receipts.LoanTrns.FirstOrDefault(t => t.Trn_Id == w.TrnId);
+                            if (lt == null) reasons.Add("A loan receipt is not part of this recovery.");
+                            else if (Bad(w.Principal, lt.PrlColl_Amt) || Bad(w.Interest, lt.IntColl_Amt) || Bad(w.Penal, lt.PIColl_Amt))
+                                reasons.Add($"{w.Account ?? "Loan"}: the refund cannot exceed what was recovered.");
+                            break;
+                        case "D":
+                            var dt = rc.Receipts.DepositTrns.FirstOrDefault(t => t.Trn_Id == w.TrnId);
+                            if (dt == null) reasons.Add("A deposit receipt is not part of this recovery.");
+                            else if (w.Interest != 0 || Bad(w.Principal, dt.Receipt_Amount) || Bad(w.Penal, dt.Penal_Interest_Received_Amount))
+                                reasons.Add($"{w.Account ?? "Deposit"}: the refund cannot exceed what was recovered.");
+                            break;
+                        case "R":
+                            var rt = rc.Receipts.RdTrns.FirstOrDefault(t => t.TDTrn_Id == w.TrnId);
+                            if (rt == null) reasons.Add("An RD receipt is not part of this recovery.");
+                            else if (w.Interest != 0 || Bad(w.Principal, rt.DepositReceiptAmount) || Bad(w.Penal, rt.PenalReceivedAmount))
+                                reasons.Add($"{w.Account ?? "RD"}: the refund cannot exceed what was recovered.");
+                            break;
+                        default:
+                            reasons.Add("Unknown receipt kind.");
+                            break;
+                    }
+                }
+                if (reasons.Count > 0) { _unitOfWork.RollBack(); return Fail("The refund cannot be saved.", reasons.Distinct().ToList()); }
+
+                // ----- ledgers to take the refund off -----
+                var loanIds = rc.Receipts.LoanTrns.Select(t => t.Loan_Id).Distinct().ToList();
+                var loans = await _unitOfWork.EcsRecovery.GetLoansAsync(loanIds, brCode);
+                var schemes = await _unitOfWork.EcsRecovery.GetSchemesAsync(loans.Values.Select(l => l.SchemeId), brCode);
+                var depositLedgers = await _unitOfWork.EcsRecovery.GetDepositLedgersAsync(brCode);
+                var rdLedgers = await _unitOfWork.EcsRecovery.GetRdLedgersAsync(rc.Receipts.RdTrns.Select(t => t.TD_Id), brCode);
+                var debitOff = new Dictionary<decimal, double>();   // ledger -> receipt credit to remove
+                void Off(decimal ledId, double amount)
+                {
+                    if (amount <= 0) return;
+                    debitOff[ledId] = R(debitOff.GetValueOrDefault(ledId) + amount);
+                }
+
+                var lines = await _unitOfWork.EcsRecovery.GetMemberLinesAsync(request.DemandId, rc.Member.MemId, brCode, forUpdate: true);
+                double total = 0;
+                foreach (var w in wanted)
+                {
+                    double p = R(w.Principal), i = R(w.Interest), pi = R(w.Penal);
+                    switch (w.Kind)
+                    {
+                        case "L":
+                            var lt = rc.Receipts.LoanTrns.First(t => t.Trn_Id == w.TrnId);
+                            var scheme = loans.TryGetValue(lt.Loan_Id, out var ln) ? schemes.GetValueOrDefault(ln.SchemeId) : null;
+                            if (scheme == null) { reasons.Add($"Loan id {lt.Loan_Id}: scheme not found."); break; }
+                            lt.PrlColl_Amt = R(lt.PrlColl_Amt - p);
+                            lt.IntColl_Amt = R(lt.IntColl_Amt - i);
+                            lt.PIColl_Amt = R(lt.PIColl_Amt - pi);
+                            Off(scheme.PrlLed_Id, p); Off(scheme.IntLed_Id, i); Off(scheme.PILed_Id, pi);
+                            var ll = lines.FirstOrDefault(l => l.Demand_Type is "L" or "A" && l.Loan_Id == lt.Loan_Id);
+                            if (ll != null)
+                            {
+                                (ll.Loan_Prl_Current_Collection, ll.Loan_Prl_Arrear_Collection) = Unwind(ll.Loan_Prl_Current_Collection, ll.Loan_Prl_Arrear_Collection, p);
+                                (ll.Loan_Int_Current_Collection, ll.Loan_Int_Arrear_Collection) = Unwind(ll.Loan_Int_Current_Collection, ll.Loan_Int_Arrear_Collection, i);
+                                (ll.Loan_PI_Current_Collection, ll.loan_PI_Arrear_Collection) = Unwind(ll.Loan_PI_Current_Collection, ll.loan_PI_Arrear_Collection, pi);
+                                EcsDemandAppropriator.Total(ll);
+                            }
+                            break;
+                        case "D":
+                            var dt = rc.Receipts.DepositTrns.First(t => t.Trn_Id == w.TrnId);
+                            var (depLed, depPiLed) = depositLedgers.GetValueOrDefault(dt.Deposit_Id);
+                            dt.Receipt_Amount = R(dt.Receipt_Amount - p);
+                            dt.Penal_Interest_Received_Amount = R(dt.Penal_Interest_Received_Amount - pi);
+                            Off(depLed, p); Off(depPiLed, pi);
+                            var dl = lines.FirstOrDefault(l => l.Demand_Type == "D" && l.Deposit_Id == dt.Deposit_Id);
+                            if (dl != null)
+                            {
+                                (dl.Deposit_Current_Collection, dl.Deposit_Arrear_Collection) = Unwind(dl.Deposit_Current_Collection, dl.Deposit_Arrear_Collection, p);
+                                (dl.Deposit_Current_PI_Collection, dl.Deposit_Arrear_PI_Collection) = Unwind(dl.Deposit_Current_PI_Collection, dl.Deposit_Arrear_PI_Collection, pi);
+                                EcsDemandAppropriator.Total(dl);
+                            }
+                            break;
+                        case "R":
+                            var rt = rc.Receipts.RdTrns.First(t => t.TDTrn_Id == w.TrnId);
+                            rt.DepositReceiptAmount = R(rt.DepositReceiptAmount - p);
+                            rt.PenalReceivedAmount = R(rt.PenalReceivedAmount - pi);
+                            if (rt.InstalmentAmount > 0) rt.NoOfInstalments = (int)Math.Round(rt.DepositReceiptAmount / rt.InstalmentAmount);
+                            Off(rdLedgers.GetValueOrDefault(rt.TD_Id), p + pi);
+                            var rl = lines.FirstOrDefault(l => l.Demand_Type == "R" && l.TD_Id == rt.TD_Id);
+                            if (rl != null)
+                            {
+                                rl.RD_Receipt = R(Math.Max(0, rl.RD_Receipt - p));
+                                rl.RD_PI_Receipt = R(Math.Max(0, rl.RD_PI_Receipt - pi));
+                                EcsDemandAppropriator.Total(rl);
+                            }
+                            break;
+                    }
+                    total = R(total + p + i + pi);
+                }
+
+                // ----- the voucher: receipts move to the excess ledger, the debit side is unchanged -----
+                var vocLines = rc.Receipts.VoucherTrns;
+                foreach (var (ledId, amount) in debitOff)
+                {
+                    double left = amount;
+                    foreach (var v in vocLines.Where(v => v.Led_Id == ledId && v.Voc_Rpt > 0))
+                    {
+                        double take = Math.Min(left, v.Voc_Rpt);
+                        v.Voc_Rpt = R(v.Voc_Rpt - take);
+                        left = R(left - take);
+                        if (left <= 0) break;
+                    }
+                    if (left > Tolerance) reasons.Add($"The voucher has no receipt of {amount:N2} on ledger {ledId}.");
+                }
+                if (reasons.Count > 0) { _unitOfWork.RollBack(); return Fail("The refund cannot be saved.", reasons.Distinct().ToList()); }
+
+                var alloc = await _unitOfWork.EcsRecovery.CreateIdAllocatorAsync(brCode);
+                var zero = alloc.ZeroId;
+                await alloc.PrimeSerialsAsync(Array.Empty<decimal>(), new[] { rc.Member.MemId }, Array.Empty<decimal>());
+                var posting = new EcsRecoverySavePosting();
+                var excessLine = vocLines.FirstOrDefault(v => v.Led_Id == rc.ExcessLedId && v.Voc_Pmt == 0);
+                if (excessLine != null) excessLine.Voc_Rpt = R(excessLine.Voc_Rpt + total);
+                else
+                {
+                    var tmpl = vocLines.First();
+                    posting.VoucherTrns.Add(new Fin_Voucher_Trn
+                    {
+                        Voc_Trn_Id = alloc.NextVocTrnId(),
+                        Voc_Id = rc.VocId,
+                        Led_Id = rc.ExcessLedId,
+                        Voc_Rpt = total,
+                        Voc_Pmt = 0,
+                        Voc_Trn_Type = VocTrnTypeAdjustment,
+                        Voc_Narr = tmpl.Voc_Narr,
+                        Voc_Cash_Adj_Id = 0,
+                        FinVocTr_Delete = false,
+                        Status = "",
+                        Description = "",
+                        Mem_Id = zero,
+                        Loan_Id = zero,
+                        Usr_Id = ctx.UsrId,
+                        Yr_Id = ctx.YrId,
+                        BrCode = brCode,
+                        Voc_Status = "V"
+                    });
+                }
+
+                var due = rc.Master.DemandDate!.Value.Date;
+                posting.MemTrns.Add(MemTrn(2, rc.Member.MemId, rc.ExcessLedId, due, total, rc.VocId, zero, alloc, ctx));
+
+                int recoveryId = lines.Where(l => l.Recovery_Id > 0).Select(l => l.Recovery_Id).DefaultIfEmpty(0).Max();
+                var b = NewLine("B", rc.Member.MemId, request.DemandId, recoveryId, DateOnly.FromDateTime(ctx.CurrentDate.Date), zero, alloc, ctx);
+                b.Creditor_Led_Id = rc.ExcessLedId;
+                b.Creditor_Collection = total;
+                b.Voc_Id = rc.VocId;
+                b.Is_Recovery_Saved = true;
+                EcsDemandAppropriator.Total(b);
+
+                await _unitOfWork.EcsRecovery.AddLinesAsync(new[] { b });
+                await _unitOfWork.EcsRecovery.AddSaveAsync(posting);
+                await _unitOfWork.CompleteAsync();
+                _unitOfWork.CommitTransaction();
+                return new EcsRecoveryResultVM
+                {
+                    Success = true,
+                    VocNo = rc.Receipts.Vouchers.FirstOrDefault()?.Voc_No,
+                    Message = $"{total:N2} of member {rc.Member.MemberNo}'s recovery moved to the excess recovery ledger (voucher {rc.Receipts.Vouchers.FirstOrDefault()?.Voc_No})."
+                };
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.RollBack();
+                throw Wrap(ex, "Nothing was refunded.");
+            }
+        }
+
+        /// <summary>Takes a refund off the current collection first, then the arrear (the reverse of the split).</summary>
+        private static (double current, double arrear) Unwind(double current, double arrear, double refund)
+        {
+            double fromCurrent = Math.Min(Math.Max(0, current), refund);
+            double fromArrear = Math.Min(Math.Max(0, arrear), refund - fromCurrent);
+            return (R(current - fromCurrent), R(arrear - fromArrear));
+        }
+
+        // =====================================================================
         // Revised demand inputs
         // =====================================================================
 

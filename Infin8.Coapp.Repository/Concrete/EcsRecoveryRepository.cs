@@ -355,6 +355,90 @@ namespace Infin8.Coapp.Repository
 
             return loans.Concat(deposits).ToList();
         }
+
+        // =====================================================================
+        // Recovery refund (spec 13 §16)
+        // =====================================================================
+
+        public async Task<List<Mem_Demand>> GetMemberLinesAsync(decimal demandId, decimal memId, string brCode, bool forUpdate)
+        {
+            var q = from d in CSISContext.Mem_Demand
+                    where d.Demand_Id == demandId && d.Mem_Id == memId && d.Is_Active && d.BrCode == brCode
+                    orderby d.Demand_Type, d.Id
+                    select d;
+            return forUpdate ? await q.ToListAsync() : await q.AsNoTracking().ToListAsync();
+        }
+
+        public async Task<EcsRecoveryReceipts> GetMemberReceiptsForUpdateAsync(decimal vocId, decimal memId, string brCode)
+        {
+            return new EcsRecoveryReceipts
+            {
+                Vouchers = await (from v in CSISContext.Fin_Voucher
+                                  where v.Voc_Id == vocId && !v.Voc_Delete && v.BrCode == brCode select v).ToListAsync(),
+                VoucherTrns = await (from t in CSISContext.Fin_Voucher_Trn
+                                     where t.Voc_Id == vocId && !t.FinVocTr_Delete && t.BrCode == brCode
+                                     orderby t.Voc_Trn_Id select t).ToListAsync(),
+                LoanTrns = await (from t in CSISContext.Loan_Trn
+                                  join l in CSISContext.Loan_Master on t.Loan_Id equals l.Loan_Id
+                                  where t.Voc_Id == vocId && !t.TrnTr_Delete && t.Trn_Status == "R" && t.BrCode == brCode
+                                        && l.Mem_Id == memId && l.BrCode == brCode
+                                  orderby t.Loan_Id select t).ToListAsync(),
+                DepositTrns = await (from t in CSISContext.Deposit_Trn
+                                     where t.Voc_Id == vocId && t.Mem_Id == memId && t.Is_Active && t.BrCode == brCode
+                                     orderby t.Deposit_Id select t).ToListAsync(),
+                RdTrns = await (from t in CSISContext.TermDeposit_Trn
+                                join m in CSISContext.TermDeposit_Master on t.TD_Id equals m.TD_Id
+                                where t.Voc_Id == vocId && !t.TD_Delete && t.BrCode == brCode
+                                      && m.Mem_Id == memId && m.BrCode == brCode
+                                orderby t.TD_Id select t).ToListAsync(),
+            };
+        }
+
+        public async Task<List<string>> GetLaterMemberTransactionsAsync(decimal vocId, decimal memId, string brCode)
+        {
+            var loans = await (from r in CSISContext.Loan_Trn
+                               join m in CSISContext.Loan_Master on r.Loan_Id equals m.Loan_Id
+                               join t in CSISContext.Loan_Trn on r.Loan_Id equals t.Loan_Id
+                               where r.Voc_Id == vocId && !r.TrnTr_Delete && r.BrCode == brCode
+                                     && m.Mem_Id == memId && m.BrCode == brCode
+                                     && t.Trn_SlNo > r.Trn_SlNo && !t.TrnTr_Delete && t.Voc_Status == "V" && t.BrCode == brCode
+                               select "Loan " + m.Loan_No).Distinct().ToListAsync();
+
+            var deposits = await (from r in CSISContext.Deposit_Trn
+                                  join t in CSISContext.Deposit_Trn
+                                      on new { r.Mem_Id, r.Deposit_Id } equals new { t.Mem_Id, t.Deposit_Id }
+                                  join dm in CSISContext.Deposit_Masters on r.Deposit_Id equals dm.Deposit_Id
+                                  where r.Voc_Id == vocId && r.Mem_Id == memId && r.Is_Active && r.BrCode == brCode
+                                        && t.Trn_SlNo > r.Trn_SlNo && t.Is_Active && t.BrCode == brCode && dm.BrCode == brCode
+                                  select "" + dm.Deposit_Name).Distinct().ToListAsync();
+
+            var rds = await (from r in CSISContext.TermDeposit_Trn
+                             join m in CSISContext.TermDeposit_Master on r.TD_Id equals m.TD_Id
+                             join t in CSISContext.TermDeposit_Trn on r.TD_Id equals t.TD_Id
+                             where r.Voc_Id == vocId && !r.TD_Delete && r.BrCode == brCode && m.Mem_Id == memId && m.BrCode == brCode
+                                   && t.Trn_SlNo > r.Trn_SlNo && !t.TD_Delete && t.Voc_Status == "V" && t.BrCode == brCode
+                             select "RD " + m.TD_No).Distinct().ToListAsync();
+
+            return loans.Concat(deposits).Concat(rds).ToList();
+        }
+
+        public async Task<Dictionary<int, string>> GetDepositNamesAsync(string brCode)
+        {
+            var rows = await (from d in CSISContext.Deposit_Masters
+                              where d.BrCode == brCode
+                              select new { d.Deposit_Id, d.Deposit_Name }).ToListAsync();
+            return rows.GroupBy(r => r.Deposit_Id).ToDictionary(g => g.Key, g => g.First().Deposit_Name ?? $"Deposit {g.Key}");
+        }
+
+        public async Task<Dictionary<decimal, string>> GetRdNosAsync(IEnumerable<decimal> tdIds, string brCode)
+        {
+            var ids = tdIds.Distinct().ToList();
+            if (ids.Count == 0) return new();
+            var rows = await (from m in CSISContext.TermDeposit_Master
+                              where ids.Contains(m.TD_Id) && m.BrCode == brCode
+                              select new { m.TD_Id, m.TD_No }).ToListAsync();
+            return rows.GroupBy(r => r.TD_Id).ToDictionary(g => g.Key, g => $"RD {g.First().TD_No}");
+        }
     }
 
     /// <summary>

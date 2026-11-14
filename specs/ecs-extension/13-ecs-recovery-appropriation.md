@@ -279,3 +279,46 @@ to "posted, not appropriated" as §11.1 describes and each office was given the 
 
 The handler was driven from a scratch console harness against the copy. **The page itself was not driven** (it needs a
 login); it builds, and uses the same endpoints.
+
+## 16. Recovery Refund (`/ecs-recovery-refund`)
+
+Ported from TSIS `frmFactoryRecoveryRefund` / `DatabaseDemand.Save_FactoryRecoveryRefund`. A refund does **not** pay money
+out: it takes part of one member's saved recovery off their loan, deposit or RD receipts and credits it to the excess
+recovery ledger (the `DBY` priority ledger, SUNDRY CR EXCESS RECOVERY), from where it is paid back to the member — the
+same place an over-remittance lands (§4.2 `B`).
+
+**Allowed** for a member whose pay office's recovery of the demand is saved with a voucher, when no later demand
+exists and none of the member's refunded accounts has a transaction after its receipt (higher `Trn_SlNo`). Each amount
+is at most what that receipt recovered.
+
+**Writes** (one transaction, editing the saved recovery in place, as TSIS did):
+
+| What | Change |
+|---|---|
+| `loan_trn` `R` receipt | `PrlColl_Amt` / `IntColl_Amt` / `PIColl_Amt` reduced |
+| `deposit_trn` receipt | `Receipt_Amount` / `Penal_Interest_Received_Amount` reduced |
+| `termdeposit_trn` receipt | `DepositReceiptAmount` / `PenalReceivedAmount` reduced, instalments recounted |
+| `fin_voucher_trn` | the credit lines of those ledgers reduced; the excess ledger's credit line increased (added when missing). The debit side and `voc_amt` are unchanged, so the voucher still balances. |
+| `mem_demand` | the line's collections reduced (current first, then arrear); a new `B` line with `creditor_collection` = `total_collection` = the refund, `voc_id`, saved |
+| `mem_trn` | `Trn_Type 2`, `Rpt_Amt` = the refund, on the excess ledger, dated the due date |
+
+Because everything stays on the recovery voucher, **Delete saved recovery** (§7) reverses a refund with the rest, and
+**Delete appropriation** removes its `B` line.
+
+**Menu:** `12-ecs-demand-calculation.sql` re-points the "Recovery Refund" placeholder under "Thrift Society Demand"
+(was `under-development`) at `/ecs-recovery-refund`, or inserts the row — same per-branch, idempotent pattern.
+
+**Departures from TSIS:** the refund `B` line carries the amount in `total_collection` too (TSIS left it 0, so office
+totals no longer matched the voucher — 34 legacy `B` rows have that shape); collections are unwound current-first
+(TSIS took arrear first); SRF refunds are included in the excess total (TSIS left them out, unbalancing the voucher);
+the SRF voucher line is reduced by the SRF refund (TSIS used the FWD amount); RD voucher lines are found by ledger (TSIS
+passed the RD transaction id as the ledger id); refunds are refused after later transactions or a later demand (TSIS
+had no check). Only one demand was selectable in TSIS (the latest saved); ECS offers every demand the Recovery
+Appropriation page lists.
+
+**Verified (14-11-2026, `ECS_spec13`).** HO member 003214 on demand 154: ₹1,000 principal + ₹500 interest of surety loan
+1003146 and ₹2,000 thrift refunded → loan receipt 3,167 / 3,245, thrift receipt 0, voucher still 3,59,082 on both
+sides with surety principal −1,000, surety interest −500, thrift −2,000 and the excess ledger +3,500, `B` line and
+`mem_trn` type 2 of 3,500, office total unchanged. Over-refund refused; a later loan row (inserted on the copy) blocked
+the refund; delete saved recovery reversed the refund's `mem_trn` with the rest. The menu SQL was run twice on the copy
+(one row, re-pointed). The page was not driven (needs a login).

@@ -43,6 +43,15 @@ namespace Infin8.Coapp.Repository
         // ----- delete saved -----
         Task<EcsRecoveryReceipts> GetReceiptsForUpdateAsync(decimal vocId, string brCode);
         Task<List<string>> GetLaterTransactionsAsync(decimal vocId, string brCode);
+
+        // ----- recovery refund (spec 13 §16) -----
+        Task<List<Mem_Demand>> GetMemberLinesAsync(decimal demandId, decimal memId, string brCode, bool forUpdate);
+        /// <summary>The member's loan / deposit / RD receipts on the voucher, plus every voucher line (all tracked).</summary>
+        Task<EcsRecoveryReceipts> GetMemberReceiptsForUpdateAsync(decimal vocId, decimal memId, string brCode);
+        /// <summary>The member's accounts with a transaction after their receipt on the voucher.</summary>
+        Task<List<string>> GetLaterMemberTransactionsAsync(decimal vocId, decimal memId, string brCode);
+        Task<Dictionary<int, string>> GetDepositNamesAsync(string brCode);
+        Task<Dictionary<decimal, string>> GetRdNosAsync(IEnumerable<decimal> tdIds, string brCode);
     }
 
     public class EcsRecoveryOfficeStatRow

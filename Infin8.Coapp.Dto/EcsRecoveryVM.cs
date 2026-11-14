@@ -150,4 +150,44 @@ namespace Infin8.Coapp.Dto
         public decimal DemandId { get; set; }
         public decimal OfficeId { get; set; }
     }
+
+    // ----- Recovery Refund (spec 13 §16) -----
+
+    /// <summary>One member's saved recovery against a demand, with what can still be refunded per receipt.</summary>
+    public class EcsRefundVM
+    {
+        public decimal DemandId { get; set; }
+        public DateTime DueDate { get; set; }
+        public decimal MemId { get; set; }
+        public string? MemberNo { get; set; }
+        public string? PerNo { get; set; }
+        public string? MemberName { get; set; }
+        public string? OfficeName { get; set; }
+        public string? VocNo { get; set; }
+        public string? ExcessLedgerName { get; set; }
+        public bool CanRefund { get; set; }
+        public List<string> BlockedReasons { get; set; } = new();
+        public List<EcsRefundLineVM> Lines { get; set; } = new();
+        /// <summary>Already moved to the excess ledger for this demand (B lines).</summary>
+        public double Excess { get; set; }
+    }
+
+    /// <summary>One receipt row of the recovery voucher: Kind L (loan_trn), D (deposit_trn) or R (termdeposit_trn).</summary>
+    public class EcsRefundLineVM
+    {
+        public string Kind { get; set; } = "";
+        public decimal TrnId { get; set; }
+        public string? Account { get; set; }
+        /// <summary>Loan principal; deposit / RD receipt.</summary>
+        public double Principal { get; set; }
+        public double Interest { get; set; }
+        public double Penal { get; set; }
+    }
+
+    public class EcsRefundRequestVM
+    {
+        public decimal DemandId { get; set; }
+        public decimal MemId { get; set; }
+        public List<EcsRefundLineVM> Lines { get; set; } = new();
+    }
 }

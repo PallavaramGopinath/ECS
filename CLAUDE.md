@@ -302,6 +302,9 @@ already points at it), API `api/ecsrecovery/*` (`EcsRecoveryController`, ECS-gat
 - `Mem_CollectionPriority` maps to `mem_collection_priority` (fixed `[Table]`; `priorityled_id` is a 12-digit id).
 - Spec 12 now refuses to calculate the next demand until every office's recovery is saved, and to delete a posted
   demand once any office is appropriated.
+- **Recovery Refund** (`Pages/RecoveryAppropriation/RecoveryRefund.razor`, `/ecs-recovery-refund`, `api/ecsrecovery/Refund`)
+  moves part of a member's saved receipts to the excess ledger by editing the recovery voucher **in place** (spec 13 §16),
+  so deleting the saved recovery reverses refunds too. Its menu row comes from `12-ecs-demand-calculation.sql`.
 
 ## Gotchas
 

@@ -96,5 +96,15 @@ namespace Infin8.Coapp.API.Controllers
         [HttpPost("DeleteSaved")]
         public Task<ActionResult> DeleteSaved([FromBody] EcsRecoveryOfficeRequestVM request) =>
             Run(ctx => _recoveryHandler.DeleteSavedAsync(request.DemandId, request.OfficeId, ctx));
+
+        // ----- recovery refund (spec 13 §16) -----
+
+        [HttpGet("Refund/{demandId}")]
+        public Task<ActionResult> Refund(decimal demandId, [FromQuery] string memberNo) =>
+            Run(ctx => _recoveryHandler.GetRefundAsync(demandId, memberNo ?? "", ctx));
+
+        [HttpPost("Refund")]
+        public Task<ActionResult> SaveRefund([FromBody] EcsRefundRequestVM request) =>
+            Run(ctx => _recoveryHandler.RefundAsync(request, ctx));
     }
 }
