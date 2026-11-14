@@ -312,6 +312,8 @@ already points at it), API `api/ecsrecovery/*` (`EcsRecoveryController`, ECS-gat
   are dated on the due date (loans: not before their last transaction), the voucher on the business day; loan `R` rows stamp
   `IntCalc_*` / `PICalc_*`. Needs `specs/ecs-extension/13a-ecs-recovery-appropriation.sql` (new `mem_demand_status` columns)
   run on **every** database first, or every `mem_demand_status` query fails.
+- **Office list** hides offices whose recovery is saved (and so the last fully saved demand) unless *Show saved offices* is
+  on — the switch is the way back to Delete saved. A search box filters by office name. Filtering is in the page only.
 - **Recovery Refund** (`Pages/RecoveryAppropriation/RecoveryRefund.razor`, `/ecs-recovery-refund`, `api/ecsrecovery/Refund`)
   moves part of a member's saved receipts to the excess ledger by editing the recovery voucher **in place** (spec 13 §16),
   so deleting the saved recovery reverses refunds too. Admin/Checker. Its menu row comes from `12-ecs-demand-calculation.sql`.

@@ -202,6 +202,7 @@ Deposit and RD receipts likewise carry any penal calculated in §4.3 / §4.4 (`P
 | 6 | RD | §4.4 adopted, via `EcsDemandCalculator.Rd` with the RD's receipts to date (unverified: no RD data in `11005`). |
 | 7 | Sheet total vs demand | No tolerance. The upload preview shows sheet total, matched total, office demand and the difference; information only. |
 | 8 | Employee No and Member No name different members | **Error.** Every row must match an open member of the branch whose current `office_id` is the chosen office; unmatched, other-office, repeated or conflicting rows are errors and nothing is appropriated. Upload and Appropriate both refuse an office that is already appropriated or saved. A name mismatch is a warning. |
+| 9 | Offices listed on the page (societies with 100+ pay offices) | Only offices whose recovery is **not saved** (Pending or Awaiting check); a demand with none left, such as the last fully saved one, is not shown. A *Show saved offices* switch (off by default) brings saved offices back so a saved recovery can still be opened and deleted. A search box narrows the list by office name. Client-side only: `api/ecsrecovery/State` is unchanged. |
 
 ## 11. Implementation notes and departures from the draft
 
