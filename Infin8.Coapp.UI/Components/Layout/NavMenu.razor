@@ -1,8 +1,9 @@
 ﻿@using Infin8.Coapp.BusinessLogic
+@using Microsoft.Extensions.DependencyInjection
 @using Infin8.Coapp.Dto
 @using Microsoft.AspNetCore.Components.Routing
 @implements IDisposable
-@inject IMenuMainHandler MenuMainHandler
+@inject IServiceScopeFactory ScopeFactory
 @inject NavigationManager Nav
 @rendermode InteractiveServer
 
@@ -147,7 +148,14 @@
     {
         try
         {
-            var query = await MenuMainHandler.GetMenuStructureAsync(BrCode ?? string.Empty, Role ?? string.Empty);
+            // Own DI scope (so its own CSISContext) for the menu load. During static SSR this
+            // component is prerendered while MainLayout is still awaiting its society-name query
+            // on the request scope; on a circuit it shares the scope with every other server
+            // component. Either way, the injected scoped handler would share one DbContext with
+            // a concurrent operation ("A second operation was started on this context").
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var menuMainHandler = scope.ServiceProvider.GetRequiredService<IMenuMainHandler>();
+            var query = await menuMainHandler.GetMenuStructureAsync(BrCode ?? string.Empty, Role ?? string.Empty);
             _menuStructure = query?.ToList();
         }
         catch (Exception ex)

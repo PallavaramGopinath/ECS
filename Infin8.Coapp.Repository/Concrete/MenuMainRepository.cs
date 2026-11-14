@@ -95,8 +95,9 @@ namespace Infin8.Coapp.Repository
                                             }).ToList()
                             };
 
-                if(query != null && query.Any())
-                    menuStructure =  await query.AsNoTracking().ToListAsync();
+                // No separate Any() probe: it was a synchronous second round trip, and an empty
+                // result already yields an empty list.
+                menuStructure = await query.AsNoTracking().ToListAsync();
 
             }
             catch (Exception ex)
