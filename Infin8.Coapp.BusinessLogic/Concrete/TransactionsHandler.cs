@@ -20,10 +20,13 @@ namespace Infin8.Coapp.BusinessLogic
     {
         readonly IUnitOfWork _unitOfWork;
         readonly IEcsLoanRecoveryHandler _ecsLoanRecoveryHandler;
-        public TransactionsHandler(IUnitOfWork unitOfWork, IEcsLoanRecoveryHandler ecsLoanRecoveryHandler)
+        readonly IEcsRdReceiptHandler _ecsRdReceiptHandler;
+        public TransactionsHandler(IUnitOfWork unitOfWork, IEcsLoanRecoveryHandler ecsLoanRecoveryHandler,
+            IEcsRdReceiptHandler ecsRdReceiptHandler)
         {
             _unitOfWork = unitOfWork;
             _ecsLoanRecoveryHandler = ecsLoanRecoveryHandler;
+            _ecsRdReceiptHandler = ecsRdReceiptHandler;
         }
         public async Task<List<DropdownItem>> GetTransactionAccounts(string accountStatus, string accountBelongTo)
         {
@@ -84,6 +87,7 @@ namespace Infin8.Coapp.BusinessLogic
             List<Mem_Trn>memberTrnList = new();
             List<Fin_Voucher_Bank> finVocBankList = new();
             List<TermDeposit_Trn> termDepositTrnList = new();
+            int rdReceiptLines = 0;   // spec 14 §7.3: one RD Receipt line per voucher
             try
             {
                 _unitOfWork.BeginTransaction();
@@ -203,7 +207,20 @@ namespace Infin8.Coapp.BusinessLogic
                     {
                         case 1: /// Loan recovery
                             break;
-                        case 2: /// RD Receipt
+                        case 2: /// RD Receipt (ECS, spec 14 §10)
+                            #region ECS RD receipt
+                            if (rdReceiptLines++ > 0)
+                                throw new EcsRecoveryException("This voucher has more than one RD Receipt line. Reject it and initiate one RD Receipt per member.");
+                            DtoEcsRdReceipt ecsRdReceipt = System.Text.Json.JsonSerializer.Deserialize<DtoEcsRdReceipt>(
+                                trns.Related_Account_Data!, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                                ?? throw new EcsRecoveryException("RD receipt data is missing. Reject it and re-initiate.");
+                            if (Math.Abs(ecsRdReceipt.ReceiptAmount - trns.Receipt_Amount) > 0.005)
+                                throw new EcsRecoveryException("RD receipt amount does not match the transaction line. Reject it and re-initiate.");
+                            var rdPosting = await _ecsRdReceiptHandler.BuildPostingAsync(ecsRdReceipt, stagingId, Transacted_Date, brCode,
+                                yrId, Checked_By, vocId, trns.Cash_Or_Adjustment, string.IsNullOrEmpty(Status) ? "RR" : Status);
+                            termDepositTrnList.AddRange(rdPosting.TermDepositTrns);
+                            finVoucherTrns.AddRange(rdPosting.VoucherTrns);
+                            #endregion
                             break;
                         case 3: /// Member Creditor
                             break;

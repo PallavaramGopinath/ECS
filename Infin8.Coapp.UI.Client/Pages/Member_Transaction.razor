@@ -891,8 +891,9 @@
             {
                 case 1: /// loan receipt
                     break;
-                case 2: /// RD Receipt
+                case 2: /// RD Receipt (ECS, spec 14)
                     isLedgerSection = false;
+                    isComponentLoaded = true;
                     break;
                 case 6: /// member deposit advance receipt
                     break;
@@ -1252,7 +1253,29 @@
             #region receipt
             case 1: /// loan receipt
                 break;
-            case 2: /// RD Receipt
+            case 2: /// RD Receipt (ECS, spec 14)
+                #region ECS RD receipt
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName}";
+                Type? typeRdReceipt = Type.GetType(fullyQualifiedName);
+                if (typeRdReceipt != null) currentComponent = typeRdReceipt;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId", transaction.Account_Id },
+                    { "CashOrAdjustment", transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnRDReceiptComponentClose", EventCallback.Factory.Create<bool>(this, CloseRDReceiptComponent) },
+                    { "OnRDReceiptInitiate", EventCallback.Factory.Create<DtoEcsRdReceipt>(this, RDReceiptInitiate) }
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
+                #endregion
                 break;
             case 6: /// member deposit advance receipt
                 break;
@@ -2024,6 +2047,9 @@
                     case 58:    /// ECS Loan Receipt (spec 11)
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.ECSLoan"}.{componentName},{assemblyName}";
                         break;
+                    case 2:     /// RD Receipt (ECS, spec 14)
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName},{assemblyName}";
+                        break;
                 }
                 Type? type = Type.GetType(fullyQualifiedName);
                 if (type == null)
@@ -2354,8 +2380,7 @@
         {
             case 1: /// loan receipt
                 break;
-            case 2: /// RD Receipt
-
+            case 2: /// RD Receipt (ECS, spec 14): nothing cached on the page; deleting the staging row below releases the RD lock
                 break;
             case 6: /// member deposit advance receipt
                 break;
@@ -2703,6 +2728,24 @@
     #endregion
 
     #region ECS loan recovery component items (acc 58, spec 11)
+    private void CloseRDReceiptComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private async Task RDReceiptInitiate(DtoEcsRdReceipt receipt)
+    {
+        await UpdateTransactionsFromStaging("I", brCode);
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
     private void CloseECSLoanRecoveryComponent(bool closeSignalFromChild)
     {
         if (closeSignalFromChild)

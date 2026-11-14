@@ -260,6 +260,21 @@ Spec: `specs/ecs-extension/11-ecs-loan-recovey-component.md` (sic — "recovey" 
 - A loan already in a pending (I/M) acc 58 staging line is locked: its JSON is deserialised to find the
   `Loan_Id`s. The approving staging excludes itself from that check.
 
+### ECS RD receipt (acc 2, "RD Receipt")
+
+A Member Transaction component like acc 58: `Components/TermDeposit/RecurringDeposit_Receipt.razor` (Maker) and
+`RecurringDeposit_Receipt_View.razor` (view). `account_transactions` acc 2 must carry those two names. Spec:
+`specs/ecs-extension/14-rs-receipt-component.md` (§17 lists decisions and departures).
+
+- **Flow.** `GET api/rdreceipt/Rds/{memId}` (`RdReceiptController`, ECS-gated) → `EcsRdReceiptHandler.GetRdsAsync`. Initiate
+  stages `DtoEcsRdReceipt`. Approval: `TransactionsHandler.SaveTransaction` `case 2` → `EcsRdReceiptHandler.BuildPostingAsync`,
+  which recomputes and adds rows to `termDepositTrnList` / `finVoucherTrns`. `TransactionsHandler` now injects
+  `IEcsRdReceiptHandler` too.
+- **Rules** are in `Utility/EcsRdReceiptAppropriator.cs` (pure, shared by WASM and server): instalments due, RD pending, TSIS
+  monthly penal (`PenalRateForRD` is per month; spec 12 still divides by 12), penal-first whole-instalment appropriation,
+  advance on the last RD up to maturity, month-end-preserving `AddMonthsKeepEnd`.
+- Penal ledger is the scheme's `PiLed_Id`, instalments `Led_Id`. No post-approval delete exists (none does for any account).
+
 ### ECS demand calculation (spec 12)
 
 Page `Pages/ECSLoan/ECSDemandCalculation.razor` (`/ecs-demand-calculation`, Admin), API `api/ecsdemand/*`
