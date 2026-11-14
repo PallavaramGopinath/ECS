@@ -900,8 +900,9 @@
                 case 16:    /// fd account creation
                     isLedgerSection = false;
                     break;
-                case 17: /// rd account creation
+                case 17: /// RD New Account (ECS, spec 15)
                     isLedgerSection = false;
+                    isComponentLoaded = true;
                     break;
                 case 18: /// sb account creation
                     isLedgerSection = false;
@@ -1305,7 +1306,29 @@
                 StateHasChanged();
                 #endregion
                 break;
-            case 17: /// rd account creation
+            case 17: /// RD New Account (ECS, spec 15)
+                #region ECS RD new account
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName}";
+                Type? typeRdCreate = Type.GetType(fullyQualifiedName);
+                if (typeRdCreate != null) currentComponent = typeRdCreate;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId", transaction.Account_Id },
+                    { "CashOrAdjustment", transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnRDCreateComponentClose", EventCallback.Factory.Create<bool>(this, CloseRDCreateComponent) },
+                    { "OnRDCreateInitiate", EventCallback.Factory.Create<DtoEcsRdCreate>(this, RDCreateInitiate) }
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
+                #endregion
                 break;
             case 18: /// sb account creation
                 #region SB Account create
@@ -2048,6 +2071,7 @@
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.ECSLoan"}.{componentName},{assemblyName}";
                         break;
                     case 2:     /// RD Receipt (ECS, spec 14)
+                    case 17:    /// RD New Account (ECS, spec 15)
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName},{assemblyName}";
                         break;
                 }
@@ -2387,8 +2411,7 @@
             case 16:    /// fd account creation
                 FDNewCreate = new();
                 break;
-            case 17: /// rd account creation
-
+            case 17: /// RD New Account (ECS, spec 15): nothing cached on the page; the RD exists only after approval
                 break;
             case 18: /// sb account creation
 
@@ -2738,6 +2761,25 @@
     }
 
     private async Task RDReceiptInitiate(DtoEcsRdReceipt receipt)
+    {
+        await UpdateTransactionsFromStaging("I", brCode);
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
+    // ECS RD New Account (acc 17, spec 15)
+    private void CloseRDCreateComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private async Task RDCreateInitiate(DtoEcsRdCreate rd)
     {
         await UpdateTransactionsFromStaging("I", brCode);
         isComponentLoaded = false;

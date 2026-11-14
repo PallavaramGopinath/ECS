@@ -275,6 +275,24 @@ A Member Transaction component like acc 58: `Components/TermDeposit/RecurringDep
   advance on the last RD up to maturity, month-end-preserving `AddMonthsKeepEnd`.
 - Penal ledger is the scheme's `PiLed_Id`, instalments `Led_Id`. No post-approval delete exists (none does for any account).
 
+### ECS RD new account (acc 17, "Recurring Deposit New Account")
+
+A Member Transaction component that opens an RD and takes the first instalment: `Components/TermDeposit/RecurringDeposit_Create.razor`
+(Maker) and `RecurringDeposit_Create_View.razor`. Spec: `specs/ecs-extension/15-rd-new-account.md` (§18 = settled decisions).
+
+- **Flow.** `api/rdcreate/Setup/{memId}`, `Member/{memNo}` and `Calculate` (`RdCreateController`, ECS-gated) feed `EcsRdCreateHandler`.
+  Initiate stages `DtoEcsRdCreate`, with the line amount = one instalment. Approval: `SaveTransaction` `case 17` →
+  `BuildPostingAsync`, which recomputes and refuses on any change. It adds the master and members through
+  `EcsRdCreateRepository.AddRdAsync` (its own MAX+1 for `TD_Id` / `TDMem_Id`), and the trn and voucher line to
+  `SaveTransaction`'s lists. `TransactionsHandler` now injects `IEcsRdCreateHandler` too. One acc 17 line per voucher.
+- **Rules** are in `Utility/EcsRdCreateCalculator.cs`, pure and shared by WASM and the server:
+  - ROI pick, the same rule as spec 14.
+  - Periods are multiples of 12 with an ROI row; the scheme's Min/Max is ignored.
+  - Maturity uses TSIS branch (a), each month's interest rounded to a rupee, with the date from `AddMonthsKeepEnd`.
+  - Mode-of-operation list 1–12.
+- **RD No** = `brCode` + first digit of the scheme id + 7-digit running number (`1100540000001`), allocated at approval. The
+  number the Maker sees is provisional. Holders must be `memberstatus = 1`, not expired, not deleted.
+
 ### ECS demand calculation (spec 12)
 
 Page `Pages/ECSLoan/ECSDemandCalculation.razor` (`/ecs-demand-calculation`, Admin), API `api/ecsdemand/*`

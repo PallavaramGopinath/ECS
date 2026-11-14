@@ -21,12 +21,14 @@ namespace Infin8.Coapp.BusinessLogic
         readonly IUnitOfWork _unitOfWork;
         readonly IEcsLoanRecoveryHandler _ecsLoanRecoveryHandler;
         readonly IEcsRdReceiptHandler _ecsRdReceiptHandler;
+        readonly IEcsRdCreateHandler _ecsRdCreateHandler;
         public TransactionsHandler(IUnitOfWork unitOfWork, IEcsLoanRecoveryHandler ecsLoanRecoveryHandler,
-            IEcsRdReceiptHandler ecsRdReceiptHandler)
+            IEcsRdReceiptHandler ecsRdReceiptHandler, IEcsRdCreateHandler ecsRdCreateHandler)
         {
             _unitOfWork = unitOfWork;
             _ecsLoanRecoveryHandler = ecsLoanRecoveryHandler;
             _ecsRdReceiptHandler = ecsRdReceiptHandler;
+            _ecsRdCreateHandler = ecsRdCreateHandler;
         }
         public async Task<List<DropdownItem>> GetTransactionAccounts(string accountStatus, string accountBelongTo)
         {
@@ -88,6 +90,7 @@ namespace Infin8.Coapp.BusinessLogic
             List<Fin_Voucher_Bank> finVocBankList = new();
             List<TermDeposit_Trn> termDepositTrnList = new();
             int rdReceiptLines = 0;   // spec 14 §7.3: one RD Receipt line per voucher
+            int rdCreateLines = 0;    // spec 15 §8: one RD New Account line per voucher
             try
             {
                 _unitOfWork.BeginTransaction();
@@ -676,7 +679,20 @@ namespace Infin8.Coapp.BusinessLogic
 
                             #endregion
                             break;
-                        case 17:    /// RD New Accounttrns
+                        case 17:    /// RD New Account (ECS, spec 15 §10)
+                            #region ECS RD new account
+                            if (rdCreateLines++ > 0)
+                                throw new EcsRecoveryException("Only one new RD account can be opened in a voucher. Reject it and initiate one RD opening per voucher.");
+                            DtoEcsRdCreate ecsRdCreate = System.Text.Json.JsonSerializer.Deserialize<DtoEcsRdCreate>(
+                                trns.Related_Account_Data!, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                                ?? throw new EcsRecoveryException("RD opening data is missing. Reject it and re-initiate.");
+                            if (Math.Abs(ecsRdCreate.Instalment - trns.Receipt_Amount) > 0.005 || trns.Payment_Amount != 0)
+                                throw new EcsRecoveryException("RD instalment does not match the transaction line. Reject it and re-initiate.");
+                            var rdCreatePosting = await _ecsRdCreateHandler.BuildPostingAsync(ecsRdCreate, stagingId, Transacted_Date, brCode,
+                                yrId, Checked_By, vocId, trns.Cash_Or_Adjustment, string.IsNullOrWhiteSpace(Status) ? "RDR" : Status.Trim());
+                            termDepositTrnList.AddRange(rdCreatePosting.TermDepositTrns);
+                            finVoucherTrns.AddRange(rdCreatePosting.VoucherTrns);
+                            #endregion
                             break;
                         case 18:    /// SB Account Creation
                             #region SB Account Creation

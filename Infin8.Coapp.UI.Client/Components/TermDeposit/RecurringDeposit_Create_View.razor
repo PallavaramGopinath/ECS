@@ -1,0 +1,120 @@
+@* Read-only view of an acc 17 ECS RD New Account staging line (spec 15 §11). Hosts pass stagingId / relatedAccountId. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Models
+@using Infin8.Coapp.Utility
+@using System.Globalization
+@using System.Text.Json
+@inject HttpClient _httpClient
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (rd != null)
+{
+    <div class="card mt-2">
+        <div class="card-header">
+            <h5 class="mb-0">Recurring Deposit New Account</h5>
+            <div class="small text-muted">
+                Member @rd.MemberNo — @rd.MemberName · Business day @D(rd.ApplicationDate)
+                · @(rd.CashOrAdjustment == 2 ? "Adjustment" : "Cash")
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <table class="table table-sm small mb-0">
+                        <tr><td>Scheme</td><td>@rd.TDScheme_Name</td></tr>
+                        <tr><td>RD No</td><td>@rd.ProvisionalTD_No <span class="badge bg-secondary">provisional</span></td></tr>
+                        <tr><td>Value date</td><td>@D(rd.ValueDate)</td></tr>
+                        <tr><td>Instalment</td><td>₹@F(rd.Instalment)</td></tr>
+                        <tr><td>Period</td><td>@rd.PeriodInMonths months</td></tr>
+                        <tr><td>Rate of interest</td><td>@rd.RateOfInterest.ToString("0.##") % p.a.</td></tr>
+                        <tr><td>Penal rate</td><td>@rd.PenalRate.ToString("0.##") % per month</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm small mb-0">
+                        <tr><td>Maturity date</td><td>@D(rd.MaturityDate)</td></tr>
+                        <tr><td>Maturity amount</td><td>₹@F(rd.MaturityAmount)</td></tr>
+                        <tr><td>Demand</td><td>@(rd.IncludeInDemand ? "Include in monthly demand" : "Do not include")</td></tr>
+                        <tr><td>Mode of operation</td><td>@EcsRdCreateCalculator.ModeName(rd.ModeOfOperation)</td></tr>
+                        <tr><td>Name(s) on bond</td><td>@rd.NameOnBond</td></tr>
+                        <tr class="fw-semibold"><td>Received now</td><td>₹@F(rd.Instalment)</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <h6 class="mt-3">Holders</h6>
+            <table class="table table-sm table-bordered table-striped small">
+                <thead class="table-light">
+                    <tr><th>#</th><th>Mem No</th><th>Name</th><th>Father / Husband name</th><th class="text-end">Age</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in rd.Holders)
+                    {
+                        <tr><td>@h.SlNo</td><td>@h.MemberNo</td><td>@h.MemberName</td><td>@h.FatherName</td><td class="text-end">@h.Age</td></tr>
+                    }
+                </tbody>
+            </table>
+
+            <h6>Nominees</h6>
+            @if (string.IsNullOrWhiteSpace(rd.Nominee1Name))
+            {
+                <div class="small text-muted">No nominee</div>
+            }
+            else
+            {
+                <table class="table table-sm table-bordered small mb-0">
+                    <thead class="table-light"><tr><th>Name</th><th class="text-end">Age</th><th>Relationship</th></tr></thead>
+                    <tbody>
+                        <tr><td>@rd.Nominee1Name</td><td class="text-end">@rd.Nominee1Age</td><td>@rd.Nominee1Relationship</td></tr>
+                        @if (!string.IsNullOrWhiteSpace(rd.Nominee2Name))
+                        {
+                            <tr><td>@rd.Nominee2Name</td><td class="text-end">@rd.Nominee2Age</td><td>@rd.Nominee2Relationship</td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public decimal stagingId { get; set; }
+    [Parameter] public int relatedAccountId { get; set; }
+
+    private DtoEcsRdCreate? rd;
+    private string? errorMessage;
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        rd = null;
+        errorMessage = null;
+        if (stagingId <= 0 || relatedAccountId <= 0) return;
+        try
+        {
+            var details = await _httpClient.GetFromJsonAsync<Staging_Details>($"api/Staging/GetStagingDetailsById/{stagingId}/{relatedAccountId}");
+            if (!string.IsNullOrWhiteSpace(details?.Related_Account_Data))
+            {
+                rd = JsonSerializer.Deserialize<DtoEcsRdCreate>(details.Related_Account_Data,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the RD opening: {ex.Message}";
+        }
+    }
+
+    private static string D(DateTime d) => d == DateTime.MinValue ? "" : d.ToString("dd-MM-yyyy");
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+}

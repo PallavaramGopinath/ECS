@@ -1,0 +1,535 @@
+@* ECS RD New Account — acc 17 "Recurring Deposit New Account" (spec 15). Hosted by Member_Transaction.razor through DynamicComponent. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@using System.Text.Json
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<div>
+    <h3 class="mb-2">Recurring Deposit New Account</h3>
+    <hr class="mt-0" />
+
+    @if (!isReady)
+    {
+        <div class="d-flex align-items-center gap-2 text-muted">
+            <div class="spinner-border spinner-border-sm" role="status"></div> Loading…
+        </div>
+    }
+    else if (institution != InstitutionType.ECS)
+    {
+        <div class="alert alert-warning">RD New Account is available only for Employees' Society (ECS) institutions.</div>
+        <button type="button" class="btn btn-secondary" @onclick="Close"><i class="bi bi-x-circle"></i> Close</button>
+    }
+    else
+    {
+        <div class="mb-2 text-muted small">
+            Member <strong>@MemberNumber</strong> — @MemberName · Business day <strong>@D(businessDay)</strong>
+            · @(CashOrAdjustment == 2 ? "Adjustment" : "Cash")
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        @if (setupOk)
+        {
+            @* ---------- Account details (§4.1) ---------- *@
+            <div class="card mb-3">
+                <div class="card-header py-2 fw-semibold">Account details</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label mb-1">RD scheme</label>
+                            <select class="form-select" value="@dto.TDScheme_Id" @onchange="OnSchemeChange">
+                                @if (setup.Schemes.Count != 1)
+                                {
+                                    <option value="0">-- Select --</option>
+                                }
+                                @foreach (var s in setup.Schemes)
+                                {
+                                    <option value="@s.TDScheme_Id">@s.TDScheme_Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1">RD No <span class="badge bg-secondary">provisional</span></label>
+                            <input class="form-control" readonly value="@dto.ProvisionalTD_No" title="The number is allocated when the Checker approves" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1">Value date</label>
+                            <input type="date" class="form-control" @bind="dto.ValueDate" @bind:after="Recalc"
+                                   min="@monthStart.ToString("yyyy-MM-dd")" max="@businessDay.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label mb-1">Instalment per month (₹)</label>
+                            <input type="number" step="1" min="1" class="form-control" @bind="instalmentText" @bind:event="oninput" @bind:after="OnInstalmentChange" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1">Period (months)</label>
+                            <select class="form-select" @bind="dto.PeriodInMonths" @bind:after="Recalc">
+                                @if (periods.Count == 0)
+                                {
+                                    <option value="0">-- No rate defined --</option>
+                                }
+                                @foreach (var p in periods)
+                                {
+                                    <option value="@p">@p</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1">ROI % p.a.</label>
+                            <input class="form-control text-end" readonly value="@dto.RateOfInterest.ToString("0.##")" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1">Penal % p.m.</label>
+                            <input class="form-control text-end" readonly value="@dto.PenalRate.ToString("0.##")" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label mb-1">Maturity date</label>
+                            <input class="form-control" readonly value="@(dto.MaturityAmount > 0 ? D(dto.MaturityDate) : "")" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1">Maturity amount (₹)</label>
+                            <input class="form-control text-end" readonly value="@(dto.MaturityAmount > 0 ? F(dto.MaturityAmount) : "")" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1">Demand</label>
+                            <select class="form-select" @bind="includeInDemand">
+                                <option value="1">Include in monthly demand</option>
+                                <option value="2">Do not include</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label mb-1">Mode of operation</label>
+                            <select class="form-select" @bind="dto.ModeOfOperation" @bind:after="Recalc">
+                                @foreach (var m in EcsRdCreateCalculator.ModesOfOperation)
+                                {
+                                    <option value="@m.Code">@m.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label mb-1">Name(s) on bond</label>
+                            <input class="form-control" readonly value="@dto.NameOnBond" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ---------- Holders (§4.2) ---------- *@
+            <div class="card mb-3">
+                <div class="card-header py-2 fw-semibold">Holders</div>
+                <div class="card-body">
+                    <table class="table table-sm table-bordered align-middle small mb-2">
+                        <thead class="table-light">
+                            <tr><th>#</th><th>Mem No</th><th>Name</th><th>Father / Husband name</th><th class="text-end">Age</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var h in dto.Holders)
+                            {
+                                <tr>
+                                    <td>@h.SlNo</td>
+                                    <td>@h.MemberNo</td>
+                                    <td>@h.MemberName</td>
+                                    <td>@h.FatherName</td>
+                                    <td class="text-end">@h.Age</td>
+                                    <td>
+                                        @if (h.SlNo > 1)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Remove" @onclick="() => RemoveHolder(h)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="input-group" style="max-width:360px">
+                        <input class="form-control" placeholder="Joint holder Mem No" @bind="newMemNo" @onkeydown="OnMemNoKey" />
+                        <button type="button" class="btn btn-outline-primary" disabled="@isLooking" @onclick="AddHolder">
+                            <i class="bi bi-person-plus"></i> Add
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(holderMessage))
+                    {
+                        <div class="text-danger small mt-1">@holderMessage</div>
+                    }
+                </div>
+            </div>
+
+            @* ---------- Nominees (§4.3) ---------- *@
+            <div class="card mb-3">
+                <div class="card-header py-2 fw-semibold d-flex justify-content-between align-items-center">
+                    <span>Nominees</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(setup.LastNominee == null)"
+                            title="@(setup.LastNominee == null ? "The member has no earlier RD" : "Copy from the member's latest RD")"
+                            @onclick="CopyNominee">
+                        <i class="bi bi-clipboard"></i> Copy last nominee
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5"><label class="form-label mb-1">Nominee 1 name</label><input class="form-control" @bind="dto.Nominee1Name" @bind:after="Recalc" /></div>
+                        <div class="col-md-2"><label class="form-label mb-1">Age</label><input type="number" min="0" max="120" class="form-control" @bind="dto.Nominee1Age" @bind:after="Recalc" /></div>
+                        <div class="col-md-5"><label class="form-label mb-1">Relationship</label><input class="form-control" list="rd-relationships" @bind="dto.Nominee1Relationship" /></div>
+                        <div class="col-md-5"><label class="form-label mb-1">Nominee 2 name</label><input class="form-control" @bind="dto.Nominee2Name" @bind:after="Recalc" /></div>
+                        <div class="col-md-2"><label class="form-label mb-1">Age</label><input type="number" min="0" max="120" class="form-control" @bind="dto.Nominee2Age" @bind:after="Recalc" /></div>
+                        <div class="col-md-5"><label class="form-label mb-1">Relationship</label><input class="form-control" list="rd-relationships" @bind="dto.Nominee2Relationship" /></div>
+                    </div>
+                    <datalist id="rd-relationships">
+                        @foreach (var r in EcsRdCreateCalculator.Relationships)
+                        {
+                            <option value="@r"></option>
+                        }
+                    </datalist>
+                </div>
+            </div>
+
+            @* ---------- Totals and buttons (§4.4) ---------- *@
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                <div>Instalment received now: <strong>₹@F(dto.Instalment)</strong> (@(CashOrAdjustment == 2 ? "Adjustment" : "Cash"))</div>
+                @if (validation != null && !(instalmentText.Length == 0 && dto.Instalment <= 0))
+                {
+                    <div class="text-danger small">@validation</div>
+                }
+            </div>
+        }
+
+        <div class="mt-2 d-flex gap-2">
+            @if (setupOk)
+            {
+                <button type="button" class="btn btn-outline-primary" @onclick="Recalc"><i class="bi bi-calculator"></i> Calculate</button>
+                <button type="button" class="btn btn-primary" disabled="@(!CanInitiate)" @onclick="Initiate">
+                    @if (isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    <i class="bi bi-check2-circle"></i> Initiate
+                </button>
+            }
+            <button type="button" class="btn btn-secondary" @onclick="Close"><i class="bi bi-x-circle"></i> Close</button>
+        </div>
+    }
+</div>
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnRDCreateComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoEcsRdCreate> OnRDCreateInitiate { get; set; }
+    #endregion
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    private bool isReady;
+    private bool setupOk;
+    private bool isSubmitting;
+    private bool isLooking;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private string brCode = "";
+    private decimal userId;
+    private string? errorMessage;
+    private string? holderMessage;
+    private string? validation;
+
+    private EcsRdCreateSetupVM setup = new();
+    private DtoEcsRdCreate dto = new();
+    private DateTime businessDay;
+    private DateTime monthStart;
+    private List<int> periods = new();
+    private string instalmentText = "";
+    private string newMemNo = "";
+    private int includeInDemand = 1;
+
+    private bool CanInitiate => setupOk && !isSubmitting && validation == null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode ?? "";
+            userId = userInfoDto.UserId;
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            businessDay = (TransactionDate == DateTime.MinValue ? userInfoDto.CurrentDate : TransactionDate).Date;
+            monthStart = new DateTime(businessDay.Year, businessDay.Month, 1);
+            if (institution == InstitutionType.ECS) await LoadSetupAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the RD opening screen: {ex.Message}";
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LoadSetupAsync()
+    {
+        var response = await _httpClient.GetAsync($"api/rdcreate/Setup/{MemberId}");
+        if (!response.IsSuccessStatusCode)
+        {
+            errorMessage = response.StatusCode == HttpStatusCode.Forbidden
+                ? "RD New Account is available only to ECS societies."
+                : $"Could not load the RD opening screen ({(int)response.StatusCode}).";
+            return;
+        }
+        setup = await response.Content.ReadFromJsonAsync<EcsRdCreateSetupVM>(JsonOptions) ?? new();
+        if (setup.Message != null || setup.FirstHolder == null)
+        {
+            errorMessage = setup.Message ?? "The member could not be loaded.";
+            return;
+        }
+
+        businessDay = setup.ApplicationDate.Date;
+        monthStart = new DateTime(businessDay.Year, businessDay.Month, 1);
+        dto = new DtoEcsRdCreate
+        {
+            MemId = MemberId,
+            MemberNo = MemberNumber,
+            MemberName = MemberName,
+            ApplicationDate = businessDay,
+            CashOrAdjustment = CashOrAdjustment,
+            ValueDate = businessDay,
+            ProvisionalTD_No = setup.ProvisionalTD_No,
+            ModeOfOperation = 1,
+            Holders = new() { setup.FirstHolder }
+        };
+        setup.FirstHolder.SlNo = 1;
+        if (setup.Schemes.Count == 1) SelectScheme(setup.Schemes[0].TDScheme_Id);
+        setupOk = true;
+        Recalc();
+    }
+
+    // ---------- inputs ----------
+
+    private void OnSchemeChange(ChangeEventArgs e)
+    {
+        SelectScheme(int.TryParse(e.Value?.ToString(), out var id) ? id : 0);
+        Recalc();
+    }
+
+    private void SelectScheme(int schemeId)
+    {
+        var s = setup.Schemes.FirstOrDefault(x => x.TDScheme_Id == schemeId);
+        dto.TDScheme_Id = s?.TDScheme_Id ?? 0;
+        dto.TDScheme_Name = s?.TDScheme_Name;
+        // The provisional number belongs to the setup's first scheme; others show the same series shape.
+        dto.ProvisionalTD_No = s == null ? null
+            : setup.ProvisionalTD_No != null && setup.ProvisionalTD_No.StartsWith(EcsRdCreateCalculator.TdNoPrefix(brCode, s.TDScheme_Id))
+                ? setup.ProvisionalTD_No
+                : EcsRdCreateCalculator.NextTdNo(brCode, s.TDScheme_Id, Array.Empty<string?>());
+    }
+
+    private void OnInstalmentChange()
+    {
+        dto.Instalment = double.TryParse(instalmentText, NumberStyles.Number, CultureInfo.InvariantCulture, out var v) ? v : 0;
+        Recalc();
+    }
+
+    /// <summary>§6 + §7 through the same calculator the server rechecks with.</summary>
+    private void Recalc()
+    {
+        if (!setupOk) return;
+        periods = dto.TDScheme_Id > 0 ? EcsRdCreateCalculator.AllowedPeriods(setup.RoiRows, dto.TDScheme_Id, dto.ValueDate) : new();
+        if (!periods.Contains(dto.PeriodInMonths)) dto.PeriodInMonths = periods.FirstOrDefault();
+
+        var roi = EcsRdCreateCalculator.Recompute(dto, setup.RoiRows);
+        validation = roi ?? EcsRdCreateCalculator.Validate(dto, businessDay, setup.RoiRows);
+    }
+
+    // ---------- holders ----------
+
+    private async Task OnMemNoKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await AddHolder();
+    }
+
+    private async Task AddHolder()
+    {
+        holderMessage = null;
+        var no = newMemNo?.Trim() ?? "";
+        if (no.Length == 0) { holderMessage = "Enter a member number"; return; }
+        if (dto.Holders.Any(h => string.Equals(h.MemberNo?.Trim(), no, StringComparison.OrdinalIgnoreCase)))
+        {
+            holderMessage = $"Member No {no} is already a holder";
+            return;
+        }
+        isLooking = true;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/rdcreate/Member/{Uri.EscapeDataString(no)}");
+            var vm = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<EcsRdHolderLookupVM>(JsonOptions) : null;
+            if (vm?.Holder == null)
+            {
+                holderMessage = vm?.Message ?? $"Could not look up Member No {no} ({(int)response.StatusCode}).";
+                return;
+            }
+            if (dto.Holders.Any(h => h.Mem_Id == vm.Holder.Mem_Id))
+            {
+                holderMessage = $"Member No {no} is already a holder";
+                return;
+            }
+            dto.Holders.Add(vm.Holder);
+            Renumber();
+            newMemNo = "";
+            if (dto.ModeOfOperation == 1) dto.ModeOfOperation = 2;   // Single cannot have joint holders
+            Recalc();
+        }
+        catch (Exception ex)
+        {
+            holderMessage = $"Could not look up Member No {no}: {ex.Message}";
+        }
+        finally
+        {
+            isLooking = false;
+        }
+    }
+
+    private void RemoveHolder(DtoEcsRdCreateHolder h)
+    {
+        dto.Holders.Remove(h);
+        Renumber();
+        if (dto.Holders.Count == 1 && dto.ModeOfOperation >= 2 && dto.ModeOfOperation <= 8) dto.ModeOfOperation = 1;
+        Recalc();
+    }
+
+    private void Renumber()
+    {
+        for (int i = 0; i < dto.Holders.Count; i++) dto.Holders[i].SlNo = i + 1;
+    }
+
+    private void CopyNominee()
+    {
+        var n = setup.LastNominee;
+        if (n == null) return;
+        dto.Nominee1Name = n.Nominee1Name?.Trim();
+        dto.Nominee1Age = n.Nominee1Age;
+        dto.Nominee1Relationship = n.Nominee1Relationship?.Trim();
+        dto.Nominee2Name = n.Nominee2Name?.Trim();
+        dto.Nominee2Age = n.Nominee2Age;
+        dto.Nominee2Relationship = n.Nominee2Relationship?.Trim();
+        Recalc();
+    }
+
+    // ---------- close / initiate ----------
+
+    private async Task Close() => await OnRDCreateComponentClose.InvokeAsync(true);
+
+    private async Task Initiate()
+    {
+        Recalc();
+        if (!CanInitiate) return;
+        isSubmitting = true;
+        errorMessage = null;
+        try
+        {
+            dto.IncludeInDemand = includeInDemand == 1;
+            dto.CashOrAdjustment = CashOrAdjustment;
+            dto.ApplicationDate = businessDay;
+
+            // Server recheck (member status, scheme, rates) before staging; approval rechecks again.
+            var calcResponse = await _httpClient.PostAsJsonAsync("api/rdcreate/Calculate", dto);
+            var calc = calcResponse.IsSuccessStatusCode ? await calcResponse.Content.ReadFromJsonAsync<EcsRdCreateCalcVM>(JsonOptions) : null;
+            if (calc == null)
+            {
+                errorMessage = $"Could not check the RD opening ({(int)calcResponse.StatusCode}).";
+                return;
+            }
+            if (calc.Message != null)
+            {
+                errorMessage = calc.Message;
+                return;
+            }
+            if (!EcsRdCreateCalculator.Near(calc.Dto.MaturityAmount, dto.MaturityAmount) || calc.Dto.MaturityDate.Date != dto.MaturityDate.Date)
+            {
+                errorMessage = "Maturity figures are out of date; press Calculate";
+                return;
+            }
+
+            string accountName = "Recurring Deposit New Account";
+            try
+            {
+                var nameResponse = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
+                if (nameResponse.IsSuccessStatusCode) accountName = await nameResponse.Content.ReadAsStringAsync();
+            }
+            catch (HttpRequestException)
+            {
+                // keep the default module name
+            }
+
+            double amount = dto.Instalment;
+            var stagingDetails = new DtoStaging_Details
+            {
+                Id = 0,
+                Staging_Id = 0,
+                Member_Id = MemberId,
+                Ledger_Id = 0,
+                Related_Account_Id = AccountId,
+                Receipt_Amount = amount,
+                Payment_Amount = 0,
+                Module_Name = accountName,
+                Cash_Or_Adjustment = CashOrAdjustment,
+                Related_Account_Data = JsonSerializer.Serialize(dto),
+                Created_By = userId,
+                Created_Date = TransactionDate,
+                Checked_By = 0,
+                Checked_Date = null,
+                Staging_Status = "I",
+                BrCode = brCode,
+                CashReceipt_Amount = CashOrAdjustment == 1 ? amount : 0,
+                AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? amount : 0,
+                CashPayment_Amount = 0,
+                AdjustmentPayment_Amount = 0,
+                Transaction_Type = "Member Transaction"
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("api/Staging/AddStaging", stagingDetails);
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Could not initiate the RD opening ({(int)response.StatusCode}).";
+                return;
+            }
+            await OnRDCreateInitiate.InvokeAsync(dto);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not initiate the RD opening: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private static string D(DateTime? d) => d.HasValue && d.Value != DateTime.MinValue ? d.Value.ToString("dd-MM-yyyy") : "";
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+}
