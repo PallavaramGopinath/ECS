@@ -10,9 +10,9 @@ namespace Infin8.Coapp.Models
         public decimal Mem_Id { get; set; }
         public DateOnly Demand_Date { get; set; }
         public bool Is_Active { get; set; } = true;
-        public int Voc_Id { get; set; }
-        public int Usr_Id { get; set; }
-        public int Yr_Id { get; set; }
+        public decimal Voc_Id { get; set; }
+        public decimal Usr_Id { get; set; }
+        public decimal Yr_Id { get; set; }
         public string? BrCode { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 namespace Infin8.Coapp.Models
 {
     using System;
@@ -20,6 +21,7 @@ namespace Infin8.Coapp.Models
         public Decimal Loan_Id { get; set; }
         public double Prl_Schedule { get; set; }
         public double Non_OD_Prl { get; set; }
+        [Column("loan_outstanding")]
         public double Loan_Oustanding { get; set; }
         public double Loan_PI_Arrear { get; set; }
         public double Loan_Int_Arrear { get; set; }
@@ -51,7 +53,7 @@ namespace Infin8.Coapp.Models
         /// Recurring Deposits
         /// </summary>
         public decimal TD_Id { get; set; }
-        public int RD_Instalment { get; set; }
+        public double RD_Instalment { get; set; }
         public int RD_NoOf_Instalments { get; set; }
         public double RD_Demand { get; set; }
         public double RD_PI_Arrear { get; set; }
@@ -71,6 +73,7 @@ namespace Infin8.Coapp.Models
         /// Total Demand
         /// </summary>
         public double Total_Demand { get; set; }
+        public double Restricted_Demand { get; set; }
 
 
         /// <summary>
@@ -87,6 +90,7 @@ namespace Infin8.Coapp.Models
         /// <summary>
         /// Deposit Collection
         /// </summary>
+        [Column("deaposit_arrear_collection")]
         public double Deposit_Arrear_Collection { get; set; }
         public double Deposit_Current_Collection { get; set; }
         public double Deposit_Arrear_PI_Collection { get; set; }
@@ -136,7 +140,7 @@ namespace Infin8.Coapp.Models
         public bool Stop_Demand { get; set; } =false;
         public bool Is_Appropriated { get; set; }=false;
         public bool Is_Recovery_Saved { get; set; } = false;
-        public decimal Recovery_Id { get; set; }
+        public int Recovery_Id { get; set; }
 
         /// <summary>
         /// Loan2 Recalculation

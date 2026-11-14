@@ -61,6 +61,7 @@ namespace Infin8.Coapp.Repository
         private EcsLoanSanctionRepository? _ecsLoanSanctionRepository;
         private EcsLoanDisbursementRepository? _ecsLoanDisbursementRepository;
         private EcsLoanRecoveryRepository? _ecsLoanRecoveryRepository;
+        private EcsDemandRepository? _ecsDemandRepository;
         private LoanEligibilityRepository? _loanEligibilityRepository;
         private LoanTrnRepository? _loanTrnRepository;
         private JLDailyMarketRateRepository? _jldailyMarketRateRepository;
@@ -174,18 +175,14 @@ namespace Infin8.Coapp.Repository
         #endregion
 
         #region ECS Demand Calculation
-        private ECSDemandCalculationRepository? _ecsDemandCalculationRepository;
         #endregion
 
         #region Mem Demand
         private MemDemandMasterRepository? _memDemandMasterRepository;
-        private MemDemandRepository? _memDemandRepository;
-        private MemDemandStatusRepository? _memDemandStatusRepository;
         private MemCollectionPriorityRepository? _memCollectionPriorityRepository;
         #endregion
 
         #region Recurring Deposit
-        private RecurringDepositRepository? _recurringDepositRepository;
         #endregion 
 
         #region Accounts
@@ -231,6 +228,7 @@ namespace Infin8.Coapp.Repository
         public IEcsLoanSanctionRepository EcsLoanSanction => _ecsLoanSanctionRepository ??= new EcsLoanSanctionRepository(_context);
         public IEcsLoanDisbursementRepository EcsLoanDisbursement => _ecsLoanDisbursementRepository ??= new EcsLoanDisbursementRepository(_context);
         public IEcsLoanRecoveryRepository EcsLoanRecovery => _ecsLoanRecoveryRepository ??= new EcsLoanRecoveryRepository(_context);
+        public IEcsDemandRepository EcsDemand => _ecsDemandRepository ??= new EcsDemandRepository(_context);
         public ILoanEligibilityRepository LoanEligibility => _loanEligibilityRepository ??= new LoanEligibilityRepository(_context);
         public ILoanTrnRepository LoanTrn => _loanTrnRepository ??= new LoanTrnRepository(_context);
         public IJLDailyMarketRateRepository JLDailyMarketRate => _jldailyMarketRateRepository ??= new JLDailyMarketRateRepository(_context);    
@@ -341,18 +339,14 @@ namespace Infin8.Coapp.Repository
         #endregion
 
         #region ECS Demand Caluclation
-        public IECSDemandCalculationRepository ECSDemandCalculation => _ecsDemandCalculationRepository ??= new ECSDemandCalculationRepository(_context);
         #endregion
 
         #region Mem Demand
         public IMemDemandMasterRepository MemDemandMaster => _memDemandMasterRepository ??= new MemDemandMasterRepository(_context);
-        public IMemDemandRepository MemDemand => _memDemandRepository ??= new MemDemandRepository(_context);
-        public IMemDemandStatusRepository MemDemandStatus => _memDemandStatusRepository ??= new MemDemandStatusRepository(_context);
         public IMemCollectionPriorityRepository MemCollectionPriority => _memCollectionPriorityRepository ??= new MemCollectionPriorityRepository(_context);
         #endregion
 
         #region Recurring Deposit
-        public IRecurringDepositRepository RecurringDeposit => _recurringDepositRepository ??= new RecurringDepositRepository(_context);
         #endregion 
 
         public ITransactionsRepository TransactionsRepository => _transactionsRepository ??= new TransactionsRepository(_context);

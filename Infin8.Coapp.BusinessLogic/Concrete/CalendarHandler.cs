@@ -21,10 +21,13 @@ namespace Infin8.Coapp.BusinessLogic
         readonly IStagingDetailsHandler _stagingDetailsHandler;
         readonly IStagingHistoryHandler _stagingHistoryHandler;
         readonly IStagingBalanceHandler _stagingBalanceHandler;
+        readonly IEcsDemandHandler _ecsDemandHandler;
         public CalendarHandler(IUnitOfWork unitOfWork, IUtilityHandler utilityHandler, ITermDepositTrnHandler termDepositTrnHandler
             , IStagingMasterHandler stagingMasterHandler, IStagingDetailsHandler stagingDetailsHandler, 
-            IStagingHistoryHandler stagingHistoryHandler, IStagingBalanceHandler stagingBalanceHandler  )
+            IStagingHistoryHandler stagingHistoryHandler, IStagingBalanceHandler stagingBalanceHandler,
+            IEcsDemandHandler ecsDemandHandler)
         {
+            _ecsDemandHandler = ecsDemandHandler;
             _unitOfWork = unitOfWork;
             _UtilityHandler = utilityHandler;
             _TermDepositTrnHandler = termDepositTrnHandler;
@@ -152,6 +155,19 @@ namespace Infin8.Coapp.BusinessLogic
                 #endregion
 
                 #region Step 7:  Calculate demand on loans on due date
+                // ECS only: on the last business day of the month, calculate (not post) next month's demand
+                // (spec 12). It skips itself for other societies and other days; a failure aborts Day End.
+                try
+                {
+                    var demandMessage = await _ecsDemandHandler.CalculateForDayEndAsync(dayProcess.ProcessDate,
+                        dayProcess.Created_By, dayProcess.YrId, dayProcess.BrCode!);
+                    if (demandMessage != null) Console.WriteLine($"Day End {dayProcess.BrCode}: {demandMessage}");
+                }
+                catch (Exception demandEx)
+                {
+                    dayProcess.Message = "Demand calculation failed: " + demandEx.GetBaseException().Message;
+                    goto ErrorDayEndProcess;
+                }
                 #endregion
 
                 #region Step 8:  if year end calculate interest on provident fund

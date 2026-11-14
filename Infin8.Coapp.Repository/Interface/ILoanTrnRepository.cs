@@ -43,7 +43,6 @@ namespace Infin8.Coapp.Repository
         #endregion
 
         #region ECS Demand Calculation
-        Task<List<Mem_Demand>> CalculateLoanDemand(decimal memid, int memberStatus, DateTime demandCalcDate, DateTime demandDate);
         #endregion
 
     }
