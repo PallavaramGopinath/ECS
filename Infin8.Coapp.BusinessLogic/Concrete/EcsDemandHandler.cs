@@ -510,6 +510,135 @@ namespace Infin8.Coapp.BusinessLogic
         }
 
         // =====================================================================
+        // Delete demand for expired members (TSIS frmLoanDemandDeleteForExpiredMembers)
+        // =====================================================================
+
+        public async Task<EcsExpiredMemberVM?> GetExpiredMemberAsync(string memberNo, string brCode)
+        {
+            if (string.IsNullOrWhiteSpace(memberNo)) return null;
+            var m = await _unitOfWork.EcsDemand.FindAnyMemberAsync(memberNo, brCode);
+            if (m == null) return null;
+            var vm = new EcsExpiredMemberVM
+            {
+                MemId = m.MemId,
+                MemberNo = m.MemberNo,
+                MemberName = m.MemberName,
+                ExpiredDate = m.ExpiredDate?.Date,
+                Message = ExpiredMemberProblem(m)
+            };
+            if (vm.Message == null)
+                vm.Loans = (await _unitOfWork.EcsDemand.GetMemberLoansAsync(m.MemId, brCode)).Select(l => new EcsExpiredLoanVM
+                {
+                    LoanId = l.LoanId,
+                    LoanNo = l.LoanNo,
+                    SchemeName = l.SchemeName,
+                    IsClosed = l.IsClosed
+                }).ToList();
+            return vm;
+        }
+
+        public async Task<EcsExpiredLoanRowsVM?> GetExpiredLoanRowsAsync(decimal loanId, string brCode)
+        {
+            var m = await _unitOfWork.EcsDemand.GetMemberOfLoanAsync(loanId, brCode);
+            if (m == null || ExpiredMemberProblem(m) != null) return null;
+            var expiry = m.ExpiredDate!.Value.Date;
+
+            var rows = await _unitOfWork.EcsDemand.GetExpiredWindowRowsAsync(loanId, expiry, brCode);
+            var deleted = await _unitOfWork.EcsDemand.GetExpiredDeletedRowsAsync(loanId, brCode);
+            var vm = new EcsExpiredLoanRowsVM { LoanId = loanId, ExpiredDate = expiry };
+            foreach (var t in rows)
+            {
+                var reason = DeleteProblem(t);
+                vm.Rows.Add(ToExpiredVM(t, reason));
+            }
+            foreach (var t in deleted)
+                vm.Deleted.Add(ToExpiredVM(t, await RevokeProblemAsync(t, brCode)));
+            return vm;
+        }
+
+        public async Task<EcsDemandResultVM> DeleteExpiredDemandRowAsync(decimal trnId, EcsUserContextVM ctx)
+        {
+            var guard = await CommonGuardsAsync(ctx);
+            if (guard != null) return Fail(guard);
+
+            var t = await _unitOfWork.EcsDemand.GetLoanTrnForUpdateAsync(trnId, ctx.BrCode);
+            if (t == null || t.TrnTr_Delete || t.Voc_Status != "V") return Fail("The loan transaction no longer exists.");
+            var m = await _unitOfWork.EcsDemand.GetMemberOfLoanAsync(t.Loan_Id, ctx.BrCode);
+            var memberProblem = m == null ? "The loan is not an ECS loan of this branch." : ExpiredMemberProblem(m);
+            if (memberProblem != null) return Fail(memberProblem);
+            var problem = DeleteProblem(t);
+            if (problem != null) return Fail(problem);
+
+            // Only rows inside the window the page shows (last row on or before the expiry date onwards).
+            var window = await _unitOfWork.EcsDemand.GetExpiredWindowRowsAsync(t.Loan_Id, m!.ExpiredDate!.Value, ctx.BrCode);
+            if (!window.Any(w => w.Trn_Id == t.Trn_Id))
+                return Fail($"The row is dated before the member's expiry ({m.ExpiredDate:dd-MM-yyyy}).");
+
+            t.TrnTr_Delete = true;
+            t.ExpiredDeletion = true;
+            await _unitOfWork.CompleteAsync();
+            return new EcsDemandResultVM { Success = true, Message = $"Demand row of {t.Trn_Date:dd-MM-yyyy} deleted." };
+        }
+
+        public async Task<EcsDemandResultVM> RevokeExpiredDeletionAsync(decimal trnId, EcsUserContextVM ctx)
+        {
+            var guard = await CommonGuardsAsync(ctx);
+            if (guard != null) return Fail(guard);
+
+            var t = await _unitOfWork.EcsDemand.GetLoanTrnForUpdateAsync(trnId, ctx.BrCode);
+            if (t == null || !t.TrnTr_Delete || !t.ExpiredDeletion) return Fail("The row is not an expired-member deletion.");
+            if (await _unitOfWork.EcsDemand.GetMemberOfLoanAsync(t.Loan_Id, ctx.BrCode) == null)
+                return Fail("The loan is not an ECS loan of this branch.");
+            var problem = await RevokeProblemAsync(t, ctx.BrCode);
+            if (problem != null) return Fail(problem);
+
+            t.TrnTr_Delete = false;
+            t.ExpiredDeletion = false;
+            await _unitOfWork.CompleteAsync();
+            return new EcsDemandResultVM { Success = true, Message = $"Demand row of {t.Trn_Date:dd-MM-yyyy} restored." };
+        }
+
+        private static string? ExpiredMemberProblem(EcsDemandMemberRow m) =>
+            m.IsExpired && m.ExpiredDate.HasValue
+                ? null
+                : $"Member {m.MemberNo} is not marked as expired with an expiry date. Record the expiry on the member first.";
+
+        /// <summary>Only demand rows with no money on them can be deleted.</summary>
+        private static string? DeleteProblem(Loan_Trn t)
+        {
+            if (t.Trn_Status != "D") return "Only demand rows can be deleted.";
+            if (t.Disb_Amt + t.PrlColl_Amt + t.IntColl_Amt + t.PIColl_Amt + t.IODColl_Amt > 0)
+                return "Money was received or paid on this row.";
+            return null;
+        }
+
+        /// <summary>A row can be restored only while its demand is still posted.</summary>
+        private async Task<string?> RevokeProblemAsync(Loan_Trn t, string brCode)
+        {
+            var master = await _unitOfWork.EcsDemand.GetMasterForUpdateAsync(t.Demand_Id, brCode);
+            if (master == null || !master.IsDemandUpdated)
+                return "The posting of this row's demand has been reversed or deleted.";
+            return null;
+        }
+
+        private static EcsExpiredLoanTrnVM ToExpiredVM(Loan_Trn t, string? reason) => new()
+        {
+            TrnId = t.Trn_Id,
+            Status = t.Trn_Status,
+            TrnDate = t.Trn_Date,
+            Disb = t.Disb_Amt,
+            PrlDem = t.Prl_Dem,
+            IntCalc = t.IntCalc_Amt,
+            IntCalcDate = t.IntCalc_Date,
+            PICalc = t.PICalc_Amt,
+            PrlColl = t.PrlColl_Amt,
+            IntColl = t.IntColl_Amt,
+            PIColl = t.PIColl_Amt,
+            CanAct = reason == null,
+            Reason = reason
+        };
+
+        // =====================================================================
         // Day End
         // =====================================================================
 

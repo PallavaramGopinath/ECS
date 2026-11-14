@@ -153,4 +153,54 @@ namespace Infin8.Coapp.Dto
         /// <summary>Inactive members (status 2) are stopped anyway; the row is then redundant.</summary>
         public bool IsInactive { get; set; }
     }
+
+    // ECS Delete Demand for Expired Members — soft-delete demand rows posted after a member's death (TSIS
+    // frmLoanDemandDeleteForExpiredMembers): loan_trn.TrnTr_Delete + ExpiredDeletion, revocable.
+
+    public class EcsExpiredMemberVM
+    {
+        public decimal MemId { get; set; }
+        public string? MemberNo { get; set; }
+        public string? MemberName { get; set; }
+        public DateTime? ExpiredDate { get; set; }
+        /// <summary>Why the member cannot be used here (not marked expired), or null.</summary>
+        public string? Message { get; set; }
+        public List<EcsExpiredLoanVM> Loans { get; set; } = new();
+    }
+
+    public class EcsExpiredLoanVM
+    {
+        public decimal LoanId { get; set; }
+        public string? LoanNo { get; set; }
+        public string? SchemeName { get; set; }
+        public bool IsClosed { get; set; }
+    }
+
+    public class EcsExpiredLoanRowsVM
+    {
+        public decimal LoanId { get; set; }
+        public DateTime ExpiredDate { get; set; }
+        /// <summary>Rows from the last one on or before the expiry date onwards.</summary>
+        public List<EcsExpiredLoanTrnVM> Rows { get; set; } = new();
+        /// <summary>Rows deleted here before, which can be revoked.</summary>
+        public List<EcsExpiredLoanTrnVM> Deleted { get; set; } = new();
+    }
+
+    public class EcsExpiredLoanTrnVM
+    {
+        public decimal TrnId { get; set; }
+        public string? Status { get; set; }
+        public DateTime TrnDate { get; set; }
+        public double Disb { get; set; }
+        public double PrlDem { get; set; }
+        public double IntCalc { get; set; }
+        public DateTime? IntCalcDate { get; set; }
+        public double PICalc { get; set; }
+        public double PrlColl { get; set; }
+        public double IntColl { get; set; }
+        public double PIColl { get; set; }
+        public bool CanAct { get; set; }
+        /// <summary>Why the row cannot be deleted / revoked, or null.</summary>
+        public string? Reason { get; set; }
+    }
 }
