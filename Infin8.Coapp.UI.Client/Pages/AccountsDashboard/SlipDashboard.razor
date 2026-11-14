@@ -308,19 +308,15 @@ else
                         statusPrintTasks.Add(Print_FDBond(rpt));
                         break;
                     case "DVP": /// Dividend paid report id = 124
-
+                        statusPrintTasks.Add(Print_DividendPaymentList(rpt));
                         break;
                     case "DVPB":    /// Dividend/int on td payment bulk society type = 1 report id = 90  employee soc, else report id = 146, 154 other soc
 
                         break;
                     case "MMDTo":    /// Member due to multiple report id = 91
-
-                        break;
                     case "MMDBy":    /// Member due by multiple report id = 91
-
-                        break;
                     case "ECSGB":    /// Member due by multiple report id = 91
-
+                        statusPrintTasks.Add(Print_MemberSuspenseBulk(rpt));
                         break;
                     case "JLI": /// Jewel Loan Disbursement (JL Ledger) report id = 136,136,153
                         statusPrintTasks.Add(Print_JL_Ledger(new() { Voc_Id = rptObject.Voc_Id, BrCode = rptObject.BrCode, VocTrnType = rptObject.VocTrnType, ReportId = 135 }));
@@ -333,7 +329,7 @@ else
 
                         break;
                     case "DVPM":    /// bulk dividend payment HSIS report id = 146
-
+                        statusPrintTasks.Add(Print_DividendPaymentList(rpt));
                         break;
                     case "HLI":    /// PLDB Loan for MI for Jewels report id = 136,136
 
@@ -495,6 +491,28 @@ else
             // Log or show error
             Console.WriteLine($"Error: {response.StatusCode}");
         }
+    }
+
+    private Task Print_DividendPaymentList(rptReceiptObject rptObject) => PrintPdf("api/Print/print-dividend-paymentlist", rptObject);
+
+    private Task Print_MemberSuspenseBulk(rptReceiptObject rptObject) => PrintPdf("api/Print/print-member-suspense-bulk", rptObject);
+
+    /// <summary>Posts the voucher to a print endpoint and opens the PDF; bytes stay local because prints run in parallel.</summary>
+    private async Task PrintPdf(string url, rptReceiptObject rptObject)
+    {
+        var response = await _httpClient.PostAsJsonAsync(url, rptObject);
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Error: {url} returned {response.StatusCode}");
+            return;
+        }
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        if (bytes.Length == 0)
+        {
+            Console.WriteLine($"Error: {url} returned no content.");
+            return;
+        }
+        await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(bytes));
     }
 
     private async Task Print_FDBond(rptReceiptObject rptObject)

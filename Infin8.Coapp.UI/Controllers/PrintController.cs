@@ -467,6 +467,84 @@ namespace Infin8.Coapp.API.Controllers
         #endregion
 
         #region Jewel Loan 
+        /// <summary>Dividend payment list for one dividend payment voucher (report 146; status DVP / DVPM).</summary>
+        [HttpPost]
+        [Route("print-dividend-paymentlist")]
+        public async Task<IActionResult> Print_DividendPaymentList([FromBody] rptReceiptObject rptObject)
+        {
+            string brCode = rptObject.brCode ?? "";
+            var rows = await _reportHandler.GetDividendPaymentListAsync(rptObject.vocId, brCode);
+            var report = await _reportHandler.GetReportNameWithSignature(146);
+            return RenderList(report, "Ds_DividendPaymentList", rows, new[]
+            {
+                new ReportParameter("paramSocietyName", await _generalHandler.GetSocietyName(brCode)),
+                new ReportParameter("paramReportHeader", "Dividend Payment List")
+            });
+        }
+
+        /// <summary>Member suspense (due to / due by) bulk payment details for one voucher (report 91; status MMDTo / MMDBy / ECSGB).</summary>
+        [HttpPost]
+        [Route("print-member-suspense-bulk")]
+        public async Task<IActionResult> Print_MemberSuspenseBulk([FromBody] rptReceiptObject rptObject)
+        {
+            string brCode = rptObject.brCode ?? "";
+            var rows = await _reportHandler.GetMemberSuspenseBulkAsync(rptObject.vocId, brCode);
+            var report = await _reportHandler.GetReportNameWithSignature(91);
+            string header = rows.Count == 0 ? "Member Suspense Account Payment Details"
+                : $"Member Suspense Account Payment Details in Payment No {rows[0].Voc_No} Dated {rows[0].Trn_Date:dd/MM/yyyy}";
+            return RenderList(report, "Ds_MemberSuspensePaymentList", rows, new[]
+            {
+                new ReportParameter("paramSocietyName", await _generalHandler.GetSocietyName(brCode)),
+                new ReportParameter("paramReportHeader", header)
+            });
+        }
+
+        /// <summary>FD bond on plain paper with the society's name and address (report 147): report 116's data, another layout.</summary>
+        [HttpPost]
+        [Route("print-fdbond-plain")]
+        public async Task<IActionResult> Print_FDBondPlain([FromBody] rptReceiptObject rptObject)
+        {
+            string brCode = rptObject.brCode ?? "";
+            var report = await _reportHandler.GetReportNameWithSignature(147);
+            var bond = await _reportHandler.GetFDBondPreprinted(rptObject.vocId) ?? new rptFDBond();
+            var society = await _generalHandler.GetSocietyData(brCode);
+            string withAddress = string.Join(", ", new[] { society?.Bank_Name, society?.Bank_Address, society?.Bank_Address2, society?.Bank_City, society?.Bank_Pincode }
+                .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()));
+            var localReport = new LocalReport { EnableExternalImages = true };
+            using (FileStream stream = System.IO.File.OpenRead(Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "")))
+            {
+                localReport.LoadReportDefinition(stream);
+            }
+            localReport.DataSources.Add(new ReportDataSource("Ds_FDBond", ObjectToDataTable(bond)));
+            localReport.SetParameters(new[]
+            {
+                new ReportParameter("paramSocietyName", society?.Bank_Name ?? ""),
+                new ReportParameter("ParamFirstSignature", report.FirstSignature ?? ""),
+                new ReportParameter("ParamSecondSignature", report.SecondSignature ?? ""),
+                new ReportParameter("ParamThirdSignature", report.ThirdSignature ?? ""),
+                new ReportParameter("ParamSocietyNameWithAddress", withAddress)
+            });
+            return File(localReport.Render("PDF"), "application/pdf");
+        }
+
+        /// <summary>Fixed deposits opened between two dates (yyyy-MM-dd), voucher id / FD number, for the bond reprint picker.</summary>
+        [HttpGet]
+        [Route("FDBondVouchers/{fromDate}/{toDate}/{brCode}")]
+        public async Task<List<DropdownItem>> FDBondVouchers(DateTime fromDate, DateTime toDate, string brCode) =>
+            await _reportHandler.GetFDBondVouchersAsync(fromDate, toDate, brCode);
+
+        private IActionResult RenderList(Reports_Master report, string dataSet, System.Collections.IEnumerable rows, ReportParameter[] parameters)
+        {
+            var localReport = new LocalReport { EnableExternalImages = true };
+            using (FileStream stream = System.IO.File.OpenRead(Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "")))
+            {
+                localReport.LoadReportDefinition(stream);
+            }
+            localReport.DataSources.Add(new ReportDataSource(dataSet, rows));
+            localReport.SetParameters(parameters);
+            return File(localReport.Render("PDF"), "application/pdf");
+        }
+
         [HttpPost]
         [Route("print-jl-ledger")]
         public async Task<FileContentResult> Print_JL_Ledger([FromBody] rptReportObject rptObject)

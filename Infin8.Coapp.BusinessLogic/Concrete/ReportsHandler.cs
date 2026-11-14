@@ -15,10 +15,12 @@ namespace Infin8.Coapp.BusinessLogic
     {
         readonly IUnitOfWork _unitOfWork;
         readonly ICreateReportsHandler _createReportsHandler;
-        public ReportsHandler(IUnitOfWork unitOfWork, ICreateReportsHandler createReportsHandler )
+        readonly IUtilityHandler _utilityHandler;
+        public ReportsHandler(IUnitOfWork unitOfWork, ICreateReportsHandler createReportsHandler, IUtilityHandler utilityHandler)
         {
             _unitOfWork = unitOfWork;
             _createReportsHandler = createReportsHandler;
+            _utilityHandler = utilityHandler;
         }
 
         public async Task<List<DropdownItem>> GetReportNameList(int grpId,string brCode)
@@ -88,7 +90,10 @@ namespace Infin8.Coapp.BusinessLogic
 
         public async Task<rptFDBond> GetFDBondPreprinted(decimal vocId)
         {
-            return await _unitOfWork.ReportsMaster.GetFDBondPreprinted(vocId);
+            var bond = await _unitOfWork.ReportsMaster.GetFDBondPreprinted(vocId);
+            // the bond prints the deposit in words; the repository cannot reach RupeesInWords, so fill it here
+            if (bond != null) bond.RsInWords = _utilityHandler.RupeesInWords(bond.DepositAmount);
+            return bond!;
         }
 
         public async Task<rptFDBond> GetFDBondData(decimal vocId)
@@ -160,5 +165,14 @@ namespace Infin8.Coapp.BusinessLogic
         //}
         //#endregion
 
+
+        public Task<List<rptDividendPaymentList>> GetDividendPaymentListAsync(decimal vocId, string brCode) =>
+            _unitOfWork.ReportsMaster.GetDividendPaymentListAsync(vocId, brCode);
+
+        public Task<List<rptMemberSuspenseBulk>> GetMemberSuspenseBulkAsync(decimal vocId, string brCode) =>
+            _unitOfWork.ReportsMaster.GetMemberSuspenseBulkAsync(vocId, brCode);
+
+        public Task<List<DropdownItem>> GetFDBondVouchersAsync(DateTime fromDate, DateTime toDate, string brCode) =>
+            _unitOfWork.ReportsMaster.GetFDBondVouchersAsync(fromDate, toDate, brCode);
     }
 }

@@ -42,15 +42,15 @@
           <rd:TypeName>System.DateTime</rd:TypeName>
         </Field>
         <Field Name="memberName">
-          <DataField>memberName</DataField>
+          <DataField>MemberName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="memberNo">
-          <DataField>memberNo</DataField>
+          <DataField>MemberNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="mobileNo">
-          <DataField>mobileNo</DataField>
+          <DataField>MobileNo</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="ModeOfOperation">
@@ -130,7 +130,7 @@
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="voc_rpt_No">
-          <DataField>voc_rpt_No</DataField>
+          <DataField>Voc_Rpt_No</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
       </Fields>

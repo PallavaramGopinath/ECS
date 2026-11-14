@@ -35,6 +35,12 @@ namespace Infin8.Coapp.Repository
         #region Fixed Deposit
         Task<(List<rptFDPaymentList> fdPaymentList,string chequeDetails)> GetFDPaymentList(decimal vocId);
         Task<rptFDBond> GetFDBondPreprinted(decimal vocId);
+        /// <summary>Members' dividend paid in one voucher (report 146).</summary>
+        Task<List<rptDividendPaymentList>> GetDividendPaymentListAsync(decimal vocId, string brCode);
+        /// <summary>Member ledger lines of one member suspense bulk voucher (report 91).</summary>
+        Task<List<rptMemberSuspenseBulk>> GetMemberSuspenseBulkAsync(decimal vocId, string brCode);
+        /// <summary>Fixed deposits opened between two dates, as voucher id / FD number, for the bond reprint picker.</summary>
+        Task<List<DropdownItem>> GetFDBondVouchersAsync(DateTime fromDate, DateTime toDate, string brCode);
         Task<rptFDBond> GetFDBondData(decimal vocId);
         #endregion
 

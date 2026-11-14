@@ -1051,5 +1051,53 @@ namespace Infin8.Coapp.Repository
         //    }
         //}
         #endregion
+
+        public async Task<List<rptDividendPaymentList>> GetDividendPaymentListAsync(decimal vocId, string brCode)
+        {
+            var rows = await (from mt in CSISContext.Mem_Trn
+                              join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
+                              join pm in CSISContext.Mem_Payable_Master on mt.PbleMaster_Id equals pm.PbleMaster_Id
+                              where mt.Voc_Id == vocId && mt.IntPaid_Amt > 0 && !mt.MemTrn_Delete && mt.Voc_Status == "V"
+                                    && mt.BrCode == brCode && mm.brcode == brCode && pm.BrCode == brCode
+                              orderby mm.memberno, pm.FromDate
+                              select new { mm.memberno, mm.perno, mm.membername, pm.FromDate, pm.ToDate, mt.IntPaid_Amt }).AsNoTracking().ToListAsync();
+            return rows.Select(r => new rptDividendPaymentList
+            {
+                MemberNo = r.memberno,
+                PerNo = r.perno,
+                MemberName = r.membername,
+                DividendYear = $"{r.FromDate:dd-MM-yyyy} - {r.ToDate:dd-MM-yyyy}",
+                DividendPaid = r.IntPaid_Amt
+            }).ToList();
+        }
+
+        public async Task<List<rptMemberSuspenseBulk>> GetMemberSuspenseBulkAsync(decimal vocId, string brCode)
+        {
+            return await (from mt in CSISContext.Mem_Trn
+                          join fv in CSISContext.Fin_Voucher on mt.Voc_Id equals fv.Voc_Id
+                          join mm in CSISContext.mem_master on mt.Mem_Id equals mm.mem_id
+                          join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
+                          where fv.Voc_Id == vocId && (mt.Rpt_Amt > 0 || mt.Pmt_Amt > 0) && !mt.MemTrn_Delete && mt.Voc_Status == "V"
+                                && mt.BrCode == brCode && fv.BrCode == brCode && mm.brcode == brCode && fl.BrCode == brCode
+                          orderby mm.memberno, fl.Led_Name
+                          select new rptMemberSuspenseBulk
+                          {
+                              Mem_Id = mt.Mem_Id, MemberNo = mm.memberno, PerNo = mm.perno, MemberName = mm.membername,
+                              Led_Name = fl.Led_Name, Rpt_Amt = mt.Rpt_Amt, Pmt_Amt = mt.Pmt_Amt, Voc_No = fv.Voc_No, Trn_Date = fv.Voc_Date
+                          }).AsNoTracking().ToListAsync();
+        }
+
+        public async Task<List<DropdownItem>> GetFDBondVouchersAsync(DateTime fromDate, DateTime toDate, string brCode)
+        {
+            DateTime periodFrom = fromDate.Date, periodEnd = toDate.Date.AddDays(1);
+            var rows = await (from tm in CSISContext.TermDeposit_Master
+                              join ts in CSISContext.TermDeposit_Schemes on tm.TDScheme_Id equals ts.TDScheme_Id
+                              where ts.TDSchemeType == "F" && !tm.TD_Delete && tm.Voc_Status == "V" && tm.Voc_Id > 0
+                                    && tm.AccountOpenDate >= periodFrom && tm.AccountOpenDate < periodEnd
+                                    && tm.BrCode == brCode && ts.BrCode == brCode
+                              orderby tm.TD_No
+                              select new { tm.Voc_Id, tm.TD_No, tm.TDH_Name }).AsNoTracking().ToListAsync();
+            return rows.Select(r => new DropdownItem { Value = r.Voc_Id.ToString(), Text = $"{r.TD_No} - {r.TDH_Name}" }).ToList();
+        }
     }
 }

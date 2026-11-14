@@ -321,7 +321,8 @@ else
 
                     break;
                 case 147:   /// FD Bond on Plain Paper
-
+                    isBetweenDates = true;
+                    isTDList = true;
                     break;
                 case 148:   /// FD Refund between dates
                     isBetweenDates = true;
@@ -370,7 +371,13 @@ else
                 rptObject.TDSchemeType = "F";
                 break;
         }
-        var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/ReportsTD/GetTDNos/{rptObject.FromDateString}/{rptObject.ToDateString}/{rptObject.TDSchemeType}/{rptObject.BrCode}");
+        // FD bonds (116, 147) are printed per voucher, so list deposits by their voucher id instead
+        var url = rptObject.ReportId is 116 or 147
+            ? $"api/Print/FDBondVouchers/{rptObject.FromDateString}/{rptObject.ToDateString}/{rptObject.BrCode}"
+            : $"api/ReportsTD/GetTDNos/{rptObject.FromDateString}/{rptObject.ToDateString}/{rptObject.TDSchemeType}/{rptObject.BrCode}";
+        selectedLedgers.Clear();
+        isAllSelected = false;
+        var result = await _httpClient.GetFromJsonAsync<List<DropdownItem>>(url);
         if (result != null && result.Any())
         {
             tdList.Clear();
@@ -460,7 +467,7 @@ else
 
                     break;
                 case 116:   /// FD Bond
-
+                    await Print_FDBonds("api/Print/print-fdbond");
                     break;
                 case 120:   /// New FD received during the period
                     rptObject.TDSchemeType = "F";
@@ -476,7 +483,7 @@ else
                     await Print_TD_Outstanding_ByMemId();
                     break;
                 case 147:   /// FD Bond on Plain Paper
-
+                    await Print_FDBonds("api/Print/print-fdbond-plain");
                     break;
                 case 148:   /// FD Refund between dates
                     rptObject.TDSchemeType = "F";
@@ -723,6 +730,19 @@ else
         {
             // Log or show error
             Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    /// <summary>Prints one FD bond per ticked deposit (Value = the deposit's voucher id).</summary>
+    private async Task Print_FDBonds(string url)
+    {
+        foreach (var bond in selectedLedgers.ToList())
+        {
+            if (!decimal.TryParse(bond.Value, out var vocId)) continue;
+            var response = await _httpClient.PostAsJsonAsync(url, new rptReceiptObject { vocId = vocId, brCode = rptObject.BrCode });
+            if (!response.IsSuccessStatusCode) { Console.WriteLine($"Error: {url} returned {response.StatusCode}"); continue; }
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            if (bytes.Length > 0) await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(bytes));
         }
     }
 }
