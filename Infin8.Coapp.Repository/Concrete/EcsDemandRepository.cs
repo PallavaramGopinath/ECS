@@ -458,12 +458,98 @@ namespace Infin8.Coapp.Repository
                           }).AsNoTracking().FirstOrDefaultAsync();
         }
 
+        public async Task<EcsDemandMemberRow?> FindAnyMemberAsync(string memberNo, string brCode)
+        {
+            var no = memberNo.Trim();
+            return await (from m in CSISContext.mem_master
+                          where m.memberno == no && !m.memberdelete && m.brcode == brCode
+                          select new EcsDemandMemberRow
+                          {
+                              MemId = m.mem_id,
+                              MemberNo = m.memberno,
+                              MemberName = m.membername,
+                              OfficeId = m.office_id,
+                              MemberStatus = m.memberstatus,
+                              BasicPay = m.basicpay,
+                              IsExpired = m.ismemexpired,
+                              ExpiredDate = m.expireddate
+                          }).AsNoTracking().FirstOrDefaultAsync();
+        }
+
         public async Task AddStopRowAsync(Mem_Demand_Stop row)
         {
             decimal zero = decimal.TryParse(row.BrCode + "0000000", out var z) ? z : 0;
             var max = await CSISContext.Mem_Demand_Stop.Where(x => x.BrCode == row.BrCode).MaxAsync(x => (decimal?)x.Id);
             row.Id = Math.Max(max ?? 0, zero) + 1;
             await CSISContext.Mem_Demand_Stop.AddAsync(row);
+        }
+
+        // =====================================================================
+        // Delete demand for expired members
+        // =====================================================================
+
+        public async Task<List<EcsExpiredLoanRow>> GetMemberLoansAsync(decimal memId, string brCode)
+        {
+            return await (from l in CSISContext.Loan_Master
+                          join s in CSISContext.Loan_Schemes on l.Scheme_Id equals s.Scheme_Id
+                          where l.Mem_Id == memId && l.Loan_Type == 1 && !l.Loan_Delete && l.Voc_Status == "V"
+                                && l.BrCode == brCode && s.BrCode == brCode
+                          orderby l.IsAccountClosed, l.San_Date descending
+                          select new EcsExpiredLoanRow
+                          {
+                              LoanId = l.Loan_Id,
+                              LoanNo = l.Loan_No,
+                              SchemeName = s.Scheme_Name,
+                              IsClosed = l.IsAccountClosed
+                          }).AsNoTracking().ToListAsync();
+        }
+
+        public async Task<List<Loan_Trn>> GetExpiredWindowRowsAsync(decimal loanId, DateTime expiryDate, string brCode)
+        {
+            var expiry = expiryDate.Date;
+            var anchor = await (from t in CSISContext.Loan_Trn
+                                where t.Loan_Id == loanId && !t.TrnTr_Delete && t.Voc_Status == "V"
+                                      && t.Trn_Date <= expiry && t.BrCode == brCode
+                                select (DateTime?)t.Trn_Date).MaxAsync();
+            var start = anchor ?? DateTime.MinValue;
+            return await (from t in CSISContext.Loan_Trn
+                          where t.Loan_Id == loanId && !t.TrnTr_Delete && t.Voc_Status == "V"
+                                && t.Trn_Date >= start && t.BrCode == brCode
+                          orderby t.Trn_Date, t.Trn_SlNo
+                          select t).AsNoTracking().ToListAsync();
+        }
+
+        public async Task<List<Loan_Trn>> GetExpiredDeletedRowsAsync(decimal loanId, string brCode)
+        {
+            return await (from t in CSISContext.Loan_Trn
+                          where t.Loan_Id == loanId && t.TrnTr_Delete && t.ExpiredDeletion && t.BrCode == brCode
+                          orderby t.Trn_Date, t.Trn_SlNo
+                          select t).AsNoTracking().ToListAsync();
+        }
+
+        public async Task<Loan_Trn?> GetLoanTrnForUpdateAsync(decimal trnId, string brCode)
+        {
+            return await (from t in CSISContext.Loan_Trn
+                          where t.Trn_Id == trnId && t.BrCode == brCode
+                          select t).FirstOrDefaultAsync();
+        }
+
+        public async Task<EcsDemandMemberRow?> GetMemberOfLoanAsync(decimal loanId, string brCode)
+        {
+            return await (from l in CSISContext.Loan_Master
+                          join m in CSISContext.mem_master on l.Mem_Id equals m.mem_id
+                          where l.Loan_Id == loanId && l.Loan_Type == 1 && !l.Loan_Delete && l.BrCode == brCode && m.brcode == brCode
+                          select new EcsDemandMemberRow
+                          {
+                              MemId = m.mem_id,
+                              MemberNo = m.memberno,
+                              MemberName = m.membername,
+                              OfficeId = m.office_id,
+                              MemberStatus = m.memberstatus,
+                              BasicPay = m.basicpay,
+                              IsExpired = m.ismemexpired,
+                              ExpiredDate = m.expireddate
+                          }).AsNoTracking().FirstOrDefaultAsync();
         }
 
         // =====================================================================

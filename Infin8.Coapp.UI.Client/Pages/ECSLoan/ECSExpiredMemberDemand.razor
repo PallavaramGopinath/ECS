@@ -1,0 +1,347 @@
+@page "/ecs-expired-demand"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@* ECS Delete Demand for Expired Members (port of TSIS frmLoanDemandDeleteForExpiredMembers): soft-delete loan demand
+   rows posted after a member's death, or restore them. *@
+
+<PageTitle>Delete Demand for Expired Members</PageTitle>
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="/ecs-demand-calculation">ECS Demand Calculation</a></li>
+        <li class="breadcrumb-item active">Delete Demand for Expired Members</li>
+    </ol>
+</nav>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
+    </div>
+}
+else if (institution != InstitutionType.ECS)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        Delete Demand for Expired Members is available only for Employees' Society (ECS) institutions.
+    </div>
+}
+else
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h4 class="mb-0"><i class="bi bi-person-dash me-2 text-primary"></i>Delete Demand for Expired Members</h4>
+        <span class="ms-auto text-muted">Business day: <strong>@currentDate.ToString("dd-MM-yyyy")</strong></span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert @(alertSuccess ? "alert-success" : "alert-danger") alert-dismissible" role="alert">
+            @alertMessage
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                Removes loan demand rows booked after a member's death. The member must be marked as expired with an
+                expiry date. Rows are listed from the last one on or before that date; only demand rows with no money
+                received or paid can be deleted, and a deletion can be restored below.
+            </p>
+            <div class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small mb-1" for="memberNo">Member no.</label>
+                    <input id="memberNo" class="form-control" @bind="memberNo" @bind:event="oninput" @onkeydown="OnMemberKeyAsync" />
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-primary" disabled="@(busy || string.IsNullOrWhiteSpace(memberNo))" @onclick="LoadMemberAsync">
+                        <i class="bi bi-search me-1"></i>Find
+                    </button>
+                </div>
+                @if (member != null && member.Loans.Count > 0)
+                {
+                    <div class="col-auto">
+                        <label class="form-label small mb-1" for="loan">Loan</label>
+                        <select id="loan" class="form-select" @bind="selectedLoanId" @bind:after="LoadRowsAsync">
+                            <option value="0">Select a loan</option>
+                            @foreach (var l in member.Loans)
+                            {
+                                <option value="@l.LoanId">@l.SchemeName @l.LoanNo@(l.IsClosed ? " (closed)" : "")</option>
+                            }
+                        </select>
+                    </div>
+                }
+            </div>
+
+            @if (member != null)
+            {
+                <div class="mt-3 small">
+                    <strong>@member.MemberNo</strong> @member.MemberName
+                    @if (member.ExpiredDate.HasValue)
+                    {
+                        <span class="ms-2">· expired <strong>@D(member.ExpiredDate)</strong></span>
+                    }
+                </div>
+                @if (member.Message != null)
+                {
+                    <div class="alert alert-warning py-2 mt-2 mb-0">@member.Message</div>
+                }
+                else if (member.Loans.Count == 0)
+                {
+                    <div class="text-muted mt-2">The member has no ECS loans.</div>
+                }
+            }
+        </div>
+    </div>
+
+    @if (rows != null)
+    {
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white fw-semibold">Rows from the expiry (@D(rows.ExpiredDate)) onwards</div>
+            <div class="card-body p-0">
+                @TrnTable(rows.Rows, "Delete", "btn-outline-danger", DeleteAsync)
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">Deleted here — can be restored</div>
+            <div class="card-body p-0">
+                @TrnTable(rows.Deleted, "Restore", "btn-outline-secondary", RevokeAsync)
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private bool isReady;
+    private bool busy;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private DateTime currentDate = DateTime.Today;
+
+    private string memberNo = "";
+    private EcsExpiredMemberVM? member;
+    private decimal selectedLoanId;
+    private EcsExpiredLoanRowsVM? rows;
+
+    private string? alertMessage;
+    private bool alertSuccess;
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task OnMemberKeyAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !busy && !string.IsNullOrWhiteSpace(memberNo)) await LoadMemberAsync();
+    }
+
+    private async Task LoadMemberAsync()
+    {
+        busy = true;
+        alertMessage = null;
+        member = null;
+        rows = null;
+        selectedLoanId = 0;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/ecsdemand/ExpiredMember?memberNo={Uri.EscapeDataString(memberNo.Trim())}");
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, await ReadMessageAsync(response));
+                return;
+            }
+            member = await response.Content.ReadFromJsonAsync<EcsExpiredMemberVM>();
+            if (member is { Message: null, Loans.Count: 1 })
+            {
+                selectedLoanId = member.Loans[0].LoanId;
+                await LoadRowsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the member: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task LoadRowsAsync()
+    {
+        rows = null;
+        if (selectedLoanId == 0) return;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/ecsdemand/ExpiredLoanRows/{selectedLoanId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, await ReadMessageAsync(response));
+                return;
+            }
+            rows = await response.Content.ReadFromJsonAsync<EcsExpiredLoanRowsVM>();
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the loan rows: " + ex.Message);
+        }
+    }
+
+    private async Task DeleteAsync(EcsExpiredLoanTrnVM t)
+    {
+        var prompt = $"Delete the demand row of {t.TrnDate:dd-MM-yyyy}?\n\nPrincipal {F(t.PrlDem)}, interest {F(t.IntCalc)}, penal {F(t.PICalc)}.\nIt can be restored afterwards.";
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", prompt)) return;
+        await WriteAsync($"api/ecsdemand/ExpiredDelete/{t.TrnId}");
+    }
+
+    private async Task RevokeAsync(EcsExpiredLoanTrnVM t)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Restore the demand row of {t.TrnDate:dd-MM-yyyy}?")) return;
+        await WriteAsync($"api/ecsdemand/ExpiredRevoke/{t.TrnId}");
+    }
+
+    private async Task WriteAsync(string url)
+    {
+        busy = true;
+        alertMessage = null;
+        try
+        {
+            var response = await _httpClient.PostAsync(url, null);
+            EcsDemandResultVM? result = null;
+            try { result = await response.Content.ReadFromJsonAsync<EcsDemandResultVM>(); } catch { /* not JSON */ }
+            if (response.IsSuccessStatusCode && result is { Success: true })
+            {
+                ShowAlert(true, result.Message ?? "Done.");
+                await LoadRowsAsync();
+            }
+            else
+            {
+                ShowAlert(false, response.StatusCode == HttpStatusCode.Forbidden
+                    ? "This page is available only to ECS societies."
+                    : result?.Message ?? $"Request failed ({(int)response.StatusCode}).");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private RenderFragment TrnTable(List<EcsExpiredLoanTrnVM> list, string action, string buttonClass, Func<EcsExpiredLoanTrnVM, Task> onAct) => __builder =>
+    {
+        if (list.Count == 0)
+        {
+            <div class="p-3 text-muted">None.</div>
+            return;
+        }
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle small">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th class="text-end">Disbursed</th>
+                        <th class="text-end">Prl demand</th>
+                        <th class="text-end">Interest</th>
+                        <th>Int. to</th>
+                        <th class="text-end">Penal</th>
+                        <th class="text-end">Prl coll.</th>
+                        <th class="text-end">Int. coll.</th>
+                        <th class="text-end">Penal coll.</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in list)
+                    {
+                        <tr>
+                            <td>@D(t.TrnDate)</td>
+                            <td>@t.Status</td>
+                            <td class="text-end">@F(t.Disb)</td>
+                            <td class="text-end">@F(t.PrlDem)</td>
+                            <td class="text-end">@F(t.IntCalc)</td>
+                            <td>@D(t.IntCalcDate)</td>
+                            <td class="text-end">@F(t.PICalc)</td>
+                            <td class="text-end">@F(t.PrlColl)</td>
+                            <td class="text-end">@F(t.IntColl)</td>
+                            <td class="text-end">@F(t.PIColl)</td>
+                            <td class="text-end">
+                                @if (t.CanAct)
+                                {
+                                    <button class="btn btn-sm @buttonClass py-0" disabled="@busy" @onclick="() => onAct(t)">@action</button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted" title="@t.Reason"><i class="bi bi-dash-circle"></i></span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private static async Task<string> ReadMessageAsync(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            return "This page is available only to ECS societies.";
+        try
+        {
+            var r = await response.Content.ReadFromJsonAsync<EcsDemandResultVM>();
+            if (!string.IsNullOrEmpty(r?.Message)) return r.Message;
+        }
+        catch
+        {
+            // fall through
+        }
+        return $"Request failed ({(int)response.StatusCode}).";
+    }
+
+    private void ShowAlert(bool success, string message)
+    {
+        alertSuccess = success;
+        alertMessage = message;
+    }
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+    private static string D(DateTime? d) => d.HasValue && d.Value > DateTime.MinValue ? d.Value.ToString("dd-MM-yyyy") : "-";
+}
