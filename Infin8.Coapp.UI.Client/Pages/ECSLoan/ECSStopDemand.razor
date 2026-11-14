@@ -121,7 +121,7 @@ else
                                             <span class="badge bg-light text-dark border ms-1" title="Inactive members are stopped anyway">inactive</span>
                                         }
                                     </td>
-                                    <td>@m.OfficeId</td>
+                                    <td>@m.OfficeName</td>
                                     <td class="text-end">
                                         <button class="btn btn-sm btn-outline-danger" disabled="@(busy || Locked)" @onclick="() => RemoveAsync(m)">
                                             <i class="bi bi-x-lg me-1"></i>Remove

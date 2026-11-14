@@ -92,6 +92,7 @@ namespace Infin8.Coapp.Dto
     public class EcsDemandOfficeTotalVM
     {
         public decimal OfficeId { get; set; }
+        public string? OfficeName { get; set; }
         public int Members { get; set; }
         public int StoppedMembers { get; set; }
         public double Loans { get; set; }
@@ -106,6 +107,7 @@ namespace Infin8.Coapp.Dto
         public string? MemberNo { get; set; }
         public string? MemberName { get; set; }
         public decimal OfficeId { get; set; }
+        public string? OfficeName { get; set; }
         public bool Stopped { get; set; }
         public double Total { get; set; }
         public List<EcsDemandLineVM> Lines { get; set; } = new();
@@ -150,6 +152,7 @@ namespace Infin8.Coapp.Dto
         public string? MemberNo { get; set; }
         public string? MemberName { get; set; }
         public decimal OfficeId { get; set; }
+        public string? OfficeName { get; set; }
         /// <summary>Inactive members (status 2) are stopped anyway; the row is then redundant.</summary>
         public bool IsInactive { get; set; }
     }
