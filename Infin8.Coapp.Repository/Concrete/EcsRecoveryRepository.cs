@@ -439,6 +439,161 @@ namespace Infin8.Coapp.Repository
                               select new { m.TD_Id, m.TD_No }).ToListAsync();
             return rows.GroupBy(r => r.TD_Id).ToDictionary(g => g.Key, g => $"RD {g.First().TD_No}");
         }
+
+        // =====================================================================
+        // Spec 13a — recalculation as on the recovery date, Maker / Checker
+        // =====================================================================
+
+        public async Task<Dictionary<decimal, string>> GetUserNamesAsync(IEnumerable<decimal> userIds, string brCode)
+        {
+            var ids = userIds.Distinct().ToList();
+            if (ids.Count == 0) return new();
+            var rows = await (from u in CSISContext.Users
+                              where ids.Contains(u.Id) && u.BrCode == brCode
+                              select new { u.Id, u.Username, u.First_Name, u.Last_Name }).ToListAsync();
+            return rows.GroupBy(r => r.Id).ToDictionary(g => g.Key, g =>
+            {
+                var u = g.First();
+                var full = $"{u.First_Name} {u.Last_Name}".Trim();
+                return full.Length > 0 ? full : u.Username ?? $"User {u.Id}";
+            });
+        }
+
+        public async Task<Dictionary<decimal, EcsRecoveryAccrualLoan>> GetAccrualInputsAsync(IEnumerable<decimal> loanIds, string brCode)
+        {
+            var ids = loanIds.Distinct().ToList();
+            if (ids.Count == 0) return new();
+            var loans = await (from l in CSISContext.Loan_Master
+                               join s in CSISContext.Loan_Schemes on l.Scheme_Id equals s.Scheme_Id
+                               where ids.Contains(l.Loan_Id) && l.BrCode == brCode && s.BrCode == brCode
+                               select new EcsRecoveryAccrualLoan
+                               {
+                                   LoanId = l.Loan_Id,
+                                   IntApplication = s.Int_Application,
+                                   PIApplication = s.PI_Application,
+                                   Roi = l.Roi,
+                                   Pi = l.Pi
+                               }).AsNoTracking().ToListAsync();
+            var trns = await (from t in CSISContext.Loan_Trn
+                              where ids.Contains(t.Loan_Id) && !t.TrnTr_Delete && t.Voc_Status == "V" && t.BrCode == brCode
+                              orderby t.Loan_Id, t.Trn_Date, t.Trn_SlNo
+                              select t).AsNoTracking().ToListAsync();
+            var rates = await (from r in CSISContext.Loan_Roi
+                               where ids.Contains(r.Loan_Id) && r.Agency == "S" && !r.Loanroi_Delete && r.Voc_Status == "V"
+                                     && r.BrCode == brCode
+                               orderby r.Loan_Id, r.Roi_Wef
+                               select r).AsNoTracking().ToListAsync();
+            var trnsBy = trns.ToLookup(t => t.Loan_Id);
+            var ratesBy = rates.ToLookup(r => r.Loan_Id);
+            var result = new Dictionary<decimal, EcsRecoveryAccrualLoan>();
+            foreach (var l in loans)
+            {
+                if (result.ContainsKey(l.LoanId)) continue;
+                l.Trns = trnsBy[l.LoanId].ToList();
+                l.Rates = ratesBy[l.LoanId].ToList();
+                result[l.LoanId] = l;
+            }
+            return result;
+        }
+
+        public async Task<Dictionary<(decimal MemId, int DepositId), EcsRecoveryDepositRow>> GetDepositRevisionAsync(
+            IEnumerable<decimal> memIds, DateTime dueDate, string brCode)
+        {
+            var ids = memIds.Distinct().ToList();
+            if (ids.Count == 0) return new();
+            var due = dueDate.Date;
+            var rows = await (from t in CSISContext.Deposit_Trn
+                              where ids.Contains(t.Mem_Id) && t.Is_Active && t.BrCode == brCode
+                              group t by new { t.Mem_Id, t.Deposit_Id } into g
+                              select new EcsRecoveryDepositRow
+                              {
+                                  MemId = g.Key.Mem_Id,
+                                  DepositId = g.Key.Deposit_Id,
+                                  BeforeDemand = g.Sum(x => x.Trn_Date < due ? x.Demand_Amount : 0),
+                                  BeforeReceipt = g.Sum(x => x.Trn_Date < due ? x.Receipt_Amount : 0),
+                                  BeforePiCalc = g.Sum(x => x.Trn_Date < due ? x.Penal_Interest_Calculated_Amount : 0),
+                                  BeforePiReceived = g.Sum(x => x.Trn_Date < due ? x.Penal_Interest_Received_Amount : 0),
+                                  SinceReceipt = g.Sum(x => x.Trn_Date >= due ? x.Receipt_Amount : 0),
+                                  SincePiReceived = g.Sum(x => x.Trn_Date >= due ? x.Penal_Interest_Received_Amount : 0),
+                                  SincePaid = g.Sum(x => x.Trn_Date >= due ? x.Paid_Amount : 0),
+                                  AllReceipt = g.Sum(x => x.Receipt_Amount),
+                                  AllPaid = g.Sum(x => x.Paid_Amount)
+                              }).ToListAsync();
+            return rows.ToDictionary(r => (r.MemId, r.DepositId));
+        }
+
+        public async Task<Dictionary<decimal, EcsRecoveryRdRow>> GetRdRevisionAsync(IEnumerable<decimal> tdIds, DateTime dueDate, string brCode)
+        {
+            var ids = tdIds.Distinct().ToList();
+            if (ids.Count == 0) return new();
+            var due = dueDate.Date;
+            var rds = await (from m in CSISContext.TermDeposit_Master
+                             where ids.Contains(m.TD_Id) && m.BrCode == brCode
+                             select new EcsRecoveryRdRow
+                             {
+                                 TdId = m.TD_Id,
+                                 SchemeId = m.TDScheme_Id,
+                                 ValueDate = m.ValueDate,
+                                 PeriodInMonths = m.PeriodInMonths,
+                                 Instalment = m.DepositAmount,
+                                 Closed = m.TD_Delete || m.AccountClosed || m.Voc_Status != "V"
+                             }).AsNoTracking().ToListAsync();
+            var sums = await (from t in CSISContext.TermDeposit_Trn
+                              where ids.Contains(t.TD_Id) && !t.TD_Delete && t.Voc_Status == "V" && t.BrCode == brCode
+                              group t by t.TD_Id into g
+                              select new
+                              {
+                                  TdId = g.Key,
+                                  Received = g.Sum(x => x.DepositReceiptAmount),
+                                  Paid = g.Sum(x => x.DepositPaidAmount),
+                                  PenalCalcBefore = g.Sum(x => x.Trn_Date < due ? x.PenalCalculatedAmount : 0),
+                                  PenalReceived = g.Sum(x => x.PenalReceivedAmount)
+                              }).ToListAsync();
+            var schemeIds = rds.Select(r => r.SchemeId).Distinct().ToList();
+            var rates = await (from r in CSISContext.TermDeposit_Roi_Template
+                               where schemeIds.Contains(r.TDScheme_Id) && !r.TDRoi_Delete && r.Wef <= due && r.BrCode == brCode
+                               select r).AsNoTracking().ToListAsync();
+            var result = new Dictionary<decimal, EcsRecoveryRdRow>();
+            foreach (var rd in rds)
+            {
+                if (result.ContainsKey(rd.TdId)) continue;
+                var s = sums.FirstOrDefault(x => x.TdId == rd.TdId);
+                if (s != null)
+                {
+                    rd.Received = s.Received;
+                    rd.Paid = s.Paid;
+                    rd.PenalCalcBeforeDue = s.PenalCalcBefore;
+                    rd.PenalReceived = s.PenalReceived;
+                }
+                // Same rate pick as spec 12's GetOpenRdsAsync.
+                var schemeRates = rates.Where(r => r.TDScheme_Id == rd.SchemeId).ToList();
+                var rate = schemeRates.Where(r => r.PeriodBegin <= rd.PeriodInMonths && rd.PeriodInMonths <= r.PeriodEnd)
+                                      .OrderBy(r => r.Wef).LastOrDefault()
+                           ?? schemeRates.OrderBy(r => r.Wef).LastOrDefault();
+                rd.PenalRate = rate?.PenalRateForRD ?? 0;
+                result[rd.TdId] = rd;
+            }
+            return result;
+        }
+
+        public async Task<List<EcsRecoveryMemberRow>> GetMembersByIdAsync(IEnumerable<decimal> memIds, string brCode)
+        {
+            var ids = memIds.Distinct().ToList();
+            if (ids.Count == 0) return new();
+            return await (from m in CSISContext.mem_master
+                          where ids.Contains(m.mem_id) && m.brcode == brCode
+                          select new EcsRecoveryMemberRow
+                          {
+                              MemId = m.mem_id,
+                              MemberNo = m.memberno,
+                              PerNo = m.perno,
+                              MemberName = m.membername,
+                              OfficeId = m.office_id,
+                              IsOpen = !m.memberdelete && !m.isaccountclosed,
+                              IsExpired = m.ismemexpired,
+                              ExpiredDate = m.expireddate
+                          }).AsNoTracking().ToListAsync();
+        }
     }
 
     /// <summary>
