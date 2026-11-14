@@ -52,6 +52,18 @@ namespace Infin8.Coapp.Repository
         Task<List<string>> GetLaterMemberTransactionsAsync(decimal vocId, decimal memId, string brCode);
         Task<Dictionary<int, string>> GetDepositNamesAsync(string brCode);
         Task<Dictionary<decimal, string>> GetRdNosAsync(IEnumerable<decimal> tdIds, string brCode);
+
+        // ----- spec 13a -----
+        /// <summary>Display names of users (Maker / Checker on the page).</summary>
+        Task<Dictionary<decimal, string>> GetUserNamesAsync(IEnumerable<decimal> userIds, string brCode);
+        /// <summary>Scheme rules, rates and every valid loan_trn row of the loans — the fresh-accrual inputs (§4.2).</summary>
+        Task<Dictionary<decimal, EcsRecoveryAccrualLoan>> GetAccrualInputsAsync(IEnumerable<decimal> loanIds, string brCode);
+        /// <summary>deposit_trn sums per (member, deposit): before the due date, since it, and all dates (§4.3).</summary>
+        Task<Dictionary<(decimal MemId, int DepositId), EcsRecoveryDepositRow>> GetDepositRevisionAsync(IEnumerable<decimal> memIds, DateTime dueDate, string brCode);
+        /// <summary>RD masters with termdeposit_trn sums as on now and the RD penal rate (§4.4).</summary>
+        Task<Dictionary<decimal, EcsRecoveryRdRow>> GetRdRevisionAsync(IEnumerable<decimal> tdIds, DateTime dueDate, string brCode);
+        /// <summary>Members by id, open or not (a demand line's member may have closed since the demand).</summary>
+        Task<List<EcsRecoveryMemberRow>> GetMembersByIdAsync(IEnumerable<decimal> memIds, string brCode);
     }
 
     public class EcsRecoveryOfficeStatRow
@@ -71,6 +83,51 @@ namespace Infin8.Coapp.Repository
         public string? PerNo { get; set; }
         public string? MemberName { get; set; }
         public decimal OfficeId { get; set; }
+        /// <summary>Not deleted and not closed (only <see cref="IEcsRecoveryRepository.GetMembersByIdAsync"/> fills it; the other queries return open members only).</summary>
+        public bool IsOpen { get; set; } = true;
+        public bool IsExpired { get; set; }
+        public DateTime? ExpiredDate { get; set; }
+    }
+
+    public class EcsRecoveryAccrualLoan
+    {
+        public decimal LoanId { get; set; }
+        public int IntApplication { get; set; }
+        public int PIApplication { get; set; }
+        public double Roi { get; set; }
+        public double Pi { get; set; }
+        public List<Loan_Trn> Trns { get; set; } = new();
+        public List<Loan_Roi> Rates { get; set; } = new();
+    }
+
+    public class EcsRecoveryDepositRow
+    {
+        public decimal MemId { get; set; }
+        public int DepositId { get; set; }
+        public double BeforeDemand { get; set; }
+        public double BeforeReceipt { get; set; }
+        public double BeforePiCalc { get; set; }
+        public double BeforePiReceived { get; set; }
+        public double SinceReceipt { get; set; }
+        public double SincePiReceived { get; set; }
+        public double SincePaid { get; set; }
+        public double AllReceipt { get; set; }
+        public double AllPaid { get; set; }
+    }
+
+    public class EcsRecoveryRdRow
+    {
+        public decimal TdId { get; set; }
+        public int SchemeId { get; set; }
+        public DateTime ValueDate { get; set; }
+        public int PeriodInMonths { get; set; }
+        public double Instalment { get; set; }
+        public bool Closed { get; set; }
+        public double Received { get; set; }
+        public double Paid { get; set; }
+        public double PenalCalcBeforeDue { get; set; }
+        public double PenalReceived { get; set; }
+        public double PenalRate { get; set; }
     }
 
     public class EcsRecoveryLoanRow

@@ -170,6 +170,9 @@ namespace Infin8.Coapp.Dto
         public DateTime CurrentDate { get; set; }
         public DateTime YrBeginningDate { get; set; }
         public DateTime YrEndDate { get; set; }
+        /// <summary>Role claims of the caller (spec 13a Maker / Checker checks).</summary>
+        public List<string> Roles { get; set; } = new();
+        public bool IsAdmin => Roles.Any(r => string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Loan balances of a member as summed from Loan_Trn (repository → handler).</summary>

@@ -46,6 +46,7 @@ namespace Infin8.Coapp.BusinessLogic
                 var statuses = await _unitOfWork.EcsDemand.GetStatusRowsForUpdateAsync(m.Demand_Id, ctx.BrCode);
                 var stats = (await _unitOfWork.EcsRecovery.GetOfficeStatsAsync(m.Demand_Id, ctx.BrCode)).ToDictionary(s => s.OfficeId);
                 var vocNos = await _unitOfWork.EcsRecovery.GetVoucherNosAsync(statuses.Select(s => s.Voc_Id), ctx.BrCode);
+                var users = await UserNamesAsync(statuses, ctx.BrCode);
                 state.Demands.Add(new EcsRecoveryDemandVM
                 {
                     DemandId = m.Demand_Id,
@@ -54,7 +55,7 @@ namespace Infin8.Coapp.BusinessLogic
                     IsRecoveryUpdated = m.IsRecoveryUpdated,
                     HasLaterDemand = masters.Any(x => x.DemandDate > m.DemandDate),
                     Offices = statuses.OrderBy(s => s.Office_Id)
-                                      .Select(s => ToOfficeVM(s, stats.GetValueOrDefault(s.Office_Id), names, vocNos)).ToList()
+                                      .Select(s => ToOfficeVM(s, stats.GetValueOrDefault(s.Office_Id), names, vocNos, users)).ToList()
                 });
             }
             return state;
@@ -83,7 +84,10 @@ namespace Infin8.Coapp.BusinessLogic
             {
                 DemandId = demandId,
                 DueDate = master.DemandDate.Value.Date,
-                Office = ToOfficeVM(status, stats, names, vocNos)
+                RecoveryDate = master.DemandDate.Value.Date,
+                ApplicationDate = ctx.CurrentDate.Date,
+                IsOwnAppropriation = IsOwn(status, ctx),
+                Office = ToOfficeVM(status, stats, names, vocNos, await UserNamesAsync(new[] { status }, brCode))
             };
 
             bool revised = status.Is_Appropriated;
@@ -153,7 +157,9 @@ namespace Infin8.Coapp.BusinessLogic
 
                 // --- the remittance list ---
                 var names = await _unitOfWork.EcsRecovery.GetOfficeNamesAsync(brCode);
-                var (amounts, reasons) = await ResolveItemsAsync(request, names, brCode);
+                var matchedRows = await MatchItemsAsync(request.Items, request.OfficeId, names, brCode);
+                var reasons = matchedRows.Where(r => r.Status == "Error").Select(r => $"Row {r.RowNo}: {r.Message}").ToList();
+                var amounts = matchedRows.Where(r => r.Status != "Error").ToDictionary(r => r.MemId, r => r.Amount);
                 if (reasons.Count > 0)
                 {
                     _unitOfWork.RollBack();
@@ -181,7 +187,7 @@ namespace Infin8.Coapp.BusinessLogic
                 var all = await _unitOfWork.EcsRecovery.GetOfficeLinesAsync(request.DemandId, request.OfficeId, brCode, forUpdate: true);
                 foreach (var stale in all.Where(l => l.Demand_Type is "A" or "B")) stale.Is_Active = false;
                 var lines = all.Where(IsDemandLine).ToList();
-                var inputs = await LoadRevisionInputsAsync(lines, amounts.Keys, brCode);
+                var inputs = await LoadRevisionInputsAsync(lines, amounts.Keys, request.DemandId, master!.DemandDate!.Value, brCode);
                 foreach (var l in lines.Where(l => !l.Stop_Demand)) ReviseLine(l, inputs);
 
                 // --- split (§4.2) ---
@@ -226,6 +232,11 @@ namespace Infin8.Coapp.BusinessLogic
                 }
                 await _unitOfWork.EcsRecovery.AddLinesAsync(newLines);
                 status.Is_Appropriated = true;
+                status.Appropriated_By = ctx.UsrId;
+                status.Appropriated_On = DateTime.Now;
+                status.Rejected_By = null;
+                status.Rejected_On = null;
+                status.Reject_Reason = null;
                 master!.IsRecoveryAppropriated = statuses!.All(s => s.Is_Appropriated);
 
                 await _unitOfWork.CompleteAsync();
@@ -270,51 +281,182 @@ namespace Infin8.Coapp.BusinessLogic
             Is_Appropriated = true
         };
 
-        /// <summary>Maps the remittance list to member ids; every problem is reported (spec 13 §4).</summary>
-        private async Task<(Dictionary<decimal, double> amounts, List<string> reasons)> ResolveItemsAsync(
-            EcsAppropriateRequestVM request, Dictionary<decimal, string> officeNames, string brCode)
+        /// <summary>
+        /// Matches the recovery list (sheet rows or typed amounts) to members (spec 13a §3): Employee No → <c>perno</c>,
+        /// Member No → <c>memberno</c>; both given and naming different members, no match, a member of another office
+        /// (by current <c>office_id</c>) or a member listed twice is an error. A name differing from the sheet is a warning.
+        /// </summary>
+        private async Task<List<EcsSheetPreviewRowVM>> MatchItemsAsync(IEnumerable<EcsRecoveryItemVM> items, decimal officeId,
+            Dictionary<decimal, string> officeNames, string brCode)
         {
-            var reasons = new List<string>();
-            var amounts = new Dictionary<decimal, double>();
-            bool byPerNo = string.Equals(request.MatchBy, "P", StringComparison.OrdinalIgnoreCase);
-            string what = byPerNo ? "Per no" : "Member no";
-            static string Norm(string? s) => (s ?? "").Trim().ToUpperInvariant();
+            static string Norm(string? x) => (x ?? "").Trim().ToUpperInvariant();
+            static string NameKey(string? x) => new string(Norm(x).Where(char.IsLetter).ToArray());
 
             var members = await _unitOfWork.EcsRecovery.GetBranchMembersAsync(brCode);
-            var index = members.Where(m => !string.IsNullOrWhiteSpace(byPerNo ? m.PerNo : m.MemberNo))
-                               .ToLookup(m => Norm(byPerNo ? m.PerNo : m.MemberNo));
-            var seen = new HashSet<string>();
-            int row = 0;
-            foreach (var item in request.Items)
+            // A CSV opened and re-saved in Excel loses leading zeros (001747 → 1747): when there is no exact match, the
+            // ids are compared again with leading zeros stripped on both sides (still unique or an error).
+            static string NoZeros(string x) => x.TrimStart('0') is { Length: > 0 } t ? t : "0";
+            var byPerNo = members.Where(m => !string.IsNullOrWhiteSpace(m.PerNo)).ToLookup(m => Norm(m.PerNo));
+            var byMemberNo = members.Where(m => !string.IsNullOrWhiteSpace(m.MemberNo)).ToLookup(m => Norm(m.MemberNo));
+            var byPerNoLoose = members.Where(m => !string.IsNullOrWhiteSpace(m.PerNo)).ToLookup(m => NoZeros(Norm(m.PerNo)));
+            var byMemberNoLoose = members.Where(m => !string.IsNullOrWhiteSpace(m.MemberNo)).ToLookup(m => NoZeros(Norm(m.MemberNo)));
+            static List<EcsRecoveryMemberRow> Find(string key, ILookup<string, EcsRecoveryMemberRow> exact, ILookup<string, EcsRecoveryMemberRow> loose)
             {
-                row++;
-                var key = Norm(item.Key);
-                if (key.Length == 0)
-                {
-                    if (item.Amount != 0) reasons.Add($"Row {row}: {what} is missing.");
-                    continue;
-                }
-                if (!seen.Add(key)) { reasons.Add($"{what} {key} appears more than once."); continue; }
-                if (item.Amount < 0 || double.IsNaN(item.Amount)) { reasons.Add($"{what} {key}: the amount cannot be negative."); continue; }
-                var found = index[key].ToList();
-                if (found.Count == 0) { reasons.Add($"{what} {key} is not an open member of this branch."); continue; }
-                if (found.Count > 1) { reasons.Add($"{what} {key} matches {found.Count} members."); continue; }
-                var m = found[0];
-                if (m.OfficeId != request.OfficeId)
-                {
-                    reasons.Add($"{what} {key} {m.MemberName} belongs to {officeNames.GetValueOrDefault(m.OfficeId) ?? "another office"}.");
-                    continue;
-                }
-                if (R(item.Amount) > 0) amounts[m.MemId] = R(item.Amount);
+                if (key.Length == 0) return new();
+                var hit = exact[key].ToList();
+                return hit.Count > 0 ? hit : loose[NoZeros(key)].ToList();
             }
-            return (amounts, reasons);
+            var seen = new Dictionary<decimal, int>();
+            var result = new List<EcsSheetPreviewRowVM>();
+            int index = 0;
+
+            foreach (var item in items)
+            {
+                index++;
+                var row = new EcsSheetPreviewRowVM
+                {
+                    RowNo = item.RowNo > 0 ? item.RowNo : index,
+                    EmployeeNo = item.EmployeeNo?.Trim(),
+                    MemberNo = item.MemberNo?.Trim(),
+                    SheetName = item.SheetName?.Trim(),
+                    Amount = R(item.Amount)
+                };
+                result.Add(row);
+                string? Error(string message) { row.Status = "Error"; row.Message = message; return null; }
+
+                string emp = Norm(item.EmployeeNo), mem = Norm(item.MemberNo);
+                if (emp.Length == 0 && mem.Length == 0) { Error("Neither an employee no nor a member no."); continue; }
+                if (double.IsNaN(item.Amount) || row.Amount <= 0) { Error("The amount must be more than zero."); continue; }
+
+                var byEmp = Find(emp, byPerNo, byPerNoLoose);
+                var byMem = Find(mem, byMemberNo, byMemberNoLoose);
+                if (emp.Length > 0 && byEmp.Count > 1) { Error($"Employee no {item.EmployeeNo} matches {byEmp.Count} members."); continue; }
+                if (mem.Length > 0 && byMem.Count > 1) { Error($"Member no {item.MemberNo} matches {byMem.Count} members."); continue; }
+                EcsRecoveryMemberRow? e = byEmp.FirstOrDefault(), m = byMem.FirstOrDefault();
+                if (e != null && m != null && e.MemId != m.MemId)
+                {
+                    Error($"Employee no {item.EmployeeNo} is member {e.MemberNo} {e.MemberName}, but member no {item.MemberNo} is {m.MemberName}.");
+                    continue;
+                }
+                var found = e ?? m;
+                if (found == null)
+                {
+                    Error(emp.Length > 0 && mem.Length > 0
+                        ? $"Neither employee no {item.EmployeeNo} nor member no {item.MemberNo} is an open member of this branch."
+                        : emp.Length > 0 ? $"Employee no {item.EmployeeNo} is not an open member of this branch."
+                                         : $"Member no {item.MemberNo} is not an open member of this branch.");
+                    continue;
+                }
+                row.MemId = found.MemId;
+                row.MatchedMemberNo = found.MemberNo;
+                row.MatchedName = found.MemberName;
+                if (found.OfficeId != officeId)
+                {
+                    Error($"Member {found.MemberNo} belongs to {officeNames.GetValueOrDefault(found.OfficeId) ?? "another office"}.");
+                    continue;
+                }
+                if (seen.TryGetValue(found.MemId, out var firstRow))
+                {
+                    Error($"Member {found.MemberNo} is already listed on row {firstRow}.");
+                    continue;
+                }
+                seen[found.MemId] = row.RowNo;
+                if (!string.IsNullOrWhiteSpace(row.SheetName) && NameKey(row.SheetName) != NameKey(found.MemberName))
+                {
+                    row.Status = "Warning";
+                    row.Message = "The name on the sheet differs from the member's name.";
+                }
+            }
+            return result;
+        }
+
+        // =====================================================================
+        // Specimen sheet (spec 13a §3) — the office's members to send to the pay office
+        // =====================================================================
+
+        public async Task<EcsSpecimenFileVM?> GetSpecimenAsync(decimal demandId, decimal officeId, string format, EcsUserContextVM ctx)
+        {
+            var brCode = ctx.BrCode;
+            if (!await IsEcsAsync(brCode)) return null;
+            var (master, _, _, error) = await LoadOfficeAsync(demandId, officeId, brCode);
+            if (error != null) return null;
+
+            var members = await _unitOfWork.EcsRecovery.GetOfficeMembersAsync(officeId, brCode);
+            var lines = await _unitOfWork.EcsRecovery.GetOfficeLinesAsync(demandId, officeId, brCode, forUpdate: false);
+            var demand = lines.Where(l => IsDemandLine(l) && !l.Stop_Demand)
+                              .GroupBy(l => l.Mem_Id).ToDictionary(g => g.Key, g => R(g.Sum(l => l.Total_Demand)));
+            var rows = members.OrderBy(m => m.MemberNo, StringComparer.OrdinalIgnoreCase)
+                .Select(m => new EcsSpecimenRow(m.PerNo?.Trim(), m.MemberNo?.Trim(), m.MemberName?.Trim(), demand.GetValueOrDefault(m.MemId)))
+                .ToList();
+
+            var due = master!.DemandDate!.Value.Date;
+            var office = (await _unitOfWork.EcsRecovery.GetOfficeNamesAsync(brCode)).GetValueOrDefault(officeId) ?? $"Office {officeId}";
+            var society = (await _unitOfWork.General.GetSocietyData(brCode))?.Bank_Name?.Trim();
+            var safeOffice = new string(office.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray()).Trim('_');
+            bool csv = string.Equals(format, "csv", StringComparison.OrdinalIgnoreCase);
+            return new EcsSpecimenFileVM
+            {
+                FileName = $"Recovery_{safeOffice}_{due:yyyy-MM-dd}.{(csv ? "csv" : "xlsx")}",
+                ContentType = csv ? EcsRecoverySheetWriter.CsvContentType : EcsRecoverySheetWriter.XlsxContentType,
+                Content = csv
+                    ? EcsRecoverySheetWriter.Csv(rows)
+                    : EcsRecoverySheetWriter.Xlsx(
+                        $"{(string.IsNullOrEmpty(society) ? "" : society + " — ")}{office} — salary recovery for the demand due {due:dd-MM-yyyy}", rows)
+            };
+        }
+
+        // =====================================================================
+        // Upload (spec 13a §3) — nothing is written
+        // =====================================================================
+
+        public async Task<EcsSheetPreviewVM> UploadAsync(decimal demandId, decimal officeId, Stream file, string fileName, EcsUserContextVM ctx)
+        {
+            var brCode = ctx.BrCode;
+            var preview = new EcsSheetPreviewVM { FileName = fileName };
+            var guard = await CommonGuardsAsync(ctx);
+            if (guard != null) { preview.Errors.Add(guard); return preview; }
+
+            var (master, status, _, error) = await LoadOfficeAsync(demandId, officeId, brCode);
+            if (error != null) { preview.Errors.Add(error); return preview; }
+            if (status!.Is_Recovery_Saved) { preview.Errors.Add("The recovery of this office is already saved."); return preview; }
+            if (status.Is_Appropriated) { preview.Errors.Add("The recovery of this office is already appropriated. Delete the appropriation first."); return preview; }
+
+            var (rows, errors) = EcsRecoverySheetReader.Read(file, fileName);
+            preview.Errors.AddRange(errors);
+            var names = await _unitOfWork.EcsRecovery.GetOfficeNamesAsync(brCode);
+            preview.Rows = await MatchItemsAsync(rows.Select(r => new EcsRecoveryItemVM
+            {
+                RowNo = r.RowNo, EmployeeNo = r.EmployeeNo, MemberNo = r.MemberNo, SheetName = r.SheetName, Amount = r.Amount
+            }), officeId, names, brCode);
+
+            preview.SheetTotal = R(rows.Sum(r => r.Amount));
+            var matched = preview.Rows.Where(r => r.Status != "Error").ToList();
+            preview.MatchedCount = matched.Count;
+            preview.MatchedTotal = R(matched.Sum(r => r.Amount));
+            var lines = await _unitOfWork.EcsRecovery.GetOfficeLinesAsync(demandId, officeId, brCode, forUpdate: false);
+            preview.OfficeDemand = R(lines.Where(l => IsDemandLine(l) && !l.Stop_Demand).Sum(l => l.Total_Demand));
+            return preview;
         }
 
         // =====================================================================
         // Delete appropriation (§5)
         // =====================================================================
 
-        public async Task<EcsRecoveryResultVM> DeleteAppropriationAsync(decimal demandId, decimal officeId, EcsUserContextVM ctx)
+        public Task<EcsRecoveryResultVM> DeleteAppropriationAsync(decimal demandId, decimal officeId, EcsUserContextVM ctx) =>
+            UnappropriateAsync(demandId, officeId, null, ctx);
+
+        /// <summary>
+        /// Checker's reject (spec 13a §6): the appropriation is deleted as by the Maker, and the reason is kept on the
+        /// office's status row for the Maker to see. The Maker cannot reject their own appropriation unless Admin.
+        /// </summary>
+        public Task<EcsRecoveryResultVM> RejectAsync(EcsRejectRequestVM request, EcsUserContextVM ctx)
+        {
+            var reason = (request.Reason ?? "").Trim();
+            if (reason.Length == 0) return Task.FromResult(Fail("Enter the reason for rejecting the appropriation."));
+            return UnappropriateAsync(request.DemandId, request.OfficeId, reason.Length > 200 ? reason[..200] : reason, ctx);
+        }
+
+        private async Task<EcsRecoveryResultVM> UnappropriateAsync(decimal demandId, decimal officeId, string? rejectReason, EcsUserContextVM ctx)
         {
             var guard = await CommonGuardsAsync(ctx);
             if (guard != null) return Fail(guard);
@@ -326,6 +468,11 @@ namespace Infin8.Coapp.BusinessLogic
                 if (error != null) { _unitOfWork.RollBack(); return Fail(error); }
                 if (!status!.Is_Appropriated) { _unitOfWork.RollBack(); return Fail("The recovery of this office is not appropriated."); }
                 if (status.Is_Recovery_Saved) { _unitOfWork.RollBack(); return Fail("The recovery is saved in the ledgers. Delete the saved recovery first."); }
+                if (rejectReason != null && IsOwn(status, ctx))
+                {
+                    _unitOfWork.RollBack();
+                    return Fail("You appropriated this recovery, so another user must check it. Use Delete appropriation to withdraw it.");
+                }
 
                 var lines = await _unitOfWork.EcsRecovery.GetOfficeLinesAsync(demandId, officeId, ctx.BrCode, forUpdate: true);
                 int removed = 0;
@@ -343,6 +490,14 @@ namespace Infin8.Coapp.BusinessLogic
                     l.Is_Appropriated = false;
                 }
                 status.Is_Appropriated = false;
+                status.Appropriated_By = null;
+                status.Appropriated_On = null;
+                if (rejectReason != null)
+                {
+                    status.Rejected_By = ctx.UsrId;
+                    status.Rejected_On = DateTime.Now;
+                    status.Reject_Reason = rejectReason;
+                }
                 master!.IsRecoveryAppropriated = false;
 
                 await _unitOfWork.CompleteAsync();
@@ -350,7 +505,8 @@ namespace Infin8.Coapp.BusinessLogic
                 return new EcsRecoveryResultVM
                 {
                     Success = true,
-                    Message = $"Appropriation deleted{(removed > 0 ? $" ({removed} advance/excess line(s) removed)" : "")}."
+                    Message = (rejectReason != null ? "Appropriation rejected; it is back with the Maker" : "Appropriation deleted")
+                              + (removed > 0 ? $" ({removed} advance/excess line(s) removed)." : ".")
                 };
             }
             catch (Exception ex)
@@ -376,6 +532,11 @@ namespace Infin8.Coapp.BusinessLogic
                 var (master, status, statuses, error) = await LoadOfficeAsync(request.DemandId, request.OfficeId, brCode);
                 if (error != null) { _unitOfWork.RollBack(); return Fail(error); }
                 if (status!.Is_Recovery_Saved) { _unitOfWork.RollBack(); return Fail("The recovery of this office is already saved."); }
+                if (IsOwn(status, ctx))
+                {
+                    _unitOfWork.RollBack();
+                    return Fail("You appropriated this recovery, so another user (a Checker) must save it.");
+                }
 
                 var alloc = await _unitOfWork.EcsRecovery.CreateIdAllocatorAsync(brCode);
                 var zero = alloc.ZeroId;
@@ -396,13 +557,14 @@ namespace Infin8.Coapp.BusinessLogic
                     master.IsRecoveryAppropriated = statuses!.All(s => s.Is_Appropriated);
                 }
 
-                // §6.1 recheck the revised demand
+                // §6.1 recheck the revised demand (spec 13a §4: as on the recovery date, every head)
+                RevisionInputs? inputs = null;
                 if (status.Is_Appropriated && lines.Any(l => l.Total_Collection != 0))
                 {
                     // Only members who recovered something: a later transaction on anyone else changes nothing.
                     var recovering = lines.Where(l => l.Total_Collection > 0).Select(l => l.Mem_Id).ToHashSet();
                     var demandLines = lines.Where(l => IsDemandLine(l) && !l.Stop_Demand && recovering.Contains(l.Mem_Id)).ToList();
-                    var inputs = await LoadRevisionInputsAsync(demandLines, Array.Empty<decimal>(), brCode);
+                    inputs = await LoadRevisionInputsAsync(demandLines, Array.Empty<decimal>(), request.DemandId, due, brCode);
                     var changed = new List<string>();
                     foreach (var l in demandLines)
                     {
@@ -430,7 +592,7 @@ namespace Infin8.Coapp.BusinessLogic
                         _unitOfWork.RollBack();
                         return Fail("Nothing was recovered from this office, so no remittance amount can be entered.");
                     }
-                    MarkSaved(lines, status, statuses!, master, zero);
+                    MarkSaved(lines, status, statuses!, master, zero, ctx.CurrentDate);
                     await _unitOfWork.CompleteAsync();
                     _unitOfWork.CommitTransaction();
                     return new EcsRecoveryResultVM { Success = true, Message = $"Nil recovery of {officeName} saved." };
@@ -593,9 +755,17 @@ namespace Infin8.Coapp.BusinessLogic
                         case "L":
                         case "A":
                             var ln = loans[l.Loan_Id];
-                            var date = new[] { due, ln.SanDate?.Date ?? due, lastLoanDates.TryGetValue(l.Loan_Id, out var last) ? last.Date : due }.Max();
+                            // Spec 13a §5.1: an L line's receipt carries the fresh accrual of the revised demand and its
+                            // dates; an A (advance) line is principal only and leaves the loan's calculation dates alone.
+                            var fresh = l.Demand_Type == "L" ? inputs?.Fresh.GetValueOrDefault(l.Loan_Id) : null;
+                            var date = fresh?.ReceiptDate
+                                       ?? ReceiptDate(due, ln.SanDate, lastLoanDates.TryGetValue(l.Loan_Id, out var last) ? last : null);
                             p.LoanTrns.Add(new Loan_Trn
                             {
+                                IntCalc_Amt = fresh?.Interest ?? 0,
+                                IntCalc_Date = fresh?.IntCalcDate,
+                                PICalc_Amt = fresh?.Penal ?? 0,
+                                PICalc_Date = fresh?.PICalcDate,
                                 Trn_Id = alloc.NextLoanTrnId(),
                                 Loan_Id = l.Loan_Id,
                                 Demand_Id = request.DemandId,
@@ -667,7 +837,7 @@ namespace Infin8.Coapp.BusinessLogic
                 }
 
                 await _unitOfWork.EcsRecovery.AddSaveAsync(p);
-                MarkSaved(lines, status, statuses!, master, vocId);
+                MarkSaved(lines, status, statuses!, master, vocId, ctx.CurrentDate);
 
                 await _unitOfWork.CompleteAsync();
                 _unitOfWork.CommitTransaction();
@@ -710,12 +880,14 @@ namespace Infin8.Coapp.BusinessLogic
         };
 
         private static void MarkSaved(List<Mem_Demand> lines, Mem_Demand_Status status, List<Mem_Demand_Status> statuses,
-            Mem_Demand_Master master, decimal vocId)
+            Mem_Demand_Master master, decimal vocId, DateTime applicationDate)
         {
+            var day = DateOnly.FromDateTime(applicationDate.Date);
             foreach (var l in lines.Where(l => !l.Stop_Demand))
             {
                 l.Voc_Id = vocId;
                 l.Is_Recovery_Saved = true;
+                if (l.Is_Appropriated) l.Recovery_Date = day;   // spec 13a §5: the application date
             }
             status.Is_Recovery_Saved = true;
             status.Voc_Id = vocId;
@@ -1105,33 +1277,140 @@ namespace Infin8.Coapp.BusinessLogic
         // Revised demand inputs
         // =====================================================================
 
+        /// <summary>A loan line's fresh accrual to its receipt date (spec 13a §4.2), stamped on the R row at save (§5.1).</summary>
+        private sealed record FreshAccrual(DateTime ReceiptDate, double Interest, DateTime IntCalcDate, double Penal, DateTime? PICalcDate);
+
         private sealed class RevisionInputs
         {
+            public DateTime DueDate { get; set; }
             public Dictionary<decimal, EcsRecoveryLoanRow> Loans { get; set; } = new();
             public Dictionary<decimal, EcsAppropriationLoan> AppropriationLoans { get; set; } = new();
             public List<EcsRecoveryLoanRow> OpenLoans { get; set; } = new();
             public Dictionary<(decimal, decimal), double> DueTo { get; set; } = new();
+            /// <summary>Per L loan: interest / penal booked by this demand's own D row(s).</summary>
+            public Dictionary<decimal, (double Int, double PI)> DemandCalc { get; set; } = new();
+            public Dictionary<decimal, FreshAccrual> Fresh { get; set; } = new();
+            public Dictionary<(decimal MemId, int DepositId), EcsRecoveryDepositRow> Deposits { get; set; } = new();
+            public Dictionary<decimal, EcsRecoveryRdRow> Rds { get; set; } = new();
+            public Dictionary<decimal, EcsRecoveryMemberRow> Members { get; set; } = new();
         }
 
-        private async Task<RevisionInputs> LoadRevisionInputsAsync(List<Mem_Demand> lines, IEnumerable<decimal> recoveringMembers, string brCode)
+        /// <summary>
+        /// Everything the revised demand as on the recovery date needs (spec 13a §4): loan ledgers with the fresh accrual
+        /// to each loan's receipt date, deposit and RD sums, due-to balances. Ledger sums cover every valid row, all dates.
+        /// </summary>
+        private async Task<RevisionInputs> LoadRevisionInputsAsync(List<Mem_Demand> lines, IEnumerable<decimal> recoveringMembers,
+            decimal demandId, DateTime dueDate, string brCode)
         {
+            var due = dueDate.Date;
+            var loanIds = lines.Where(l => l.Demand_Type == "L").Select(l => l.Loan_Id).Distinct().ToList();
             var inputs = new RevisionInputs
             {
-                Loans = await _unitOfWork.EcsRecovery.GetLoansAsync(lines.Where(l => l.Demand_Type == "L").Select(l => l.Loan_Id), brCode),
+                DueDate = due,
+                Loans = await _unitOfWork.EcsRecovery.GetLoansAsync(loanIds, brCode),
                 OpenLoans = await _unitOfWork.EcsRecovery.GetOpenLoansOfMembersAsync(recoveringMembers, brCode),
-                DueTo = await _unitOfWork.EcsRecovery.GetDueToBalancesAsync(lines.Where(l => l.Demand_Type == "S").Select(l => l.Mem_Id), brCode)
+                DueTo = await _unitOfWork.EcsRecovery.GetDueToBalancesAsync(lines.Where(l => l.Demand_Type == "S").Select(l => l.Mem_Id), brCode),
+                Deposits = await _unitOfWork.EcsRecovery.GetDepositRevisionAsync(lines.Where(l => l.Demand_Type == "D").Select(l => l.Mem_Id), due, brCode),
+                Rds = await _unitOfWork.EcsRecovery.GetRdRevisionAsync(lines.Where(l => l.Demand_Type == "R").Select(l => l.TD_Id), due, brCode),
+                Members = (await _unitOfWork.EcsRecovery.GetMembersByIdAsync(lines.Select(l => l.Mem_Id), brCode))
+                    .GroupBy(m => m.MemId).ToDictionary(g => g.Key, g => g.First())
             };
             inputs.AppropriationLoans = inputs.Loans.ToDictionary(kv => kv.Key, kv => ToAppropriationLoan(kv.Value));
+
+            var accrual = await _unitOfWork.EcsRecovery.GetAccrualInputsAsync(loanIds, brCode);
+            foreach (var loanId in loanIds)
+            {
+                if (!accrual.TryGetValue(loanId, out var acc)) continue;
+                var rows = acc.Trns;
+                var mine = rows.Where(t => t.Demand_Id == demandId && t.Trn_Status == "D").ToList();
+                inputs.DemandCalc[loanId] = (R(mine.Sum(t => t.IntCalc_Amt)), R(mine.Sum(t => t.PICalc_Amt)));
+
+                // Receipt date (§5, decision Q3): the due date, or later when the loan was sanctioned or has a row after it.
+                var sanDate = inputs.Loans.TryGetValue(loanId, out var ln) ? ln.SanDate?.Date : null;
+                var receiptDate = ReceiptDate(due, sanDate, rows.Count > 0 ? rows.Max(t => t.Trn_Date) : null);
+
+                DateTime? disbDate = rows.Where(t => t.Trn_Status == "I" && t.Disb_Date.HasValue).Min(t => t.Disb_Date)
+                                     ?? rows.Where(t => t.Disb_Amt > 0).Select(t => (DateTime?)t.Trn_Date).Min();
+                DateTime? lastInt = rows.Max(t => t.IntCalc_Date) ?? disbDate;
+                DateTime? lastPi = rows.Max(t => t.PICalc_Date) ?? disbDate;
+                var deltas = rows.Select(t => new EcsTrnDelta(t.Trn_Date, t.Disb_Amt, t.Prl_Dem, t.PrlColl_Amt, t.IntCalc_Amt, t.IntColl_Amt)).ToList();
+                var rates = acc.Rates.Select(r => new EcsRateEvent(r.Roi_Wef, r.Roi, r.Pi)).ToList();
+
+                // An expired member's interest stops at the expiry date, as in the demand (spec 12).
+                var member = ln != null ? inputs.Members.GetValueOrDefault(ln.MemId) : null;
+                var stop = EcsDemandCalculator.InterestStopDate(member?.IsExpired ?? false, member?.ExpiredDate);
+                var appDate = stop.HasValue && stop.Value < receiptDate ? stop.Value : receiptDate;
+
+                double freshInt = lastInt.HasValue
+                    ? EcsInterestCalculator.Calculate(EcsAccrualHead.Interest, acc.IntApplication, deltas, rates, acc.Roi, acc.Pi, lastInt.Value, appDate).Amount
+                    : 0;
+                bool penal = EcsInterestCalculator.PenalApplies(acc.PIApplication);
+                double freshPi = penal && lastPi.HasValue
+                    ? EcsInterestCalculator.Calculate(EcsAccrualHead.Penal, acc.PIApplication, deltas, rates, acc.Roi, acc.Pi, lastPi.Value, appDate).Amount
+                    : 0;
+                inputs.Fresh[loanId] = new FreshAccrual(
+                    receiptDate,
+                    freshInt,
+                    Max(receiptDate, lastInt),
+                    freshPi,
+                    penal ? Max(receiptDate, lastPi) : null);
+            }
             return inputs;
         }
 
+        /// <summary>A loan receipt's date: the due date, never before the sanction or the loan's last transaction.</summary>
+        private static DateTime ReceiptDate(DateTime due, DateTime? sanDate, DateTime? lastTrn) =>
+            new[] { due.Date, sanDate?.Date ?? due.Date, lastTrn?.Date ?? due.Date }.Max();
+
+        private static DateTime Max(DateTime a, DateTime? b) => b.HasValue && b.Value.Date > a.Date ? b.Value.Date : a.Date;
+
         private static void ReviseLine(Mem_Demand l, RevisionInputs inputs)
         {
-            EcsLoanBalance? bal = null;
-            if (l.Demand_Type == "L" && inputs.Loans.TryGetValue(l.Loan_Id, out var ln))
-                bal = new EcsLoanBalance(ln.Disb, ln.PrlColl, ln.IntCalc, ln.IntColl, ln.PICalc, ln.PIColl);
-            double? dueTo = l.Demand_Type == "S" ? inputs.DueTo.GetValueOrDefault((l.Mem_Id, l.Debtor_Led_Id)) : null;
-            EcsDemandAppropriator.Revise(l, bal, dueTo);
+            var input = new EcsLineRevision();
+            switch (l.Demand_Type)
+            {
+                case "L":
+                    if (inputs.Loans.TryGetValue(l.Loan_Id, out var ln))
+                    {
+                        var calc = inputs.DemandCalc.GetValueOrDefault(l.Loan_Id);
+                        var fresh = inputs.Fresh.GetValueOrDefault(l.Loan_Id);
+                        input = input with
+                        {
+                            Loan = new EcsLoanRevision(new EcsLoanBalance(ln.Disb, ln.PrlColl, ln.IntCalc, ln.IntColl, ln.PICalc, ln.PIColl),
+                                calc.Int, calc.PI, fresh?.Interest ?? 0, fresh?.Penal ?? 0)
+                        };
+                    }
+                    break;
+                case "D":
+                    bool memberClosed = !(inputs.Members.GetValueOrDefault(l.Mem_Id)?.IsOpen ?? false);
+                    var d = inputs.Deposits.GetValueOrDefault((l.Mem_Id, l.Deposit_Id));
+                    // Closed: the member has left, or a payment since the due date took the deposit to nil.
+                    bool closed = memberClosed || (d != null && d.SincePaid > 0 && d.AllReceipt - d.AllPaid <= Tolerance);
+                    input = input with
+                    {
+                        Deposit = d == null
+                            ? new EcsDepositRevision(0, 0, 0, 0, 0, 0, closed)
+                            : new EcsDepositRevision(d.BeforeDemand, d.BeforeReceipt, d.BeforePiCalc, d.BeforePiReceived,
+                                d.SinceReceipt, d.SincePiReceived, closed)
+                    };
+                    // No ledger row at all: keep the demanded figures (e.g. the first demand of a new member).
+                    if (d == null && !closed) input = input with { Deposit = null };
+                    break;
+                case "R":
+                    if (inputs.Rds.TryGetValue(l.TD_Id, out var rd))
+                    {
+                        bool rdClosed = rd.Closed || rd.Paid > 0;
+                        var figures = rdClosed ? null : EcsDemandCalculator.Rd(
+                            new EcsDemandRd(rd.TdId, rd.ValueDate, rd.PeriodInMonths, rd.Instalment, rd.Received,
+                                rd.PenalCalcBeforeDue, rd.PenalReceived, rd.PenalRate), inputs.DueDate);
+                        input = input with { Rd = new EcsRdRevision(figures, rdClosed) };
+                    }
+                    break;
+                case "S":
+                    input = input with { DueTo = inputs.DueTo.GetValueOrDefault((l.Mem_Id, l.Debtor_Led_Id)) };
+                    break;
+            }
+            EcsDemandAppropriator.Revise(l, input);
         }
 
         private static EcsAppropriationLoan ToAppropriationLoan(EcsRecoveryLoanRow l) =>
@@ -1181,9 +1460,23 @@ namespace Infin8.Coapp.BusinessLogic
 
         private static bool IsDemandLine(Mem_Demand l) => l.Demand_Type is "L" or "D" or "S" or "R";
 
+        /// <summary>Spec 13a §6: the caller appropriated this office and is not Admin, so may not check it.</summary>
+        private static bool IsOwn(Mem_Demand_Status s, EcsUserContextVM ctx) =>
+            s.Is_Appropriated && s.Appropriated_By == ctx.UsrId && !ctx.IsAdmin;
+
+        private Task<Dictionary<decimal, string>> UserNamesAsync(IEnumerable<Mem_Demand_Status> statuses, string brCode) =>
+            _unitOfWork.EcsRecovery.GetUserNamesAsync(
+                statuses.SelectMany(s => new[] { s.Appropriated_By, s.Rejected_By }).Where(x => x.HasValue).Select(x => x!.Value), brCode);
+
         private static EcsRecoveryOfficeVM ToOfficeVM(Mem_Demand_Status s, EcsRecoveryOfficeStatRow? stat,
-            Dictionary<decimal, string> names, Dictionary<decimal, string?> vocNos) => new()
+            Dictionary<decimal, string> names, Dictionary<decimal, string?> vocNos, Dictionary<decimal, string> users) => new()
         {
+            AppropriatedBy = s.Is_Appropriated ? s.Appropriated_By : null,
+            AppropriatedByName = s.Is_Appropriated && s.Appropriated_By is { } by ? users.GetValueOrDefault(by) ?? $"User {by}" : null,
+            AppropriatedOn = s.Is_Appropriated ? s.Appropriated_On : null,
+            RejectReason = s.Is_Appropriated ? null : s.Reject_Reason,
+            RejectedByName = !s.Is_Appropriated && s.Rejected_By is { } rb ? users.GetValueOrDefault(rb) ?? $"User {rb}" : null,
+            RejectedOn = s.Is_Appropriated ? null : s.Rejected_On,
             OfficeId = s.Office_Id,
             OfficeName = names.GetValueOrDefault(s.Office_Id) ?? $"Office {s.Office_Id}",
             Members = stat?.Members ?? 0,

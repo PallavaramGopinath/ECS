@@ -7,7 +7,7 @@
 @using System.Globalization
 @using System.Net
 @rendermode InteractiveWebAssembly
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin,Checker")]
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider

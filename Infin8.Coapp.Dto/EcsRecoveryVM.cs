@@ -43,7 +43,16 @@ namespace Infin8.Coapp.Dto
         public DateTime? RecoveryDate { get; set; }
         public decimal VocId { get; set; }
         public string? VocNo { get; set; }
-        public string State => IsSaved ? "Saved" : IsAppropriated ? "Appropriated" : "Pending";
+        public string State => IsSaved ? "Saved" : IsAppropriated ? "Awaiting check" : "Pending";
+
+        // Spec 13a Maker / Checker
+        public decimal? AppropriatedBy { get; set; }
+        public string? AppropriatedByName { get; set; }
+        public DateTime? AppropriatedOn { get; set; }
+        /// <summary>Set when a Checker rejected the last appropriation (cleared by the next one).</summary>
+        public string? RejectReason { get; set; }
+        public string? RejectedByName { get; set; }
+        public DateTime? RejectedOn { get; set; }
     }
 
     /// <summary>One office of a demand, with its members, for the appropriate / save / delete views.</summary>
@@ -52,6 +61,12 @@ namespace Infin8.Coapp.Dto
         public decimal DemandId { get; set; }
         public DateTime DueDate { get; set; }
         public EcsRecoveryOfficeVM Office { get; set; } = new();
+        /// <summary>Spec 13a §2: ledger rows are dated on the recovery date (the due date) …</summary>
+        public DateTime RecoveryDate { get; set; }
+        /// <summary>… and the voucher on the application date (the business day of the Checker's save).</summary>
+        public DateTime ApplicationDate { get; set; }
+        /// <summary>The caller appropriated this office and is not Admin, so cannot save or reject it (spec 13a §6).</summary>
+        public bool IsOwnAppropriation { get; set; }
         public List<EcsRecoveryMemberVM> Members { get; set; } = new();
         public EcsRecoveryHeadTotalsVM Totals { get; set; } = new();
 
@@ -118,15 +133,68 @@ namespace Infin8.Coapp.Dto
     {
         public decimal DemandId { get; set; }
         public decimal OfficeId { get; set; }
-        /// <summary>"M" — items are keyed by member no; "P" — by per no.</summary>
-        public string MatchBy { get; set; } = "M";
         public List<EcsRecoveryItemVM> Items { get; set; } = new();
     }
 
+    /// <summary>
+    /// One member's recovery: a row of the uploaded sheet (spec 13a §3) or an amount typed on the page. Matched by
+    /// Employee No (<c>mem_master.perno</c>) and/or Member No; when both are given they must name the same member.
+    /// </summary>
     public class EcsRecoveryItemVM
     {
-        public string? Key { get; set; }
+        /// <summary>Excel row number; 0 for an amount typed on the page.</summary>
+        public int RowNo { get; set; }
+        public string? EmployeeNo { get; set; }
+        public string? MemberNo { get; set; }
+        public string? SheetName { get; set; }
         public double Amount { get; set; }
+    }
+
+    /// <summary>The uploaded sheet matched against the office's members (spec 13a §3). Nothing is written.</summary>
+    public class EcsSheetPreviewVM
+    {
+        public string? FileName { get; set; }
+        public List<EcsSheetPreviewRowVM> Rows { get; set; } = new();
+        /// <summary>Problems that are not tied to one row (unreadable file, no header …).</summary>
+        public List<string> Errors { get; set; } = new();
+        public double SheetTotal { get; set; }
+        public int MatchedCount { get; set; }
+        public double MatchedTotal { get; set; }
+        /// <summary>The office's demand (non-stopped lines), for comparison.</summary>
+        public double OfficeDemand { get; set; }
+        public int ErrorCount => Errors.Count + Rows.Count(r => r.Status == "Error");
+        public int WarningCount => Rows.Count(r => r.Status == "Warning");
+        public bool CanAppropriate => ErrorCount == 0 && MatchedCount > 0;
+    }
+
+    public class EcsSheetPreviewRowVM
+    {
+        public int RowNo { get; set; }
+        public string? EmployeeNo { get; set; }
+        public string? MemberNo { get; set; }
+        public string? SheetName { get; set; }
+        public decimal MemId { get; set; }
+        public string? MatchedMemberNo { get; set; }
+        public string? MatchedName { get; set; }
+        public double Amount { get; set; }
+        /// <summary>"OK", "Warning" (name differs) or "Error".</summary>
+        public string Status { get; set; } = "OK";
+        public string? Message { get; set; }
+    }
+
+    /// <summary>A specimen recovery sheet for a pay office (spec 13a §3).</summary>
+    public class EcsSpecimenFileVM
+    {
+        public string FileName { get; set; } = "";
+        public string ContentType { get; set; } = "";
+        public byte[] Content { get; set; } = Array.Empty<byte>();
+    }
+
+    public class EcsRejectRequestVM
+    {
+        public decimal DemandId { get; set; }
+        public decimal OfficeId { get; set; }
+        public string? Reason { get; set; }
     }
 
     public class EcsSaveRecoveryRequestVM

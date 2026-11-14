@@ -8,6 +8,23 @@ namespace Infin8.Coapp.BusinessLogic
         public double PrincipalOutstanding => Disb - PrlColl;
     }
 
+    /// <summary>
+    /// A loan line's inputs as on the recovery date (spec 13a §4.2): ledger totals, what this demand's own <c>D</c> row
+    /// booked, and the fresh accrual from the loan's last calculation date to the receipt date.
+    /// </summary>
+    public sealed record EcsLoanRevision(EcsLoanBalance Balance, double DemandIntCalc, double DemandPICalc, double FreshInt, double FreshPI);
+
+    /// <summary>A deposit line's deposit_trn sums (spec 13a §4.3): before the due date and received since it.</summary>
+    public sealed record EcsDepositRevision(double BeforeDemand, double BeforeReceipt, double BeforePiCalc, double BeforePiReceived,
+        double SinceReceipt, double SincePiReceived, bool Closed);
+
+    /// <summary>An RD line recounted as on the recovery date (spec 13a §4.4); <see cref="Figures"/> null = keep the demand.</summary>
+    public sealed record EcsRdRevision(EcsRdDemandFigures? Figures, bool Closed);
+
+    /// <summary>What <see cref="EcsDemandAppropriator.Revise"/> needs for one line; only the part for its type is read.</summary>
+    public sealed record EcsLineRevision(EcsLoanRevision? Loan = null, EcsDepositRevision? Deposit = null,
+        EcsRdRevision? Rd = null, double? DueTo = null);
+
     /// <summary>A loan the split may touch: scheme, sanction date (oldest first) and principal outstanding.</summary>
     public sealed record EcsAppropriationLoan(decimal LoanId, int SchemeId, DateTime? SanDate, double Outstanding);
 
@@ -26,16 +43,16 @@ namespace Infin8.Coapp.BusinessLogic
         // =====================================================================
 
         /// <summary>
-        /// Writes the revised demand into the line's <c>*2</c> columns. <paramref name="loan"/> is required for an L
-        /// line, <paramref name="dueToBalance"/> for an S line; D and R lines keep their calculated demand.
+        /// Writes the demand as it stands on the recovery date into the line's <c>*2</c> columns (spec 13a §4).
         /// </summary>
-        public static void Revise(Mem_Demand l, EcsLoanBalance? loan, double? dueToBalance)
+        public static void Revise(Mem_Demand l, EcsLineRevision input)
         {
             switch (l.Demand_Type)
             {
                 case "L":
-                    var b = loan ?? new EcsLoanBalance(0, 0, 0, 0, 0, 0);
-                    // Principal: as demanded, capped (arrear first) at what is still outstanding.
+                    var lr = input.Loan ?? new EcsLoanRevision(new EcsLoanBalance(0, 0, 0, 0, 0, 0), 0, 0, 0, 0);
+                    var b = lr.Balance;
+                    // §4.1 Principal: as demanded, capped (arrear first) at what is still outstanding. No new principal.
                     double prlOs = Math.Max(0, b.PrincipalOutstanding);
                     double pa = R(l.Loan_Prl_Arrear), pc = R(l.Loan_Prl_Current);
                     if (pa + pc > prlOs)
@@ -46,40 +63,96 @@ namespace Infin8.Coapp.BusinessLogic
                     l.Loan_Prl_Arrear2 = R(pa);
                     l.Loan_Prl_Current2 = R(pc);
 
-                    // Interest / penal: what was collected since the demand comes off arrear, then current. A
-                    // negative figure (interest accrued after the demand) adds to the arrear, as in TSIS.
-                    (l.Loan_Int_Arrear2, l.Loan_Int_Current2) =
-                        TakeCollected(l.Loan_Int_Arrear, l.Loan_Int_Current, b.IntCalc - b.IntColl);
-                    (l.Loan_PI_Arrear2, l.Loan_PI_Current2) =
-                        TakeCollected(l.Loan_PI_Arrear, l.Loan_PI_Current, b.PICalc - b.PIColl);
+                    // §4.2 Interest / penal from the ledger now plus the fresh accrual to the receipt date.
+                    (l.Loan_Int_Arrear2, l.Loan_Int_Current2) = InterestHeads(b.IntCalc, b.IntColl, lr.DemandIntCalc, lr.FreshInt);
+                    (l.Loan_PI_Arrear2, l.Loan_PI_Current2) = InterestHeads(b.PICalc, b.PIColl, lr.DemandPICalc, lr.FreshPI);
                     l.Loan_Total2 = R(l.Loan_Prl_Arrear2 + l.Loan_Prl_Current2 + l.Loan_Int_Arrear2 + l.Loan_Int_Current2
                                       + l.Loan_PI_Arrear2 + l.Loan_PI_Current2);
                     break;
 
                 case "D":
-                    l.Deposit_Arrear2 = l.Deposit_Arrear;
-                    l.Deposit_Current2 = l.Deposit_Current;
-                    l.Deposit_PI_Arrear2 = l.Deposit_PI_Arrear;
-                    l.Deposit_PI_Current2 = l.Deposit_PI_Current;
-                    l.Deposit_Total2 = R(l.Deposit_Arrear + l.Deposit_Current + l.Deposit_PI_Arrear + l.Deposit_PI_Current);
+                    var d = input.Deposit;
+                    if (d == null)
+                    {
+                        (l.Deposit_Arrear2, l.Deposit_Current2) = (l.Deposit_Arrear, l.Deposit_Current);
+                        (l.Deposit_PI_Arrear2, l.Deposit_PI_Current2) = (l.Deposit_PI_Arrear, l.Deposit_PI_Current);
+                    }
+                    else if (d.Closed)
+                    {
+                        l.Deposit_Arrear2 = l.Deposit_Current2 = l.Deposit_PI_Arrear2 = l.Deposit_PI_Current2 = 0;
+                    }
+                    else
+                    {
+                        (l.Deposit_Arrear2, l.Deposit_Current2) =
+                            DepositHeads(l.Deposit_Arrear, l.Deposit_Current, d.BeforeDemand - d.BeforeReceipt, d.SinceReceipt);
+                        (l.Deposit_PI_Arrear2, l.Deposit_PI_Current2) =
+                            DepositHeads(l.Deposit_PI_Arrear, l.Deposit_PI_Current, d.BeforePiCalc - d.BeforePiReceived, d.SincePiReceived);
+                    }
+                    l.Deposit_Total2 = R(l.Deposit_Arrear2 + l.Deposit_Current2 + l.Deposit_PI_Arrear2 + l.Deposit_PI_Current2);
                     break;
 
                 case "S":
                     l.Debtor_Arrear2 = 0;
-                    l.Debtor_Current2 = R(Math.Max(0, dueToBalance ?? 0));
+                    l.Debtor_Current2 = R(Math.Max(0, input.DueTo ?? 0));
                     l.Debtor_Total2 = l.Debtor_Current2;
                     break;
 
                 case "R":
-                    l.RD_Instalment2 = (int)Math.Round(l.RD_Instalment, MidpointRounding.AwayFromZero);
-                    l.RD_NoOf_Instalments2 = l.RD_NoOf_Instalments;
-                    l.RD_Demand2 = l.RD_Demand;
-                    l.RD_PI_Arrear2 = l.RD_PI_Arrear;
-                    l.RD_PI_Calc2 = l.RD_PI_Calc;
-                    l.RD_Total2 = R(l.RD_Demand + l.RD_PI_Arrear + l.RD_PI_Calc);
+                    var rd = input.Rd;
+                    int demandInst = (int)Math.Round(l.RD_Instalment, MidpointRounding.AwayFromZero);
+                    if (rd is { Closed: true })
+                    {
+                        l.RD_Instalment2 = demandInst;
+                        l.RD_NoOf_Instalments2 = 0;
+                        l.RD_Demand2 = l.RD_PI_Arrear2 = l.RD_PI_Calc2 = 0;
+                    }
+                    else if (rd?.Figures is { } f)
+                    {
+                        // Recounted as on the recovery date, never above what was demanded (no new demand).
+                        int inst = f.Instalment > 0 ? f.Instalment : demandInst;
+                        l.RD_Instalment2 = inst;
+                        l.RD_Demand2 = R(Math.Min(l.RD_Demand, f.Demand));
+                        l.RD_NoOf_Instalments2 = inst > 0 ? (int)Math.Round(l.RD_Demand2 / inst) : 0;
+                        l.RD_PI_Arrear2 = R(Math.Min(l.RD_PI_Arrear, f.PiArrear));
+                        l.RD_PI_Calc2 = R(Math.Min(l.RD_PI_Calc, f.PiCurrent));
+                    }
+                    else
+                    {
+                        l.RD_Instalment2 = demandInst;
+                        l.RD_NoOf_Instalments2 = l.RD_NoOf_Instalments;
+                        l.RD_Demand2 = l.RD_Demand;
+                        l.RD_PI_Arrear2 = l.RD_PI_Arrear;
+                        l.RD_PI_Calc2 = l.RD_PI_Calc;
+                    }
+                    l.RD_Total2 = R(l.RD_Demand2 + l.RD_PI_Arrear2 + l.RD_PI_Calc2);
                     break;
             }
             l.Total_Demand2 = R(l.Loan_Total2 + l.Deposit_Total2 + l.Debtor_Total2 + l.RD_Total2);
+        }
+
+        /// <summary>
+        /// Spec 13a §4.2. Still due = Σ calc − Σ coll + fresh (floored at 0). Arrear = what was booked before this demand
+        /// (Σ calc less this demand's own D row) less everything collected, capped at what is still due; the rest is
+        /// current — this demand's D row plus the fresh accrual, less any collection beyond the arrear.
+        /// </summary>
+        public static (double arrear, double current) InterestHeads(double calc, double coll, double demandCalc, double fresh)
+        {
+            double due = R(Math.Max(0, calc - coll + fresh));
+            double arrear = R(Math.Min(due, Math.Max(0, calc - demandCalc - coll)));
+            return (arrear, R(due - arrear));
+        }
+
+        /// <summary>
+        /// Spec 13a §4.3. Arrear base = the demanded arrear, capped at the ledger's arrear before the due date; money
+        /// received since the due date comes off the arrear, then the current.
+        /// </summary>
+        public static (double arrear, double current) DepositHeads(double demandArrear, double demandCurrent, double ledgerArrear, double since)
+        {
+            double a = R(Math.Min(Math.Max(0, demandArrear), Math.Max(0, ledgerArrear)));
+            double s = Math.Max(0, since);
+            double arrear = R(Math.Max(0, a - s));
+            double over = Math.Max(0, s - a);
+            return (arrear, R(Math.Max(0, demandCurrent - over)));
         }
 
         /// <summary>The revised figures, for comparing a stored appropriation with a fresh one (spec 13 §6.1).</summary>
@@ -89,15 +162,6 @@ namespace Infin8.Coapp.BusinessLogic
             l.Loan_PI_Current2, l.Deposit_Arrear2, l.Deposit_Current2, l.Deposit_PI_Arrear2, l.Deposit_PI_Current2,
             l.Debtor_Arrear2, l.Debtor_Current2, l.RD_Demand2, l.RD_PI_Arrear2, l.RD_PI_Calc2
         };
-
-        private static (double arrear, double current) TakeCollected(double arrear, double current, double stillDue)
-        {
-            double collected = R(arrear + current - stillDue);
-            double a = R(arrear), c = R(current);
-            if (collected >= a) { collected -= a; a = 0; } else { a -= collected; collected = 0; }
-            if (collected >= c) { c = 0; } else { c -= collected; }
-            return (R(Math.Max(0, a)), R(Math.Max(0, c)));
-        }
 
         // =====================================================================
         // §4.2 Split

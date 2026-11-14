@@ -8,13 +8,14 @@
 @using System.Globalization
 @using System.Net
 @rendermode InteractiveWebAssembly
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-@* ECS Recovery Appropriation (spec 13): per pay office, split the employer's salary recovery across the posted
-   demand, save it as receipts with one voucher, or undo either step. *@
+@* ECS Recovery Appropriation (spec 13, 13a): per pay office, the Maker uploads the employer's Excel sheet and
+   appropriates it across the demand as on the recovery date; the Checker saves it as receipts with one voucher or
+   rejects it. The server enforces the roles; the buttons only follow them. *@
 
 <PageTitle>Recovery Appropriation</PageTitle>
 
@@ -126,7 +127,17 @@ else
                                         <td class="text-end">@o.Members</td>
                                         <td class="text-end">@F(o.Demand)</td>
                                         <td class="text-end">@F(o.Recovery)</td>
-                                        <td><span class="badge @StateBadge(o)">@o.State</span></td>
+                                        <td>
+                                            <span class="badge @StateBadge(o)">@o.State</span>
+                                            @if (o.IsAppropriated && !o.IsSaved && !string.IsNullOrEmpty(o.AppropriatedByName))
+                                            {
+                                                <span class="small text-muted ms-1">by @o.AppropriatedByName</span>
+                                            }
+                                            else if (!o.IsAppropriated && !string.IsNullOrEmpty(o.RejectReason))
+                                            {
+                                                <span class="badge bg-danger ms-1" title="@o.RejectReason">rejected</span>
+                                            }
+                                        </td>
                                         <td>@D(o.RecoveryDate)</td>
                                         <td>@(o.VocNo ?? "-")</td>
                                         <td class="text-end">
@@ -160,22 +171,45 @@ else
                 <div class="card-body">
                     @if (!o.IsAppropriated)
                     {
-                        @* ----- 1. remittance list ----- *@
+                        @* ----- 1. remittance list (Maker) ----- *@
+                        @if (!string.IsNullOrEmpty(o.RejectReason))
+                        {
+                            <div class="alert alert-danger py-2 small">
+                                <i class="bi bi-arrow-return-left me-1"></i>
+                                Rejected by <strong>@(o.RejectedByName ?? "the Checker")</strong> on @DT(o.RejectedOn): @o.RejectReason
+                            </div>
+                        }
+                        @if (!canMake)
+                        {
+                            <div class="alert alert-info py-2 small mb-2">
+                                Not appropriated yet. A Maker uploads the pay office's sheet and appropriates it; you can then check and save it.
+                            </div>
+                        }
+                        else
+                        {
                         <p class="text-muted small mb-2">
-                            Enter what the employer remitted for each member, or load a CSV file of <code>member no, amount</code>
-                            (a header row is ignored). Members left empty recover nothing. The amounts are split across the
-                            demand in the society's collection-priority order.
+                            Download the specimen sheet of this office's members, send it to the pay office to fill in
+                            <em>Amount recovered from salary</em>, then upload what comes back (<code>.xlsx</code>, <code>.xls</code>
+                            or <code>.csv</code>). Rows are matched by employee no, else member no; every row must be a member of
+                            this office; a blank amount means nothing was recovered. Amounts can still be corrected below. The money is split against the demand as it stands on the recovery
+                            date (@D(detail.RecoveryDate)), in the society's collection-priority order.
                         </p>
                         <div class="row g-2 align-items-end mb-2">
                             <div class="col-auto">
-                                <label class="form-label small mb-0">CSV keyed by</label>
-                                <select class="form-select form-select-sm" @bind="csvMatchBy">
-                                    <option value="M">Member no</option>
-                                    <option value="P">Per no</option>
-                                </select>
+                                <label class="form-label small mb-0 d-block">Specimen sheet</label>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a class="btn btn-outline-success" href="@SpecimenUrl("xlsx")" download
+                                       title="The office's members with their demand; the pay office fills in the amount recovered">
+                                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                                    </a>
+                                    <a class="btn btn-outline-success" href="@SpecimenUrl("csv")" download title="The same sheet as CSV">
+                                        <i class="bi bi-filetype-csv me-1"></i>CSV
+                                    </a>
+                                </div>
                             </div>
                             <div class="col-auto">
-                                <InputFile OnChange="LoadCsvAsync" accept=".csv,text/csv,text/plain" class="form-control form-control-sm" />
+                                <label class="form-label small mb-0">Upload recovery sheet</label>
+                                <InputFile @key="uploadKey" OnChange="UploadSheetAsync" accept=".xlsx,.xls,.csv" class="form-control form-control-sm" disabled="@busy" />
                             </div>
                             <div class="col-auto">
                                 <button class="btn btn-sm btn-outline-secondary" @onclick="FillFromDemand"><i class="bi bi-arrow-down-square me-1"></i>Recover in full</button>
@@ -189,20 +223,59 @@ else
                                 Total: <strong>@F(amounts.Values.Where(v => v > 0).Sum())</strong>
                             </div>
                         </div>
-                        @if (csvErrors.Count > 0)
+                        @if (preview != null)
                         {
-                            <div class="alert alert-danger py-2 small">
-                                <div class="fw-semibold">The CSV file has rows that were not loaded:</div>
-                                <ul class="mb-0">
-                                    @foreach (var e in csvErrors.Take(30))
+                            <div class="card mb-2 @(preview.ErrorCount > 0 ? "border-danger" : "border-success")">
+                                <div class="card-header py-1 d-flex flex-wrap gap-3 small align-items-center">
+                                    <strong>@preview.FileName</strong>
+                                    <span>Sheet total: <strong>@F(preview.SheetTotal)</strong></span>
+                                    <span>Matched: <strong>@preview.MatchedCount</strong> members, <strong>@F(preview.MatchedTotal)</strong></span>
+                                    <span>Office demand: <strong>@F(preview.OfficeDemand)</strong></span>
+                                    <span>Difference: <strong class="@(Math.Abs(preview.SheetTotal - preview.OfficeDemand) > 0.005 ? "text-warning" : "")">@F(preview.SheetTotal - preview.OfficeDemand)</strong></span>
+                                    @if (preview.ErrorCount > 0)
                                     {
-                                        <li>@e</li>
+                                        <span class="badge bg-danger">@preview.ErrorCount error(s) — nothing can be appropriated</span>
                                     }
-                                </ul>
-                                @if (csvErrors.Count > 30)
+                                    @if (preview.WarningCount > 0)
+                                    {
+                                        <span class="badge bg-warning text-dark">@preview.WarningCount name warning(s)</span>
+                                    }
+                                    <div class="form-check form-check-inline ms-auto mb-0">
+                                        <input class="form-check-input" type="checkbox" id="probOnly" @bind="previewProblemsOnly" />
+                                        <label class="form-check-label" for="probOnly">Errors and warnings only</label>
+                                    </div>
+                                    <button type="button" class="btn-close" @onclick="ClearAmounts"></button>
+                                </div>
+                                @if (preview.Errors.Count > 0)
                                 {
-                                    <div>…and @(csvErrors.Count - 30) more.</div>
+                                    <ul class="text-danger small mb-0 mt-1">
+                                        @foreach (var e in preview.Errors) { <li>@e</li> }
+                                    </ul>
                                 }
+                                <div class="table-responsive" style="max-height: 18rem; overflow-y: auto;">
+                                    <table class="table table-sm mb-0 small align-middle">
+                                        <thead class="table-light" style="position: sticky; top: 0;">
+                                            <tr>
+                                                <th>Row</th><th>Employee no</th><th>Member no</th><th>Name on sheet</th>
+                                                <th>Matched member</th><th class="text-end">Amount</th><th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var r in preview.Rows.Where(r => !previewProblemsOnly || r.Status != "OK"))
+                                            {
+                                                <tr class="@(r.Status == "Error" ? "table-danger" : r.Status == "Warning" ? "table-warning" : "")">
+                                                    <td>@r.RowNo</td>
+                                                    <td>@r.EmployeeNo</td>
+                                                    <td>@r.MemberNo</td>
+                                                    <td>@r.SheetName</td>
+                                                    <td>@(r.MatchedMemberNo == null ? "-" : $"{r.MatchedMemberNo} {r.MatchedName}")</td>
+                                                    <td class="text-end">@F(r.Amount)</td>
+                                                    <td>@(r.Status == "OK" ? "OK" : r.Message)</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         }
                         <div class="table-responsive" style="max-height: 28rem; overflow-y: auto;">
@@ -235,19 +308,41 @@ else
                                 </tbody>
                             </table>
                         </div>
+                        }
                         <div class="d-flex flex-wrap gap-2">
-                            <button class="btn btn-primary" disabled="@(busy || !state.IsOpenBusinessDay || !amounts.Values.Any(v => v > 0))" @onclick="AppropriateAsync">
-                                <i class="bi bi-diagram-3 me-1"></i>Appropriate
-                            </button>
-                            <button class="btn btn-outline-secondary" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="SaveNilAsync"
-                                    title="The employer remitted nothing for this office">
-                                <i class="bi bi-slash-circle me-1"></i>Save as nil recovery
-                            </button>
+                            @if (canMake)
+                            {
+                                <button class="btn btn-primary" disabled="@(busy || !state.IsOpenBusinessDay || !amounts.Values.Any(v => v > 0) || preview?.ErrorCount > 0)" @onclick="AppropriateAsync">
+                                    <i class="bi bi-diagram-3 me-1"></i>Appropriate
+                                </button>
+                            }
+                            @if (canCheck)
+                            {
+                                <button class="btn btn-outline-secondary" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="SaveNilAsync"
+                                        title="The employer remitted nothing for this office">
+                                    <i class="bi bi-slash-circle me-1"></i>Save as nil recovery
+                                </button>
+                            }
                         </div>
                     }
                     else
                     {
-                        @* ----- 2./3. appropriated or saved ----- *@
+                        @* ----- 2./3. appropriated (awaiting check) or saved ----- *@
+                        <div class="d-flex flex-wrap gap-4 small mb-2 text-muted">
+                            @if (!string.IsNullOrEmpty(o.AppropriatedByName))
+                            {
+                                <span>Appropriated by <strong>@o.AppropriatedByName</strong> on @DT(o.AppropriatedOn)</span>
+                            }
+                            <span>Recovery date (ledger rows): <strong>@D(detail.RecoveryDate)</strong></span>
+                            @if (o.IsSaved)
+                            {
+                                <span>Saved on (voucher date): <strong>@D(o.RecoveryDate)</strong></span>
+                            }
+                            else
+                            {
+                                <span>Application date (voucher): <strong>@D(detail.ApplicationDate)</strong></span>
+                            }
+                        </div>
                         <div class="d-flex flex-wrap gap-4 small mb-2">
                             <span>Principal: <strong>@F(detail.Totals.Principal)</strong></span>
                             <span>Interest: <strong>@F(detail.Totals.Interest)</strong></span>
@@ -345,7 +440,24 @@ else
                             </table>
                         </div>
 
-                        @if (!o.IsSaved)
+                        @if (!o.IsSaved && !canCheck)
+                        {
+                            <div class="alert alert-info py-2 small">Awaiting check: a Checker saves or rejects this appropriation.</div>
+                            <button class="btn btn-outline-danger" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="DeleteAppropriationAsync">
+                                <i class="bi bi-trash me-1"></i>Delete appropriation
+                            </button>
+                        }
+                        else if (!o.IsSaved && detail.IsOwnAppropriation)
+                        {
+                            <div class="alert alert-warning py-2 small">You appropriated this recovery, so another user (a Checker) must save or reject it.</div>
+                            @if (canMake)
+                            {
+                                <button class="btn btn-outline-danger" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="DeleteAppropriationAsync">
+                                    <i class="bi bi-trash me-1"></i>Delete appropriation
+                                </button>
+                            }
+                        }
+                        else if (!o.IsSaved)
                         {
                             <h6 class="mt-2">Save recovery — remittance received in</h6>
                             @if (detail.Totals.Total > 0)
@@ -409,12 +521,18 @@ else
                                 <button class="btn btn-success" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="SaveAsync">
                                     <i class="bi bi-save me-1"></i>Save recovery
                                 </button>
-                                <button class="btn btn-outline-danger" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="DeleteAppropriationAsync">
-                                    <i class="bi bi-trash me-1"></i>Delete appropriation
+                                <button class="btn btn-outline-danger" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="RejectAsync">
+                                    <i class="bi bi-arrow-return-left me-1"></i>Reject
                                 </button>
+                                @if (canMake)
+                                {
+                                    <button class="btn btn-outline-secondary" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="DeleteAppropriationAsync">
+                                        <i class="bi bi-trash me-1"></i>Delete appropriation
+                                    </button>
+                                }
                             </div>
                         }
-                        else
+                        else if (canCheck)
                         {
                             @if (detail.DeleteSavedBlockedReasons.Count > 0)
                             {
@@ -448,10 +566,16 @@ else
     private EcsRecoveryStateVM? state;
     private EcsRecoveryOfficeDetailVM? detail;
 
+    private bool canMake;   // Admin or Maker: upload, appropriate, delete appropriation
+    private bool canCheck;  // Admin or Checker: save, reject, delete saved
+
     // remittance list, keyed by member no
     private readonly Dictionary<string, double> amounts = new(StringComparer.OrdinalIgnoreCase);
-    private string csvMatchBy = "M";
-    private List<string> csvErrors = new();
+    // the uploaded sheet: its matched rows keyed by member no, sent back with the amounts so the server rechecks them
+    private EcsSheetPreviewVM? preview;
+    private readonly Dictionary<string, EcsSheetPreviewRowVM> sheetRows = new(StringComparer.OrdinalIgnoreCase);
+    private bool previewProblemsOnly;
+    private int uploadKey;
     private string memberFilter = "";
     private bool recoveredOnly = true;
     private readonly HashSet<decimal> expanded = new();
@@ -477,6 +601,9 @@ else
         try
         {
             var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+            canMake = user.IsInRole("Admin") || user.IsInRole("Maker");
+            canCheck = user.IsInRole("Admin") || user.IsInRole("Checker");
             institution = userInfoDto.SocietyType.ToInstitutionType();
             if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
             if (institution == InstitutionType.ECS) await LoadStateAsync();
@@ -523,8 +650,7 @@ else
                 return;
             }
             detail = await response.Content.ReadFromJsonAsync<EcsRecoveryOfficeDetailVM>();
-            amounts.Clear();
-            csvErrors.Clear();
+            ClearAmounts();
             expanded.Clear();
             memberFilter = "";
             recoveredOnly = true;
@@ -546,8 +672,7 @@ else
     private void CloseOffice()
     {
         detail = null;
-        amounts.Clear();
-        csvErrors.Clear();
+        ClearAmounts();
         expanded.Clear();
     }
 
@@ -570,79 +695,82 @@ else
     private void ClearAmounts()
     {
         amounts.Clear();
-        csvErrors.Clear();
+        sheetRows.Clear();
+        preview = null;
+        uploadKey++;   // re-create the file input so the same file can be chosen again
     }
 
-    private async Task LoadCsvAsync(InputFileChangeEventArgs e)
+    private async Task UploadSheetAsync(InputFileChangeEventArgs e)
     {
         if (detail == null) return;
-        csvErrors = new List<string>();
-        string text;
+        busy = true;
+        alertMessage = null;
         try
         {
-            using var reader = new StreamReader(e.File.OpenReadStream(5 * 1024 * 1024));
-            text = await reader.ReadToEndAsync();
+            using var content = new MultipartFormDataContent();
+            var stream = e.File.OpenReadStream(5 * 1024 * 1024);
+            var file = new StreamContent(stream);
+            file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
+                string.IsNullOrEmpty(e.File.ContentType) ? "application/octet-stream" : e.File.ContentType);
+            content.Add(file, "file", e.File.Name);
+            var response = await _httpClient.PostAsync($"api/ecsrecovery/Upload/{detail.DemandId}/{detail.Office.OfficeId}", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "The sheet could not be uploaded.");
+                return;
+            }
+            var p = await response.Content.ReadFromJsonAsync<EcsSheetPreviewVM>();
+            if (p == null) return;
+
+            amounts.Clear();
+            sheetRows.Clear();
+            preview = p;
+            previewProblemsOnly = p.ErrorCount + p.WarningCount > 0;
+            foreach (var r in p.Rows.Where(r => r.Status != "Error" && !string.IsNullOrEmpty(r.MatchedMemberNo)))
+            {
+                amounts[r.MatchedMemberNo!] = r.Amount;
+                sheetRows[r.MatchedMemberNo!] = r;
+            }
+            ShowAlert(p.ErrorCount == 0,
+                $"{p.Rows.Count} row(s) read, {p.MatchedCount} matched ({F(p.MatchedTotal)} of {F(p.SheetTotal)})"
+                + (p.ErrorCount > 0 ? $"; {p.ErrorCount} error(s) — correct the sheet and upload it again." : ".")
+                + (p.WarningCount > 0 ? $" {p.WarningCount} name warning(s)." : ""));
         }
         catch (Exception ex)
         {
-            ShowAlert(false, "Could not read the file: " + ex.Message);
-            return;
+            ShowAlert(false, "Could not upload the sheet: " + ex.Message);
         }
-
-        bool byPerNo = csvMatchBy == "P";
-        var index = detail.Members
-            .Where(m => !string.IsNullOrWhiteSpace(byPerNo ? m.PerNo : m.MemberNo))
-            .GroupBy(m => (byPerNo ? m.PerNo : m.MemberNo)!.Trim().ToUpperInvariant())
-            .ToDictionary(g => g.Key, g => g.ToList());
-        var loaded = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
-        int row = 0;
-        foreach (var raw in text.Split('\n'))
+        finally
         {
-            row++;
-            var line = raw.Trim().TrimEnd('\r');
-            if (line.Length == 0) continue;
-            var parts = line.Split(',', ';', '\t').Select(p => p.Trim().Trim('"')).ToArray();
-            if (parts.Length < 2) { csvErrors.Add($"Row {row}: expected two columns."); continue; }
-            var key = parts[0].ToUpperInvariant();
-            var amountText = parts[^1].Replace(",", "");
-            if (!double.TryParse(amountText, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
-            {
-                if (row > 1) csvErrors.Add($"Row {row}: '{parts[^1]}' is not an amount.");
-                continue;   // first row: a header
-            }
-            if (amount < 0) { csvErrors.Add($"Row {row}: the amount cannot be negative."); continue; }
-            if (!index.TryGetValue(key, out var found))
-            {
-                csvErrors.Add($"Row {row}: {(byPerNo ? "per no" : "member no")} {parts[0]} is not a member of {detail.Office.OfficeName}.");
-                continue;
-            }
-            if (found.Count > 1) { csvErrors.Add($"Row {row}: {parts[0]} matches {found.Count} members."); continue; }
-            var memberNo = found[0].MemberNo!;
-            if (loaded.ContainsKey(memberNo)) { csvErrors.Add($"Row {row}: {parts[0]} appears more than once."); continue; }
-            loaded[memberNo] = Math.Round(amount, 2);
+            busy = false;
         }
-
-        amounts.Clear();
-        foreach (var kv in loaded.Where(kv => kv.Value > 0)) amounts[kv.Key] = kv.Value;
-        ShowAlert(csvErrors.Count == 0,
-            $"{loaded.Count} row(s) loaded, total {F(loaded.Values.Sum())}" + (csvErrors.Count > 0 ? $"; {csvErrors.Count} row(s) rejected." : "."));
     }
 
     private async Task AppropriateAsync()
     {
         if (detail == null) return;
-        if (csvErrors.Count > 0 &&
-            !await JSRuntime.InvokeAsync<bool>("confirm", "Some CSV rows were rejected and are not in the list. Appropriate anyway?")) return;
-        var items = amounts.Where(a => a.Value > 0).Select(a => new EcsRecoveryItemVM { Key = a.Key, Amount = a.Value }).ToList();
-        var prompt = $"Appropriate the recovery of {detail.Office.OfficeName}?\n\n{items.Count} members, total {F(items.Sum(i => i.Amount))}.\nNothing is posted to the ledgers yet.";
+        if (preview?.ErrorCount > 0) { ShowAlert(false, "The uploaded sheet has errors. Correct it and upload it again."); return; }
+        var items = amounts.Where(a => a.Value > 0).Select(a => sheetRows.TryGetValue(a.Key, out var r)
+            ? new EcsRecoveryItemVM { RowNo = r.RowNo, EmployeeNo = r.EmployeeNo, MemberNo = r.MemberNo, SheetName = r.SheetName, Amount = a.Value }
+            : new EcsRecoveryItemVM { MemberNo = a.Key, Amount = a.Value }).ToList();
+        var prompt = $"Appropriate the recovery of {detail.Office.OfficeName}?\n\n{items.Count} members, total {F(items.Sum(i => i.Amount))}.\n"
+                     + "Nothing is posted to the ledgers until a Checker saves it.";
         if (!await JSRuntime.InvokeAsync<bool>("confirm", prompt)) return;
         await WriteAsync("api/ecsrecovery/Appropriate", new EcsAppropriateRequestVM
         {
             DemandId = detail.DemandId,
             OfficeId = detail.Office.OfficeId,
-            MatchBy = "M",
             Items = items
         });
+    }
+
+    private async Task RejectAsync()
+    {
+        if (detail == null) return;
+        var reason = await JSRuntime.InvokeAsync<string?>("prompt", $"Reject the appropriation of {detail.Office.OfficeName}? It is deleted and goes back to the Maker.\n\nReason:");
+        if (reason == null) return;
+        if (string.IsNullOrWhiteSpace(reason)) { ShowAlert(false, "Enter the reason for rejecting the appropriation."); return; }
+        await WriteAsync("api/ecsrecovery/Reject", new EcsRejectRequestVM { DemandId = detail.DemandId, OfficeId = detail.Office.OfficeId, Reason = reason.Trim() });
     }
 
     private async Task SaveNilAsync()
@@ -664,6 +792,9 @@ else
         Amount = Math.Max(0, Math.Round((detail?.Totals.Total ?? 0) - debits.Sum(d => d.Amount), 2)),
         ChequeDate = currentDate
     });
+
+    private string SpecimenUrl(string format) =>
+        detail == null ? "#" : $"api/ecsrecovery/Specimen/{detail.DemandId}/{detail.Office.OfficeId}?format={format}";
 
     private bool IsBank(decimal ledId) => detail?.Ledgers.Any(l => l.LedId == ledId && l.IsBank) == true;
 
@@ -715,7 +846,7 @@ else
             }
             else if (response.StatusCode == HttpStatusCode.Forbidden)
             {
-                ShowAlert(false, "Recovery Appropriation is available only to ECS societies.");
+                ShowAlert(false, result?.Message ?? "Your role is not allowed to do this.");
             }
             else
             {
@@ -764,8 +895,6 @@ else
 
     private static async Task<string?> ReadMessageAsync(HttpResponseMessage response)
     {
-        if (response.StatusCode == HttpStatusCode.Forbidden)
-            return "Recovery Appropriation is available only to ECS societies.";
         try
         {
             var r = await response.Content.ReadFromJsonAsync<EcsRecoveryResultVM>();
@@ -775,6 +904,7 @@ else
         {
             // fall through
         }
+        if (response.StatusCode == HttpStatusCode.Forbidden) return "Your role is not allowed to do this.";
         return $"Request failed ({(int)response.StatusCode}).";
     }
 
@@ -794,5 +924,6 @@ else
     }
 
     private static string F(double v) => v.ToString("N2", IndianCulture);
+    private static string DT(DateTime? d) => d.HasValue && d.Value > DateTime.MinValue ? d.Value.ToString("dd-MM-yyyy HH:mm") : "-";
     private static string D(DateTime? d) => d.HasValue && d.Value > DateTime.MinValue ? d.Value.ToString("dd-MM-yyyy") : "-";
 }
