@@ -166,9 +166,31 @@ else
                     {
                         <span class="text-muted small">Voucher @o.VocNo</span>
                     }
-                    <button type="button" class="btn-close ms-auto" @onclick="CloseOffice"></button>
+                    @if (canMake && o.IsAppropriated)
+                    {
+                        @* Specimen download is always available; upload only while the office is Pending (in the body below). *@
+                        <span class="ms-auto small text-muted">Specimen sheet</span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a class="btn btn-outline-success" href="@SpecimenUrl("xlsx")" download
+                               title="The office's members with their demand; the pay office fills in the amount recovered">
+                                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                            </a>
+                            <a class="btn btn-outline-success" href="@SpecimenUrl("csv")" download title="The same sheet as CSV">
+                                <i class="bi bi-filetype-csv me-1"></i>CSV
+                            </a>
+                        </div>
+                    }
+                    <button type="button" class="btn-close @(canMake && o.IsAppropriated ? "ms-2" : "ms-auto")" @onclick="CloseOffice"></button>
                 </div>
                 <div class="card-body">
+                    @if (o.IsAppropriated && canMake)
+                    {
+                        <div class="text-muted small mb-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            This office is @(o.IsSaved ? "saved" : "appropriated"), so a recovery sheet cannot be uploaded here.
+                            Upload is available while an office is <em>Pending</em>: post the next demand on the Demand Calculation page, then open its office.
+                        </div>
+                    }
                     @if (!o.IsAppropriated)
                     {
                         @* ----- 1. remittance list (Maker) ----- *@
