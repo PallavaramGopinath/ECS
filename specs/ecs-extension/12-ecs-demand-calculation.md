@@ -255,6 +255,9 @@ uploads, the day-end hook (§14).
   `Repository/Concrete/EcsDemandRepository.cs` (+ `EcsDemandIdAllocator`), `Dto/EcsDemandVM.cs`,
   `UI/Controllers/EcsDemandController.cs` (`api/ecsdemand/State|Preview|Save|Post/{id}|DeleteCalculation/{id}|
   DeletePosted/{id}|Lines/{id}`), `UI.Client/Pages/ECSLoan/ECSDemandCalculation.razor`.
+- **Menu row:** `12-ecs-demand-calculation.sql` points the existing "Demand Calculation" placeholder under
+  "Thrift Society Demand" (Admin) at `ecs-demand-calculation`, or inserts it where missing. Per branch, ECS only,
+  idempotent.
 - **Principal arrear is capped at the principal outstanding.** Migrated loans carry Σ `Prl_Dem` above the amount
   disbursed (opening `I` rows with `prl_dem`); TSIS capped too.
 - **Loans with only interest/penal arrears** (principal fully repaid, account not closed) are demanded, per §4.1
