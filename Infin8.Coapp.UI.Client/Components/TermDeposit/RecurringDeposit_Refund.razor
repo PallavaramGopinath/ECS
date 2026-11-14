@@ -1,0 +1,347 @@
+@* ECS RD Refund — acc 10 "Recurring Deposit Refund" (spec 16). Hosted by Member_Transaction.razor through DynamicComponent. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@using System.Text.Json
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<div>
+    <h3 class="mb-2">Recurring Deposit Refund</h3>
+    <hr class="mt-0" />
+
+    @if (!isReady)
+    {
+        <div class="d-flex align-items-center gap-2 text-muted">
+            <div class="spinner-border spinner-border-sm" role="status"></div> Loading…
+        </div>
+    }
+    else if (institution != InstitutionType.ECS)
+    {
+        <div class="alert alert-warning">Recurring Deposit Refund is available only for Employees' Society (ECS) institutions.</div>
+        <button type="button" class="btn btn-secondary" @onclick="CloseRefund"><i class="bi bi-x-circle"></i> Close</button>
+    }
+    else
+    {
+        <div class="mb-2 text-muted small">
+            Member <strong>@MemberNumber</strong> — @MemberName · Refund date <strong>@load.ApplicationDate.ToString("dd-MM-yyyy")</strong>
+            · @(CashOrAdjustment == 1 ? "Cash" : "Adjustment")
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        @if (load.Lines.Count == 0)
+        {
+            <div class="alert alert-info">@(load.Message ?? "The member has no open recurring deposits")</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Select</th>
+                            <th>RD No</th>
+                            <th class="text-end">Instalment</th>
+                            <th>Value date</th>
+                            <th class="text-end">Period</th>
+                            <th class="text-end">ROI %</th>
+                            <th class="text-end">Months run</th>
+                            <th class="text-end">Applied ROI %</th>
+                            <th class="text-end">Received</th>
+                            <th class="text-end">Interest payable</th>
+                            <th class="text-end">Penal pending</th>
+                            <th class="text-end">Total payable</th>
+                            <th>Int. calc date</th>
+                            <th>Maturity</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rd in load.Lines)
+                        {
+                            bool blocked = !string.IsNullOrEmpty(rd.Block);
+                            <tr class="@(blocked ? "text-muted" : "")">
+                                <td>
+                                    <input type="checkbox" class="form-check-input" disabled="@blocked"
+                                           checked="@rd.Selected"
+                                           @onchange="e => ToggleRd(rd, (bool)(e.Value ?? false))" />
+                                </td>
+                                <td>
+                                    @rd.TD_No
+                                    @if (rd.IsMatured)
+                                    {
+                                        <div class="small text-success">Matured</div>
+                                    }
+                                    @if (blocked)
+                                    {
+                                        <div class="small text-warning">@rd.Block</div>
+                                    }
+                                </td>
+                                <td class="text-end">@F(rd.Instalment)</td>
+                                <td>@D(rd.ValueDate)</td>
+                                <td class="text-end">@rd.PeriodInMonths</td>
+                                <td class="text-end">@rd.RateOfInterest.ToString("0.##")</td>
+                                <td class="text-end">@rd.MonthsRun</td>
+                                <td class="text-end">@rd.AppliedRoi.ToString("0.##")</td>
+                                <td class="text-end">@F(rd.Received)</td>
+                                <td class="text-end">@F(rd.Interest)</td>
+                                <td class="text-end">@F(rd.PenalPending)</td>
+                                <td class="text-end fw-semibold @(rd.TotalPayable < 0 ? "text-danger" : "")">@F(rd.TotalPayable)</td>
+                                <td>@D(rd.InterestAppliedDate)</td>
+                                <td>@D(rd.MaturityDate)<div class="small text-muted">₹@F(rd.MaturityAmount)</div></td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" title="View" @onclick="() => viewing = rd">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <table class="table table-sm small mb-0">
+                        <tr><td>Total RD payment</td><td class="text-end">₹@F(model.TotalReceived)</td></tr>
+                        <tr><td>Total interest payment</td><td class="text-end">₹@F(model.TotalInterest)</td></tr>
+                        <tr><td>Penal recovered</td><td class="text-end">₹@F(model.TotalPenal)</td></tr>
+                        <tr class="fw-semibold"><td>Net payable</td><td class="text-end">₹@F(model.NetPayable)</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-7">
+                    @if (validation != null && model.Lines.Count > 0)
+                    {
+                        <div class="text-danger small">@validation</div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="mt-3 d-flex gap-2">
+            @if (load.Lines.Count > 0)
+            {
+                <button type="button" class="btn btn-primary" disabled="@(!CanInitiate)" @onclick="InitiateRefund">
+                    @if (isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    <i class="bi bi-check2-circle"></i> Initiate
+                </button>
+            }
+            <button type="button" class="btn btn-secondary" @onclick="CloseRefund"><i class="bi bi-x-circle"></i> Close</button>
+        </div>
+    }
+</div>
+
+@if (viewing != null)
+{
+    <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">RD No @viewing.TD_No</h5>
+                    <button type="button" class="btn-close" @onclick="() => viewing = null"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm small mb-0">
+                        <tr><td>Value date</td><td>@D(viewing.ValueDate)</td></tr>
+                        <tr><td>Instalment</td><td>₹@F(viewing.Instalment)</td></tr>
+                        <tr><td>Period</td><td>@viewing.PeriodInMonths months</td></tr>
+                        <tr><td>Contract ROI</td><td>@viewing.RateOfInterest.ToString("0.##") %</td></tr>
+                        <tr><td>Maturity date</td><td>@D(viewing.MaturityDate)</td></tr>
+                        <tr><td>Maturity amount</td><td>₹@F(viewing.MaturityAmount)</td></tr>
+                        <tr><td>Instalments received</td><td>@viewing.InstalmentsReceived</td></tr>
+                        <tr><td>Months run (n)</td><td>@viewing.MonthsRun</td></tr>
+                        <tr><td>Band ROI − foreclosure</td><td>@viewing.BandRoi.ToString("0.##") − @viewing.ForeclosureRoi.ToString("0.##") = @viewing.AppliedRoi.ToString("0.##") %</td></tr>
+                        <tr><td>Penal arrear / current</td><td>₹@F(viewing.PenalArrear) / ₹@F(viewing.PenalCurrent)</td></tr>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => viewing = null">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnRDRefundComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoEcsRdRefund> OnRDRefundInitiate { get; set; }
+    #endregion
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    private bool isReady;
+    private bool isSubmitting;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private string brCode = "";
+    private decimal userId;
+    private string? errorMessage;
+
+    private EcsRdRefundLoadVM load = new();
+    private DtoEcsRdRefund model = new();
+    private DtoEcsRdRefundLine? viewing;
+    private string? validation;
+
+    private bool CanInitiate => !isSubmitting && validation == null && model.Lines.Count > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode ?? "";
+            userId = userInfoDto.UserId;
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            load.ApplicationDate = TransactionDate;
+            if (institution == InstitutionType.ECS) await LoadRdsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the member's RDs: {ex.Message}";
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LoadRdsAsync()
+    {
+        var response = await _httpClient.GetAsync($"api/rdrefund/Rds/{MemberId}");
+        if (response.IsSuccessStatusCode)
+        {
+            load = await response.Content.ReadFromJsonAsync<EcsRdRefundLoadVM>() ?? new();
+            if (load.Lines.Count == 0 && load.Message != null && !load.Message.StartsWith("The member has no open"))
+                errorMessage = load.Message;
+            foreach (var rd in load.Lines) rd.Selected = false;   // §4.2: unticked by default
+        }
+        else
+        {
+            errorMessage = response.StatusCode == HttpStatusCode.Forbidden
+                ? "Recurring Deposit Refund is available only to ECS societies."
+                : $"Could not load the member's RDs ({(int)response.StatusCode}).";
+        }
+        Recompute();
+    }
+
+    private void ToggleRd(DtoEcsRdRefundLine rd, bool selected)
+    {
+        rd.Selected = selected && string.IsNullOrEmpty(rd.Block);
+        Recompute();
+    }
+
+    /// <summary>§4.4 totals and the §8 checks through the same code the server rechecks with.</summary>
+    private void Recompute()
+    {
+        model = new DtoEcsRdRefund
+        {
+            MemId = MemberId,
+            MemberNo = MemberNumber,
+            MemberName = MemberName,
+            ApplicationDate = load.ApplicationDate,
+            CashOrAdjustment = CashOrAdjustment,
+            Lines = load.Lines.Where(l => l.Selected).ToList()
+        };
+        EcsRdRefundCalculator.Totals(model);
+        validation = EcsRdRefundCalculator.Validate(model);
+    }
+
+    private async Task CloseRefund()
+    {
+        await OnRDRefundComponentClose.InvokeAsync(true);
+    }
+
+    private async Task InitiateRefund()
+    {
+        Recompute();
+        if (!CanInitiate) return;
+        isSubmitting = true;
+        errorMessage = null;
+        try
+        {
+            string accountName = "Recurring Deposit Refund";
+            try
+            {
+                var nameResponse = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
+                if (nameResponse.IsSuccessStatusCode) accountName = await nameResponse.Content.ReadAsStringAsync();
+            }
+            catch (HttpRequestException)
+            {
+                // keep the default module name
+            }
+
+            double amount = model.NetPayable;
+            bool cash = CashOrAdjustment == 1;
+            var stagingDetails = new DtoStaging_Details
+            {
+                Id = 0,
+                Staging_Id = 0,
+                Member_Id = MemberId,
+                Ledger_Id = 0,
+                Related_Account_Id = AccountId,
+                Receipt_Amount = 0,
+                Payment_Amount = amount,
+                Module_Name = accountName,
+                Cash_Or_Adjustment = CashOrAdjustment,
+                Related_Account_Data = JsonSerializer.Serialize(model),
+                Created_By = userId,
+                Created_Date = TransactionDate,
+                Checked_By = 0,
+                Checked_Date = null,
+                Staging_Status = "I",
+                BrCode = brCode,
+                CashReceipt_Amount = 0,
+                AdjustmentReceipt_Amount = 0,
+                CashPayment_Amount = cash ? amount : 0,
+                AdjustmentPayment_Amount = cash ? 0 : amount,
+                Transaction_Type = "Member Transaction"
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("api/Staging/AddStaging", stagingDetails);
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Could not initiate the RD refund ({(int)response.StatusCode}).";
+                return;
+            }
+            await OnRDRefundInitiate.InvokeAsync(model);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not initiate the RD refund: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private static string D(DateTime? d) => d.HasValue ? d.Value.ToString("dd-MM-yyyy") : "";
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+}

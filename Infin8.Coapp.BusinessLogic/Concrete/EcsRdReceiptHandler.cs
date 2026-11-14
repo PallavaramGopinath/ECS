@@ -95,6 +95,19 @@ namespace Infin8.Coapp.BusinessLogic
                     // A malformed staging row cannot lock RDs; ignore it.
                 }
             }
+            // Spec 16 §9: an RD in a pending RD refund (acc 10) cannot be received either.
+            foreach (var json in await _unitOfWork.EcsRdRefund.GetPendingRefundDataAsync(brCode, excludeStagingId))
+            {
+                try
+                {
+                    var staged = JsonSerializer.Deserialize<DtoEcsRdRefund>(json, JsonOptions);
+                    foreach (var line in staged?.Lines ?? new()) ids.Add(line.TD_Id);
+                }
+                catch (JsonException)
+                {
+                    // A malformed staging row cannot lock RDs; ignore it.
+                }
+            }
             return ids;
         }
 
@@ -132,7 +145,7 @@ namespace Infin8.Coapp.BusinessLogic
                 if (!byId.TryGetValue(line.TD_Id, out var rd))
                     throw new EcsRecoveryException($"RD No {line.TD_No} is closed, withdrawn or no longer this member's. Reject it and re-initiate.");
                 if (rd.Locked)
-                    throw new EcsRecoveryException($"RD No {line.TD_No} is in another pending RD receipt. Reject it and re-initiate.");
+                    throw new EcsRecoveryException($"RD No {line.TD_No} is in another pending RD receipt or refund. Reject it and re-initiate.");
                 fresh.Add(rd);
             }
 

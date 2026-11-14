@@ -293,6 +293,24 @@ A Member Transaction component that opens an RD and takes the first instalment: 
 - **RD No** = `brCode` + first digit of the scheme id + 7-digit running number (`1100540000001`), allocated at approval. The
   number the Maker sees is provisional. Holders must be `memberstatus = 1`, not expired, not deleted.
 
+### ECS RD refund (acc 10, "Recurring Deposit Refund")
+
+A Member Transaction **payment** component that closes RDs and pays received + interest − pending penal:
+`Components/TermDeposit/RecurringDeposit_Refund.razor` (Maker) and `RecurringDeposit_Refund_View.razor`. `account_transactions`
+acc 10 must carry those two names — the migrated row said `RecurringDepsit_*`; `specs/ecs-extension/16-rd-refund.sql` fixes it.
+Spec: `specs/ecs-extension/16-rd-refund.md` (§18 = settled decisions and departures).
+
+- **Flow.** `GET api/rdrefund/Rds/{memId}` (`RdRefundController`, ECS-gated) → `EcsRdRefundHandler.GetRdsAsync`, which reuses
+  `EcsRdReceiptRepository`'s RD list and ROI rows. Initiate stages `DtoEcsRdRefund` with `Payment_Amount` = net payable. Approval:
+  `SaveTransaction` `case 10` → `BuildPostingAsync` (recomputes, refuses on any change), then `EcsRdRefundRepository.MarkClosedAsync`
+  sets `AccountClosed` without saving. `TransactionsHandler` now injects `IEcsRdRefundHandler` too. One acc 10 line per voucher.
+- **Rules** are in `Utility/EcsRdRefundCalculator.cs` (pure, shared): `n = min(instalments paid, completed months, period)`;
+  premature interest `D·n(n+1)·ROI/2400` at band ROI − `TD_Type 4` foreclosure rate (as on the value date; no row → 0); matured
+  and fully paid = maturity amount − received; penal pending exactly as spec 14 (`EcsRdReceiptAppropriator.Compute`).
+- **Blocks:** lien (`LienMarked` / open `lien_trn`), a pending acc 2 or acc 10 line (locks go both ways), an RD in a posted demand
+  whose office recovery is not saved, a missing ROI row.
+- Cash with penal: the penal is met by an adjustment split of the deposit (then interest) debit, so the cash lines net to the payable.
+
 ### ECS demand calculation (spec 12)
 
 Page `Pages/ECSLoan/ECSDemandCalculation.razor` (`/ecs-demand-calculation`, Admin), API `api/ecsdemand/*`

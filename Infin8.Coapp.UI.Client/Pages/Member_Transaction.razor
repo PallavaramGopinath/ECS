@@ -961,6 +961,7 @@
                     break;
                 case 10:    /// RD Refund
                     isLedgerSection = false;
+                    isComponentLoaded = true;
                     break;
                 case 12:    /// Loan disbursement for Housing society
                     isLedgerSection = false;
@@ -1522,7 +1523,29 @@
                 StateHasChanged();
                 #endregion
                 break;
-            case 10:    /// RD Refund
+            case 10:    /// RD Refund (ECS, spec 16)
+                #region ECS RD refund
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName}";
+                Type? typeRdRefund = Type.GetType(fullyQualifiedName);
+                if (typeRdRefund != null) currentComponent = typeRdRefund;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId", transaction.Account_Id },
+                    { "CashOrAdjustment", transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnRDRefundComponentClose", EventCallback.Factory.Create<bool>(this, CloseRDRefundComponent) },
+                    { "OnRDRefundInitiate", EventCallback.Factory.Create<DtoEcsRdRefund>(this, RDRefundInitiate) }
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
+                #endregion
                 break;
             case 12:    /// Loan disbursement for Housing society
                 break;
@@ -2071,6 +2094,7 @@
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.ECSLoan"}.{componentName},{assemblyName}";
                         break;
                     case 2:     /// RD Receipt (ECS, spec 14)
+                    case 10:    /// RD Refund (ECS, spec 16)
                     case 17:    /// RD New Account (ECS, spec 15)
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName},{assemblyName}";
                         break;
@@ -2454,7 +2478,7 @@
             case 9:  /// FD Renewal
 
                 break;
-            case 10:    /// RD Refund
+            case 10:    /// RD Refund (ECS, spec 16): nothing cached on the page; deleting the staging row below releases the RD lock
 
                 break;
             case 12:    /// Loan disbursement for Housing society
@@ -2770,6 +2794,24 @@
     }
 
     // ECS RD New Account (acc 17, spec 15)
+    private void CloseRDRefundComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private async Task RDRefundInitiate(DtoEcsRdRefund refund)
+    {
+        await UpdateTransactionsFromStaging("I", brCode);
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
     private void CloseRDCreateComponent(bool closeSignalFromChild)
     {
         if (closeSignalFromChild)

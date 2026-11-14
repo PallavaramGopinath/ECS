@@ -22,9 +22,11 @@ namespace Infin8.Coapp.BusinessLogic
         readonly IEcsLoanRecoveryHandler _ecsLoanRecoveryHandler;
         readonly IEcsRdReceiptHandler _ecsRdReceiptHandler;
         readonly IEcsRdCreateHandler _ecsRdCreateHandler;
+        readonly IEcsRdRefundHandler _ecsRdRefundHandler;
         public TransactionsHandler(IUnitOfWork unitOfWork, IEcsLoanRecoveryHandler ecsLoanRecoveryHandler,
-            IEcsRdReceiptHandler ecsRdReceiptHandler, IEcsRdCreateHandler ecsRdCreateHandler)
+            IEcsRdReceiptHandler ecsRdReceiptHandler, IEcsRdCreateHandler ecsRdCreateHandler, IEcsRdRefundHandler ecsRdRefundHandler)
         {
+            _ecsRdRefundHandler = ecsRdRefundHandler;
             _unitOfWork = unitOfWork;
             _ecsLoanRecoveryHandler = ecsLoanRecoveryHandler;
             _ecsRdReceiptHandler = ecsRdReceiptHandler;
@@ -91,6 +93,7 @@ namespace Infin8.Coapp.BusinessLogic
             List<TermDeposit_Trn> termDepositTrnList = new();
             int rdReceiptLines = 0;   // spec 14 §7.3: one RD Receipt line per voucher
             int rdCreateLines = 0;    // spec 15 §8: one RD New Account line per voucher
+            int rdRefundLines = 0;    // spec 16 §8 rule 9: one RD Refund line per voucher
             try
             {
                 _unitOfWork.BeginTransaction();
@@ -533,7 +536,21 @@ namespace Infin8.Coapp.BusinessLogic
 
                             #endregion
                             break;
-                        case 10:    /// RD Refund
+                        case 10:    /// RD Refund (ECS, spec 16 §11)
+                            #region ECS RD refund
+                            if (rdRefundLines++ > 0)
+                                throw new EcsRecoveryException("Only one RD refund can be made in a voucher. Reject it and initiate one RD refund per voucher.");
+                            DtoEcsRdRefund ecsRdRefund = System.Text.Json.JsonSerializer.Deserialize<DtoEcsRdRefund>(
+                                trns.Related_Account_Data!, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                                ?? throw new EcsRecoveryException("RD refund data is missing. Reject it and re-initiate.");
+                            if (Math.Abs(ecsRdRefund.NetPayable - trns.Payment_Amount) > 0.005 || trns.Receipt_Amount != 0)
+                                throw new EcsRecoveryException("RD refund amount does not match the transaction line. Reject it and re-initiate.");
+                            var rdRefundPosting = await _ecsRdRefundHandler.BuildPostingAsync(ecsRdRefund, stagingId, Transacted_Date, brCode,
+                                yrId, Checked_By, vocId, trns.Cash_Or_Adjustment, string.IsNullOrWhiteSpace(Status) ? "RP" : Status.Trim());
+                            termDepositTrnList.AddRange(rdRefundPosting.TermDepositTrns);
+                            finVoucherTrns.AddRange(rdRefundPosting.VoucherTrns);
+                            await _unitOfWork.EcsRdRefund.MarkClosedAsync(rdRefundPosting.ClosedTdIds, brCode);
+                            #endregion
                             break;
                         case 11:    /// Bank
                             #region Cheque data
