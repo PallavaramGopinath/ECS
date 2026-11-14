@@ -127,6 +127,52 @@ namespace Infin8.Coapp.API.Controllers
         [HttpPost("Unstop/{stopId}")]
         public Task<ActionResult> Unstop(decimal stopId) => Run(ctx => _demandHandler.RemoveStopAsync(stopId, ctx));
 
+        // ----- delete demand for expired members -----
+
+        [HttpGet("ExpiredMember")]
+        public async Task<ActionResult> ExpiredMember([FromQuery] string memberNo)
+        {
+            var ctx = UserContext();
+            if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
+            try
+            {
+                var vm = await _demandHandler.GetExpiredMemberAsync(memberNo ?? "", ctx.BrCode);
+                return vm == null
+                    ? NotFound(new EcsDemandResultVM { Message = $"No member {memberNo} in this branch." })
+                    : Ok(vm);
+            }
+            catch (Exception ex)
+            {
+                return ServerError(ex);
+            }
+        }
+
+        [HttpGet("ExpiredLoanRows/{loanId}")]
+        public async Task<ActionResult> ExpiredLoanRows(decimal loanId)
+        {
+            var ctx = UserContext();
+            if (!await IsEcsAsync(ctx.BrCode)) return NotEcs();
+            try
+            {
+                var vm = await _demandHandler.GetExpiredLoanRowsAsync(loanId, ctx.BrCode);
+                return vm == null
+                    ? NotFound(new EcsDemandResultVM { Message = "The loan's member is not marked as expired." })
+                    : Ok(vm);
+            }
+            catch (Exception ex)
+            {
+                return ServerError(ex);
+            }
+        }
+
+        [HttpPost("ExpiredDelete/{trnId}")]
+        public Task<ActionResult> ExpiredDelete(decimal trnId) =>
+            Run(ctx => _demandHandler.DeleteExpiredDemandRowAsync(trnId, ctx));
+
+        [HttpPost("ExpiredRevoke/{trnId}")]
+        public Task<ActionResult> ExpiredRevoke(decimal trnId) =>
+            Run(ctx => _demandHandler.RevokeExpiredDeletionAsync(trnId, ctx));
+
         [HttpPost("DeletePosted/{demandId}")]
         public Task<ActionResult> DeletePosted(decimal demandId) =>
             Run(ctx => _demandHandler.DeletePostedAsync(demandId, ctx));

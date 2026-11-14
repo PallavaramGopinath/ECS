@@ -275,9 +275,14 @@ Page `Pages/ECSLoan/ECSDemandCalculation.razor` (`/ecs-demand-calculation`, Admi
 - **Stop Demand** (`Pages/ECSLoan/ECSStopDemand.razor`, `/ecs-stop-demand`, Admin) maintains `mem_demand_stop` for a
   due date via `api/ecsdemand/StopList|Stop|Unstop/{id}`. The list is locked once that due date's demand is
   calculated. Legacy data has duplicate active rows per member and date; Unstop clears them all.
+- **Delete Demand for Expired Members** (`Pages/ECSLoan/ECSExpiredMemberDemand.razor`, `/ecs-expired-demand`, Admin)
+  ports TSIS `frmLoanDemandDeleteForExpiredMembers`: for a member marked expired, soft-delete a loan's `D` rows with no
+  money on them from the last row on or before `expireddate` onwards (`TrnTr_Delete` + `ExpiredDeletion`), or restore
+  them while the demand is still posted. API `api/ecsdemand/ExpiredMember|ExpiredLoanRows/{loanId}|ExpiredDelete/{trnId}|
+  ExpiredRevoke/{trnId}`.
 - **Menu:** unlike the other ECS pages these have nav entries — `specs/ecs-extension/12-ecs-demand-calculation.sql`
-  points the "Demand Calculation" and "Stop Demand" placeholders under "Thrift Society Demand" (Admin) at the two
-  pages. Per branch, ECS only, idempotent; run it on each database.
+  points the "Demand Calculation", "Stop Demand" and "Delete Demand for Expired Members" placeholders under "Thrift
+  Society Demand" (Admin) at the three pages. Per branch, ECS only, idempotent; run it on each database.
 - **Day End step 7** (`CalendarHandler`) calls `CalculateForDayEndAsync` on the last business day of the month,
   inside Day End's transaction — the handler must not open its own transaction there.
 - The demand entities had wrong column names and `int` ids that overflow; they are fixed. `Deposit_Options.Voc_Id`

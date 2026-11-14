@@ -43,8 +43,18 @@ namespace Infin8.Coapp.Repository
         Task<Mem_Demand_Stop?> GetStopRowForUpdateAsync(decimal id, string brCode);
         /// <summary>A member of the branch that is not deleted or closed, by member no.</summary>
         Task<EcsDemandMemberRow?> FindMemberAsync(string memberNo, string brCode);
+        /// <summary>A member of the branch that is not deleted (closed accounts included), by member no.</summary>
+        Task<EcsDemandMemberRow?> FindAnyMemberAsync(string memberNo, string brCode);
         /// <summary>Adds a stop row with the next branch-prefixed MAX+1 id (change tracker only).</summary>
         Task AddStopRowAsync(Mem_Demand_Stop row);
+
+        // ----- delete demand for expired members (loan_trn.ExpiredDeletion) -----
+        Task<List<EcsExpiredLoanRow>> GetMemberLoansAsync(decimal memId, string brCode);
+        /// <summary>Valid rows of the loan from its last row dated on or before the expiry date onwards (TSIS window).</summary>
+        Task<List<Loan_Trn>> GetExpiredWindowRowsAsync(decimal loanId, DateTime expiryDate, string brCode);
+        Task<List<Loan_Trn>> GetExpiredDeletedRowsAsync(decimal loanId, string brCode);
+        Task<Loan_Trn?> GetLoanTrnForUpdateAsync(decimal trnId, string brCode);
+        Task<EcsDemandMemberRow?> GetMemberOfLoanAsync(decimal loanId, string brCode);
 
         // ----- business day -----
         Task<DateTime?> GetOpenBusinessDayAsync(string brCode);
@@ -67,6 +77,14 @@ namespace Infin8.Coapp.Repository
         public double BasicPay { get; set; }
         public bool IsExpired { get; set; }
         public DateTime? ExpiredDate { get; set; }
+    }
+
+    public class EcsExpiredLoanRow
+    {
+        public decimal LoanId { get; set; }
+        public string? LoanNo { get; set; }
+        public string? SchemeName { get; set; }
+        public bool IsClosed { get; set; }
     }
 
     public class EcsStopRow

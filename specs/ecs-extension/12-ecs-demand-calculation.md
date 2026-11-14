@@ -258,9 +258,16 @@ uploads, the day-end hook (§14).
 - **Stop Demand page** (`Pages/ECSLoan/ECSStopDemand.razor`, `/ecs-stop-demand`, Admin): add or remove members in
   `mem_demand_stop` for a due date (§4.6). Refused once that due date's demand is calculated (delete the calculation
   first) or posted. Removing clears every active row of the member for the date (legacy data has duplicates).
-- **Menu rows:** `12-ecs-demand-calculation.sql` points the existing "Demand Calculation" and "Stop Demand"
-  placeholders under "Thrift Society Demand" (Admin) at the two pages ("Stop Demand" pointed at `loan-sanction`), or
-  inserts them where missing. Per branch, ECS only, idempotent.
+- **Delete Demand for Expired Members page** (`Pages/ECSLoan/ECSExpiredMemberDemand.razor`, `/ecs-expired-demand`,
+  Admin), a port of TSIS `frmLoanDemandDeleteForExpiredMembers`. For one loan of a member, it lists `loan_trn` rows from
+  the last one on or before the expiry date onwards; a row can be soft-deleted (`TrnTr_Delete` + `ExpiredDeletion`)
+  and later restored. Stricter than TSIS: the member must be marked expired (`ismemexpired` + `expireddate`, used as
+  the date — TSIS let the user type one), only `D` rows with no money on them can be deleted (TSIS allowed any row
+  without money; in practice it was only ever used on `D` rows), and a row is restored only while its demand is
+  still posted.
+- **Menu rows:** `12-ecs-demand-calculation.sql` points the existing "Demand Calculation", "Stop Demand" and "Delete
+  Demand for Expired Members" placeholders under "Thrift Society Demand" (Admin) at the three pages ("Stop Demand"
+  pointed at `loan-sanction`), or inserts them where missing. Per branch, ECS only, idempotent.
 - **Principal arrear is capped at the principal outstanding.** Migrated loans carry Σ `Prl_Dem` above the amount
   disbursed (opening `I` rows with `prl_dem`); TSIS capped too.
 - **Loans with only interest/penal arrears** (principal fully repaid, account not closed) are demanded, per §4.1
