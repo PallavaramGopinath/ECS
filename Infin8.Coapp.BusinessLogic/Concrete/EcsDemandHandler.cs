@@ -59,7 +59,8 @@ namespace Infin8.Coapp.BusinessLogic
         {
             var due = dueDate.Date;
             var build = await CalculateAsync(due, ctx.CurrentDate, ctx.UsrId, ctx.YrId, ctx.BrCode);
-            var summary = Summarise(build.Lines, build.Members, build.Labels, withMembers: true);
+            var officeNames = await _unitOfWork.EcsRecovery.GetOfficeNamesAsync(ctx.BrCode);
+            var summary = Summarise(build.Lines, build.Members, build.Labels, officeNames, withMembers: true);
             summary.DueDate = due;
             summary.CalculationDate = ctx.CurrentDate.Date;
 
@@ -86,7 +87,8 @@ namespace Infin8.Coapp.BusinessLogic
             var members = (await _unitOfWork.EcsDemand.GetMembersAsync(brCode)).ToDictionary(m => m.MemId);
             var labels = withMembers ? await _unitOfWork.EcsDemand.GetAccountLabelsAsync(lines, brCode) : new();
 
-            var summary = Summarise(lines, members, labels, withMembers);
+            var officeNames = await _unitOfWork.EcsRecovery.GetOfficeNamesAsync(brCode);
+            var summary = Summarise(lines, members, labels, officeNames, withMembers);
             summary.DemandId = demandId;
             summary.DueDate = master.DemandDate?.Date ?? DateTime.MinValue;
             summary.CalculationDate = master.DemandCalculationDate?.Date ?? DateTime.MinValue;
@@ -430,6 +432,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             var due = dueDate.Date;
             var rows = await _unitOfWork.EcsDemand.GetStopRowsAsync(due, brCode);
+            var officeNames = await _unitOfWork.EcsRecovery.GetOfficeNamesAsync(brCode);
             var locked = await StopListLockAsync(due, brCode);
             return new EcsStopDemandListVM
             {
@@ -443,6 +446,7 @@ namespace Infin8.Coapp.BusinessLogic
                     MemberNo = r.MemberNo,
                     MemberName = r.MemberName,
                     OfficeId = r.OfficeId,
+                    OfficeName = officeNames.TryGetValue(r.OfficeId, out var n) ? n : r.OfficeId == 0 ? "—" : $"Office {r.OfficeId}",
                     IsInactive = r.MemberStatus == 2
                 }).ToList()
             };
@@ -991,7 +995,7 @@ namespace Infin8.Coapp.BusinessLogic
         };
 
         private static EcsDemandSummaryVM Summarise(List<Mem_Demand> lines, Dictionary<decimal, EcsDemandMemberRow> members,
-            Dictionary<string, string> labels, bool withMembers)
+            Dictionary<string, string> labels, Dictionary<decimal, string> officeNames, bool withMembers)
         {
             var vms = lines.Select(l => (Line: l, Vm: ToLineVM(l, labels))).ToList();
             var summary = new EcsDemandSummaryVM
@@ -1023,16 +1027,19 @@ namespace Infin8.Coapp.BusinessLogic
             }
 
             decimal OfficeOf(decimal memId) => members.TryGetValue(memId, out var m) ? m.OfficeId : 0;
-            summary.Offices = lines.GroupBy(l => OfficeOf(l.Mem_Id)).OrderBy(g => g.Key).Select(g => new EcsDemandOfficeTotalVM
+            string OfficeName(decimal officeId) =>
+                officeNames.TryGetValue(officeId, out var n) ? n : officeId == 0 ? "—" : $"Office {officeId}";
+            summary.Offices = lines.GroupBy(l => OfficeOf(l.Mem_Id)).Select(g => new EcsDemandOfficeTotalVM
             {
                 OfficeId = g.Key,
+                OfficeName = OfficeName(g.Key),
                 Members = g.Select(l => l.Mem_Id).Distinct().Count(),
                 StoppedMembers = g.Where(l => l.Stop_Demand).Select(l => l.Mem_Id).Distinct().Count(),
                 Loans = EcsDemandCalculator.R2(g.Where(l => l.Demand_Type == "L").Sum(l => l.Total_Demand)),
                 Deposits = EcsDemandCalculator.R2(g.Where(l => l.Demand_Type == "D").Sum(l => l.Total_Demand)),
                 Others = EcsDemandCalculator.R2(g.Where(l => l.Demand_Type is "R" or "S").Sum(l => l.Total_Demand)),
                 Total = EcsDemandCalculator.R2(g.Sum(l => l.Total_Demand))
-            }).ToList();
+            }).OrderBy(o => o.OfficeName, StringComparer.OrdinalIgnoreCase).ThenBy(o => o.OfficeId).ToList();
 
             if (withMembers)
             {
@@ -1045,6 +1052,7 @@ namespace Infin8.Coapp.BusinessLogic
                         MemberNo = m?.MemberNo ?? g.Key.ToString(),
                         MemberName = m?.MemberName,
                         OfficeId = m?.OfficeId ?? 0,
+                        OfficeName = OfficeName(m?.OfficeId ?? 0),
                         Stopped = g.Any(x => x.Line.Stop_Demand),
                         Total = EcsDemandCalculator.R2(g.Sum(x => x.Vm.Total)),
                         Lines = g.Select(x => x.Vm).OrderBy(v => Array.FindIndex(Components, c => c.Type == v.Type)).ToList()

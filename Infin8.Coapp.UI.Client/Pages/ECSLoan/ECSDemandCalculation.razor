@@ -268,7 +268,7 @@ else
                                     <option value="">All pay offices</option>
                                     @foreach (var o in drill.Offices)
                                     {
-                                        <option value="@o.OfficeId">@o.OfficeId</option>
+                                        <option value="@o.OfficeId">@o.OfficeName</option>
                                     }
                                 </select>
                             </div>
@@ -306,7 +306,7 @@ else
                                                 <span class="badge bg-secondary ms-1">stopped</span>
                                             }
                                         </td>
-                                        <td>@m.OfficeId</td>
+                                        <td>@m.OfficeName</td>
                                         <td class="text-end">@F(m.Total)</td>
                                     </tr>
                                     @if (open)
@@ -643,7 +643,7 @@ else
                     @foreach (var o in s.Offices)
                     {
                         <tr>
-                            <td>@o.OfficeId</td>
+                            <td>@o.OfficeName</td>
                             <td class="text-end">@o.Members</td>
                             <td class="text-end">@o.StoppedMembers</td>
                             <td class="text-end">@F(o.Loans)</td>
