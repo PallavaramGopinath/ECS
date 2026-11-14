@@ -167,7 +167,7 @@ Stamping `IntCalc_Date` even when interest is 0 is what stops ECS recovery accru
 
 ## 7. Order and guards
 
-- A new demand needs the previous one **posted** (and, once spec 13 exists, its recovery saved).
+- A new demand needs the previous one **posted** and its recovery saved for every office (spec 13 §8).
 - One live demand per due date per branch.
 - The due date defaults to the previous master's `nextdemanddate` (`demanddate` + 1 month, month-end kept). The
   calculation date is the business day.
