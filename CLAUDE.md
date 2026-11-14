@@ -272,9 +272,12 @@ Page `Pages/ECSLoan/ECSDemandCalculation.razor` (`/ecs-demand-calculation`, Admi
   `deposit_trn` and `termdeposit_trn` rows dated on the due date (zero voucher id, `IntCalc_Date` always stamped)
   and first recalculates, refusing if any current figure changed since the calculation.
 - **Guards:** previous demand posted, one live demand per due date, token business day = open day, ECS branch.
-- **Menu:** unlike the other ECS pages it has a nav entry — `specs/ecs-extension/12-ecs-demand-calculation.sql` revives
-  the "Demand Calculation" placeholder under "Thrift Society Demand" (Admin). Per branch, ECS only, idempotent; run it
-  on each database.
+- **Stop Demand** (`Pages/ECSLoan/ECSStopDemand.razor`, `/ecs-stop-demand`, Admin) maintains `mem_demand_stop` for a
+  due date via `api/ecsdemand/StopList|Stop|Unstop/{id}`. The list is locked once that due date's demand is
+  calculated. Legacy data has duplicate active rows per member and date; Unstop clears them all.
+- **Menu:** unlike the other ECS pages these have nav entries — `specs/ecs-extension/12-ecs-demand-calculation.sql`
+  points the "Demand Calculation" and "Stop Demand" placeholders under "Thrift Society Demand" (Admin) at the two
+  pages. Per branch, ECS only, idempotent; run it on each database.
 - **Day End step 7** (`CalendarHandler`) calls `CalculateForDayEndAsync` on the last business day of the month,
   inside Day End's transaction — the handler must not open its own transaction there.
 - The demand entities had wrong column names and `int` ids that overflow; they are fixed. `Deposit_Options.Voc_Id`

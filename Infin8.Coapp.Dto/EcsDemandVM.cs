@@ -125,4 +125,32 @@ namespace Infin8.Coapp.Dto
         public double Total { get; set; }
         public double LoanOutstanding { get; set; }
     }
+
+    // ECS Stop Demand — members excluded from one due date's demand (mem_demand_stop).
+
+    public class EcsStopDemandRequestVM
+    {
+        public DateTime DueDate { get; set; }
+        public string MemberNo { get; set; } = "";
+    }
+
+    public class EcsStopDemandListVM
+    {
+        public DateTime DueDate { get; set; }
+        /// <summary>True when the demand for this due date is already calculated, so the list cannot change.</summary>
+        public bool IsLocked { get; set; }
+        public string? LockedReason { get; set; }
+        public List<EcsStopDemandMemberVM> Members { get; set; } = new();
+    }
+
+    public class EcsStopDemandMemberVM
+    {
+        public decimal Id { get; set; }
+        public decimal MemId { get; set; }
+        public string? MemberNo { get; set; }
+        public string? MemberName { get; set; }
+        public decimal OfficeId { get; set; }
+        /// <summary>Inactive members (status 2) are stopped anyway; the row is then redundant.</summary>
+        public bool IsInactive { get; set; }
+    }
 }

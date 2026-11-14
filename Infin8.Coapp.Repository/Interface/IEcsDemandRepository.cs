@@ -37,6 +37,15 @@ namespace Infin8.Coapp.Repository
         /// <summary>Accounts with a valid row added after this demand's posted row (higher Trn_SlNo).</summary>
         Task<List<string>> GetLaterTransactionsAsync(decimal demandId, string brCode);
 
+        // ----- stop demand (mem_demand_stop) -----
+        Task<List<EcsStopRow>> GetStopRowsAsync(DateTime dueDate, string brCode);
+        Task<List<Mem_Demand_Stop>> GetActiveStopRowsForUpdateAsync(decimal memId, DateTime dueDate, string brCode);
+        Task<Mem_Demand_Stop?> GetStopRowForUpdateAsync(decimal id, string brCode);
+        /// <summary>A member of the branch that is not deleted or closed, by member no.</summary>
+        Task<EcsDemandMemberRow?> FindMemberAsync(string memberNo, string brCode);
+        /// <summary>Adds a stop row with the next branch-prefixed MAX+1 id (change tracker only).</summary>
+        Task AddStopRowAsync(Mem_Demand_Stop row);
+
         // ----- business day -----
         Task<DateTime?> GetOpenBusinessDayAsync(string brCode);
         /// <summary>True when no later non-holiday business day of the same month exists for the branch.</summary>
@@ -58,6 +67,16 @@ namespace Infin8.Coapp.Repository
         public double BasicPay { get; set; }
         public bool IsExpired { get; set; }
         public DateTime? ExpiredDate { get; set; }
+    }
+
+    public class EcsStopRow
+    {
+        public decimal Id { get; set; }
+        public decimal MemId { get; set; }
+        public string? MemberNo { get; set; }
+        public string? MemberName { get; set; }
+        public decimal OfficeId { get; set; }
+        public int MemberStatus { get; set; }
     }
 
     public class EcsDemandLoanRow

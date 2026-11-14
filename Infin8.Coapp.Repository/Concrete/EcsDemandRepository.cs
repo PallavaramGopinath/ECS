@@ -402,6 +402,71 @@ namespace Infin8.Coapp.Repository
         }
 
         // =====================================================================
+        // Stop demand
+        // =====================================================================
+
+        public async Task<List<EcsStopRow>> GetStopRowsAsync(DateTime dueDate, string brCode)
+        {
+            var due = DateOnly.FromDateTime(dueDate.Date);
+            var rows = await (from s in CSISContext.Mem_Demand_Stop
+                              join m in CSISContext.mem_master on s.Mem_Id equals m.mem_id
+                              where s.Demand_Date == due && s.Is_Active && s.BrCode == brCode && m.brcode == brCode
+                              orderby m.memberno, s.Id
+                              select new EcsStopRow
+                              {
+                                  Id = s.Id,
+                                  MemId = s.Mem_Id,
+                                  MemberNo = m.memberno,
+                                  MemberName = m.membername,
+                                  OfficeId = m.office_id,
+                                  MemberStatus = m.memberstatus
+                              }).AsNoTracking().ToListAsync();
+            // Legacy data holds duplicate rows for a member and date; show the member once.
+            return rows.GroupBy(r => r.MemId).Select(g => g.First()).ToList();
+        }
+
+        public async Task<List<Mem_Demand_Stop>> GetActiveStopRowsForUpdateAsync(decimal memId, DateTime dueDate, string brCode)
+        {
+            var due = DateOnly.FromDateTime(dueDate.Date);
+            return await (from s in CSISContext.Mem_Demand_Stop
+                          where s.Mem_Id == memId && s.Demand_Date == due && s.Is_Active && s.BrCode == brCode
+                          select s).ToListAsync();
+        }
+
+        public async Task<Mem_Demand_Stop?> GetStopRowForUpdateAsync(decimal id, string brCode)
+        {
+            return await (from s in CSISContext.Mem_Demand_Stop
+                          where s.Id == id && s.BrCode == brCode
+                          select s).FirstOrDefaultAsync();
+        }
+
+        public async Task<EcsDemandMemberRow?> FindMemberAsync(string memberNo, string brCode)
+        {
+            var no = memberNo.Trim();
+            return await (from m in CSISContext.mem_master
+                          where m.memberno == no && !m.memberdelete && !m.isaccountclosed && m.brcode == brCode
+                          select new EcsDemandMemberRow
+                          {
+                              MemId = m.mem_id,
+                              MemberNo = m.memberno,
+                              MemberName = m.membername,
+                              OfficeId = m.office_id,
+                              MemberStatus = m.memberstatus,
+                              BasicPay = m.basicpay,
+                              IsExpired = m.ismemexpired,
+                              ExpiredDate = m.expireddate
+                          }).AsNoTracking().FirstOrDefaultAsync();
+        }
+
+        public async Task AddStopRowAsync(Mem_Demand_Stop row)
+        {
+            decimal zero = decimal.TryParse(row.BrCode + "0000000", out var z) ? z : 0;
+            var max = await CSISContext.Mem_Demand_Stop.Where(x => x.BrCode == row.BrCode).MaxAsync(x => (decimal?)x.Id);
+            row.Id = Math.Max(max ?? 0, zero) + 1;
+            await CSISContext.Mem_Demand_Stop.AddAsync(row);
+        }
+
+        // =====================================================================
         // Business day
         // =====================================================================
 

@@ -423,6 +423,93 @@ namespace Infin8.Coapp.BusinessLogic
         }
 
         // =====================================================================
+        // Stop demand
+        // =====================================================================
+
+        public async Task<EcsStopDemandListVM> GetStopListAsync(DateTime dueDate, string brCode)
+        {
+            var due = dueDate.Date;
+            var rows = await _unitOfWork.EcsDemand.GetStopRowsAsync(due, brCode);
+            var locked = await StopListLockAsync(due, brCode);
+            return new EcsStopDemandListVM
+            {
+                DueDate = due,
+                LockedReason = locked,
+                IsLocked = locked != null,
+                Members = rows.Select(r => new EcsStopDemandMemberVM
+                {
+                    Id = r.Id,
+                    MemId = r.MemId,
+                    MemberNo = r.MemberNo,
+                    MemberName = r.MemberName,
+                    OfficeId = r.OfficeId,
+                    IsInactive = r.MemberStatus == 2
+                }).ToList()
+            };
+        }
+
+        public async Task<EcsDemandResultVM> AddStopAsync(EcsStopDemandRequestVM request, EcsUserContextVM ctx)
+        {
+            var due = request.DueDate.Date;
+            var guard = await CommonGuardsAsync(ctx) ?? await StopListLockAsync(due, ctx.BrCode);
+            if (guard != null) return Fail(guard);
+            if (string.IsNullOrWhiteSpace(request.MemberNo)) return Fail("Enter the member no.");
+
+            var member = await _unitOfWork.EcsDemand.FindMemberAsync(request.MemberNo, ctx.BrCode);
+            if (member == null) return Fail($"No open member {request.MemberNo.Trim()} in this branch.");
+            if ((await _unitOfWork.EcsDemand.GetActiveStopRowsForUpdateAsync(member.MemId, due, ctx.BrCode)).Count > 0)
+                return Fail($"Member {member.MemberNo} is already stopped for {due:dd-MM-yyyy}.");
+
+            await _unitOfWork.EcsDemand.AddStopRowAsync(new Mem_Demand_Stop
+            {
+                Mem_Id = member.MemId,
+                Demand_Date = DateOnly.FromDateTime(due),
+                Is_Active = true,
+                Voc_Id = decimal.TryParse(ctx.BrCode + "0000000", out var z) ? z : 0,
+                Usr_Id = ctx.UsrId,
+                Yr_Id = ctx.YrId,
+                BrCode = ctx.BrCode
+            });
+            await _unitOfWork.CompleteAsync();
+
+            var note = member.MemberStatus == 2 ? " (the member is inactive, so the demand was stopped anyway)" : "";
+            return new EcsDemandResultVM
+            {
+                Success = true,
+                Message = $"Demand stopped for member {member.MemberNo} {member.MemberName} for {due:dd-MM-yyyy}{note}."
+            };
+        }
+
+        public async Task<EcsDemandResultVM> RemoveStopAsync(decimal stopId, EcsUserContextVM ctx)
+        {
+            var guard = await CommonGuardsAsync(ctx);
+            if (guard != null) return Fail(guard);
+
+            var row = await _unitOfWork.EcsDemand.GetStopRowForUpdateAsync(stopId, ctx.BrCode);
+            if (row == null || !row.Is_Active) return Fail("The stop entry no longer exists.");
+            var due = row.Demand_Date.ToDateTime(TimeOnly.MinValue);
+            var locked = await StopListLockAsync(due, ctx.BrCode);
+            if (locked != null) return Fail(locked);
+
+            // Legacy data can hold several active rows for one member and date; clear them all.
+            foreach (var r in await _unitOfWork.EcsDemand.GetActiveStopRowsForUpdateAsync(row.Mem_Id, due, ctx.BrCode))
+                r.Is_Active = false;
+            await _unitOfWork.CompleteAsync();
+            return new EcsDemandResultVM { Success = true, Message = $"Stop removed for {due:dd-MM-yyyy}." };
+        }
+
+        /// <summary>A due date whose demand is already calculated cannot have its stop list changed.</summary>
+        private async Task<string?> StopListLockAsync(DateTime due, string brCode)
+        {
+            var masters = await _unitOfWork.EcsDemand.GetLiveMastersAsync(brCode, 1000);
+            var m = masters.FirstOrDefault(x => x.DemandDate?.Date == due.Date);
+            if (m == null) return null;
+            return m.IsDemandUpdated
+                ? $"The demand for {due:dd-MM-yyyy} is already posted, so its stop list cannot change."
+                : $"The demand for {due:dd-MM-yyyy} is already calculated. Delete the calculation to change its stop list.";
+        }
+
+        // =====================================================================
         // Day End
         // =====================================================================
 

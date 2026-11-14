@@ -114,6 +114,19 @@ namespace Infin8.Coapp.API.Controllers
         public Task<ActionResult> DeleteCalculation(decimal demandId) =>
             Run(ctx => _demandHandler.DeleteCalculationAsync(demandId, ctx));
 
+        // ----- stop demand -----
+
+        [HttpGet("StopList")]
+        public Task<ActionResult> StopList([FromQuery] DateTime dueDate) =>
+            Run(ctx => _demandHandler.GetStopListAsync(dueDate, ctx.BrCode));
+
+        [HttpPost("Stop")]
+        public Task<ActionResult> Stop([FromBody] EcsStopDemandRequestVM request) =>
+            Run(ctx => _demandHandler.AddStopAsync(request, ctx));
+
+        [HttpPost("Unstop/{stopId}")]
+        public Task<ActionResult> Unstop(decimal stopId) => Run(ctx => _demandHandler.RemoveStopAsync(stopId, ctx));
+
         [HttpPost("DeletePosted/{demandId}")]
         public Task<ActionResult> DeletePosted(decimal demandId) =>
             Run(ctx => _demandHandler.DeletePostedAsync(demandId, ctx));
