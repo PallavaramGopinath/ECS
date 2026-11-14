@@ -1,0 +1,132 @@
+@page "/reports-personal-register"
+@* Personal register (reports_master group 11, report 84): every account of each member in a number range,
+   month by month, with running balances. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<h3 class="mb-2">Personal Register</h3>
+<hr class="mt-0" />
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-info")">@message</div>
+}
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <label class="form-label">Report</label>
+        <select class="form-select" @bind="reportId">
+            <option value="0">-- Select report --</option>
+            @foreach (var r in reportList)
+            {
+                <option value="@r.Value">@r.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">From member no</label>
+        <input class="form-control" @bind="fromMemNo" @bind:event="oninput" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">To member no</label>
+        <input class="form-control" @bind="toMemNo" @bind:event="oninput" />
+    </div>
+</div>
+<div class="row g-3 mt-1">
+    <div class="col-md-3">
+        <label class="form-label">From date</label>
+        <input type="date" class="form-control" @bind="fromDate" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">To date</label>
+        <input type="date" class="form-control" @bind="toDate" />
+    </div>
+</div>
+<div class="small text-muted mt-2">Member numbers compare as text, so give both ends with the same number of digits (e.g. 001000 to 001999).</div>
+
+<div class="mt-3">
+    <button type="button" class="btn btn-primary" disabled="@(!CanPrint)" @onclick="Print">
+        @if (isPrinting)
+        {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+        }
+        <i class="bi bi-printer"></i> Print
+    </button>
+</div>
+
+@code {
+    private const int PersonalRegisterGroup = 11;
+    // 85 (personal register for the society) has no report file yet; only 84 is wired.
+    private const int PersonalRegisterMember = 84;
+
+    private List<DropdownItem> reportList = new();
+    private int reportId;
+    private string fromMemNo = "";
+    private string toMemNo = "";
+    private DateTime fromDate;
+    private DateTime toDate;
+    private string brCode = "";
+    private string? message;
+    private bool isError;
+    private bool isPrinting;
+
+    private bool CanPrint => !isPrinting && reportId == PersonalRegisterMember
+                             && !string.IsNullOrWhiteSpace(fromMemNo) && !string.IsNullOrWhiteSpace(toMemNo) && fromDate <= toDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+        brCode = userInfoDto.BrCode ?? "";
+        fromDate = userInfoDto.YrBeginningDate;
+        toDate = userInfoDto.CurrentDate;
+        try
+        {
+            reportList = await _httpClient.GetFromJsonAsync<List<DropdownItem>>($"api/Print/GetReportNameList/{PersonalRegisterGroup}/{brCode}") ?? new();
+        }
+        catch (HttpRequestException)
+        {
+            Show("Could not load the report list.", true);
+        }
+    }
+
+    private async Task Print()
+    {
+        message = null;
+        isPrinting = true;
+        try
+        {
+            var url = $"api/ReportsMember/GetPersonalRegister?fromMemNo={Uri.EscapeDataString(fromMemNo.Trim())}&toMemNo={Uri.EscapeDataString(toMemNo.Trim())}"
+                    + $"&fromDate={fromDate:yyyy-MM-dd}&toDate={toDate:yyyy-MM-dd}&reportId={reportId}&brCode={brCode}";
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                Show($"Could not print the register ({(int)response.StatusCode}). {(await response.Content.ReadAsStringAsync()).Trim('"')}", true);
+                return;
+            }
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            if (bytes.Length == 0) { Show("No register lines for these members and dates, or the report server returned an empty PDF.", false); return; }
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", Convert.ToBase64String(bytes));
+        }
+        catch (Exception ex)
+        {
+            Show($"Could not print the register: {ex.Message}", true);
+        }
+        finally
+        {
+            isPrinting = false;
+        }
+    }
+
+    private void Show(string text, bool error)
+    {
+        message = text;
+        isError = error;
+    }
+}

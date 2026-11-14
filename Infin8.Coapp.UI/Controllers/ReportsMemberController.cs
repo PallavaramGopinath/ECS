@@ -187,6 +187,23 @@ namespace Infin8.Coapp.UI.Controllers
             return pdfReport;
         }
 
+        /// <summary>Personal register (report 84) for members numbered fromMemNo..toMemNo between two dates (yyyy-MM-dd).</summary>
+        [HttpGet]
+        [Route("GetPersonalRegister")]
+        public async Task<IActionResult> GetPersonalRegister([FromQuery] string fromMemNo, [FromQuery] string toMemNo, [FromQuery] DateTime fromDate,
+            [FromQuery] DateTime toDate, [FromQuery] int reportId, [FromQuery] string brCode)
+        {
+            if (string.IsNullOrWhiteSpace(fromMemNo) || string.IsNullOrWhiteSpace(toMemNo)) return BadRequest("Enter the member number range.");
+            var report = await _reportsHandler.GetReportNameWithSignature(reportId);
+            var path = Path.Combine(this._webHostEnvironment.ContentRootPath, "Reports", report.ReportFileName ?? "");
+            byte[] pdfAsBytes;
+            using (FileStream stream = System.IO.File.OpenRead(path))
+            {
+                pdfAsBytes = await _reportsMemberHandler.GetPersonalRegisterToPrintAsBytes("Ds_PersonalReg", fromMemNo.Trim(), toMemNo.Trim(), fromDate, toDate, brCode, stream);
+            }
+            return File(pdfAsBytes, "application/pdf");
+        }
+
         [HttpGet]
         [Route("GetMemberAddress")]
         public async Task<byte[]> GetMemberAddress([FromQuery] List<int> memberTypeList, [FromQuery] int memberStatus, [FromQuery] int reportId, [FromQuery] string brCode)

@@ -25,6 +25,9 @@ namespace Infin8.Coapp.BusinessLogic
         Task<byte[]> GetMemberVoutersListToPrintAsBytes(string datasetName, DateTime asOnDate, List<int> memberTypeList, int memberStatus, int minimumSCBalance, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
         Task<byte[]> GetMemberRegisterToPrintAsBytes(string datasetName, decimal memId, FileStream reportStream, Dictionary<string, string> parameters);
 
+        /// <summary>Personal register lines for members numbered fromMemNo..toMemNo between two dates (report 84).</summary>
+        Task<List<rptPersonalRegister>> GetPersonalRegisterAsync(string fromMemNo, string toMemNo, DateTime fromDate, DateTime toDate, string brCode);
+        Task<byte[]> GetPersonalRegisterToPrintAsBytes(string datasetName, string fromMemNo, string toMemNo, DateTime fromDate, DateTime toDate, string brCode, FileStream reportStream);
         Task<byte[]> GetMemberAddressToPrintAsBytes(string datasetName, List<int> memberTypeList, int memberStatus, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
         Task<byte[]> GetMemberCancellationToPrintAsBytes(string datasetName, DateTime fromDate, DateTime toDate, string brCode, FileStream reportStream, Dictionary<string, string> parameters);
         Task<byte[]> GetNewMembersToPrintAsBytes(string datasetName, DateTime fromDate, DateTime toDate, string brCode, FileStream reportStream, Dictionary<string, string> parameters);

@@ -614,6 +614,125 @@ namespace Infin8.Coapp.Repository
                     });
         }
 
+        // ---------------------------------------------------------------------------------------------
+        // Personal register (report 84), ported from TSIS GetPersonalRegister. BrCode on every alias.
+        // ---------------------------------------------------------------------------------------------
+
+        public async Task<List<PersonalRegisterMember>> GetRegisterMembersAsync(string fromMemNo, string toMemNo, string brCode)
+        {
+            return await (from mm in CSISContext.mem_master
+                          join office in CSISContext.Refer_Data.Where(r => r.BrCode == brCode) on mm.office_id equals office.ReferId into officeJoin
+                          from office in officeJoin.DefaultIfEmpty()
+                          where mm.brcode == brCode && !mm.memberdelete
+                                && mm.memberno!.CompareTo(fromMemNo) >= 0 && mm.memberno!.CompareTo(toMemNo) <= 0
+                          orderby mm.memberno
+                          select new PersonalRegisterMember
+                          {
+                              Mem_Id = mm.mem_id, MemberNo = mm.memberno, PerNo = mm.perno, MemberName = mm.membername,
+                              TokenNo = mm.tickettokengangno, OfficeName = office.ReferName, SuretyMem_Id = mm.suretymem_id
+                          }).AsNoTracking().ToListAsync();
+        }
+
+        public async Task<List<PersonalRegisterMember>> GetRegisterMembersByIdAsync(IEnumerable<decimal> memIds, string brCode)
+        {
+            var ids = memIds.Distinct().ToList();
+            return await (from mm in CSISContext.mem_master
+                          where ids.Contains(mm.mem_id) && mm.brcode == brCode && !mm.memberdelete
+                          select new PersonalRegisterMember
+                          {
+                              Mem_Id = mm.mem_id, MemberNo = mm.memberno, PerNo = mm.perno, MemberName = mm.membername,
+                              TokenNo = mm.tickettokengangno, SuretyMem_Id = mm.suretymem_id
+                          }).AsNoTracking().ToListAsync();
+        }
+
+        public async Task<List<PersonalRegisterMovement>> GetRegisterMovementsAsync(IEnumerable<decimal> memIds, DateTime toDate, string brCode)
+        {
+            var ids = memIds.Distinct().ToList();
+            DateTime periodEnd = toDate.Date.AddDays(1);
+            var vouchers = CSISContext.Fin_Voucher.Where(v => v.BrCode == brCode);
+
+            // share capital (3), due by (2), due to (1)
+            var memTrn = await (from mt in CSISContext.Mem_Trn
+                                join fl in CSISContext.Fin_Ledger on mt.Led_Id equals fl.Led_Id
+                                join fv in vouchers on mt.Voc_Id equals fv.Voc_Id into fvJoin
+                                from fv in fvJoin.DefaultIfEmpty()
+                                where ids.Contains(mt.Mem_Id) && !mt.MemTrn_Delete && mt.Voc_Status == "V" && mt.Trn_Date < periodEnd
+                                      && (mt.Trn_Type == 1 || mt.Trn_Type == 2 || mt.Trn_Type == 3)
+                                      && mt.BrCode == brCode && fl.BrCode == brCode
+                                select new PersonalRegisterMovement
+                                {
+                                    Module = mt.Trn_Type == 3 ? "SC" : mt.Trn_Type == 2 ? "DUEBY" : "DUETO",
+                                    Mem_Id = mt.Mem_Id, AccountKey = mt.Led_Id, Acc_Name = fl.Led_Name,
+                                    Trn_Date = mt.Trn_Date, Trn_SlNo = mt.Trn_SlNo,
+                                    Voc_No = fv.Voc_No, Voc_Rpt_No = fv.Voc_Rpt_No, Voc_Type = fv == null ? 0 : fv.Voc_Type,
+                                    Rpt = mt.Rpt_Amt, Pmt = mt.Pmt_Amt, IntCalc = mt.IntCalc_Amt, IntPaid = mt.IntPaid_Amt
+                                }).AsNoTracking().ToListAsync();
+
+            var loans = await (from t in CSISContext.Loan_Trn
+                               join lm in CSISContext.Loan_Master on t.Loan_Id equals lm.Loan_Id
+                               join ls in CSISContext.Loan_Schemes on lm.Scheme_Id equals ls.Scheme_Id
+                               join fv in vouchers on t.Voc_Id equals fv.Voc_Id into fvJoin
+                               from fv in fvJoin.DefaultIfEmpty()
+                               where ids.Contains(lm.Mem_Id) && !lm.Loan_Delete && !t.TrnTr_Delete && t.Voc_Status == "V" && t.Trn_Date < periodEnd
+                                     && t.BrCode == brCode && lm.BrCode == brCode && ls.BrCode == brCode
+                               select new PersonalRegisterMovement
+                               {
+                                   Module = "LOAN", Mem_Id = lm.Mem_Id, AccountKey = lm.Loan_Id, Acc_No = lm.Loan_No, Acc_Name = ls.Scheme_Name,
+                                   Trn_Date = t.Trn_Date, Trn_SlNo = t.Trn_SlNo,
+                                   Voc_No = fv.Voc_No, Voc_Rpt_No = fv.Voc_Rpt_No, Voc_Type = fv == null ? 0 : fv.Voc_Type,
+                                   Rpt = t.PrlColl_Amt, Pmt = t.Disb_Amt, IntCalc = t.IntCalc_Amt, IntPaid = t.IntColl_Amt,
+                                   PICalc = t.PICalc_Amt, PIPaid = t.PIColl_Amt
+                               }).AsNoTracking().ToListAsync();
+
+            var deposits = await (from dt in CSISContext.Deposit_Trn
+                                  join dm in CSISContext.Deposit_Masters on dt.Deposit_Id equals dm.Deposit_Id
+                                  join fv in vouchers on dt.Voc_Id equals fv.Voc_Id into fvJoin
+                                  from fv in fvJoin.DefaultIfEmpty()
+                                  where ids.Contains(dt.Mem_Id) && dt.Is_Active && dt.Trn_Date < periodEnd
+                                        && dt.BrCode == brCode && dm.BrCode == brCode
+                                  select new PersonalRegisterMovement
+                                  {
+                                      Module = "DEP", Mem_Id = dt.Mem_Id, AccountKey = dt.Deposit_Id, Acc_Name = dm.Deposit_Name,
+                                      Trn_Date = dt.Trn_Date, Trn_SlNo = dt.Trn_SlNo,
+                                      Voc_No = fv.Voc_No, Voc_Rpt_No = fv.Voc_Rpt_No, Voc_Type = fv == null ? 0 : fv.Voc_Type,
+                                      Rpt = dt.Receipt_Amount, Pmt = dt.Paid_Amount,
+                                      IntCalc = dt.Interest_Calculated_Amount, IntPaid = dt.Interest_Paid_Amount,
+                                      PICalc = dt.Penal_Interest_Calculated_Amount, PIPaid = dt.Penal_Interest_Received_Amount
+                                  }).AsNoTracking().ToListAsync();
+
+            var rds = await (from tt in CSISContext.TermDeposit_Trn
+                             join tm in CSISContext.TermDeposit_Master on tt.TD_Id equals tm.TD_Id
+                             join ts in CSISContext.TermDeposit_Schemes on tm.TDScheme_Id equals ts.TDScheme_Id
+                             join fv in vouchers on tt.Voc_Id equals fv.Voc_Id into fvJoin
+                             from fv in fvJoin.DefaultIfEmpty()
+                             where ids.Contains(tm.Mem_Id) && ts.TDSchemeType == "R" && !tm.TD_Delete && !tt.TD_Delete && tt.Voc_Status == "V"
+                                   && tt.Trn_Date < periodEnd
+                                   && tt.BrCode == brCode && tm.BrCode == brCode && ts.BrCode == brCode
+                             select new PersonalRegisterMovement
+                             {
+                                 Module = "RD", Mem_Id = tm.Mem_Id, AccountKey = tm.TD_Id, Acc_No = tm.TD_No, Acc_Name = ts.TDScheme_Name,
+                                 Trn_Date = tt.Trn_Date, Trn_SlNo = tt.Trn_SlNo,
+                                 Voc_No = fv.Voc_No, Voc_Rpt_No = fv.Voc_Rpt_No, Voc_Type = fv == null ? 0 : fv.Voc_Type,
+                                 Rpt = tt.DepositReceiptAmount, Pmt = tt.DepositPaidAmount,
+                                 IntCalc = tt.InterestCalculatedAmount, IntPaid = tt.InterestPaidAmount,
+                                 PICalc = tt.PenalCalculatedAmount, PIPaid = tt.PenalReceivedAmount
+                             }).AsNoTracking().ToListAsync();
+
+            return memTrn.Concat(loans).Concat(deposits).Concat(rds).ToList();
+        }
+
+        public async Task<Dictionary<decimal, double>> GetShareCapitalBalancesAsync(IEnumerable<decimal> memIds, decimal shareCapitalLedId, DateTime asOnDate, string brCode)
+        {
+            var ids = memIds.Distinct().ToList();
+            DateTime periodEnd = asOnDate.Date.AddDays(1);
+            var rows = await (from mt in CSISContext.Mem_Trn
+                              where ids.Contains(mt.Mem_Id) && mt.Trn_Type == 3 && mt.Led_Id == shareCapitalLedId
+                                    && !mt.MemTrn_Delete && mt.Voc_Status == "V" && mt.Trn_Date < periodEnd && mt.BrCode == brCode
+                              group mt by mt.Mem_Id into g
+                              select new { MemId = g.Key, Balance = g.Sum(x => x.Rpt_Amt) - g.Sum(x => x.Pmt_Amt) }).AsNoTracking().ToListAsync();
+            return rows.ToDictionary(r => r.MemId, r => r.Balance);
+        }
+
         public async Task<List<rptMemberCancellation>> GetMemberCancellation(DateTime fromDate, DateTime toDate, string brCode)
         {
             List<rptMemberCancellation> memTrnList = new List<rptMemberCancellation>();

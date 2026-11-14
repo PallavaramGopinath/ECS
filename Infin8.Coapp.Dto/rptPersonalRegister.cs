@@ -2,7 +2,7 @@
 {
     public class rptPersonalRegister
     {
-        public int Mem_Id { get; set; }
+        public decimal Mem_Id { get; set; }
         public string? MemberNo { get; set; }
         public string? Per_No { get; set; }
         public string? MemberName { get; set; }
@@ -14,10 +14,10 @@
         public string? Surety_memberName { get; set; }
         public double Mem_SC { get; set; }
         public double Surety_SC { get; set; }
-        public int Loan_Id { get; set; }
+        public decimal Loan_Id { get; set; }
         public int DM_Id { get; set; }
-        public int TD_Id { get; set; }
-        public int Led_Id { get; set; }
+        public decimal TD_Id { get; set; }
+        public decimal Led_Id { get; set; }
         public DateTime Trn_Date { get; set; }
         public string? PB_Status { get; set; }
         public string? Status { get; set; }  /// F=factory recovery
