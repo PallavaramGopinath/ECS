@@ -329,9 +329,10 @@ nowhere and are still missing: five Crystal `.rpt` files (`DepositFWDFWS`, `JLMe
 `PersonalRegisterSociety.rdlc` and `RecurringDepositRegister_New.rdlc`.
 
 Report pages pick a report by `Report_Id` in a hard-coded `switch`, not by name, and load their dropdown by
-`ReportGrp_Id`. Four pages added for the TSIS port have **no menu row** yet and are reachable only by URL:
-`/reports-certificate` (group 15), `/reports-income-tax` (group 14), `/reports-personal-register` (group 11)
-and `/utility-emi-schedule` (report 126).
+`ReportGrp_Id`. Report pages are linked as `menu_sub` rows under the "Reports" menu, with `form_name` = the route.
+The four pages added for the TSIS port — `/reports-certificate` (group 15), `/reports-income-tax` (group 14),
+`/reports-personal-register` (group 11) and `/utility-emi-schedule` (report 126) — get their rows from
+`specs/reports/02-report-menu-rows.sql` (per branch, idempotent); run it on each database.
 
 Reports are **discovered from the `Reports_Master` database table**, not the filesystem — adding a
 report requires a DB row, not just a file. The `.rdlc` `<DataSet Name="...">` must match the dataset
