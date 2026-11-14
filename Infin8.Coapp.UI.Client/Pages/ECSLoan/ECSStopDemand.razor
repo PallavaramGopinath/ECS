@@ -1,0 +1,272 @@
+@page "/ecs-stop-demand"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Net
+@rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@* ECS Stop Demand (spec 12 §4.6): members whose demand is stopped for one due date (mem_demand_stop). *@
+
+<PageTitle>ECS Stop Demand</PageTitle>
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="/ecs-demand-calculation">ECS Demand Calculation</a></li>
+        <li class="breadcrumb-item active">Stop Demand</li>
+    </ol>
+</nav>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
+    </div>
+}
+else if (institution != InstitutionType.ECS)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        ECS Stop Demand is available only for Employees' Society (ECS) institutions.
+    </div>
+}
+else
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h4 class="mb-0"><i class="bi bi-person-x me-2 text-primary"></i>ECS Stop Demand</h4>
+        <span class="ms-auto text-muted">Business day: <strong>@currentDate.ToString("dd-MM-yyyy")</strong></span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert @(alertSuccess ? "alert-success" : "alert-danger") alert-dismissible" role="alert">
+            @alertMessage
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                A stopped member's demand lines are still calculated and posted, but salary recovery skips them.
+                Inactive members are stopped automatically and need no entry here.
+            </p>
+            <div class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small mb-1" for="dueDate">Due date</label>
+                    <input id="dueDate" type="date" class="form-control" @bind="dueDate" @bind:after="LoadListAsync" />
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small mb-1" for="memberNo">Member no.</label>
+                    <input id="memberNo" class="form-control" @bind="memberNo" @bind:event="oninput"
+                           @onkeydown="OnMemberKeyAsync" disabled="@(busy || Locked)" />
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary" disabled="@(busy || Locked || string.IsNullOrWhiteSpace(memberNo))" @onclick="AddAsync">
+                        @if (busy) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        <i class="bi bi-plus-lg me-1"></i>Stop demand
+                    </button>
+                </div>
+            </div>
+            @if (list?.LockedReason != null)
+            {
+                <div class="alert alert-light border small py-2 mt-3 mb-0">
+                    <i class="bi bi-lock me-1"></i>@list.LockedReason
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">
+            Stopped for @(dueDate?.ToString("dd-MM-yyyy") ?? "-")
+            @if (list != null)
+            {
+                <span class="badge bg-secondary ms-1">@list.Members.Count</span>
+            }
+        </div>
+        <div class="card-body p-0">
+            @if (list == null || list.Members.Count == 0)
+            {
+                <div class="p-3 text-muted">No member is stopped for this due date.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Member no.</th>
+                                <th>Name</th>
+                                <th>Pay office</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in list.Members)
+                            {
+                                <tr>
+                                    <td>@m.MemberNo</td>
+                                    <td>
+                                        @m.MemberName
+                                        @if (m.IsInactive)
+                                        {
+                                            <span class="badge bg-light text-dark border ms-1" title="Inactive members are stopped anyway">inactive</span>
+                                        }
+                                    </td>
+                                    <td>@m.OfficeId</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-danger" disabled="@(busy || Locked)" @onclick="() => RemoveAsync(m)">
+                                            <i class="bi bi-x-lg me-1"></i>Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private bool isReady;
+    private bool busy;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private DateTime currentDate = DateTime.Today;
+
+    private DateTime? dueDate;
+    private string memberNo = "";
+    private EcsStopDemandListVM? list;
+    private bool Locked => list?.IsLocked == true;
+
+    private string? alertMessage;
+    private bool alertSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
+            if (institution == InstitutionType.ECS)
+            {
+                // Default to the next demand's due date.
+                var response = await _httpClient.GetAsync("api/ecsdemand/State");
+                if (response.IsSuccessStatusCode)
+                    dueDate = (await response.Content.ReadFromJsonAsync<EcsDemandStateVM>())?.NextDueDate.Date;
+                dueDate ??= new DateTime(currentDate.Year, currentDate.Month, 1).AddMonths(1);
+                await LoadListAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LoadListAsync()
+    {
+        list = null;
+        if (dueDate == null) return;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/ecsdemand/StopList?dueDate={dueDate.Value:yyyy-MM-dd}");
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, await ReadMessageAsync(response));
+                return;
+            }
+            list = await response.Content.ReadFromJsonAsync<EcsStopDemandListVM>();
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the stop list: " + ex.Message);
+        }
+    }
+
+    private async Task OnMemberKeyAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !busy && !Locked && !string.IsNullOrWhiteSpace(memberNo)) await AddAsync();
+    }
+
+    private async Task AddAsync()
+    {
+        if (dueDate == null) return;
+        await WriteAsync(() => _httpClient.PostAsJsonAsync("api/ecsdemand/Stop",
+            new EcsStopDemandRequestVM { DueDate = dueDate.Value.Date, MemberNo = memberNo.Trim() }), clearMember: true);
+    }
+
+    private async Task RemoveAsync(EcsStopDemandMemberVM m)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Remove the stop for member {m.MemberNo} {m.MemberName}?")) return;
+        await WriteAsync(() => _httpClient.PostAsync($"api/ecsdemand/Unstop/{m.Id}", null), clearMember: false);
+    }
+
+    private async Task WriteAsync(Func<Task<HttpResponseMessage>> send, bool clearMember)
+    {
+        busy = true;
+        alertMessage = null;
+        try
+        {
+            var response = await send();
+            EcsDemandResultVM? result = null;
+            try { result = await response.Content.ReadFromJsonAsync<EcsDemandResultVM>(); } catch { /* not JSON */ }
+            if (response.IsSuccessStatusCode && result is { Success: true })
+            {
+                ShowAlert(true, result.Message ?? "Done.");
+                if (clearMember) memberNo = "";
+                await LoadListAsync();
+            }
+            else
+            {
+                ShowAlert(false, response.StatusCode == HttpStatusCode.Forbidden
+                    ? "ECS Stop Demand is available only to ECS societies."
+                    : result?.Message ?? $"Request failed ({(int)response.StatusCode}).");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static async Task<string> ReadMessageAsync(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            return "ECS Stop Demand is available only to ECS societies.";
+        try
+        {
+            var r = await response.Content.ReadFromJsonAsync<EcsDemandResultVM>();
+            if (!string.IsNullOrEmpty(r?.Message)) return r.Message;
+        }
+        catch
+        {
+            // fall through
+        }
+        return $"Request failed ({(int)response.StatusCode}).";
+    }
+
+    private void ShowAlert(bool success, string message)
+    {
+        alertSuccess = success;
+        alertMessage = message;
+    }
+}

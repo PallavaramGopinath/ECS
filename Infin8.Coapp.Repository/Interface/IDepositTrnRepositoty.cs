@@ -13,6 +13,5 @@ namespace Infin8.Coapp.Repository
 
         //Task<List<Mem_Demand>> GetDepositDemand(DateTime dueDate,string brCode);
 
-        Task<List<Mem_Demand>> CalculateDepositDemand(decimal memId, DateOnly demandCalcDate, DateOnly demandDate, double memBasicPay, string brCode);
     }
 }

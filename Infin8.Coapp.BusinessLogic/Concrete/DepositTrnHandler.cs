@@ -19,11 +19,6 @@ namespace Infin8.Coapp.BusinessLogic
             throw new NotImplementedException();
         }
 
-        public async  Task<List<Mem_Demand>> CalculateDepositDemand(decimal memId, DateOnly demandCalcDate, DateOnly demandDate, double memBasicPay, string brCode)
-        {
-            return await _unitOfWork.DepositTrn.CalculateDepositDemand(memId,demandCalcDate, demandDate, memBasicPay, brCode);
-        }
-
         public async Task<bool> EditDepositTrnAsync(Deposit_Trn depositTrn)
         {
             throw new NotImplementedException();

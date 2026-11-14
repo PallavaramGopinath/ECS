@@ -50,6 +50,7 @@ namespace Infin8.Coapp.Repository
         IEcsLoanSanctionRepository EcsLoanSanction { get; }
         IEcsLoanDisbursementRepository EcsLoanDisbursement { get; }
         IEcsLoanRecoveryRepository EcsLoanRecovery { get; }
+        IEcsDemandRepository EcsDemand { get; }
         ILoanEligibilityRepository LoanEligibility { get; }
         ILoanTrnRepository LoanTrn { get; }
         IJLDailyMarketRateRepository JLDailyMarketRate { get; }
@@ -157,19 +158,15 @@ namespace Infin8.Coapp.Repository
         #endregion
 
         #region ECS Demand
-        IECSDemandCalculationRepository ECSDemandCalculation { get; }
         #endregion
 
         #region Mem Demand
         IMemDemandMasterRepository MemDemandMaster { get; }
-        IMemDemandRepository MemDemand { get; }
-        IMemDemandStatusRepository MemDemandStatus { get; }
         IMemCollectionPriorityRepository MemCollectionPriority { get; }
 
         #endregion
 
         #region Recurring Deposit
-        IRecurringDepositRepository RecurringDeposit { get; }
         #endregion 
 
         ITransactionsRepository TransactionsRepository { get; }

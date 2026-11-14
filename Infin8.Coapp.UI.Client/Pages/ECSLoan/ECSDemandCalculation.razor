@@ -1,0 +1,695 @@
+@page "/ecs-demand-calculation"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@* ECS Demand Calculation (spec 12): calculate the monthly demand, post it to the ledgers, or undo either. *@
+
+<PageTitle>ECS Demand Calculation</PageTitle>
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">ECS Demand Calculation</li>
+    </ol>
+</nav>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
+    </div>
+}
+else if (institution != InstitutionType.ECS)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        ECS Demand Calculation is available only for Employees' Society (ECS) institutions.
+    </div>
+}
+else
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h4 class="mb-0"><i class="bi bi-calendar2-check me-2 text-primary"></i>ECS Demand Calculation</h4>
+        <a class="btn btn-sm btn-outline-secondary ms-2" href="/ecs-stop-demand"><i class="bi bi-person-x me-1"></i>Stop demand list</a>
+        <span class="ms-auto text-muted">Business day: <strong>@currentDate.ToString("dd-MM-yyyy")</strong></span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert @(alertSuccess ? "alert-success" : "alert-danger") alert-dismissible" role="alert">
+            @if (alertReasons.Count > 1)
+            {
+                <div class="fw-semibold">@alertReasons[0]</div>
+                <ul class="mb-0">
+                    @foreach (var r in alertReasons.Skip(1))
+                    {
+                        <li>@r</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                @alertMessage
+            }
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    @if (state == null)
+    {
+        <div class="text-muted">Could not load the demand state.</div>
+    }
+    else
+    {
+        @if (!state.IsOpenBusinessDay && !string.IsNullOrEmpty(state.Message))
+        {
+            <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>@state.Message</div>
+        }
+
+        @* ---------- Current demand (calculated or posted) ---------- *@
+        @if (state.Current != null)
+        {
+            var cur = state.Current;
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white d-flex flex-wrap align-items-center gap-2">
+                    <span class="fw-semibold">Current demand — due @D(cur.DueDate)</span>
+                    <span class="badge @(cur.IsPosted ? "bg-success" : "bg-warning text-dark")">@cur.State</span>
+                    <span class="text-muted small">calculated @D(cur.CalculationDate) · next due @D(cur.NextDemandDate)</span>
+                    <div class="ms-auto d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" disabled="@busy" @onclick="() => ShowSavedMembersAsync(cur.DemandId)">
+                            <i class="bi bi-people me-1"></i>Members
+                        </button>
+                        @if (!cur.IsPosted)
+                        {
+                            <button class="btn btn-sm btn-outline-danger" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="() => DeleteCalculationAsync(cur)">
+                                <i class="bi bi-trash me-1"></i>Delete calculation
+                            </button>
+                            <button class="btn btn-sm btn-success" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="() => PostAsync(cur)">
+                                @if (busy) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                <i class="bi bi-journal-check me-1"></i>Post to ledgers
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-danger" disabled="@(busy || !state.IsOpenBusinessDay || !state.CanDeletePosted)"
+                                    title="@(state.CanDeletePosted ? "" : string.Join(" ", state.DeletePostedBlockedReasons))"
+                                    @onclick="() => DeletePostedAsync(cur)">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Delete posted demand
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (cur.IsPosted && !state.CanDeletePosted && state.DeletePostedBlockedReasons.Count > 0)
+                    {
+                        <div class="alert alert-light border small py-2">
+                            <div class="fw-semibold">The posted demand cannot be deleted:</div>
+                            <ul class="mb-0">
+                                @foreach (var r in state.DeletePostedBlockedReasons)
+                                {
+                                    <li>@r</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    @if (state.CurrentSummary != null)
+                    {
+                        @SummaryTables(state.CurrentSummary)
+                    }
+                </div>
+            </div>
+        }
+
+        @* ---------- Next demand ---------- *@
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white fw-semibold">Next demand</div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-auto">
+                        <label class="form-label small mb-1" for="dueDate">Due date</label>
+                        <input id="dueDate" type="date" class="form-control" @bind="dueDate" @bind:after="ClearPreview" />
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small mb-1">Calculation date</label>
+                        <input type="text" class="form-control" value="@currentDate.ToString("dd-MM-yyyy")" readonly />
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-outline-primary" disabled="@busy" @onclick="PreviewAsync">
+                            @if (busy) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                            <i class="bi bi-calculator me-1"></i>Calculate
+                        </button>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-primary" disabled="@(busy || !CanSave)" title="@(CanSave ? "" : "Calculate first")" @onclick="SaveAsync">
+                            <i class="bi bi-save me-1"></i>Save calculation
+                        </button>
+                    </div>
+                </div>
+                @if (!state.CanCalculate && !string.IsNullOrEmpty(state.CalculateBlockedReason))
+                {
+                    <div class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i>@state.CalculateBlockedReason</div>
+                }
+
+                @if (preview != null)
+                {
+                    <hr />
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <span class="fw-semibold">Preview — due @D(preview.DueDate)</span>
+                        <span class="text-muted small">not saved</span>
+                        <button class="btn btn-sm btn-outline-secondary ms-auto" @onclick="() => drill = preview">
+                            <i class="bi bi-people me-1"></i>Members
+                        </button>
+                    </div>
+                    @if (preview.Messages.Count > 0)
+                    {
+                        <div class="alert alert-danger py-2">
+                            <div class="fw-semibold">Cannot save:</div>
+                            <ul class="mb-0">
+                                @foreach (var m in preview.Messages)
+                                {
+                                    <li>@m</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    @if (preview.Warnings.Count > 0)
+                    {
+                        <div class="alert alert-warning py-2">
+                            <ul class="mb-0">
+                                @foreach (var w in preview.Warnings.Take(20))
+                                {
+                                    <li>@w</li>
+                                }
+                                @if (preview.Warnings.Count > 20)
+                                {
+                                    <li>…and @(preview.Warnings.Count - 20) more.</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    @SummaryTables(preview)
+                }
+            </div>
+        </div>
+
+        @* ---------- History ---------- *@
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">History (last 12)</div>
+            <div class="card-body p-0">
+                @if (state.History.Count == 0)
+                {
+                    <div class="p-3 text-muted">No demand has been calculated yet.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Due date</th>
+                                    <th>Calculated</th>
+                                    <th>State</th>
+                                    <th class="text-end">Lines</th>
+                                    <th class="text-end">Total demand</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var h in state.History)
+                                {
+                                    <tr>
+                                        <td>@D(h.DueDate)</td>
+                                        <td>@D(h.CalculationDate)</td>
+                                        <td><span class="badge @(h.IsPosted ? "bg-success-subtle text-success-emphasis" : "bg-warning-subtle text-warning-emphasis")">@h.State</span></td>
+                                        <td class="text-end">@h.Lines</td>
+                                        <td class="text-end">@F(h.Total)</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-link py-0" disabled="@busy" @onclick="() => ShowSavedMembersAsync(h.DemandId)">Members</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @* ---------- Member drill-down ---------- *@
+    @if (drill != null)
+    {
+        <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Demand due @D(drill.DueDate) — @drill.Members.Count members</h5>
+                        <button type="button" class="btn-close" @onclick="CloseDrill"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-2 mb-2">
+                            <div class="col-sm-6">
+                                <input class="form-control form-control-sm" placeholder="Search member no. or name"
+                                       @bind="memberFilter" @bind:event="oninput" />
+                            </div>
+                            <div class="col-sm-3">
+                                <select class="form-select form-select-sm" @bind="officeFilter">
+                                    <option value="">All pay offices</option>
+                                    @foreach (var o in drill.Offices)
+                                    {
+                                        <option value="@o.OfficeId">@o.OfficeId</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-sm-3 d-flex align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="stoppedOnly" @bind="stoppedOnly" />
+                                    <label class="form-check-label small" for="stoppedOnly">Stopped only</label>
+                                </div>
+                            </div>
+                        </div>
+                        @{
+                            var shown = FilteredMembers().ToList();
+                        }
+                        <div class="small text-muted mb-1">
+                            @shown.Count member(s)@(shown.Count > MaxMembersShown ? $", first {MaxMembersShown} shown" : "")
+                        </div>
+                        <table class="table table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Member</th>
+                                    <th>Pay office</th>
+                                    <th class="text-end">Total demand</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in shown.Take(MaxMembersShown))
+                                {
+                                    var open = expanded.Contains(m.MemId);
+                                    <tr style="cursor:pointer" @onclick="() => Toggle(m.MemId)">
+                                        <td>
+                                            <i class="bi @(open ? "bi-chevron-down" : "bi-chevron-right") me-1"></i>
+                                            <strong>@m.MemberNo</strong> @m.MemberName
+                                            @if (m.Stopped)
+                                            {
+                                                <span class="badge bg-secondary ms-1">stopped</span>
+                                            }
+                                        </td>
+                                        <td>@m.OfficeId</td>
+                                        <td class="text-end">@F(m.Total)</td>
+                                    </tr>
+                                    @if (open)
+                                    {
+                                        <tr>
+                                            <td colspan="3" class="bg-light">
+                                                <table class="table table-sm table-borderless mb-0 small">
+                                                    <thead>
+                                                        <tr class="text-muted">
+                                                            <th>Account</th>
+                                                            <th class="text-end">Prl / dep. arrear</th>
+                                                            <th class="text-end">Prl / dep. current</th>
+                                                            <th class="text-end">Int. arrear</th>
+                                                            <th class="text-end">Int. current</th>
+                                                            <th class="text-end">Penal arrear</th>
+                                                            <th class="text-end">Penal current</th>
+                                                            <th class="text-end">Total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var l in m.Lines)
+                                                        {
+                                                            <tr>
+                                                                <td>
+                                                                    <span class="badge bg-light text-dark border me-1">@l.Type</span>@(l.Account ?? l.AccountId.ToString())
+                                                                    @if (l.Type == "L")
+                                                                    {
+                                                                        <span class="text-muted"> · O/s @F(l.LoanOutstanding)</span>
+                                                                    }
+                                                                </td>
+                                                                <td class="text-end">@F(l.PrincipalArrear)</td>
+                                                                <td class="text-end">@F(l.PrincipalCurrent)</td>
+                                                                <td class="text-end">@F(l.InterestArrear)</td>
+                                                                <td class="text-end">@F(l.InterestCurrent)</td>
+                                                                <td class="text-end">@F(l.PenalArrear)</td>
+                                                                <td class="text-end">@F(l.PenalCurrent)</td>
+                                                                <td class="text-end fw-semibold">@F(l.Total)</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseDrill">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private const int MaxMembersShown = 200;
+
+    private bool isReady;
+    private bool busy;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private DateTime currentDate = DateTime.Today;
+
+    private EcsDemandStateVM? state;
+    private DateTime? dueDate;
+
+    private EcsDemandSummaryVM? preview;
+    private DateTime? previewDueDate;
+    private bool CanSave => preview is { CanSave: true } && state is { IsOpenBusinessDay: true }
+                            && previewDueDate != null && previewDueDate == dueDate?.Date;
+
+    private EcsDemandSummaryVM? drill;
+    private string memberFilter = "";
+    private string officeFilter = "";
+    private bool stoppedOnly;
+    private readonly HashSet<decimal> expanded = new();
+
+    private string? alertMessage;
+    private bool alertSuccess;
+    private List<string> alertReasons = new();
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
+            if (institution == InstitutionType.ECS) await LoadStateAsync(resetDueDate: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LoadStateAsync(bool resetDueDate)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("api/ecsdemand/State");
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "Could not load the demand state.");
+                return;
+            }
+            state = await response.Content.ReadFromJsonAsync<EcsDemandStateVM>();
+            if (resetDueDate && state != null) dueDate = state.NextDueDate.Date;
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the demand state: " + ex.Message);
+        }
+    }
+
+    private void ClearPreview()
+    {
+        preview = null;
+        previewDueDate = null;
+    }
+
+    private async Task PreviewAsync()
+    {
+        if (dueDate == null)
+        {
+            ShowAlert(false, "Enter the due date.");
+            return;
+        }
+        busy = true;
+        alertMessage = null;
+        try
+        {
+            var due = dueDate.Value.Date;
+            var response = await _httpClient.PostAsJsonAsync("api/ecsdemand/Preview", new EcsDemandRequestVM { DueDate = due });
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "Calculation failed.");
+                return;
+            }
+            preview = await response.Content.ReadFromJsonAsync<EcsDemandSummaryVM>();
+            previewDueDate = preview?.CanSave == true ? due : null;
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Calculation failed: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!CanSave || preview == null) return;
+        var due = previewDueDate!.Value;
+        var prompt = $"Save the demand for {due:dd-MM-yyyy}?\n\n{preview.MemberCount} members, {preview.LineCount} lines, total {F(preview.GrandTotal)}.\nNothing is posted to the ledgers yet.";
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", prompt)) return;
+        await WriteAsync("api/ecsdemand/Save", new EcsDemandRequestVM { DueDate = due }, clearPreview: true);
+    }
+
+    private async Task PostAsync(EcsDemandMasterVM m)
+    {
+        var prompt = $"Post the demand for {m.DueDate:dd-MM-yyyy} to the loan, deposit and RD ledgers?\n\nTotal demand {F(m.Total)} on {m.Lines} lines.";
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", prompt)) return;
+        await WriteAsync($"api/ecsdemand/Post/{m.DemandId}", null, clearPreview: false);
+    }
+
+    private async Task DeleteCalculationAsync(EcsDemandMasterVM m)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Delete the calculation for {m.DueDate:dd-MM-yyyy}? It can then be calculated again.")) return;
+        await WriteAsync($"api/ecsdemand/DeleteCalculation/{m.DemandId}", null, clearPreview: true);
+    }
+
+    private async Task DeletePostedAsync(EcsDemandMasterVM m)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Reverse the posting of the demand for {m.DueDate:dd-MM-yyyy}? Its ledger rows are deleted; the calculation stays.")) return;
+        await WriteAsync($"api/ecsdemand/DeletePosted/{m.DemandId}", null, clearPreview: false);
+    }
+
+    private async Task WriteAsync(string url, object? body, bool clearPreview)
+    {
+        busy = true;
+        alertMessage = null;
+        try
+        {
+            var response = body == null
+                ? await _httpClient.PostAsync(url, null)
+                : await _httpClient.PostAsJsonAsync(url, body);
+
+            EcsDemandResultVM? result = null;
+            try { result = await response.Content.ReadFromJsonAsync<EcsDemandResultVM>(); } catch { /* not JSON */ }
+
+            if (response.IsSuccessStatusCode && result is { Success: true })
+            {
+                ShowAlert(true, result.Message ?? "Done.");
+                if (clearPreview) ClearPreview();
+                await LoadStateAsync(resetDueDate: clearPreview);
+            }
+            else if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                ShowAlert(false, "ECS Demand Calculation is available only to ECS societies.");
+            }
+            else
+            {
+                var reasons = new List<string> { result?.Message ?? $"Request failed ({(int)response.StatusCode})." };
+                if (result != null) reasons.AddRange(result.Reasons);
+                ShowAlert(false, reasons);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ShowSavedMembersAsync(decimal demandId)
+    {
+        busy = true;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/ecsdemand/Lines/{demandId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "Could not load the demand lines.");
+                return;
+            }
+            drill = await response.Content.ReadFromJsonAsync<EcsDemandSummaryVM>();
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the demand lines: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void CloseDrill()
+    {
+        drill = null;
+        expanded.Clear();
+        memberFilter = "";
+        officeFilter = "";
+        stoppedOnly = false;
+    }
+
+    private void Toggle(decimal memId)
+    {
+        if (!expanded.Remove(memId)) expanded.Add(memId);
+    }
+
+    private IEnumerable<EcsDemandMemberVM> FilteredMembers()
+    {
+        if (drill == null) return Enumerable.Empty<EcsDemandMemberVM>();
+        var q = drill.Members.AsEnumerable();
+        var text = memberFilter?.Trim();
+        if (!string.IsNullOrEmpty(text))
+            q = q.Where(m => (m.MemberNo ?? "").Contains(text, StringComparison.OrdinalIgnoreCase)
+                             || (m.MemberName ?? "").Contains(text, StringComparison.OrdinalIgnoreCase));
+        if (decimal.TryParse(officeFilter, out var office)) q = q.Where(m => m.OfficeId == office);
+        if (stoppedOnly) q = q.Where(m => m.Stopped);
+        return q;
+    }
+
+    private RenderFragment SummaryTables(EcsDemandSummaryVM s) => __builder =>
+    {
+        <div class="d-flex flex-wrap gap-4 mb-2 small">
+            <span>Members: <strong>@s.MemberCount</strong></span>
+            <span>Stopped: <strong>@s.StoppedMemberCount</strong></span>
+            <span>Lines: <strong>@s.LineCount</strong></span>
+            <span>Total demand: <strong>@F(s.GrandTotal)</strong></span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-3">
+                <thead class="table-light">
+                    <tr>
+                        <th>Component</th>
+                        <th class="text-end">Lines</th>
+                        <th class="text-end">Prl / dep. arrear</th>
+                        <th class="text-end">Prl / dep. current</th>
+                        <th class="text-end">Int. arrear</th>
+                        <th class="text-end">Int. current</th>
+                        <th class="text-end">Penal arrear</th>
+                        <th class="text-end">Penal current</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in s.Components)
+                    {
+                        <tr>
+                            <td>@c.Name @if (c.StoppedLines > 0) { <span class="text-muted small">(@c.StoppedLines stopped)</span> }</td>
+                            <td class="text-end">@c.Lines</td>
+                            <td class="text-end">@F(c.PrincipalArrear)</td>
+                            <td class="text-end">@F(c.PrincipalCurrent)</td>
+                            <td class="text-end">@F(c.InterestArrear)</td>
+                            <td class="text-end">@F(c.InterestCurrent)</td>
+                            <td class="text-end">@F(c.PenalArrear)</td>
+                            <td class="text-end">@F(c.PenalCurrent)</td>
+                            <td class="text-end fw-semibold">@F(c.Total)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Pay office</th>
+                        <th class="text-end">Members</th>
+                        <th class="text-end">Stopped</th>
+                        <th class="text-end">Loans</th>
+                        <th class="text-end">Deposits</th>
+                        <th class="text-end">RD / due-to</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in s.Offices)
+                    {
+                        <tr>
+                            <td>@o.OfficeId</td>
+                            <td class="text-end">@o.Members</td>
+                            <td class="text-end">@o.StoppedMembers</td>
+                            <td class="text-end">@F(o.Loans)</td>
+                            <td class="text-end">@F(o.Deposits)</td>
+                            <td class="text-end">@F(o.Others)</td>
+                            <td class="text-end fw-semibold">@F(o.Total)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    // =====================================================================
+
+    private static async Task<string?> ReadMessageAsync(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            return "ECS Demand Calculation is available only to ECS societies.";
+        try
+        {
+            var r = await response.Content.ReadFromJsonAsync<EcsDemandResultVM>();
+            if (!string.IsNullOrEmpty(r?.Message)) return r.Message;
+        }
+        catch
+        {
+            // fall through
+        }
+        return $"Request failed ({(int)response.StatusCode}).";
+    }
+
+    private void ShowAlert(bool success, string message) => ShowAlert(success, new List<string> { message });
+
+    private void ShowAlert(bool success, List<string> reasons)
+    {
+        alertSuccess = success;
+        alertReasons = reasons;
+        alertMessage = string.Join(" ", reasons);
+    }
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+    private static string D(DateTime? d) => d.HasValue && d.Value > DateTime.MinValue ? d.Value.ToString("dd-MM-yyyy") : "-";
+}

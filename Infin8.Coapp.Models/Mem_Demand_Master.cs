@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 namespace Infin8.Coapp.Models
 {
     using System;
@@ -12,12 +13,13 @@ namespace Infin8.Coapp.Models
         public bool IsDemandUpdated { get; set; }
         public bool IsRecoveryAppropriated { get; set; }
         public bool IsRecoveryUpdated { get; set; }
-        public Nullable<int> RecoveryUpdatedVoc_Id { get; set; }
-        public bool Is_Active { get; set; }
+        public Nullable<decimal> RecoveryUpdatedVoc_Id { get; set; }
+        public bool DemandMaster_Delete { get; set; }
         public decimal Usr_Id { get; set; }
         public decimal Yr_Id { get; set; }
         public Nullable<System.DateTime> NextDemandDate { get; set; }
         public bool Demand_OE { get; set; }
+        [Column("demand_closed")]
         public bool Is_Demand_Closed { get; set; }
         public int SocietyType { get; set; }
         public int Scheme_Id { get; set; }

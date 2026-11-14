@@ -268,10 +268,6 @@ namespace Infin8.Coapp.BusinessLogic
         #endregion
 
         #region ECS Demand Calculate
-        public async Task<List<Mem_Demand>> CalculateLoanDemand(decimal memid, int memberStatus, DateTime demandCalcDate, DateTime demandDate)
-        {
-            return await _unitOfWork.LoanTrn.CalculateLoanDemand(memid, memberStatus, demandCalcDate, demandDate);
-        }
 
         #endregion
     }

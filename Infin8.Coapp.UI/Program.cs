@@ -158,6 +158,7 @@ builder.Services.AddScoped<ILoanMemberHandler, LoanMemberHandler>();
 builder.Services.AddScoped<IEcsLoanSanctionHandler, EcsLoanSanctionHandler>();
 builder.Services.AddScoped<IEcsLoanDisbursementHandler, EcsLoanDisbursementHandler>();
 builder.Services.AddScoped<IEcsLoanRecoveryHandler, EcsLoanRecoveryHandler>();
+builder.Services.AddScoped<IEcsDemandHandler, EcsDemandHandler>();
 builder.Services.AddScoped<ILoanEligibilityHandler, LoanEligibilityHandler>();
 builder.Services.AddScoped<IJLDetailsHandler, JLDetailsHandler>();
 builder.Services.AddScoped<IJLOrnmentHandler, JLOrnmentHandler>();
@@ -232,13 +233,10 @@ builder.Services.AddScoped<IDepositRoiTemplatesHandler, DepositRoiTemplatesHandl
 #endregion 
 
 #region ECS Demand Calculation
-builder.Services.AddScoped<IECSDemandCalculationHandler, ECSDemandCalculationHandler>();
 #endregion 
 
 #region Mem Demand
 builder.Services.AddScoped<IMemDemandMasterHandler, MemDemandMasterHandler>();
-builder.Services.AddScoped<IMemDemandHandler, MemDemandHandler>();
-builder.Services.AddScoped<IMemDemandStatusHandler, MemDemandStatusHandler>();
 builder.Services.AddScoped<IMemCollectionPriorityHandler, MemCollectionPriorityHandler>();
 #endregion 
 

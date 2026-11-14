@@ -260,6 +260,29 @@ Spec: `specs/ecs-extension/11-ecs-loan-recovey-component.md` (sic — "recovey" 
 - A loan already in a pending (I/M) acc 58 staging line is locked: its JSON is deserialised to find the
   `Loan_Id`s. The approving staging excludes itself from that check.
 
+### ECS demand calculation (spec 12)
+
+Page `Pages/ECSLoan/ECSDemandCalculation.razor` (`/ecs-demand-calculation`, Admin), API `api/ecsdemand/*`
+(`EcsDemandController`, ECS-gated server-side), `EcsDemandHandler`, `EcsDemandRepository`. Spec:
+`specs/ecs-extension/12-ecs-demand-calculation.md` (§14 decisions, §15 departures).
+
+- **Rules are in `BusinessLogic/Concrete/EcsDemandCalculator.cs`**, pure and DB-free like `EcsInterestCalculator`,
+  which it calls for interest/penal current. Ledger sums count valid rows dated **before** the due date.
+- **Calculate** writes `mem_demand_master` / `mem_demand` / `mem_demand_status` only. **Post** writes `loan_trn` `D`,
+  `deposit_trn` and `termdeposit_trn` rows dated on the due date (zero voucher id, `IntCalc_Date` always stamped)
+  and first recalculates, refusing if any current figure changed since the calculation.
+- **Guards:** previous demand posted, one live demand per due date, token business day = open day, ECS branch.
+- **Stop Demand** (`Pages/ECSLoan/ECSStopDemand.razor`, `/ecs-stop-demand`, Admin) maintains `mem_demand_stop` for a
+  due date via `api/ecsdemand/StopList|Stop|Unstop/{id}`. The list is locked once that due date's demand is
+  calculated. Legacy data has duplicate active rows per member and date; Unstop clears them all.
+- **Menu:** unlike the other ECS pages these have nav entries — `specs/ecs-extension/12-ecs-demand-calculation.sql`
+  points the "Demand Calculation" and "Stop Demand" placeholders under "Thrift Society Demand" (Admin) at the two
+  pages. Per branch, ECS only, idempotent; run it on each database.
+- **Day End step 7** (`CalendarHandler`) calls `CalculateForDayEndAsync` on the last business day of the month,
+  inside Day End's transaction — the handler must not open its own transaction there.
+- The demand entities had wrong column names and `int` ids that overflow; they are fixed. `Deposit_Options.Voc_Id`
+  has no column and `Deposit_Roi_Templates.Usr_Id/Yr_Id` overflow `int`: project those tables, don't load them whole.
+
 ## Gotchas
 
 - **`Infin8.Coapp.API` is not in the solution** and is not built. It is a stale parallel host: `net9.0`,

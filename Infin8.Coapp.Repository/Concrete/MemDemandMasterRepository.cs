@@ -39,7 +39,7 @@ namespace Infin8.Coapp.Repository
             bool result = false;
             try
             {
-                memDemandMaster.Is_Active = true;
+                memDemandMaster.DemandMaster_Delete = false;
                 await EditAsync(memDemandMaster);
                 result = true;
             }
