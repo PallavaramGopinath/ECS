@@ -580,6 +580,9 @@ else
                     case 58:    /// ECS Loan Receipt (spec 11)
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.ECSLoan"}.{componentName},{assemblyName}";
                         break;
+                    case 2:     /// RD Receipt (ECS, spec 14)
+                        fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName},{assemblyName}";
+                        break;
                     case 18: /// New SB Account creation
                     case 36:    /// SB Account Transaction
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.SBAccount"}.{componentName},{assemblyName}";

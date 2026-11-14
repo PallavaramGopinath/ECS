@@ -1,0 +1,410 @@
+@* ECS RD Receipt — acc 2 "RD Receipt" (spec 14). Hosted by Member_Transaction.razor through DynamicComponent. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@using System.Text.Json
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<div>
+    <h3 class="mb-2">RD Receipt</h3>
+    <hr class="mt-0" />
+
+    @if (!isReady)
+    {
+        <div class="d-flex align-items-center gap-2 text-muted">
+            <div class="spinner-border spinner-border-sm" role="status"></div> Loading…
+        </div>
+    }
+    else if (institution != InstitutionType.ECS)
+    {
+        <div class="alert alert-warning">RD Receipt is available only for Employees' Society (ECS) institutions.</div>
+        <button type="button" class="btn btn-secondary" @onclick="CloseReceipt"><i class="bi bi-x-circle"></i> Close</button>
+    }
+    else
+    {
+        <div class="mb-2 text-muted small">
+            Member <strong>@MemberNumber</strong> — @MemberName · Business day <strong>@load.ApplicationDate.ToString("dd-MM-yyyy")</strong>
+            · @(CashOrAdjustment == 2 ? "Adjustment" : "Cash")
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        @if (VisibleLines.Count == 0)
+        {
+            <div class="alert alert-info">@(load.Message ?? "No recurring deposits receivable for this member")</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Select</th>
+                            <th>RD No</th>
+                            <th class="text-end">Instalment</th>
+                            <th>Value date</th>
+                            <th class="text-end">Period</th>
+                            <th class="text-end">ROI %</th>
+                            <th class="text-end">Received so far</th>
+                            <th class="text-end">RD pending</th>
+                            <th class="text-end">PI arrear</th>
+                            <th class="text-end">PI current</th>
+                            <th class="text-end">PI pending</th>
+                            <th>Last instalment</th>
+                            <th class="text-end">RD receipt</th>
+                            <th class="text-end">PI receipt</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rd in VisibleLines)
+                        {
+                            bool selected = selectedIds.Contains(rd.TD_Id);
+                            <tr class="@(rd.Locked ? "text-muted" : "")">
+                                <td>
+                                    <input type="checkbox" class="form-check-input" disabled="@rd.Locked"
+                                           checked="@selected"
+                                           @onchange="e => ToggleRd(rd.TD_Id, (bool)(e.Value ?? false))" />
+                                </td>
+                                <td>
+                                    @rd.TD_No
+                                    @if (rd.Locked)
+                                    {
+                                        <div class="small text-warning">Pending approval</div>
+                                    }
+                                    @if (rd.Advance > 0)
+                                    {
+                                        <div class="small text-success">Advance ₹@F(rd.Advance)</div>
+                                    }
+                                </td>
+                                <td class="text-end">@F(rd.Instalment)</td>
+                                <td>@D(rd.ValueDate)</td>
+                                <td class="text-end">@rd.PeriodInMonths</td>
+                                <td class="text-end">@rd.RateOfInterest.ToString("0.##")</td>
+                                <td class="text-end">@F(rd.Received)</td>
+                                <td class="text-end">@F(rd.RdPending)</td>
+                                <td class="text-end">@F(rd.PiArrear)</td>
+                                <td class="text-end">@F(rd.PiCurrent)</td>
+                                <td class="text-end fw-semibold">@F(rd.PiPending)</td>
+                                <td>@D(rd.LastInstalmentDate)</td>
+                                <td class="text-end">@(selected ? F(rd.RdReceipt) : "")</td>
+                                <td class="text-end">@(selected ? F(rd.PiReceipt) : "")</td>
+                                <td class="text-nowrap">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" title="View" @onclick="() => viewing = rd">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="Remove" @onclick="() => RemoveRd(rd.TD_Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <table class="table table-sm small mb-0">
+                        <tr><td>RD Pending</td><td class="text-end">₹@F(totalRdPending)</td></tr>
+                        <tr><td>Penal Interest Pending</td><td class="text-end">₹@F(totalPiPending)</td></tr>
+                        <tr class="fw-semibold"><td>Total Pending</td><td class="text-end">₹@F(totalRdPending + totalPiPending)</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <table class="table table-sm small mb-0">
+                        <tr><td>RD Received</td><td class="text-end">₹@F(totalRdReceipt)</td></tr>
+                        <tr><td>Penal Interest Received</td><td class="text-end">₹@F(totalPiReceipt)</td></tr>
+                        <tr class="fw-semibold"><td>Total Received</td><td class="text-end">₹@F(totalRdReceipt + totalPiReceipt)</td></tr>
+                        @if (unallocated > 0)
+                        {
+                            <tr class="text-danger fw-semibold"><td>Unallocated</td><td class="text-end">₹@F(unallocated)</td></tr>
+                        }
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label mb-1">Total RD receipt</label>
+                    <div class="input-group">
+                        <input type="number" step="0.01" min="0" class="form-control @(validation != null && amountText.Length > 0 ? "is-invalid" : "")"
+                               disabled="@(SelectedLines().Count == 0)"
+                               value="@amountText" @onchange="OnAmountChange" />
+                        <button type="button" class="btn btn-outline-primary" disabled="@(SelectedLines().Count == 0)" @onclick="Appropriate">
+                            Appropriate
+                        </button>
+                    </div>
+                    @if (validation != null && amountText.Length > 0)
+                    {
+                        <div class="text-danger small mt-1">@validation</div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="mt-3 d-flex gap-2">
+            @if (VisibleLines.Count > 0)
+            {
+                <button type="button" class="btn btn-primary" disabled="@(!CanInitiate)" @onclick="InitiateReceipt">
+                    @if (isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    <i class="bi bi-check2-circle"></i> Initiate
+                </button>
+            }
+            <button type="button" class="btn btn-secondary" @onclick="CloseReceipt"><i class="bi bi-x-circle"></i> Close</button>
+        </div>
+    }
+</div>
+
+@if (viewing != null)
+{
+    <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">RD No @viewing.TD_No</h5>
+                    <button type="button" class="btn-close" @onclick="() => viewing = null"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm small mb-0">
+                        <tr><td>Value date</td><td>@D(viewing.ValueDate)</td></tr>
+                        <tr><td>Instalment</td><td>₹@F(viewing.Instalment)</td></tr>
+                        <tr><td>Period</td><td>@viewing.PeriodInMonths months</td></tr>
+                        <tr><td>ROI</td><td>@viewing.RateOfInterest.ToString("0.##") %</td></tr>
+                        <tr><td>Maturity date</td><td>@D(viewing.MaturityDate)</td></tr>
+                        <tr><td>Maturity amount</td><td>₹@F(viewing.MaturityAmount)</td></tr>
+                        <tr><td>Instalments due / received</td><td>@viewing.InstalmentsDue / @viewing.InstalmentsReceived</td></tr>
+                        <tr><td>Penal rate (per month)</td><td>@viewing.PenalRate.ToString("0.##") %</td></tr>
+                        <tr><td>Last penal applied</td><td>@D(viewing.LastPenalAppliedDate)</td></tr>
+                        <tr><td>Last receipt</td><td>@D(viewing.LastReceiptDate)</td></tr>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => viewing = null">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnRDReceiptComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoEcsRdReceipt> OnRDReceiptInitiate { get; set; }
+    #endregion
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    private bool isReady;
+    private bool isSubmitting;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private string brCode = "";
+    private decimal userId;
+    private string? errorMessage;
+
+    private EcsRdReceiptLoadVM load = new();
+    private readonly HashSet<decimal> selectedIds = new();
+    private readonly HashSet<decimal> removedIds = new();
+    private DtoEcsRdReceiptLine? viewing;
+
+    private string amountText = "";
+    private double amount;
+    private double unallocated;
+    private string? validation;
+    private double totalRdPending, totalPiPending, totalRdReceipt, totalPiReceipt;
+
+    private List<DtoEcsRdReceiptLine> VisibleLines => load.Lines.Where(l => !removedIds.Contains(l.TD_Id)).ToList();
+
+    private bool CanInitiate => !isSubmitting && amount > 0 && validation == null && SelectedLines().Count > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode ?? "";
+            userId = userInfoDto.UserId;
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            load.ApplicationDate = TransactionDate;
+            if (institution == InstitutionType.ECS) await LoadRdsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the member's RDs: {ex.Message}";
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LoadRdsAsync()
+    {
+        var response = await _httpClient.GetAsync($"api/rdreceipt/Rds/{MemberId}");
+        if (response.IsSuccessStatusCode)
+        {
+            load = await response.Content.ReadFromJsonAsync<EcsRdReceiptLoadVM>() ?? new();
+            if (load.Lines.Count == 0 && load.Message != null && !load.Message.StartsWith("No recurring deposits"))
+                errorMessage = load.Message;
+            // §4: every eligible RD is ticked by default, except those locked by a pending receipt.
+            foreach (var rd in load.Lines.Where(l => !l.Locked)) selectedIds.Add(rd.TD_Id);
+        }
+        else
+        {
+            errorMessage = response.StatusCode == HttpStatusCode.Forbidden
+                ? "RD Receipt is available only to ECS societies."
+                : $"Could not load the member's RDs ({(int)response.StatusCode}).";
+        }
+        Recompute();
+    }
+
+    /// <summary>Ticked, visible, unlocked lines in TD_No order (the server's order).</summary>
+    private List<DtoEcsRdReceiptLine> SelectedLines() =>
+        load.Lines.Where(l => selectedIds.Contains(l.TD_Id) && !removedIds.Contains(l.TD_Id) && !l.Locked).ToList();
+
+    private void ToggleRd(decimal tdId, bool selected)
+    {
+        if (selected) selectedIds.Add(tdId); else selectedIds.Remove(tdId);
+        Recompute();
+    }
+
+    private void RemoveRd(decimal tdId)
+    {
+        removedIds.Add(tdId);
+        selectedIds.Remove(tdId);
+        Recompute();
+    }
+
+    private void OnAmountChange(ChangeEventArgs e)
+    {
+        amountText = e.Value?.ToString()?.Trim() ?? "";
+        Recompute();
+    }
+
+    private void Appropriate() => Recompute();
+
+    /// <summary>Totals and the appropriation (spec 14 §7.2) through the same code the server rechecks with.</summary>
+    private void Recompute()
+    {
+        foreach (var l in load.Lines) { l.RdReceipt = 0; l.PiReceipt = 0; }
+        var selected = SelectedLines();
+        totalRdPending = selected.Sum(l => l.RdPending);
+        totalPiPending = selected.Sum(l => l.PiPending);
+
+        bool parsed = double.TryParse(amountText, NumberStyles.Number, CultureInfo.InvariantCulture, out var v);
+        amount = parsed ? Math.Round(v, 2, MidpointRounding.AwayFromZero) : 0;
+        unallocated = selected.Count > 0 && amount > 0 ? EcsRdReceiptAppropriator.Appropriate(selected, amount) : 0;
+
+        totalRdReceipt = selected.Sum(l => l.RdReceipt);
+        totalPiReceipt = selected.Sum(l => l.PiReceipt);
+
+        validation = amountText.Length > 0 && !parsed
+            ? "Enter a valid amount."
+            : EcsRdReceiptAppropriator.Validate(selected, amount, unallocated);
+    }
+
+    private async Task CloseReceipt()
+    {
+        await OnRDReceiptComponentClose.InvokeAsync(true);
+    }
+
+    private async Task InitiateReceipt()
+    {
+        Recompute();
+        if (!CanInitiate) return;
+        isSubmitting = true;
+        errorMessage = null;
+        try
+        {
+            var model = new DtoEcsRdReceipt
+            {
+                MemId = MemberId,
+                MemberNo = MemberNumber,
+                MemberName = MemberName,
+                ApplicationDate = load.ApplicationDate,
+                ReceiptAmount = amount,
+                CashOrAdjustment = CashOrAdjustment,
+                Lines = SelectedLines()
+            };
+
+            string accountName = "RD Receipt";
+            try
+            {
+                var nameResponse = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
+                if (nameResponse.IsSuccessStatusCode) accountName = await nameResponse.Content.ReadAsStringAsync();
+            }
+            catch (HttpRequestException)
+            {
+                // keep the default module name
+            }
+
+            var stagingDetails = new DtoStaging_Details
+            {
+                Id = 0,
+                Staging_Id = 0,
+                Member_Id = MemberId,
+                Ledger_Id = 0,
+                Related_Account_Id = AccountId,
+                Receipt_Amount = amount,
+                Payment_Amount = 0,
+                Module_Name = accountName,
+                Cash_Or_Adjustment = CashOrAdjustment,
+                Related_Account_Data = JsonSerializer.Serialize(model),
+                Created_By = userId,
+                Created_Date = TransactionDate,
+                Checked_By = 0,
+                Checked_Date = null,
+                Staging_Status = "I",
+                BrCode = brCode,
+                CashReceipt_Amount = CashOrAdjustment == 1 ? amount : 0,
+                AdjustmentReceipt_Amount = CashOrAdjustment == 2 ? amount : 0,
+                CashPayment_Amount = 0,
+                AdjustmentPayment_Amount = 0,
+                Transaction_Type = "Member Transaction"
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("api/Staging/AddStaging", stagingDetails);
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Could not initiate the RD receipt ({(int)response.StatusCode}).";
+                return;
+            }
+            await OnRDReceiptInitiate.InvokeAsync(model);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not initiate the RD receipt: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private static string D(DateTime? d) => d.HasValue ? d.Value.ToString("dd-MM-yyyy") : "";
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+}

@@ -50,6 +50,7 @@ namespace Infin8.Coapp.Repository
         IEcsLoanSanctionRepository EcsLoanSanction { get; }
         IEcsLoanDisbursementRepository EcsLoanDisbursement { get; }
         IEcsLoanRecoveryRepository EcsLoanRecovery { get; }
+        IEcsRdReceiptRepository EcsRdReceipt { get; }
         IEcsDemandRepository EcsDemand { get; }
         IEcsRecoveryRepository EcsRecovery { get; }
         ILoanEligibilityRepository LoanEligibility { get; }
