@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Infin8.Coapp.BusinessLogic.IGeneralHandler GeneralHandler
 
 <a href="#main-content" class="skip-link">Skip to content</a>
 
@@ -9,7 +10,7 @@
 
     <div class="shell-main">
         <header class="topbar">
-            <a href="/" class="topbar-brand">THRIFT & CREDIT SOCIETY</a>
+            <a href="/" class="topbar-brand" title="@societyName">@societyName</a>
 
             <AuthorizeView>
                 <Authorized>
@@ -74,6 +75,7 @@
     string loginName = string.Empty;
     string loginRole = string.Empty;
     string brCode = string.Empty;
+    string societyName = "Thrift & Credit Society";
     DateTime yearFromDate = DateTime.Now;
     DateTime yearToDate = DateTime.Now;
     DateTime currentDate = DateTime.Now;
@@ -89,6 +91,22 @@
         yearFromDate = ParseClaimDate(user.FindFirst("YrBeginningDate")?.Value);
         yearToDate = ParseClaimDate(user.FindFirst("YrEndDate")?.Value);
         currentDate = ParseClaimDate(user.FindFirst("CurrentDate")?.Value);
+
+        // Society name comes from gen_bank_name.bank_name for the logged-in branch.
+        // Any failure keeps the generic fallback so the layout always renders.
+        if (!string.IsNullOrWhiteSpace(brCode))
+        {
+            try
+            {
+                var society = await GeneralHandler.GetSocietyData(brCode);
+                if (!string.IsNullOrWhiteSpace(society?.Bank_Name))
+                    societyName = society.Bank_Name.Trim();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"{ex.Message} Error while fetching society name");
+            }
+        }
     }
 
     private static DateTime ParseClaimDate(string? value) =>
