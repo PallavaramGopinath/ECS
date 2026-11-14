@@ -288,6 +288,24 @@ Page `Pages/ECSLoan/ECSDemandCalculation.razor` (`/ecs-demand-calculation`, Admi
 - The demand entities had wrong column names and `int` ids that overflow; they are fixed. `Deposit_Options.Voc_Id`
   has no column and `Deposit_Roi_Templates.Usr_Id/Yr_Id` overflow `int`: project those tables, don't load them whole.
 
+### ECS recovery appropriation (spec 13)
+
+Page `Pages/RecoveryAppropriation/RecoveryAppropriation.razor` (`/recovery-appropriation`, Admin; the existing menu row
+already points at it), API `api/ecsrecovery/*` (`EcsRecoveryController`, ECS-gated), `EcsRecoveryHandler`,
+`EcsRecoveryRepository`. Spec: `specs/ecs-extension/13-ecs-recovery-appropriation.md`.
+
+- **Per pay office** (`mem_demand_status`): appropriate → save (receipts + one voucher) → delete saved → delete
+  appropriation. Members belong to an office by their **current** `mem_master.office_id`.
+- **Rules are in `BusinessLogic/Concrete/EcsDemandAppropriator.cs`** (pure): `Revise` writes the revised demand into the
+  `*2` columns; `Appropriate` splits in `mem_collection_priority` order and creates `A` (advance on a loan not in the
+  demand) and `B` (excess, `creditor_*`) lines. The migrated data calls TSIS's `P` lines `A` — keep `A`.
+- `Mem_CollectionPriority` maps to `mem_collection_priority` (fixed `[Table]`; `priorityled_id` is a 12-digit id).
+- Spec 12 now refuses to calculate the next demand until every office's recovery is saved, and to delete a posted
+  demand once any office is appropriated.
+- **Recovery Refund** (`Pages/RecoveryAppropriation/RecoveryRefund.razor`, `/ecs-recovery-refund`, `api/ecsrecovery/Refund`)
+  moves part of a member's saved receipts to the excess ledger by editing the recovery voucher **in place** (spec 13 §16),
+  so deleting the saved recovery reverses refunds too. Its menu row comes from `12-ecs-demand-calculation.sql`.
+
 ## Gotchas
 
 - **`Infin8.Coapp.API` is not in the solution** and is not built. It is a stale parallel host: `net9.0`,

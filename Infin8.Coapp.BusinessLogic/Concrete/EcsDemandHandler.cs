@@ -898,6 +898,9 @@ namespace Infin8.Coapp.BusinessLogic
                 reasons.Add($"The due date must be after the last demand's due date ({latest.DemandDate:dd-MM-yyyy}).");
             if (latest != null && !latest.IsDemandUpdated && latest.DemandDate?.Date != due)
                 reasons.Add($"The demand for {latest.DemandDate:dd-MM-yyyy} is calculated but not posted. Post or delete it first.");
+            // Spec 13 §8: the next demand's arrears assume every office's recovery of this one is saved.
+            else if (latest != null && latest.IsDemandUpdated && !latest.IsRecoveryUpdated && latest.DemandDate?.Date != due)
+                reasons.Add($"The salary recovery against the demand for {latest.DemandDate:dd-MM-yyyy} is not saved for every office. Save it on the Recovery Appropriation page first.");
             return Task.FromResult(reasons);
         }
 
@@ -905,6 +908,8 @@ namespace Infin8.Coapp.BusinessLogic
         {
             var reasons = new List<string>();
             if (master.IsRecoveryUpdated) reasons.Add("The salary recovery against this demand has been saved.");
+            else if ((await _unitOfWork.EcsDemand.GetStatusRowsForUpdateAsync(master.Demand_Id, brCode)).Any(s => s.Is_Appropriated))
+                reasons.Add("The salary recovery of at least one office is appropriated. Delete it on the Recovery Appropriation page first.");
             var later = await _unitOfWork.EcsDemand.GetLaterTransactionsAsync(master.Demand_Id, brCode);
             if (later.Count > 0)
             {

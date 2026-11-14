@@ -1,52 +1,798 @@
 ﻿@page "/recovery-appropriation"
+@using Infin8.Coapp.Dto
 @using Infin8.Coapp.Utility
-@using System.Net
+@using Infin8.Coapp.Utility.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using System.Globalization
+@using System.Net
 @rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Admin")]
 @inject HttpClient _httpClient
 @inject IJSRuntime JSRuntime
-@inject TransactionStateService TransactionState
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+@* ECS Recovery Appropriation (spec 13): per pay office, split the employer's salary recovery across the posted
+   demand, save it as receipts with one voucher, or undo either step. *@
 
+<PageTitle>Recovery Appropriation</PageTitle>
 
-<h3>RecoveryAppropriation</h3>
-<!-- Step 1: Display Due Date for recovery pending Button to  get pending recovery data-->
-<div class="container">
-    <div class="card mt-3">
-        <div class="card-header">
-            <h5>Pending Recovery Data</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-3">
-                    <label for="dueDate">Due Date:</label>
-                </div>
-                <div class="col-md-3">
-                    <input type="date" class="form-control" id="dueDate" @bind="dueDate" />
-                </div>
-                <div class="col-md-4">
-                    <button class="btn btn-primary" @onclick="GetPendingRecoveryData">Get Pending Recovery Data</button>
-                </div>
-            </div>
-        </div>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">Recovery Appropriation</li>
+    </ol>
+</nav>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
     </div>
-</div>
-<div class="card mt-4">
-</div>
+}
+else if (institution != InstitutionType.ECS)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        Recovery Appropriation is available only for Employees' Society (ECS) institutions.
+    </div>
+}
+else
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h4 class="mb-0"><i class="bi bi-cash-stack me-2 text-primary"></i>Recovery Appropriation</h4>
+        <a class="btn btn-sm btn-outline-secondary ms-2" href="/ecs-demand-calculation"><i class="bi bi-calendar2-check me-1"></i>Demand calculation</a>
+        <span class="ms-auto text-muted">Business day: <strong>@currentDate.ToString("dd-MM-yyyy")</strong></span>
+    </div>
 
-@code {
-    private DateTime dueDate = DateTime.Today;
-    private void GetPendingRecoveryData()
+    @if (!string.IsNullOrEmpty(alertMessage))
     {
-        // Implement logic to fetch pending recovery data based on the selected due date
-        // You can use the _httpClient to make an API call to your backend service
-        // Example:
-        // var response = await _httpClient.GetAsync($"api/recovery-appropriation?dueDate={dueDate.ToString("yyyy-MM-dd")}");
-        // Handle the response and update the UI accordingly
+        <div class="alert @(alertSuccess ? "alert-success" : "alert-danger") alert-dismissible" role="alert">
+            @if (alertReasons.Count > 1)
+            {
+                <div class="fw-semibold">@alertReasons[0]</div>
+                <ul class="mb-0">
+                    @foreach (var r in alertReasons.Skip(1))
+                    {
+                        <li>@r</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                @alertMessage
+            }
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
     }
 
+    @if (state == null)
+    {
+        <div class="text-muted">Could not load the recovery state.</div>
+    }
+    else
+    {
+        @if (!state.IsOpenBusinessDay && !string.IsNullOrEmpty(state.Message))
+        {
+            <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>@state.Message</div>
+        }
+        @if (state.Demands.Count == 0)
+        {
+            <div class="alert alert-info">No posted demand is waiting for recovery. Post a demand on the Demand Calculation page first.</div>
+        }
+
+        @* ---------- Demands and their pay offices ---------- *@
+        @foreach (var d in state.Demands)
+        {
+            <div class="card mb-3">
+                <div class="card-header d-flex flex-wrap align-items-center gap-2">
+                    <strong>Demand due @D(d.DueDate)</strong>
+                    @if (d.IsRecoveryUpdated)
+                    {
+                        <span class="badge bg-success">Recovery saved</span>
+                    }
+                    else if (d.IsRecoveryAppropriated)
+                    {
+                        <span class="badge bg-info text-dark">Appropriated</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark">Being recovered</span>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Pay office</th>
+                                    <th class="text-end">Members</th>
+                                    <th class="text-end">Demand</th>
+                                    <th class="text-end">Recovery</th>
+                                    <th>State</th>
+                                    <th>Recovery date</th>
+                                    <th>Voucher</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var o in d.Offices)
+                                {
+                                    bool selected = detail != null && detail.DemandId == d.DemandId && detail.Office.OfficeId == o.OfficeId;
+                                    <tr class="@(selected ? "table-primary" : "")">
+                                        <td>@o.OfficeName</td>
+                                        <td class="text-end">@o.Members</td>
+                                        <td class="text-end">@F(o.Demand)</td>
+                                        <td class="text-end">@F(o.Recovery)</td>
+                                        <td><span class="badge @StateBadge(o)">@o.State</span></td>
+                                        <td>@D(o.RecoveryDate)</td>
+                                        <td>@(o.VocNo ?? "-")</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-primary" disabled="@busy" @onclick="() => OpenOfficeAsync(d.DemandId, o.OfficeId)">
+                                                <i class="bi bi-box-arrow-in-right me-1"></i>Open
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ---------- Selected office ---------- *@
+        @if (detail != null)
+        {
+            var o = detail.Office;
+            <div class="card mb-3 border-primary">
+                <div class="card-header d-flex flex-wrap align-items-center gap-2">
+                    <strong>@o.OfficeName — demand due @D(detail.DueDate)</strong>
+                    <span class="badge @StateBadge(o)">@o.State</span>
+                    @if (o.IsSaved && !string.IsNullOrEmpty(o.VocNo))
+                    {
+                        <span class="text-muted small">Voucher @o.VocNo</span>
+                    }
+                    <button type="button" class="btn-close ms-auto" @onclick="CloseOffice"></button>
+                </div>
+                <div class="card-body">
+                    @if (!o.IsAppropriated)
+                    {
+                        @* ----- 1. remittance list ----- *@
+                        <p class="text-muted small mb-2">
+                            Enter what the employer remitted for each member, or load a CSV file of <code>member no, amount</code>
+                            (a header row is ignored). Members left empty recover nothing. The amounts are split across the
+                            demand in the society's collection-priority order.
+                        </p>
+                        <div class="row g-2 align-items-end mb-2">
+                            <div class="col-auto">
+                                <label class="form-label small mb-0">CSV keyed by</label>
+                                <select class="form-select form-select-sm" @bind="csvMatchBy">
+                                    <option value="M">Member no</option>
+                                    <option value="P">Per no</option>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <InputFile OnChange="LoadCsvAsync" accept=".csv,text/csv,text/plain" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="FillFromDemand"><i class="bi bi-arrow-down-square me-1"></i>Recover in full</button>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="ClearAmounts"><i class="bi bi-eraser me-1"></i>Clear</button>
+                            </div>
+                            <div class="col-auto">
+                                <input class="form-control form-control-sm" placeholder="Filter member no / name" @bind="memberFilter" @bind:event="oninput" />
+                            </div>
+                            <div class="col-auto ms-auto small">
+                                Members: <strong>@amounts.Count(a => a.Value > 0)</strong> &nbsp;
+                                Total: <strong>@F(amounts.Values.Where(v => v > 0).Sum())</strong>
+                            </div>
+                        </div>
+                        @if (csvErrors.Count > 0)
+                        {
+                            <div class="alert alert-danger py-2 small">
+                                <div class="fw-semibold">The CSV file has rows that were not loaded:</div>
+                                <ul class="mb-0">
+                                    @foreach (var e in csvErrors.Take(30))
+                                    {
+                                        <li>@e</li>
+                                    }
+                                </ul>
+                                @if (csvErrors.Count > 30)
+                                {
+                                    <div>…and @(csvErrors.Count - 30) more.</div>
+                                }
+                            </div>
+                        }
+                        <div class="table-responsive" style="max-height: 28rem; overflow-y: auto;">
+                            <table class="table table-sm table-bordered align-middle mb-2">
+                                <thead class="table-light" style="position: sticky; top: 0;">
+                                    <tr>
+                                        <th>Member no</th>
+                                        <th>Per no</th>
+                                        <th>Name</th>
+                                        <th class="text-end">Demand</th>
+                                        <th class="text-end" style="width: 10rem;">Recovery</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var m in FilteredMembers())
+                                    {
+                                        var key = m.MemberNo ?? "";
+                                        <tr class="@(m.Stopped ? "text-muted" : "")">
+                                            <td>@m.MemberNo</td>
+                                            <td>@m.PerNo</td>
+                                            <td>@m.MemberName @if (m.Stopped) { <span class="badge bg-secondary ms-1">stopped</span> }</td>
+                                            <td class="text-end">@F(m.Demand)</td>
+                                            <td>
+                                                <input type="number" min="0" step="0.01" class="form-control form-control-sm text-end"
+                                                       value="@(amounts.TryGetValue(key, out var a) && a > 0 ? a.ToString(CultureInfo.InvariantCulture) : "")"
+                                                       @onchange="e => SetAmount(key, e.Value?.ToString())" />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary" disabled="@(busy || !state.IsOpenBusinessDay || !amounts.Values.Any(v => v > 0))" @onclick="AppropriateAsync">
+                                <i class="bi bi-diagram-3 me-1"></i>Appropriate
+                            </button>
+                            <button class="btn btn-outline-secondary" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="SaveNilAsync"
+                                    title="The employer remitted nothing for this office">
+                                <i class="bi bi-slash-circle me-1"></i>Save as nil recovery
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        @* ----- 2./3. appropriated or saved ----- *@
+                        <div class="d-flex flex-wrap gap-4 small mb-2">
+                            <span>Principal: <strong>@F(detail.Totals.Principal)</strong></span>
+                            <span>Interest: <strong>@F(detail.Totals.Interest)</strong></span>
+                            <span>Penal: <strong>@F(detail.Totals.Penal)</strong></span>
+                            <span>Deposits: <strong>@F(detail.Totals.Deposit)</strong></span>
+                            <span>Due-to: <strong>@F(detail.Totals.DueTo)</strong></span>
+                            <span>RD: <strong>@F(detail.Totals.Rd)</strong></span>
+                            <span>Advance: <strong>@F(detail.Totals.Advance)</strong></span>
+                            <span>Excess: <strong>@F(detail.Totals.Excess)</strong></span>
+                            <span>Total: <strong>@F(detail.Totals.Total)</strong></span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            <input class="form-control form-control-sm" style="max-width: 16rem;" placeholder="Filter member no / name" @bind="memberFilter" @bind:event="oninput" />
+                            <div class="form-check form-check-inline ms-2 mt-1">
+                                <input class="form-check-input" type="checkbox" id="recOnly" @bind="recoveredOnly" />
+                                <label class="form-check-label small" for="recOnly">Recovered only</label>
+                            </div>
+                        </div>
+                        <div class="table-responsive" style="max-height: 28rem; overflow-y: auto;">
+                            <table class="table table-sm table-bordered align-middle mb-3">
+                                <thead class="table-light" style="position: sticky; top: 0;">
+                                    <tr>
+                                        <th></th>
+                                        <th>Member no</th>
+                                        <th>Name</th>
+                                        <th class="text-end">Demand</th>
+                                        <th class="text-end">Recovery</th>
+                                        <th class="text-end">Loans</th>
+                                        <th class="text-end">Deposits</th>
+                                        <th class="text-end">Due-to / RD</th>
+                                        <th class="text-end">Advance</th>
+                                        <th class="text-end">Excess</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var m in FilteredMembers().Where(m => !recoveredOnly || m.Recovery > 0))
+                                    {
+                                        var memId = m.MemId;
+                                        <tr>
+                                            <td>
+                                                @if (m.Lines.Count > 0)
+                                                {
+                                                    <button class="btn btn-sm btn-link p-0" @onclick="() => Toggle(memId)">
+                                                        <i class="bi @(expanded.Contains(memId) ? "bi-dash-square" : "bi-plus-square")"></i>
+                                                    </button>
+                                                }
+                                            </td>
+                                            <td>@m.MemberNo</td>
+                                            <td>@m.MemberName @if (m.Stopped) { <span class="badge bg-secondary ms-1">stopped</span> }</td>
+                                            <td class="text-end">@F(m.Demand)</td>
+                                            <td class="text-end fw-semibold">@F(m.Recovery)</td>
+                                            <td class="text-end">@F(m.Loan)</td>
+                                            <td class="text-end">@F(m.Deposit)</td>
+                                            <td class="text-end">@F(m.Other)</td>
+                                            <td class="text-end">@F(m.Advance)</td>
+                                            <td class="text-end">@F(m.Excess)</td>
+                                        </tr>
+                                        @if (expanded.Contains(memId))
+                                        {
+                                            <tr>
+                                                <td></td>
+                                                <td colspan="9" class="p-0">
+                                                    <table class="table table-sm mb-0 small">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Account</th>
+                                                                <th class="text-end">Demand</th>
+                                                                <th class="text-end">Principal</th>
+                                                                <th class="text-end">Interest</th>
+                                                                <th class="text-end">Penal</th>
+                                                                <th class="text-end">Deposit / other</th>
+                                                                <th class="text-end">Collected</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var l in m.Lines)
+                                                            {
+                                                                <tr class="@(l.Stopped ? "text-muted" : "")">
+                                                                    <td>@l.Account @if (l.Stopped) { <span class="badge bg-secondary ms-1">stopped</span> }</td>
+                                                                    <td class="text-end">@F(l.Demand)</td>
+                                                                    <td class="text-end">@F(l.Principal)</td>
+                                                                    <td class="text-end">@F(l.Interest)</td>
+                                                                    <td class="text-end">@F(l.Penal)</td>
+                                                                    <td class="text-end">@F(l.Amount)</td>
+                                                                    <td class="text-end fw-semibold">@F(l.Collected)</td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if (!o.IsSaved)
+                        {
+                            <h6 class="mt-2">Save recovery — remittance received in</h6>
+                            @if (detail.Totals.Total > 0)
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered align-middle mb-2">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="min-width: 16rem;">Ledger</th>
+                                                <th class="text-end" style="width: 10rem;">Amount</th>
+                                                <th>Cheque / ref. no</th>
+                                                <th>Cheque date</th>
+                                                <th>Issuing bank</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var row in debits)
+                                            {
+                                                var r = row;
+                                                bool isBank = IsBank(r.LedId);
+                                                <tr>
+                                                    <td>
+                                                        <select class="form-select form-select-sm" @bind="r.LedId">
+                                                            <option value="0">— select —</option>
+                                                            @foreach (var l in detail.Ledgers)
+                                                            {
+                                                                <option value="@l.LedId">@l.LedName@(l.IsBank ? " (bank)" : "")</option>
+                                                            }
+                                                        </select>
+                                                    </td>
+                                                    <td><input type="number" min="0" step="0.01" class="form-control form-control-sm text-end" @bind="r.Amount" /></td>
+                                                    <td><input class="form-control form-control-sm" disabled="@(!isBank)" @bind="r.ChequeNo" /></td>
+                                                    <td><input type="date" class="form-control form-control-sm" disabled="@(!isBank)" @bind="r.ChequeDate" /></td>
+                                                    <td><input class="form-control form-control-sm" disabled="@(!isBank)" @bind="r.BankName" /></td>
+                                                    <td>
+                                                        @if (debits.Count > 1)
+                                                        {
+                                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => debits.Remove(r)"><i class="bi bi-x"></i></button>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 small">
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="AddDebitRow"><i class="bi bi-plus me-1"></i>Add ledger</button>
+                                    <span class="ms-auto">Remittance: <strong>@F(debits.Sum(x => x.Amount))</strong> of <strong>@F(detail.Totals.Total)</strong></span>
+                                    @if (Math.Abs(debits.Sum(x => x.Amount) - detail.Totals.Total) > 0.005)
+                                    {
+                                        <span class="text-danger">— must be equal</span>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted small">Nothing was recovered from this office; saving records a nil recovery without a voucher.</p>
+                            }
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-success" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="SaveAsync">
+                                    <i class="bi bi-save me-1"></i>Save recovery
+                                </button>
+                                <button class="btn btn-outline-danger" disabled="@(busy || !state.IsOpenBusinessDay)" @onclick="DeleteAppropriationAsync">
+                                    <i class="bi bi-trash me-1"></i>Delete appropriation
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            @if (detail.DeleteSavedBlockedReasons.Count > 0)
+                            {
+                                <div class="alert alert-secondary small py-2">
+                                    <div class="fw-semibold">The saved recovery cannot be deleted:</div>
+                                    <ul class="mb-0">
+                                        @foreach (var r in detail.DeleteSavedBlockedReasons)
+                                        {
+                                            <li>@r</li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                            <button class="btn btn-outline-danger" disabled="@(busy || !state.IsOpenBusinessDay || !detail.CanDeleteSaved)" @onclick="DeleteSavedAsync">
+                                <i class="bi bi-trash me-1"></i>Delete saved recovery
+                            </button>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    }
+}
+
+@code {
+    private bool isReady;
+    private bool busy;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private DateTime currentDate = DateTime.Today;
+
+    private EcsRecoveryStateVM? state;
+    private EcsRecoveryOfficeDetailVM? detail;
+
+    // remittance list, keyed by member no
+    private readonly Dictionary<string, double> amounts = new(StringComparer.OrdinalIgnoreCase);
+    private string csvMatchBy = "M";
+    private List<string> csvErrors = new();
+    private string memberFilter = "";
+    private bool recoveredOnly = true;
+    private readonly HashSet<decimal> expanded = new();
+
+    private sealed class DebitRow
+    {
+        public decimal LedId { get; set; }
+        public double Amount { get; set; }
+        public string? ChequeNo { get; set; }
+        public DateTime? ChequeDate { get; set; }
+        public string? BankName { get; set; }
+    }
+    private List<DebitRow> debits = new();
+
+    private string? alertMessage;
+    private bool alertSuccess;
+    private List<string> alertReasons = new();
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
+            if (institution == InstitutionType.ECS) await LoadStateAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LoadStateAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("api/ecsrecovery/State");
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "Could not load the recovery state.");
+                return;
+            }
+            state = await response.Content.ReadFromJsonAsync<EcsRecoveryStateVM>();
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the recovery state: " + ex.Message);
+        }
+    }
+
+    private async Task OpenOfficeAsync(decimal demandId, decimal officeId, bool keepAlert = false)
+    {
+        busy = true;
+        if (!keepAlert) alertMessage = null;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/ecsrecovery/Office/{demandId}/{officeId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "Could not load the office.");
+                detail = null;
+                return;
+            }
+            detail = await response.Content.ReadFromJsonAsync<EcsRecoveryOfficeDetailVM>();
+            amounts.Clear();
+            csvErrors.Clear();
+            expanded.Clear();
+            memberFilter = "";
+            recoveredOnly = true;
+            debits = new List<DebitRow>
+            {
+                new() { LedId = detail?.DefaultDebitLedId ?? 0, Amount = detail?.Totals.Total ?? 0, ChequeDate = currentDate }
+            };
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the office: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void CloseOffice()
+    {
+        detail = null;
+        amounts.Clear();
+        csvErrors.Clear();
+        expanded.Clear();
+    }
+
+    // ----- remittance list -----
+
+    private void SetAmount(string memberNo, string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) { amounts.Remove(memberNo); return; }
+        if (double.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var v) && v >= 0)
+            amounts[memberNo] = Math.Round(v, 2);
+    }
+
+    private void FillFromDemand()
+    {
+        if (detail == null) return;
+        foreach (var m in detail.Members.Where(m => !m.Stopped && m.Demand > 0 && !string.IsNullOrEmpty(m.MemberNo)))
+            amounts[m.MemberNo!] = m.Demand;
+    }
+
+    private void ClearAmounts()
+    {
+        amounts.Clear();
+        csvErrors.Clear();
+    }
+
+    private async Task LoadCsvAsync(InputFileChangeEventArgs e)
+    {
+        if (detail == null) return;
+        csvErrors = new List<string>();
+        string text;
+        try
+        {
+            using var reader = new StreamReader(e.File.OpenReadStream(5 * 1024 * 1024));
+            text = await reader.ReadToEndAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not read the file: " + ex.Message);
+            return;
+        }
+
+        bool byPerNo = csvMatchBy == "P";
+        var index = detail.Members
+            .Where(m => !string.IsNullOrWhiteSpace(byPerNo ? m.PerNo : m.MemberNo))
+            .GroupBy(m => (byPerNo ? m.PerNo : m.MemberNo)!.Trim().ToUpperInvariant())
+            .ToDictionary(g => g.Key, g => g.ToList());
+        var loaded = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        int row = 0;
+        foreach (var raw in text.Split('\n'))
+        {
+            row++;
+            var line = raw.Trim().TrimEnd('\r');
+            if (line.Length == 0) continue;
+            var parts = line.Split(',', ';', '\t').Select(p => p.Trim().Trim('"')).ToArray();
+            if (parts.Length < 2) { csvErrors.Add($"Row {row}: expected two columns."); continue; }
+            var key = parts[0].ToUpperInvariant();
+            var amountText = parts[^1].Replace(",", "");
+            if (!double.TryParse(amountText, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
+            {
+                if (row > 1) csvErrors.Add($"Row {row}: '{parts[^1]}' is not an amount.");
+                continue;   // first row: a header
+            }
+            if (amount < 0) { csvErrors.Add($"Row {row}: the amount cannot be negative."); continue; }
+            if (!index.TryGetValue(key, out var found))
+            {
+                csvErrors.Add($"Row {row}: {(byPerNo ? "per no" : "member no")} {parts[0]} is not a member of {detail.Office.OfficeName}.");
+                continue;
+            }
+            if (found.Count > 1) { csvErrors.Add($"Row {row}: {parts[0]} matches {found.Count} members."); continue; }
+            var memberNo = found[0].MemberNo!;
+            if (loaded.ContainsKey(memberNo)) { csvErrors.Add($"Row {row}: {parts[0]} appears more than once."); continue; }
+            loaded[memberNo] = Math.Round(amount, 2);
+        }
+
+        amounts.Clear();
+        foreach (var kv in loaded.Where(kv => kv.Value > 0)) amounts[kv.Key] = kv.Value;
+        ShowAlert(csvErrors.Count == 0,
+            $"{loaded.Count} row(s) loaded, total {F(loaded.Values.Sum())}" + (csvErrors.Count > 0 ? $"; {csvErrors.Count} row(s) rejected." : "."));
+    }
+
+    private async Task AppropriateAsync()
+    {
+        if (detail == null) return;
+        if (csvErrors.Count > 0 &&
+            !await JSRuntime.InvokeAsync<bool>("confirm", "Some CSV rows were rejected and are not in the list. Appropriate anyway?")) return;
+        var items = amounts.Where(a => a.Value > 0).Select(a => new EcsRecoveryItemVM { Key = a.Key, Amount = a.Value }).ToList();
+        var prompt = $"Appropriate the recovery of {detail.Office.OfficeName}?\n\n{items.Count} members, total {F(items.Sum(i => i.Amount))}.\nNothing is posted to the ledgers yet.";
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", prompt)) return;
+        await WriteAsync("api/ecsrecovery/Appropriate", new EcsAppropriateRequestVM
+        {
+            DemandId = detail.DemandId,
+            OfficeId = detail.Office.OfficeId,
+            MatchBy = "M",
+            Items = items
+        });
+    }
+
+    private async Task SaveNilAsync()
+    {
+        if (detail == null) return;
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Record that {detail.Office.OfficeName} remitted nothing against this demand?")) return;
+        await WriteAsync("api/ecsrecovery/Save", new EcsSaveRecoveryRequestVM { DemandId = detail.DemandId, OfficeId = detail.Office.OfficeId });
+    }
+
+    private async Task DeleteAppropriationAsync()
+    {
+        if (detail == null) return;
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Delete the appropriation of {detail.Office.OfficeName}? It can then be appropriated again.")) return;
+        await WriteAsync("api/ecsrecovery/DeleteAppropriation", new EcsRecoveryOfficeRequestVM { DemandId = detail.DemandId, OfficeId = detail.Office.OfficeId });
+    }
+
+    private void AddDebitRow() => debits.Add(new DebitRow
+    {
+        Amount = Math.Max(0, Math.Round((detail?.Totals.Total ?? 0) - debits.Sum(d => d.Amount), 2)),
+        ChequeDate = currentDate
+    });
+
+    private bool IsBank(decimal ledId) => detail?.Ledgers.Any(l => l.LedId == ledId && l.IsBank) == true;
+
+    private async Task SaveAsync()
+    {
+        if (detail == null) return;
+        var rows = detail.Totals.Total > 0 ? debits.Where(d => d.LedId != 0 || d.Amount != 0).ToList() : new List<DebitRow>();
+        var prompt = detail.Totals.Total > 0
+            ? $"Save the recovery of {detail.Office.OfficeName} as receipts?\n\nTotal {F(detail.Totals.Total)}. One voucher is created and the loan, deposit and member ledgers are updated."
+            : $"Save a nil recovery for {detail.Office.OfficeName}?";
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", prompt)) return;
+        await WriteAsync("api/ecsrecovery/Save", new EcsSaveRecoveryRequestVM
+        {
+            DemandId = detail.DemandId,
+            OfficeId = detail.Office.OfficeId,
+            Debits = rows.Select(d => new EcsRecoveryDebitVM
+            {
+                LedId = d.LedId,
+                Amount = Math.Round(d.Amount, 2),
+                ChequeNo = IsBank(d.LedId) ? d.ChequeNo : null,
+                ChequeDate = IsBank(d.LedId) ? d.ChequeDate : null,
+                BankName = IsBank(d.LedId) ? d.BankName : null
+            }).ToList()
+        });
+    }
+
+    private async Task DeleteSavedAsync()
+    {
+        if (detail == null) return;
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Delete the saved recovery of {detail.Office.OfficeName} (voucher {detail.Office.VocNo})? Its receipts are reversed; the appropriation stays.")) return;
+        await WriteAsync("api/ecsrecovery/DeleteSaved", new EcsRecoveryOfficeRequestVM { DemandId = detail.DemandId, OfficeId = detail.Office.OfficeId });
+    }
+
+    private async Task WriteAsync(string url, object body)
+    {
+        busy = true;
+        alertMessage = null;
+        bool ok = false;
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(url, body);
+            EcsRecoveryResultVM? result = null;
+            try { result = await response.Content.ReadFromJsonAsync<EcsRecoveryResultVM>(); } catch { /* not JSON */ }
+
+            if (response.IsSuccessStatusCode && result is { Success: true })
+            {
+                ok = true;
+                ShowAlert(true, result.Message ?? "Done.");
+            }
+            else if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                ShowAlert(false, "Recovery Appropriation is available only to ECS societies.");
+            }
+            else
+            {
+                var reasons = new List<string> { result?.Message ?? $"Request failed ({(int)response.StatusCode})." };
+                if (result != null) reasons.AddRange(result.Reasons);
+                ShowAlert(false, reasons);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+
+        if (ok)
+        {
+            await LoadStateAsync();
+            if (detail != null) await OpenOfficeAsync(detail.DemandId, detail.Office.OfficeId, keepAlert: true);
+        }
+    }
+
+    // ----- view helpers -----
+
+    private void Toggle(decimal memId)
+    {
+        if (!expanded.Remove(memId)) expanded.Add(memId);
+    }
+
+    private IEnumerable<EcsRecoveryMemberVM> FilteredMembers()
+    {
+        if (detail == null) return Enumerable.Empty<EcsRecoveryMemberVM>();
+        var q = detail.Members.AsEnumerable();
+        var text = memberFilter?.Trim();
+        if (!string.IsNullOrEmpty(text))
+            q = q.Where(m => (m.MemberNo ?? "").Contains(text, StringComparison.OrdinalIgnoreCase)
+                             || (m.PerNo ?? "").Contains(text, StringComparison.OrdinalIgnoreCase)
+                             || (m.MemberName ?? "").Contains(text, StringComparison.OrdinalIgnoreCase));
+        return q;
+    }
+
+    private static string StateBadge(EcsRecoveryOfficeVM o) =>
+        o.IsSaved ? "bg-success" : o.IsAppropriated ? "bg-info text-dark" : "bg-warning text-dark";
+
+    private static async Task<string?> ReadMessageAsync(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            return "Recovery Appropriation is available only to ECS societies.";
+        try
+        {
+            var r = await response.Content.ReadFromJsonAsync<EcsRecoveryResultVM>();
+            if (!string.IsNullOrEmpty(r?.Message)) return r.Message;
+        }
+        catch
+        {
+            // fall through
+        }
+        return $"Request failed ({(int)response.StatusCode}).";
+    }
+
+    private void ShowAlert(bool success, string message) => ShowAlert(success, new List<string> { message });
+
+    private void ShowAlert(bool success, List<string> reasons)
+    {
+        alertSuccess = success;
+        alertReasons = reasons;
+        alertMessage = string.Join(" ", reasons);
+    }
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+    private static string D(DateTime? d) => d.HasValue && d.Value > DateTime.MinValue ? d.Value.ToString("dd-MM-yyyy") : "-";
 }

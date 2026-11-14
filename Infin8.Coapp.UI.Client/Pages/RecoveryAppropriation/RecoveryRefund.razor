@@ -1,0 +1,392 @@
+@page "/ecs-recovery-refund"
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@* ECS Recovery Refund (spec 13 §16): move part of a member's saved salary recovery off their loan / deposit / RD
+   receipts onto the excess recovery ledger, to be paid back to the member. *@
+
+<PageTitle>Recovery Refund</PageTitle>
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">Recovery Refund</li>
+    </ol>
+</nav>
+
+@if (!isReady)
+{
+    <div class="d-flex align-items-center gap-2 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading…</span>
+    </div>
+}
+else if (institution != InstitutionType.ECS)
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        Recovery Refund is available only for Employees' Society (ECS) institutions.
+    </div>
+}
+else
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h4 class="mb-0"><i class="bi bi-arrow-return-left me-2 text-primary"></i>Recovery Refund</h4>
+        <a class="btn btn-sm btn-outline-secondary ms-2" href="/recovery-appropriation"><i class="bi bi-cash-stack me-1"></i>Recovery appropriation</a>
+        <span class="ms-auto text-muted">Business day: <strong>@currentDate.ToString("dd-MM-yyyy")</strong></span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert @(alertSuccess ? "alert-success" : "alert-danger") alert-dismissible" role="alert">
+            @if (alertReasons.Count > 1)
+            {
+                <div class="fw-semibold">@alertReasons[0]</div>
+                <ul class="mb-0">
+                    @foreach (var r in alertReasons.Skip(1))
+                    {
+                        <li>@r</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                @alertMessage
+            }
+            <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    @if (state != null && !state.IsOpenBusinessDay && !string.IsNullOrEmpty(state.Message))
+    {
+        <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>@state.Message</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <p class="text-muted small mb-2">
+                A refund takes part of a member's saved salary recovery off their loan, deposit or RD receipts and credits it
+                to the excess recovery ledger, from where it is paid back to the member. The recovery voucher keeps its
+                total.
+            </p>
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small mb-0">Demand</label>
+                    <select class="form-select form-select-sm" @bind="demandId">
+                        @foreach (var d in Demands())
+                        {
+                            <option value="@d.DemandId">Due @D(d.DueDate)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small mb-0">Member no / per no</label>
+                    <input class="form-control form-control-sm" @bind="memberNo" @onkeyup="OnMemberKey" />
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-sm btn-primary" disabled="@(busy || demandId == 0 || string.IsNullOrWhiteSpace(memberNo))" @onclick="() => DisplayAsync()">
+                        <i class="bi bi-search me-1"></i>Display
+                    </button>
+                </div>
+            </div>
+            @if (!Demands().Any())
+            {
+                <div class="text-muted small mt-2">No demand has a saved recovery yet.</div>
+            }
+        </div>
+    </div>
+
+    @if (refund != null)
+    {
+        <div class="card mb-3 border-primary">
+            <div class="card-header d-flex flex-wrap gap-3 align-items-center">
+                <strong>@refund.MemberNo @refund.MemberName</strong>
+                @if (!string.IsNullOrEmpty(refund.PerNo)) { <span class="text-muted small">Per no @refund.PerNo</span> }
+                <span class="text-muted small">@refund.OfficeName</span>
+                <span class="text-muted small">Demand due @D(refund.DueDate)</span>
+                @if (!string.IsNullOrEmpty(refund.VocNo)) { <span class="text-muted small">Voucher @refund.VocNo</span> }
+                <span class="ms-auto small">Already in excess: <strong>@F(refund.Excess)</strong></span>
+            </div>
+            <div class="card-body">
+                @if (refund.BlockedReasons.Count > 0)
+                {
+                    <div class="alert alert-secondary small py-2">
+                        <div class="fw-semibold">Nothing can be refunded:</div>
+                        <ul class="mb-0">
+                            @foreach (var r in refund.BlockedReasons)
+                            {
+                                <li>@r</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                @if (refund.Lines.Count > 0)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-2">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Account</th>
+                                    <th class="text-end">Recovered principal / amount</th>
+                                    <th class="text-end">Refund</th>
+                                    <th class="text-end">Recovered interest</th>
+                                    <th class="text-end">Refund</th>
+                                    <th class="text-end">Recovered penal</th>
+                                    <th class="text-end">Refund</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var l in refund.Lines)
+                                {
+                                    var key = Key(l);
+                                    var e = entries[key];
+                                    <tr>
+                                        <td>@l.Account</td>
+                                        <td class="text-end">@F(l.Principal)</td>
+                                        <td style="width: 9rem;">
+                                            <input type="number" min="0" max="@l.Principal" step="0.01" class="form-control form-control-sm text-end"
+                                                   disabled="@(!refund.CanRefund || l.Principal <= 0)" @bind="e.Principal" />
+                                        </td>
+                                        <td class="text-end">@(l.Kind == "L" ? F(l.Interest) : "")</td>
+                                        <td style="width: 9rem;">
+                                            @if (l.Kind == "L")
+                                            {
+                                                <input type="number" min="0" max="@l.Interest" step="0.01" class="form-control form-control-sm text-end"
+                                                       disabled="@(!refund.CanRefund || l.Interest <= 0)" @bind="e.Interest" />
+                                            }
+                                        </td>
+                                        <td class="text-end">@F(l.Penal)</td>
+                                        <td style="width: 9rem;">
+                                            <input type="number" min="0" max="@l.Penal" step="0.01" class="form-control form-control-sm text-end"
+                                                   disabled="@(!refund.CanRefund || l.Penal <= 0)" @bind="e.Penal" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span>Refund total: <strong>@F(Total())</strong>
+                            @if (!string.IsNullOrEmpty(refund.ExcessLedgerName)) { <span class="text-muted small">→ @refund.ExcessLedgerName</span> }
+                        </span>
+                        @if (OverLimit())
+                        {
+                            <span class="text-danger small">A refund is more than was recovered.</span>
+                        }
+                        <button class="btn btn-success ms-auto" disabled="@(busy || !refund.CanRefund || Total() <= 0 || OverLimit() || state?.IsOpenBusinessDay != true)" @onclick="SaveAsync">
+                            <i class="bi bi-save me-1"></i>Save refund
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private bool isReady;
+    private bool busy;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private DateTime currentDate = DateTime.Today;
+
+    private EcsRecoveryStateVM? state;
+    private decimal demandId;
+    private string memberNo = "";
+    private EcsRefundVM? refund;
+
+    private sealed class Entry
+    {
+        public double Principal { get; set; }
+        public double Interest { get; set; }
+        public double Penal { get; set; }
+    }
+    private Dictionary<string, Entry> entries = new();
+
+    private string? alertMessage;
+    private bool alertSuccess;
+    private List<string> alertReasons = new();
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
+            if (institution == InstitutionType.ECS) await LoadStateAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LoadStateAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("api/ecsrecovery/State");
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowAlert(false, (await ReadMessageAsync(response)) ?? "Could not load the demands.");
+                return;
+            }
+            state = await response.Content.ReadFromJsonAsync<EcsRecoveryStateVM>();
+            if (demandId == 0) demandId = Demands().FirstOrDefault()?.DemandId ?? 0;
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the demands: " + ex.Message);
+        }
+    }
+
+    /// <summary>Demands with at least one office's recovery saved.</summary>
+    private IEnumerable<EcsRecoveryDemandVM> Demands() =>
+        state?.Demands.Where(d => d.Offices.Any(o => o.IsSaved)) ?? Enumerable.Empty<EcsRecoveryDemandVM>();
+
+    private async Task OnMemberKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !busy && demandId != 0 && !string.IsNullOrWhiteSpace(memberNo)) await DisplayAsync();
+    }
+
+    private async Task DisplayAsync(bool keepAlert = false)
+    {
+        busy = true;
+        if (!keepAlert) alertMessage = null;
+        try
+        {
+            var response = await _httpClient.GetAsync($"api/ecsrecovery/Refund/{demandId}?memberNo={Uri.EscapeDataString(memberNo.Trim())}");
+            if (!response.IsSuccessStatusCode)
+            {
+                refund = null;
+                ShowAlert(false, response.StatusCode == HttpStatusCode.NotFound
+                    ? "Member not found."
+                    : (await ReadMessageAsync(response)) ?? "Could not load the member's recovery.");
+                return;
+            }
+            refund = await response.Content.ReadFromJsonAsync<EcsRefundVM>();
+            entries = refund?.Lines.ToDictionary(Key, _ => new Entry()) ?? new();
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, "Could not load the member's recovery: " + ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static string Key(EcsRefundLineVM l) => $"{l.Kind}:{l.TrnId}";
+
+    private double Total() => Math.Round(entries.Values.Sum(e => Math.Max(0, e.Principal) + Math.Max(0, e.Interest) + Math.Max(0, e.Penal)), 2);
+
+    private bool OverLimit() => refund != null && refund.Lines.Any(l =>
+    {
+        var e = entries[Key(l)];
+        return e.Principal < 0 || e.Interest < 0 || e.Penal < 0
+               || e.Principal - l.Principal > 0.005 || e.Interest - l.Interest > 0.005 || e.Penal - l.Penal > 0.005;
+    });
+
+    private async Task SaveAsync()
+    {
+        if (refund == null) return;
+        var total = Total();
+        var prompt = $"Move {F(total)} of member {refund.MemberNo}'s recovery to {refund.ExcessLedgerName ?? "the excess recovery ledger"}?\n\nThe loan, deposit and RD receipts are reduced; voucher {refund.VocNo} keeps its total.";
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", prompt)) return;
+
+        busy = true;
+        alertMessage = null;
+        bool ok = false;
+        try
+        {
+            var request = new EcsRefundRequestVM
+            {
+                DemandId = refund.DemandId,
+                MemId = refund.MemId,
+                Lines = refund.Lines.Select(l =>
+                {
+                    var e = entries[Key(l)];
+                    return new EcsRefundLineVM
+                    {
+                        Kind = l.Kind, TrnId = l.TrnId, Account = l.Account,
+                        Principal = Math.Round(e.Principal, 2), Interest = Math.Round(e.Interest, 2), Penal = Math.Round(e.Penal, 2)
+                    };
+                }).Where(l => l.Principal != 0 || l.Interest != 0 || l.Penal != 0).ToList()
+            };
+            var response = await _httpClient.PostAsJsonAsync("api/ecsrecovery/Refund", request);
+            EcsRecoveryResultVM? result = null;
+            try { result = await response.Content.ReadFromJsonAsync<EcsRecoveryResultVM>(); } catch { /* not JSON */ }
+            if (response.IsSuccessStatusCode && result is { Success: true })
+            {
+                ok = true;
+                ShowAlert(true, result.Message ?? "Refund saved.");
+            }
+            else
+            {
+                var reasons = new List<string> { result?.Message ?? $"Request failed ({(int)response.StatusCode})." };
+                if (result != null) reasons.AddRange(result.Reasons);
+                ShowAlert(false, reasons);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert(false, ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+        if (ok) await DisplayAsync(keepAlert: true);
+    }
+
+    private static async Task<string?> ReadMessageAsync(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            return "Recovery Refund is available only to ECS societies.";
+        try
+        {
+            var r = await response.Content.ReadFromJsonAsync<EcsRecoveryResultVM>();
+            if (!string.IsNullOrEmpty(r?.Message)) return r.Message;
+        }
+        catch
+        {
+            // fall through
+        }
+        return $"Request failed ({(int)response.StatusCode}).";
+    }
+
+    private void ShowAlert(bool success, string message) => ShowAlert(success, new List<string> { message });
+
+    private void ShowAlert(bool success, List<string> reasons)
+    {
+        alertSuccess = success;
+        alertReasons = reasons;
+        alertMessage = string.Join(" ", reasons);
+    }
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+    private static string D(DateTime? d) => d.HasValue && d.Value > DateTime.MinValue ? d.Value.ToString("dd-MM-yyyy") : "-";
+}
