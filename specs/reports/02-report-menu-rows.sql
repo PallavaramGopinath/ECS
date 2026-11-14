@@ -3,6 +3,7 @@
 -- Apply to every ECS database. Works per branch (each branch has its own "Reports" menu row) and is
 -- idempotent: it only switches on / inserts what is missing.
 --
+--   /reports-loan               <- revives the "Loan Reports" placeholder
 --   /reports-certificate        <- revives the "IT Certificate for Member" placeholder
 --   /reports-income-tax         <- revives the "IT Reports for Society" placeholder
 --   /reports-personal-register  <- new "Personal Register"
@@ -16,7 +17,9 @@ BEGIN
     FOR r IN SELECT menu_id, brcode FROM menu_main
              WHERE trim(menu_name) = 'Reports' AND NOT menu_delete AND voc_status = 'V'
     LOOP
-        -- the two placeholders that already exist for these pages
+        -- placeholders that already exist for these pages
+        UPDATE menu_sub SET form_name = 'reports-loan', submenu_delete = false, voc_status = 'V'
+         WHERE menu_id = r.menu_id AND trim(submenu_name) = 'Loan Reports';
         UPDATE menu_sub SET form_name = 'reports-certificate', submenu_delete = false, voc_status = 'V'
          WHERE menu_id = r.menu_id AND trim(submenu_name) = 'IT Certificate for Member';
         UPDATE menu_sub SET form_name = 'reports-income-tax', submenu_delete = false, voc_status = 'V'
