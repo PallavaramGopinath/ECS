@@ -162,6 +162,7 @@ builder.Services.AddScoped<IEcsRdReceiptHandler, EcsRdReceiptHandler>();
 builder.Services.AddScoped<IEcsRdRefundHandler, EcsRdRefundHandler>();
 builder.Services.AddScoped<IEcsRdCreateHandler, EcsRdCreateHandler>();
 builder.Services.AddScoped<IEcsRdLoanHandler, EcsRdLoanHandler>();
+builder.Services.AddScoped<IEcsRdLoanReceiptHandler, EcsRdLoanReceiptHandler>();
 builder.Services.AddScoped<IEcsDemandHandler, EcsDemandHandler>();
 builder.Services.AddScoped<IEcsRecoveryHandler, EcsRecoveryHandler>();
 builder.Services.AddScoped<ILoanEligibilityHandler, LoanEligibilityHandler>();

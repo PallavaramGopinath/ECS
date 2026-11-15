@@ -332,6 +332,23 @@ run it on each ECS database first.
   line also blocks an RD refund (`EcsRdRefundHandler`); it does **not** block RD receipts — the approval recheck catches a changed
   received amount instead.
 
+### ECS RD loan receipt (acc 25, "Recurring Deposit Loan Receipt")
+
+A Member Transaction **receipt** component that repays loans on RD (acc 14): `Components/TermDeposit/RecurringDeposit_LoanReceipt.razor`
+(Maker) and `RecurringDeposit_LoanReceipt_View.razor`. Spec: `specs/ecs-extension/18-rd-loan-receipt.md`. The account row's component
+names come from `specs/ecs-extension/18-rd-loan-receipt.sql`; run it on each ECS database.
+
+- **Flow.** `GET api/rdloanreceipt/Loans/{memId}` (`RdLoanReceiptController`, ECS-gated) → `EcsRdLoanReceiptHandler.GetLoansAsync`, which
+  reuses `EcsLoanRecoveryRepository`'s loan_trn / loan_roi reads and `EcsRdLoanRepository.GetRdLoanSchemesAsync`. Initiate stages
+  `DtoEcsRdLoanReceipt` with `Receipt_Amount` = total received. Approval: `SaveTransaction` `case 25` → `BuildPostingAsync` (recomputes,
+  refuses on any change), then `EcsRdLoanReceiptRepository.CloseLoanAsync` for each fully repaid loan (loan, lien, lien_trn, `LienMarked`)
+  without saving. The `R` rows and voucher lines go through `SaveTransaction`'s `loanTrnList` / `finVoucherTrns`. `TransactionsHandler`
+  now injects `IEcsRdLoanReceiptHandler` too. One acc 25 line per voucher.
+- **Interest** is `EcsInterestCalculator` (int_application 2, no penal) from the last `IntCalc_Date` to min(business day, `Last_DueDate`);
+  `IntCalc_Date` is stamped with that end date, so nothing accrues after the cap.
+- **Rules** are in `Utility/EcsRdLoanReceiptAppropriator.cs` (pure, shared): interest of every loan, then principal, oldest first; manual
+  split in whole rupees with interest first enforced; closure = both balances reach 0. A loan in another pending acc 25 line is locked.
+
 ### ECS demand calculation (spec 12)
 
 Page `Pages/ECSLoan/ECSDemandCalculation.razor` (`/ecs-demand-calculation`, Admin), API `api/ecsdemand/*`
