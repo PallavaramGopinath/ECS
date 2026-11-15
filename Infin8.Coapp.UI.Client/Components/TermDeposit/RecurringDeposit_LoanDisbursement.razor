@@ -1,0 +1,322 @@
+@* ECS Loan on Recurring Deposit — acc 14 "Loan on Recurring Deposit" (spec 17). Hosted by Member_Transaction.razor through DynamicComponent. *@
+@using Infin8.Coapp.Dto
+@using Infin8.Coapp.Utility
+@using Infin8.Coapp.Utility.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Net
+@using System.Text.Json
+@rendermode InteractiveWebAssembly
+@inject HttpClient _httpClient
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@attribute [Authorize(Roles = "Admin,Maker,Checker")]
+
+<div>
+    <h3 class="mb-2">Loan on Recurring Deposit</h3>
+    <hr class="mt-0" />
+
+    @if (!isReady)
+    {
+        <div class="d-flex align-items-center gap-2 text-muted">
+            <div class="spinner-border spinner-border-sm" role="status"></div> Loading…
+        </div>
+    }
+    else if (institution != InstitutionType.ECS)
+    {
+        <div class="alert alert-warning">Loan on Recurring Deposit is available only for Employees' Society (ECS) institutions.</div>
+        <button type="button" class="btn btn-secondary" @onclick="CloseLoan"><i class="bi bi-x-circle"></i> Close</button>
+    }
+    else
+    {
+        <div class="mb-2 text-muted small">
+            Member <strong>@MemberNumber</strong> — @MemberName · Loan date <strong>@setup.ApplicationDate.ToString("dd-MM-yyyy")</strong>
+            · @(CashOrAdjustment == 1 ? "Cash" : "Adjustment")
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(setup.SetupError))
+        {
+            <div class="alert alert-danger">@setup.SetupError</div>
+        }
+
+        @if (setup.Lines.Count == 0)
+        {
+            <div class="alert alert-info">@(setup.Message ?? "The member has no open recurring deposits")</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Select</th>
+                            <th>RD No</th>
+                            <th>Value date</th>
+                            <th class="text-end">Instalment</th>
+                            <th class="text-end">Period</th>
+                            <th class="text-end">ROI %</th>
+                            <th>Maturity</th>
+                            <th class="text-end">Received</th>
+                            <th class="text-end">Drawing power</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rd in setup.Lines)
+                        {
+                            bool blocked = !string.IsNullOrEmpty(rd.BlockReason);
+                            <tr class="@(blocked ? "text-muted" : "")">
+                                <td>
+                                    <input type="checkbox" class="form-check-input" disabled="@(blocked || setupBlocked)"
+                                           checked="@rd.Selected"
+                                           @onchange="e => ToggleRd(rd, (bool)(e.Value ?? false))" />
+                                </td>
+                                <td>
+                                    @rd.TD_No
+                                    @if (blocked)
+                                    {
+                                        <div class="small text-warning">@rd.BlockReason</div>
+                                    }
+                                </td>
+                                <td>@D(rd.ValueDate)</td>
+                                <td class="text-end">@F(rd.Instalment)</td>
+                                <td class="text-end">@rd.PeriodInMonths</td>
+                                <td class="text-end">@rd.RateOfInterest.ToString("0.##")</td>
+                                <td>@D(rd.MaturityDate)<div class="small text-muted">₹@F(rd.MaturityAmount)</div></td>
+                                <td class="text-end">@F(rd.Received)</td>
+                                <td class="text-end">@F(rd.DrawingPower)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <table class="table table-sm small mb-0">
+                        <tr><td>Loan scheme</td><td class="text-end">@setup.SchemeName</td></tr>
+                        <tr><td>Loan No (provisional)</td><td class="text-end">@setup.ProvisionalLoanNo</td></tr>
+                        <tr><td>Total RD received</td><td class="text-end">₹@F(model.TotalReceived)</td></tr>
+                        <tr><td>Eligible %</td><td class="text-end">@model.EligPer.ToString("0.##") %</td></tr>
+                        <tr><td>Borrowing power</td><td class="text-end">₹@F(model.BorrowingPower)</td></tr>
+                        <tr><td>Existing loan outstanding</td><td class="text-end">₹@F(model.ExistingOutstanding)</td></tr>
+                        <tr class="fw-semibold"><td>Eligible amount</td><td class="text-end">₹@F(model.EligibleAmount)</td></tr>
+                        <tr><td>Loan ROI</td><td class="text-end">@(model.Lines.Count > 0 ? $"{model.RdRoiMax:0.##} + {model.Margin:0.##} = {model.LoanRoi:0.##} %" : "")</td></tr>
+                        <tr><td>Loan due date</td><td class="text-end">@(model.Lines.Count > 0 ? D(model.DueDate) : "")</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="rdLoanAmount">Loan amount (₹, whole rupees)</label>
+                    <input id="rdLoanAmount" type="number" min="1" step="1" class="form-control"
+                           disabled="@setupBlocked"
+                           value="@(loanAmount > 0 ? loanAmount.ToString("0", CultureInfo.InvariantCulture) : "")"
+                           @onchange="OnAmountChanged" />
+                    @if (validation != null && model.Lines.Count > 0)
+                    {
+                        <div class="text-danger small mt-2">@validation</div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="mt-3 d-flex gap-2">
+            @if (setup.Lines.Count > 0)
+            {
+                <button type="button" class="btn btn-primary" disabled="@(!CanInitiate)" @onclick="InitiateLoan">
+                    @if (isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    <i class="bi bi-check2-circle"></i> Initiate
+                </button>
+            }
+            <button type="button" class="btn btn-secondary" @onclick="CloseLoan"><i class="bi bi-x-circle"></i> Close</button>
+        </div>
+    }
+</div>
+
+@code {
+    #region parameters
+    [Parameter] public int AccountId { get; set; }
+    [Parameter] public int CashOrAdjustment { get; set; }
+    [Parameter] public decimal MemberId { get; set; }
+    [Parameter] public string? MemberNumber { get; set; }
+    [Parameter] public string? MemberName { get; set; }
+    [Parameter] public DateTime TransactionDate { get; set; }
+    [Parameter] public EventCallback<bool> OnRDLoanComponentClose { get; set; }
+    [Parameter] public EventCallback<DtoEcsRdLoan> OnRDLoanInitiate { get; set; }
+    #endregion
+
+    private static readonly CultureInfo IndianCulture = CreateIndianCulture();
+
+    private bool isReady;
+    private bool isSubmitting;
+    private InstitutionType institution = InstitutionType.Unknown;
+    private string brCode = "";
+    private decimal userId;
+    private string? errorMessage;
+
+    private EcsRdLoanSetupVM setup = new();
+    private DtoEcsRdLoan model = new();
+    private double loanAmount;
+    private string? validation;
+
+    private bool setupBlocked => !string.IsNullOrEmpty(setup.SetupError);
+    private bool CanInitiate => !isSubmitting && !setupBlocked && validation == null && model.Lines.Count > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            brCode = userInfoDto.BrCode ?? "";
+            userId = userInfoDto.UserId;
+            institution = userInfoDto.SocietyType.ToInstitutionType();
+            setup.ApplicationDate = TransactionDate;
+            if (institution == InstitutionType.ECS) await LoadSetupAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the member's RDs: {ex.Message}";
+        }
+        finally
+        {
+            isReady = true;
+        }
+    }
+
+    private async Task LoadSetupAsync()
+    {
+        var response = await _httpClient.GetAsync($"api/rdloan/Setup/{MemberId}");
+        if (response.IsSuccessStatusCode)
+        {
+            setup = await response.Content.ReadFromJsonAsync<EcsRdLoanSetupVM>() ?? new();
+            foreach (var rd in setup.Lines) rd.Selected = false;   // unticked by default
+        }
+        else
+        {
+            errorMessage = response.StatusCode == HttpStatusCode.Forbidden
+                ? "Loan on Recurring Deposit is available only to ECS societies."
+                : $"Could not load the member's RDs ({(int)response.StatusCode}).";
+        }
+        Recompute();
+    }
+
+    private void ToggleRd(DtoEcsRdLoanLine rd, bool selected)
+    {
+        rd.Selected = selected && string.IsNullOrEmpty(rd.BlockReason);
+        Recompute();
+    }
+
+    private void OnAmountChanged(ChangeEventArgs e)
+    {
+        loanAmount = double.TryParse(e.Value?.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var v) ? v : 0;
+        Recompute();
+    }
+
+    /// <summary>§4.4 totals and the §8 checks through the same code the server rechecks with.</summary>
+    private void Recompute()
+    {
+        model = new DtoEcsRdLoan
+        {
+            MemId = MemberId,
+            MemberNo = MemberNumber,
+            MemberName = MemberName,
+            ApplicationDate = setup.ApplicationDate,
+            CashOrAdjustment = CashOrAdjustment,
+            Scheme_Id = setup.Scheme_Id,
+            SchemeName = setup.SchemeName,
+            ProvisionalLoanNo = setup.ProvisionalLoanNo,
+            EligPer = setup.EligPer,
+            Margin = setup.Margin,
+            ExistingOutstanding = 0,   // §6.1: a liened RD cannot be selected, so nothing is outstanding on the selection
+            LoanAmount = loanAmount,
+            Lines = setup.Lines.Where(l => l.Selected).ToList()
+        };
+        EcsRdLoanCalculator.Totals(model);
+        validation = EcsRdLoanCalculator.Validate(model);
+    }
+
+    private async Task CloseLoan()
+    {
+        await OnRDLoanComponentClose.InvokeAsync(true);
+    }
+
+    private async Task InitiateLoan()
+    {
+        Recompute();
+        if (!CanInitiate) return;
+        isSubmitting = true;
+        errorMessage = null;
+        try
+        {
+            string accountName = "Loan on Recurring Deposit";
+            try
+            {
+                var nameResponse = await _httpClient.GetAsync($"api/Accounts/GetAccountName/{AccountId}");
+                if (nameResponse.IsSuccessStatusCode) accountName = await nameResponse.Content.ReadAsStringAsync();
+            }
+            catch (HttpRequestException)
+            {
+                // keep the default module name
+            }
+
+            double amount = model.LoanAmount;
+            bool cash = CashOrAdjustment == 1;
+            var stagingDetails = new DtoStaging_Details
+            {
+                Id = 0,
+                Staging_Id = 0,
+                Member_Id = MemberId,
+                Ledger_Id = 0,
+                Related_Account_Id = AccountId,
+                Receipt_Amount = 0,
+                Payment_Amount = amount,
+                Module_Name = accountName,
+                Cash_Or_Adjustment = CashOrAdjustment,
+                Related_Account_Data = JsonSerializer.Serialize(model),
+                Created_By = userId,
+                Created_Date = TransactionDate,
+                Checked_By = 0,
+                Checked_Date = null,
+                Staging_Status = "I",
+                BrCode = brCode,
+                CashReceipt_Amount = 0,
+                AdjustmentReceipt_Amount = 0,
+                CashPayment_Amount = cash ? amount : 0,
+                AdjustmentPayment_Amount = cash ? 0 : amount,
+                Transaction_Type = "Member Transaction"
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("api/Staging/AddStaging", stagingDetails);
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Could not initiate the loan on RD ({(int)response.StatusCode}).";
+                return;
+            }
+            await OnRDLoanInitiate.InvokeAsync(model);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not initiate the loan on RD: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private static string D(DateTime? d) => d.HasValue ? d.Value.ToString("dd-MM-yyyy") : "";
+
+    private static CultureInfo CreateIndianCulture()
+    {
+        try { return CultureInfo.CreateSpecificCulture("en-IN"); }
+        catch { return CultureInfo.InvariantCulture; }
+    }
+
+    private static string F(double v) => v.ToString("N2", IndianCulture);
+}

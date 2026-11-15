@@ -23,10 +23,13 @@ namespace Infin8.Coapp.BusinessLogic
         readonly IEcsRdReceiptHandler _ecsRdReceiptHandler;
         readonly IEcsRdCreateHandler _ecsRdCreateHandler;
         readonly IEcsRdRefundHandler _ecsRdRefundHandler;
+        readonly IEcsRdLoanHandler _ecsRdLoanHandler;
         public TransactionsHandler(IUnitOfWork unitOfWork, IEcsLoanRecoveryHandler ecsLoanRecoveryHandler,
-            IEcsRdReceiptHandler ecsRdReceiptHandler, IEcsRdCreateHandler ecsRdCreateHandler, IEcsRdRefundHandler ecsRdRefundHandler)
+            IEcsRdReceiptHandler ecsRdReceiptHandler, IEcsRdCreateHandler ecsRdCreateHandler, IEcsRdRefundHandler ecsRdRefundHandler,
+            IEcsRdLoanHandler ecsRdLoanHandler)
         {
             _ecsRdRefundHandler = ecsRdRefundHandler;
+            _ecsRdLoanHandler = ecsRdLoanHandler;
             _unitOfWork = unitOfWork;
             _ecsLoanRecoveryHandler = ecsLoanRecoveryHandler;
             _ecsRdReceiptHandler = ecsRdReceiptHandler;
@@ -94,6 +97,7 @@ namespace Infin8.Coapp.BusinessLogic
             int rdReceiptLines = 0;   // spec 14 §7.3: one RD Receipt line per voucher
             int rdCreateLines = 0;    // spec 15 §8: one RD New Account line per voucher
             int rdRefundLines = 0;    // spec 16 §8 rule 9: one RD Refund line per voucher
+            int rdLoanLines = 0;      // spec 17 §8 rule 12: one Loan on RD line per voucher
             try
             {
                 _unitOfWork.BeginTransaction();
@@ -615,7 +619,26 @@ namespace Infin8.Coapp.BusinessLogic
                             //result = await _unitOfWork.FinVoucherTrn.AddFinVoucherTrnList(finVoucherTrns);
                             #endregion
                             break;
-                        case 14: /// RD Loan Disbursement
+                        case 14: /// RD Loan Disbursement (ECS, spec 17 §11)
+                            #region ECS loan on RD
+                            if (rdLoanLines++ > 0)
+                                throw new EcsRecoveryException("Only one loan on RD can be made in a voucher. Reject it and initiate one loan on RD per voucher.");
+                            DtoEcsRdLoan ecsRdLoan = System.Text.Json.JsonSerializer.Deserialize<DtoEcsRdLoan>(
+                                trns.Related_Account_Data!, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                                ?? throw new EcsRecoveryException("Loan on RD data is missing. Reject it and re-initiate.");
+                            if (Math.Abs(ecsRdLoan.LoanAmount - trns.Payment_Amount) > 0.005 || trns.Receipt_Amount != 0)
+                                throw new EcsRecoveryException("Loan on RD amount does not match the transaction line. Reject it and re-initiate.");
+                            var rdLoanPosting = await _ecsRdLoanHandler.BuildPostingAsync(ecsRdLoan, stagingId, Transacted_Date, brCode,
+                                yrId, Checked_By, vocId, trns.Cash_Or_Adjustment, string.IsNullOrWhiteSpace(Status) ? "RDL" : Status.Trim());
+                            await _unitOfWork.EcsRdLoan.AddLoanAsync(rdLoanPosting.LoanMaster, rdLoanPosting.LoanDisb,
+                                rdLoanPosting.LoanRoi, rdLoanPosting.Lien, rdLoanPosting.LienTrns);
+                            await _unitOfWork.EcsRdLoan.MarkLienAsync(rdLoanPosting.LienTdIds, brCode);
+                            // Flush now (inside the approval's DB transaction) so later shared MAX+1 adders in this voucher
+                            // see these rows instead of colliding with them.
+                            await _unitOfWork.CompleteAsync();
+                            loanTrnList.Add(rdLoanPosting.LoanTrn);
+                            finVoucherTrns.AddRange(rdLoanPosting.VoucherTrns);
+                            #endregion
                             break;
                         case 15:    /// Loan to staff
                             #region Staff Loan disbursement

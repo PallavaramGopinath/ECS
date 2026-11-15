@@ -311,6 +311,27 @@ Spec: `specs/ecs-extension/16-rd-refund.md` (§18 = settled decisions and depart
   whose office recovery is not saved, a missing ROI row.
 - Cash with penal: the penal is met by an adjustment split of the deposit (then interest) debit, so the cash lines net to the payable.
 
+### ECS loan on RD (acc 14, "Loan on Recurring Deposit")
+
+A Member Transaction **payment** component that lends against a member's open RDs: `Components/TermDeposit/RecurringDeposit_LoanDisbursement.razor`
+(Maker) and `RecurringDeposit_LoanDisbursement_View.razor`. Spec: `specs/ecs-extension/17-rd-loan-disbursement.md`. Data setup (account row
+component names, scheme 6 → `Loan_Type 4` with the RD-loan ledgers, ROI margin row) is in `specs/ecs-extension/17-rd-loan-disbursement.sql`;
+run it on each ECS database first.
+
+- **Flow.** `GET api/rdloan/Setup/{memId}` (`RdLoanController`, ECS-gated) → `EcsRdLoanHandler.GetSetupAsync`, which reuses
+  `EcsRdReceiptRepository.GetEligibleRdsAsync`. Initiate stages `DtoEcsRdLoan` with `Payment_Amount` = loan amount. Approval:
+  `SaveTransaction` `case 14` → `BuildPostingAsync` (recomputes, refuses on any change), then `EcsRdLoanRepository.AddLoanAsync`
+  (loan_master / disb / roi / lien / lien_trn, own MAX+1 allocator) and `MarkLienAsync` (`LienMarked`), flushed at once with
+  `CompleteAsync` so later shared adders in the voucher don't collide. The `loan_trn` `I` row goes through `SaveTransaction`'s
+  `loanTrnList`. `TransactionsHandler` now injects `IEcsRdLoanHandler` too. One acc 14 line per voucher.
+- **Rules** are in `Utility/EcsRdLoanCalculator.cs` (pure, shared): borrowing power = Σ received × `Elig_Per` (`TD_Type 2`) / 100, rounded
+  once to a rupee; ROI = highest RD rate + `loan_roi_template` margin; due date = latest maturity; lien share pro-rata to drawing power,
+  last RD takes the remainder.
+- The scheme is the branch's single live `Loan_Type 4` scheme — deliberately not type 1, so the loan stays out of salary demand.
+- **Blocks:** liened RD (one open loan per RD), a pending acc 2 / 10 / 14 line, an unrecovered demand, nothing received. A pending acc 14
+  line also blocks an RD refund (`EcsRdRefundHandler`); it does **not** block RD receipts — the approval recheck catches a changed
+  received amount instead.
+
 ### ECS demand calculation (spec 12)
 
 Page `Pages/ECSLoan/ECSDemandCalculation.razor` (`/ecs-demand-calculation`, Admin), API `api/ecsdemand/*`

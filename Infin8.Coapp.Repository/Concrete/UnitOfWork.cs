@@ -64,6 +64,7 @@ namespace Infin8.Coapp.Repository
         private EcsRdReceiptRepository? _ecsRdReceiptRepository;
         private EcsRdRefundRepository? _ecsRdRefundRepository;
         private EcsRdCreateRepository? _ecsRdCreateRepository;
+        private EcsRdLoanRepository? _ecsRdLoanRepository;
         private EcsDemandRepository? _ecsDemandRepository;
         private EcsRecoveryRepository? _ecsRecoveryRepository;
         private LoanEligibilityRepository? _loanEligibilityRepository;
@@ -235,6 +236,7 @@ namespace Infin8.Coapp.Repository
         public IEcsRdReceiptRepository EcsRdReceipt => _ecsRdReceiptRepository ??= new EcsRdReceiptRepository(_context);
         public IEcsRdRefundRepository EcsRdRefund => _ecsRdRefundRepository ??= new EcsRdRefundRepository(_context);
         public IEcsRdCreateRepository EcsRdCreate => _ecsRdCreateRepository ??= new EcsRdCreateRepository(_context);
+        public IEcsRdLoanRepository EcsRdLoan => _ecsRdLoanRepository ??= new EcsRdLoanRepository(_context);
         public IEcsDemandRepository EcsDemand => _ecsDemandRepository ??= new EcsDemandRepository(_context);
         public IEcsRecoveryRepository EcsRecovery => _ecsRecoveryRepository ??= new EcsRecoveryRepository(_context);
         public ILoanEligibilityRepository LoanEligibility => _loanEligibilityRepository ??= new LoanEligibilityRepository(_context);

@@ -63,6 +63,7 @@ namespace Infin8.Coapp.BusinessLogic
             var demand = await _unitOfWork.EcsRdRefund.GetUnrecoveredDemandAsync(tdIds, brCode);
             var lockedByRefund = await GetPendingRefundTdIdsAsync(brCode, excludeStagingId);
             var lockedByReceipt = await GetPendingReceiptTdIdsAsync(brCode, excludeStagingId);
+            lockedByReceipt.UnionWith(await GetPendingRdLoanTdIdsAsync(brCode));
 
             foreach (var rd in rds)
             {
@@ -131,6 +132,25 @@ namespace Infin8.Coapp.BusinessLogic
                 try
                 {
                     var staged = JsonSerializer.Deserialize<DtoEcsRdReceipt>(json, JsonOptions);
+                    foreach (var line in staged?.Lines ?? new()) ids.Add(line.TD_Id);
+                }
+                catch (JsonException)
+                {
+                    // A malformed staging row cannot lock RDs; ignore it.
+                }
+            }
+            return ids;
+        }
+
+        /// <summary>Spec 17 §9: an RD pledged in a pending Loan on RD line (acc 14) cannot be refunded.</summary>
+        private async Task<HashSet<decimal>> GetPendingRdLoanTdIdsAsync(string brCode)
+        {
+            var ids = new HashSet<decimal>();
+            foreach (var json in await _unitOfWork.EcsRdLoan.GetPendingLoanDataAsync(brCode, 0))
+            {
+                try
+                {
+                    var staged = JsonSerializer.Deserialize<DtoEcsRdLoan>(json, JsonOptions);
                     foreach (var line in staged?.Lines ?? new()) ids.Add(line.TD_Id);
                 }
                 catch (JsonException)

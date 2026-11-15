@@ -969,8 +969,9 @@
                 case 13:    /// Loan on Fixed Deposit
                     isLedgerSection = false;
                     break;
-                case 14: /// Loan on Recurring Deposit
+                case 14: /// Loan on Recurring Deposit (ECS, spec 17)
                     isLedgerSection = false;
+                    isComponentLoaded = true;
                     break;
                 case 22:    /// staff suspense creditor payment
                     isLedgerSection = true;
@@ -1570,7 +1571,29 @@
                 StateHasChanged();
                 #endregion
                 break;
-            case 14: /// Loan on Recurring Deposit
+            case 14: /// Loan on Recurring Deposit (ECS, spec 17)
+                #region ECS loan on RD
+                fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName}";
+                Type? typeRdLoan = Type.GetType(fullyQualifiedName);
+                if (typeRdLoan != null) currentComponent = typeRdLoan;
+                parameters.Clear();
+                parameters = new Dictionary<string, object>
+                {
+                    { "AccountId", transaction.Account_Id },
+                    { "CashOrAdjustment", transaction.Cash_Adjustment },
+                    { "MemberId", transaction.Member_Id },
+                    { "MemberNumber", transaction.Member_No! },
+                    { "MemberName", transaction.Member_Name! },
+                    { "TransactionDate", transaction.Transaction_Date },
+                    { "OnRDLoanComponentClose", EventCallback.Factory.Create<bool>(this, CloseRDLoanComponent) },
+                    { "OnRDLoanInitiate", EventCallback.Factory.Create<DtoEcsRdLoan>(this, RDLoanInitiate) }
+                };
+                isComponentLoaded = true;
+                isBankAccount = false;
+                isLedgerSection = false;
+                isTransactionSection = false;
+                StateHasChanged();
+                #endregion
                 break;
             case 22:    /// staff suspense creditor payment
                 break;
@@ -2095,6 +2118,7 @@
                         break;
                     case 2:     /// RD Receipt (ECS, spec 14)
                     case 10:    /// RD Refund (ECS, spec 16)
+                    case 14:    /// Loan on RD (ECS, spec 17)
                     case 17:    /// RD New Account (ECS, spec 15)
                         fullyQualifiedName = $"{"Infin8.Coapp.UI.Client.Components.TermDeposit"}.{componentName},{assemblyName}";
                         break;
@@ -2487,7 +2511,7 @@
             case 13:    /// Loan on Fixed Deposit
 
                 break;
-            case 14: /// Loan on Recurring Deposit
+            case 14: /// Loan on Recurring Deposit (ECS, spec 17): nothing cached on the page; deleting the staging row below releases the RD lock
 
                 break;
             case 22:    /// staff suspense creditor payment
@@ -2794,6 +2818,25 @@
     }
 
     // ECS RD New Account (acc 17, spec 15)
+    // ECS Loan on Recurring Deposit (acc 14, spec 17)
+    private void CloseRDLoanComponent(bool closeSignalFromChild)
+    {
+        if (closeSignalFromChild)
+        {
+            isComponentLoaded = false;
+            transaction.Account_Id = 0;
+        }
+    }
+
+    private async Task RDLoanInitiate(DtoEcsRdLoan loan)
+    {
+        await UpdateTransactionsFromStaging("I", brCode);
+        isComponentLoaded = false;
+        isLedgerSection = false;
+        isTransactionSection = true;
+        transaction.Account_Id = 0;
+    }
+
     private void CloseRDRefundComponent(bool closeSignalFromChild)
     {
         if (closeSignalFromChild)
