@@ -30,6 +30,11 @@
   <ItemGroup>
     <None Include="..\Infin8.Coapp.UI.Client\Pages\Dividend\Component.razor" Link="Component.razor" />
   </ItemGroup>
+
+  <!-- Reports are loaded at runtime from {ContentRootPath}/Reports, so the .rdlc files must ship with a publish. -->
+  <ItemGroup>
+    <None Update="Reports\**\*.rdlc" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
   
   <ProjectExtensions><VisualStudio><UserProperties wwwroot_4lib_4bootstrap_4dist_4css_4bootstrap_1min_1css_1map__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
