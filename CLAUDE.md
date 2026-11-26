@@ -489,9 +489,9 @@ name string passed in C#.
 reference only — it has its own solution and nothing in the build depends on it. The dependency is the
 NuGet package.
 
-Note: `Infin8.Coapp.UI.csproj` has no `CopyToOutputDirectory` entry for `Reports/**/*.rdlc`, so reports
-work in dev (ContentRootPath = project folder) but the `.rdlc` files are not carried into a publish
-output.
+`Infin8.Coapp.UI.csproj` marks `Reports/**/*.rdlc` `CopyToPublishDirectory`, so `dotnet publish` ships them
+in `Reports/` next to the app (ContentRootPath). They are not copied to `bin/` — in dev, ContentRootPath is
+the project folder. A new report must be an `.rdlc` under `Reports/` to be published.
 
 ## Conventions
 
