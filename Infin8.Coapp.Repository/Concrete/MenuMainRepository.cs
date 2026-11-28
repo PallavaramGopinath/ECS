@@ -42,10 +42,15 @@ namespace Infin8.Coapp.Repository
                 ["Checker"] = new List<string> { "Checker", "All" }
             };
 
-            // Get roles for the current user
-            if (!roleHierarchy.TryGetValue(role, out var allowedRoles))
+            // Users can hold more than one comma-separated role. Expand each role before
+            // querying menu rows, while keeping the platform menu out of society roles.
+            var allowedRoles = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var userRole in role.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                allowedRoles = new List<string>(); // Empty list for default/unknown roles
+                if (roleHierarchy.TryGetValue(userRole, out var inheritedRoles))
+                    allowedRoles.UnionWith(inheritedRoles);
+                else if (userRole == "PlatformOnboarding")
+                    allowedRoles.UnionWith(new[] { "PlatformOnboarding", "All" });
             }
             var menuStructure = new List<MenuMain>();
             try

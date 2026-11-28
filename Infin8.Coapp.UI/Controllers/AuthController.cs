@@ -8,8 +8,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text;
+using Infin8.Coapp.Repository;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 
 namespace Infin8.Coapp.API.Controllers
@@ -23,6 +27,7 @@ namespace Infin8.Coapp.API.Controllers
         private readonly IUserHandler _userHandler;
         private readonly IAntiforgery _antiforgery;
         private readonly IGeneralHandler _generalHandler;
+        private readonly CSISContext _context;
         //private readonly IHttpContextAccessor _httpContextAccessor;
 
         /// <summary>
@@ -30,12 +35,13 @@ namespace Infin8.Coapp.API.Controllers
         /// </summary>
         /// <param name="authenticationHandler"></param>
         public AuthController(IAuthenticationHandler authenticationHandler,
-            IUserHandler userHandler, IAntiforgery antiforgery, IGeneralHandler generalHandler)
+            IUserHandler userHandler, IAntiforgery antiforgery, IGeneralHandler generalHandler, CSISContext context)
         {
             _authenticationHandler = authenticationHandler;
             _userHandler = userHandler;
             _antiforgery = antiforgery;
             _generalHandler = generalHandler;
+            _context = context;
         }
 
         [HttpGet("get-antiforgery-token")]
@@ -46,52 +52,8 @@ namespace Infin8.Coapp.API.Controllers
         }
 
         [HttpPost("Register")]
-        [IgnoreAntiforgeryToken]
-        public async Task<IActionResult> Register([FromBody] UserRegistration userRegistration)
-        {
-            try
-            {
-                if (userRegistration == null)
-                {
-                    return BadRequest(new { Message = "Invalid username format." });
-                }
-
-                byte[] passwordHash;
-                byte[] passwordSalt;
-                _userHandler.CreatePasswordHash(userRegistration.password!, out passwordHash, out passwordSalt);
-
-                Users user = new Users()
-                {
-                    //Id = 11001001, No need to pass Id, it will be generated while adding from repository
-                    Username = userRegistration.username!,
-                    Email = userRegistration.email,
-                    First_Name = userRegistration.first_name,
-                    Last_Name = userRegistration.last_name,
-                    Password_Hash = passwordHash,
-                    Password_Salt = passwordSalt,
-                    Is_Active = true,
-                    Is_Account_Closed = false,
-                    Account_Closed_Date = null,
-                    Last_Login_Date = null,
-                    Failed_Login_Attempts = 0,
-                    Is_Locked = false,
-                    Account_Locked_Until = null,
-                    Created_At = DateTime.UtcNow,
-                    Updated_At = DateTime.UtcNow,
-                    Mobile_Number = userRegistration.mobile_number,
-                    Reset_Token = null,
-                    Reset_Token_Expires_At = null,
-                    BrCode = "11001",
-                    Role = userRegistration.role
-                };
-                var authResponse = await _userHandler.AddUser(user);
-                return Ok(authResponse);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { Message = "An unexpected error occurred while registring user", Error = ex.Message });
-            }
-        }
+        public IActionResult Register([FromBody] UserRegistration userRegistration) =>
+            StatusCode(410, new { Message = "Self-registration is disabled. Contact your society administrator." });
 
         [HttpPost("login")]
         [IgnoreAntiforgeryToken]
@@ -106,7 +68,8 @@ namespace Infin8.Coapp.API.Controllers
                 }
 
                 // Check for valid username & password format
-                if (!Utilities.IsValidUsername(loginModel.Username))
+                if (!Utilities.IsValidUsername(loginModel.Username)
+                    && !new EmailAddressAttribute().IsValid(loginModel.Username))
                 {
                     return BadRequest(new { Message = "Invalid username format." });
                 }
@@ -135,6 +98,8 @@ namespace Infin8.Coapp.API.Controllers
                     authResponse.AuthenticatedUserDetailsDto.Email,
                     authResponse.AuthenticatedUserDetailsDto.Roles,
                     authResponse.AuthenticatedUserDetailsDto.BrCode,
+                    MustChangePassword = await _context.Users.Where(x => x.Id == authResponse.AuthenticatedUserDetailsDto.Id)
+                        .Select(x => x.Must_Change_Password).SingleAsync(),
                 });
             }
             catch (UnauthorizedAccessException ex)
@@ -154,6 +119,57 @@ namespace Infin8.Coapp.API.Controllers
             SameSite = SameSiteMode.None,
             Path = "/"
         };
+
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var origin = Request.Headers.Origin.ToString();
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                || uri.Scheme != Request.Scheme || uri.Authority != Request.Host.Value)
+                return Forbid();
+            if (request is null || request.NewPassword != request.ConfirmPassword
+                || request.NewPassword is null || request.NewPassword.Length < 12
+                || !request.NewPassword.Any(char.IsUpper)
+                || !request.NewPassword.Any(char.IsLower)
+                || !request.NewPassword.Any(char.IsDigit))
+                return BadRequest("The new password must be at least 12 characters with upper and lower case letters and a digit.");
+            if (!decimal.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Unauthorized();
+            var user = await _context.Users.FindAsync(userId);
+            if (user is null || !user.Must_Change_Password || !user.Is_Active
+                || user.Invitation_Expires_At <= DateTime.UtcNow)
+                return BadRequest("The invitation is no longer active. Contact the platform administrator.");
+            if (string.IsNullOrEmpty(request.CurrentPassword)) return BadRequest("Enter the temporary password.");
+            using (var hmac = new System.Security.Cryptography.HMACSHA512(user.Password_Salt))
+            {
+                var entered = hmac.ComputeHash(Encoding.UTF8.GetBytes(request.CurrentPassword));
+                if (!CryptographicOperations.FixedTimeEquals(entered, user.Password_Hash))
+                    return BadRequest("The temporary password is incorrect.");
+            }
+            if (request.CurrentPassword == request.NewPassword)
+                return BadRequest("Choose a different password.");
+            _userHandler.CreatePasswordHash(request.NewPassword, out var hash, out var salt);
+            user.Password_Hash = hash;
+            user.Password_Salt = salt;
+            user.Must_Change_Password = false;
+            user.Invitation_Expires_At = null;
+            user.Security_Stamp = Guid.NewGuid().ToString("N");
+            user.Updated_At = DateTime.UtcNow;
+            _context.RefreshTokens.RemoveRange(_context.RefreshTokens.Where(x => x.User_Id == userId));
+            var onboarding = await _context.Society_Admin_Onboarding.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.User_Id == userId);
+            if (onboarding is not null)
+                _context.Society_Admin_Invitation_Audit.Add(new()
+                {
+                    Society_Id = onboarding.Society_Id, User_Id = userId, Actor_Id = userId,
+                    Event = "PasswordChanged", Occurred_At = user.Updated_At
+                });
+            await _context.SaveChangesAsync();
+            Response.Cookies.Delete("auth-token", CookieOptions());
+            Response.Cookies.Delete("refresh-token", CookieOptions());
+            return Ok(new { Message = "Password changed. Sign in with your new password." });
+        }
 
         [HttpPost("logout")]
         public IActionResult Logout()
@@ -241,33 +257,9 @@ namespace Infin8.Coapp.API.Controllers
             }
         }
 
-        [HttpPost]
-        [Route("GetJWt")]
-        public IActionResult Index([FromBody] LoginModel model)
-        {
-            if (model.Username == "Admin" && model.Password == "aaa123")
-            {
-                var claim = new[]
-                {
-                    new Claim(JwtRegisteredClaimNames.Sub,model.Username!),
-                    new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString())
-                };
-                var singningkey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("MySuperSecureKey"));
-                var token = new JwtSecurityToken(
-                    issuer: "https://localhost:7020",
-                    audience: "https://localhost:7020",
-                    expires: DateTime.UtcNow.AddHours(1),
-                    //claims:claims,
-                    signingCredentials: new Microsoft.IdentityModel.Tokens.SigningCredentials(singningkey, SecurityAlgorithms.HmacSha256)
-                    );
-                return Ok(new
-                {
-                    token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = token.ValidTo
-                });
-            }
-            return Unauthorized();
-        }
+        [HttpPost("GetJWt")]
+        public IActionResult GetJwt([FromBody] LoginModel model) =>
+            StatusCode(410, new { Message = "This demonstration token endpoint is disabled." });
 
         [Authorize]
         [HttpGet("me")]
@@ -316,5 +308,11 @@ namespace Infin8.Coapp.API.Controllers
     public class RevokeTokenRequest
     {
         public string? RefreshToken { get; set; }
+    }
+    public class ChangePasswordRequest
+    {
+        public string? CurrentPassword { get; set; }
+        public string? NewPassword { get; set; }
+        public string? ConfirmPassword { get; set; }
     }
 }

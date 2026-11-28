@@ -33,8 +33,11 @@ namespace Infin8.Coapp.BusinessLogic
             {
                 throw new UnauthorizedAccessException("Invalid credentials.");
             }
+            if (!user.Is_Active || user.Is_Account_Closed || user.Is_Locked
+                || (user.Must_Change_Password && user.Invitation_Expires_At <= DateTime.UtcNow))
+                throw new UnauthorizedAccessException("This account is unavailable. Contact the platform administrator.");
             
-            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username!, user.Role!,user.BrCode!,daybeginInfo.YearId,daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate,daybeginInfo.CalendarStatus! );
+            var accessToken = _jwtService.GenerateAccessToken(user.Id,user.Username!, user.Role!,user.BrCode!,daybeginInfo.YearId,daybeginInfo.YearBeginningDate,daybeginInfo.YearEndDate,daybeginInfo.CurrentDate,daybeginInfo.CalendarStatus!, user.Security_Stamp);
             var refreshToken = _jwtService.GenerateRefreshToken();
 
             var userRoles = (user.Role ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -89,13 +92,15 @@ namespace Infin8.Coapp.BusinessLogic
 
             // The refresh token belongs to a login user (users.id), not a member.
             var user = _unitOfWork.UserRepository.GetUserById(tokenEntity.User_Id);
-            if (user == null) throw new UnauthorizedAccessException("Invalid user.");
+            if (user == null || !user.Is_Active || user.Is_Account_Closed || user.Is_Locked
+                || user.Must_Change_Password)
+                throw new UnauthorizedAccessException("Account unavailable. Sign in again or change your password.");
 
             // Re-read the business day so a Day Begin / Day End since login is picked up.
             var daybeginInfo = await _unitOfWork.FinYearMaster.GetDayBeginInfo(user.BrCode ?? "");
             var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Username!, user.Role!, user.BrCode!,
                 daybeginInfo.YearId, daybeginInfo.YearBeginningDate, daybeginInfo.YearEndDate,
-                daybeginInfo.CurrentDate, daybeginInfo.CalendarStatus!);
+                daybeginInfo.CurrentDate, daybeginInfo.CalendarStatus!, user.Security_Stamp);
 
             // Rotate: the old refresh token stops working once the new one is issued.
             var newRefreshToken = _jwtService.GenerateRefreshToken();

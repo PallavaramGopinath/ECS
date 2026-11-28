@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 var builder = WebApplication.CreateBuilder(args);
 
 /// server client time out end
@@ -334,6 +335,45 @@ app.MapRazorComponents<App>()
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.Use(async (http, next) =>
+{
+    if (http.User.Identity?.IsAuthenticated == true
+        && decimal.TryParse(http.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+    {
+        var db = http.RequestServices.GetRequiredService<CSISContext>();
+        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId);
+        var claimStamp = http.User.FindFirstValue("SecurityStamp");
+        if (user is null || !user.Is_Active || user.Is_Account_Closed || user.Is_Locked
+            || (user.Security_Stamp is not null && user.Security_Stamp != claimStamp)
+            || user.BrCode != http.User.FindFirstValue("BrCode")
+            || !(user.Role ?? "").Split(',', StringSplitOptions.TrimEntries).SequenceEqual(
+                (http.User.FindFirstValue("Roles") ?? "").Split(',', StringSplitOptions.TrimEntries)))
+        {
+            http.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+        if (user.Must_Change_Password)
+        {
+            var path = http.Request.Path;
+            var allowed = path.StartsWithSegments("/change-password")
+                || path.StartsWithSegments("/api/Auth/change-password", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWithSegments("/api/Auth/me", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWithSegments("/api/Auth/logout", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWithSegments("/_framework")
+                || path.StartsWithSegments("/_content")
+                || path.StartsWithSegments("/css")
+                || path.StartsWithSegments("/js")
+                || path.StartsWithSegments("/lib");
+            if (!allowed)
+            {
+                if (path.StartsWithSegments("/api")) http.Response.StatusCode = StatusCodes.Status403Forbidden;
+                else http.Response.Redirect("/change-password");
+                return;
+            }
+        }
+    }
+    await next();
+});
 app.UseAuthorization();
 
 app.MapControllers();

@@ -32,5 +32,8 @@ namespace Infin8.Coapp.Models
         public DateTime? Reset_Token_Expires_At { get; set; }
         public string? BrCode { get; set; }
         public string? Role { get; set; }
+        public bool Must_Change_Password { get; set; }
+        public DateTime? Invitation_Expires_At { get; set; }
+        public string? Security_Stamp { get; set; }
     }
 }

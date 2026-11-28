@@ -70,6 +70,8 @@ namespace Infin8.Coapp.Repository
         public virtual DbSet<Refer_District> Refer_District { get; set; }
         public virtual DbSet<Bank_Master> Bank_Master { get; set; }
         public virtual DbSet<Users> Users { get; set; }
+        public virtual DbSet<Society_Admin_Onboarding> Society_Admin_Onboarding { get; set; }
+        public virtual DbSet<Society_Admin_Invitation_Audit> Society_Admin_Invitation_Audit { get; set; }
         public virtual DbSet<Refer_Constituency> Refer_Constituency { get; set; }
         #endregion 
 

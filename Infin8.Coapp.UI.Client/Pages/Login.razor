@@ -258,7 +258,9 @@
                 {
                     await cookieProvider.NotifyUserAuthenticationAsync();
                 }
-                NavigationManager.NavigateTo("/");
+                using var loginResult = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonDocument>();
+                var changeRequired = loginResult?.RootElement.TryGetProperty("mustChangePassword", out var flag) == true && flag.GetBoolean();
+                NavigationManager.NavigateTo(changeRequired ? "/change-password" : "/");
             }
             else
             {

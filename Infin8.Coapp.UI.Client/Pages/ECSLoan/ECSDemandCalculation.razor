@@ -397,7 +397,9 @@ else
         try
         {
             var userInfoDto = await Utilities.GetUserInfoDtoFromASP(AuthenticationStateProvider);
+            Console.WriteLine($"User info: {userInfoDto}");
             institution = userInfoDto.SocietyType.ToInstitutionType();
+            Console.WriteLine($"Institution type: {institution}");
             if (userInfoDto.CurrentDate > DateTime.MinValue) currentDate = userInfoDto.CurrentDate.Date;
             if (institution == InstitutionType.ECS) await LoadStateAsync(resetDueDate: true);
         }

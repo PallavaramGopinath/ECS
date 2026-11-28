@@ -1,0 +1,217 @@
+@page "/society-admin-onboarding"
+@using System.Net.Http.Json
+@using Infin8.Coapp.Dto
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "PlatformOnboarding")]
+@rendermode InteractiveWebAssembly
+@inject HttpClient Http
+
+<PageTitle>Society Admin onboarding</PageTitle>
+
+<div class="container-fluid py-4">
+    <h1 class="h3">Society Admin onboarding</h1>
+    <p>Select societies with signed agreements, then record each operational branch and designated administrator. Excel data upload and validation will be added after application testing.</p>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+
+    <div class="row g-2 align-items-end mb-3">
+        <div class="col-md-6">
+            <label for="societySearch" class="form-label">Search societies</label>
+            <input id="societySearch" class="form-control" @bind="search" @bind:event="oninput" @onkeydown="SearchOnEnter" placeholder="Name, code, region or circle" />
+        </div>
+        <div class="col-auto"><button class="btn btn-primary" @onclick="SearchAsync">Search</button></div>
+        <div class="col-auto"><button class="btn btn-outline-secondary" @onclick="ClearSelection">Clear selection</button></div>
+    </div>
+
+    <p class="mb-2"><strong>@selected.Count selected</strong> · @directory.Total societies found · Send up to 10 societies at a time.</p>
+    @if (loading)
+    {
+        <p>Loading societies…</p>
+    }
+    else
+    {
+        <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+            <table class="table table-sm table-striped align-middle">
+                <thead class="sticky-top bg-white"><tr><th scope="col">Select</th><th scope="col">Society</th><th scope="col">Code</th><th scope="col">Region / circle</th></tr></thead>
+                <tbody>
+                    @foreach (var item in directory.Items)
+                    {
+                        <tr>
+                            <td><input type="checkbox" class="form-check-input" aria-label="Select @item.SocietyName" checked="@selected.ContainsKey(item.SocietyId)" @onchange="e => Toggle(item, e.Value is true)" /></td>
+                            <td>@item.SocietyName</td>
+                            <td>@item.ProposedCode <small class="text-muted d-block">BrCode: @(item.BrCode ?? "Not mapped")</small></td>
+                            <td>@item.Region / @item.Circle</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex gap-2 align-items-center mt-2">
+            <button class="btn btn-outline-secondary btn-sm" disabled="@(page <= 1)" @onclick="PreviousAsync">Previous</button>
+            <span>Page @(page) of @Math.Max(1, (int)Math.Ceiling(directory.Total / 25.0))</span>
+            <button class="btn btn-outline-secondary btn-sm" disabled="@(page * 25 >= directory.Total)" @onclick="NextAsync">Next</button>
+        </div>
+    }
+
+    @if (selected.Count > 0)
+    {
+        <h2 class="h5 mt-4">Selected societies</h2>
+        <div class="mb-3">
+            @foreach (var item in selected.Values.OrderBy(x => x.SocietyName))
+            {
+                <div class="card mb-2"><div class="card-body">
+                    <h3 class="h6">@item.SocietyName (@item.ProposedCode) <span class="badge bg-secondary">@item.Status</span></h3>
+                    @if (!string.IsNullOrEmpty(item.LastError)) { <p class="text-danger">@item.LastError</p> }
+                    <div class="row g-2">
+                        <div class="col-md-2"><label class="form-label">Operational BrCode</label><input class="form-control" @bind="item.BrCode" /></div>
+                        <div class="col-md-3"><label class="form-label">Administrator name</label><input class="form-control" @bind="item.AdminName" /></div>
+                        <div class="col-md-3"><label class="form-label">Administrator email</label><input class="form-control" type="email" @bind="item.AdminEmail" /></div>
+                        <div class="col-md-2"><label class="form-label">Agreement reference</label><input class="form-control" @bind="item.AgreementReference" /></div>
+                        <div class="col-md-2"><label class="form-label">Agreement date</label><input class="form-control" type="date" @bind="item.AgreementDate" @bind:format="yyyy-MM-dd" /></div>
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="verified-@item.SocietyId" checked="@verified.Contains(item.SocietyId)" @onchange="e => SetVerified(item.SocietyId, e.Value is true)" />
+                        <label class="form-check-label" for="verified-@item.SocietyId">I checked the signed agreement and verified this administrator email.</label>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm mt-2" disabled="@(!verified.Contains(item.SocietyId) || busy)" @onclick="() => SaveDetailsAsync(item)">Save details</button>
+                </div></div>
+            }
+        </div>
+        <button class="btn btn-primary" disabled="@busy" @onclick="ReviewAsync">Review selected societies</button>
+        @if (review is not null)
+        {
+            <h2 class="h5 mt-4">Invitation review</h2>
+            <p>Only eligible societies will be sent an invitation. Each email contains a distinct temporary password and requires a change at first login.</p>
+            <div class="table-responsive"><table class="table table-sm">
+                <thead><tr><th>Society</th><th>BrCode</th><th>Recipient</th><th>Login ID</th><th>Readiness</th></tr></thead>
+                <tbody>@foreach (var row in review)
+                {
+                    <tr><td>@row.SocietyName</td><td>@row.BrCode</td><td>@row.AdminEmail</td><td>@row.LoginId</td><td>@(row.Problem ?? "Ready")</td></tr>
+                }</tbody>
+            </table></div>
+            <label class="form-label" for="confirmCount">Type the number of ready societies to confirm the recipients (@review.Count(x => x.Eligible))</label>
+            <input id="confirmCount" class="form-control" style="max-width: 8rem;" type="number" @bind="confirmedCount" />
+            <button class="btn btn-danger mt-2" disabled="@(busy || review.All(x => !x.Eligible) || confirmedCount != review.Count(x => x.Eligible))" @onclick="SendAsync">Send invitations</button>
+        }
+        @if (sendResults is not null)
+        {
+            <h2 class="h5 mt-4">Send results</h2>
+            <ul class="list-group">@foreach (var result in sendResults)
+            {
+                <li class="list-group-item">@selected[result.SocietyId].SocietyName: @result.Status — @result.Message</li>
+            }</ul>
+        }
+    }
+</div>
+
+@code {
+    private SocietyDirectoryPage directory = new();
+    private readonly Dictionary<long, SocietyDirectoryItem> selected = new();
+    private readonly HashSet<long> verified = new();
+    private List<SocietyInvitationReview>? review;
+    private List<SocietyInvitationResult>? sendResults;
+    private int confirmedCount;
+    private bool busy;
+    private string search = "";
+    private string? error;
+    private int page = 1;
+    private bool loading;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task SearchAsync()
+    {
+        page = 1;
+        await LoadAsync();
+    }
+
+    private async Task SearchOnEnter(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter") await SearchAsync();
+    }
+
+    private async Task PreviousAsync() { page--; await LoadAsync(); }
+    private async Task NextAsync() { page++; await LoadAsync(); }
+    private void ClearSelection() { selected.Clear(); review = null; sendResults = null; }
+    private void SetVerified(long id, bool value)
+    {
+        if (value) verified.Add(id); else verified.Remove(id);
+    }
+
+    private void Toggle(SocietyDirectoryItem item, bool isSelected)
+    {
+        if (isSelected) selected[item.SocietyId] = item;
+        else selected.Remove(item.SocietyId);
+        review = null;
+    }
+
+    private async Task SaveDetailsAsync(SocietyDirectoryItem item)
+    {
+        busy = true; error = null; review = null;
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/society-onboarding/details/{item.SocietyId}", new SocietyOnboardingDetails
+            {
+                SocietyId = item.SocietyId, BrCode = item.BrCode ?? "", AdminName = item.AdminName ?? "",
+                AdminEmail = item.AdminEmail ?? "", AgreementReference = item.AgreementReference ?? "",
+                AgreementDate = item.AgreementDate ?? default
+            });
+            if (!response.IsSuccessStatusCode) error = await response.Content.ReadAsStringAsync();
+            else item.Status = "Ready";
+        }
+        catch { error = "Details could not be saved."; }
+        finally { busy = false; }
+    }
+
+    private async Task ReviewAsync()
+    {
+        busy = true; error = null; confirmedCount = 0; sendResults = null;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/society-onboarding/review", selected.Keys.ToArray());
+            if (response.IsSuccessStatusCode) review = await response.Content.ReadFromJsonAsync<List<SocietyInvitationReview>>();
+            else error = await response.Content.ReadAsStringAsync();
+        }
+        catch { error = "The invitation review could not be loaded."; }
+        finally { busy = false; }
+    }
+
+    private async Task SendAsync()
+    {
+        if (review is null || confirmedCount != review.Count(x => x.Eligible)) return;
+        busy = true; error = null;
+        try
+        {
+            var ids = review.Where(x => x.Eligible).Select(x => x.SocietyId).ToArray();
+            var response = await Http.PostAsJsonAsync("api/society-onboarding/send", ids);
+            if (response.IsSuccessStatusCode)
+            {
+                sendResults = await response.Content.ReadFromJsonAsync<List<SocietyInvitationResult>>();
+                review = null;
+            }
+            else error = await response.Content.ReadAsStringAsync();
+        }
+        catch { error = "The send request failed. Review statuses before retrying."; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            var url = $"api/society-onboarding/societies?search={Uri.EscapeDataString(search)}&page={page}&pageSize=25";
+            directory = await Http.GetFromJsonAsync<SocietyDirectoryPage>(url) ?? new();
+        }
+        catch (Exception)
+        {
+            error = "The society directory could not be loaded. Check the database connection and try again.";
+            directory = new();
+        }
+        finally { loading = false; }
+    }
+}

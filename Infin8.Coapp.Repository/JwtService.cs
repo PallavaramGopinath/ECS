@@ -28,7 +28,7 @@ namespace Infin8.Coapp.Utility
 
         public CookieOptions GetCookieDeleteOptions();
         public ClaimsPrincipal ValidateToken(string token);
-        public string GenerateAccessToken(decimal userId, string username, string roles, string brCode, decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate, string calendarStatus);
+        public string GenerateAccessToken(decimal userId, string username, string roles, string brCode, decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate, string calendarStatus, string? securityStamp = null);
         public string GenerateRefreshToken();
         //public UserInfoDto GetUserInfoDto();
     }
@@ -64,7 +64,7 @@ namespace Infin8.Coapp.Utility
             return _accessTokenExpireMinutes;
         }
 
-        public string GenerateAccessToken(decimal userId, string username, string roles,string brCode,decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate,string calendarStatus)
+        public string GenerateAccessToken(decimal userId, string username, string roles,string brCode,decimal yrId, DateTime yrBeginningDate, DateTime yrEndDate, DateTime currentDate,string calendarStatus, string? securityStamp = null)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -91,6 +91,8 @@ namespace Infin8.Coapp.Utility
             {
                 claims.Add(new Claim(ClaimTypes.Role, role.Trim()));
             }
+            if (!string.IsNullOrEmpty(securityStamp))
+                claims.Add(new Claim("SecurityStamp", securityStamp));
 
             var token = new JwtSecurityToken(
                 issuer: _issuer,

@@ -1,0 +1,185 @@
+@page "/user-management"
+@using System.Net.Http.Json
+@using Infin8.Coapp.Dto
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize(Roles = "Admin,PlatformOnboarding")]
+@rendermode InteractiveWebAssembly
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>User management</PageTitle>
+<div class="container-fluid py-4">
+    <h1 class="h3">User management</h1>
+    <p>Manage users in the selected society. New users must change their temporary password within two days.</p>
+    @if (error is not null) { <div class="alert alert-danger" role="alert">@error</div> }
+    @if (message is not null) { <div class="alert alert-success" role="status">@message</div> }
+    @if (branches.Count > 1)
+    {
+        <div class="mb-3" style="max-width: 28rem;">
+            <label class="form-label">Society</label>
+            <select class="form-select" @bind="selectedBranch" @bind:after="BranchChangedAsync">
+                @foreach (var branch in branches)
+                {
+                    <option value="@branch.BrCode">@branch.Name (@branch.BrCode)</option>
+                }
+            </select>
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <h2 class="h5">Users</h2>
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var user in users)
+                        {
+                            <tr>
+                                <td>@user.Username<br /><small>@user.Email</small></td>
+                                <td>@user.FirstName @user.LastName</td>
+                                <td>@user.Role</td>
+                                <td>@(user.IsActive ? user.MustChangePassword ? "Password change due" : "Active" : "Inactive")</td>
+                                <td><button class="btn btn-outline-primary btn-sm" @onclick="() => Edit(user)">Edit</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <h2 class="h5">@(editingId is null ? "Create user" : "Modify user")</h2>
+            <div class="row g-2">
+                <div class="col-12"><label class="form-label">Username</label><input class="form-control" maxlength="50" @bind="form.Username" /></div>
+                <div class="col-12"><label class="form-label">Email</label><input class="form-control" type="email" @bind="form.Email" /></div>
+                <div class="col-sm-6"><label class="form-label">First name</label><input class="form-control" maxlength="50" @bind="form.FirstName" /></div>
+                <div class="col-sm-6"><label class="form-label">Last name</label><input class="form-control" maxlength="50" @bind="form.LastName" /></div>
+                <div class="col-sm-6"><label class="form-label">Mobile number</label><input class="form-control" inputmode="numeric" maxlength="10" @bind="form.MobileNumber" /></div>
+                <div class="col-sm-6"><label class="form-label">Role</label>
+                    <select class="form-select" @bind="form.Role">
+                        @foreach (var role in AvailableRoles) { <option value="@role">@role</option> }
+                    </select>
+                </div>
+                <div class="col-12"><label class="form-label">@(editingId is null ? "Temporary password" : "New temporary password (optional)")</label>
+                    <input class="form-control" type="password" autocomplete="new-password" @bind="form.TemporaryPassword" />
+                    <small>At least 12 characters with upper and lower case letters and a digit. Share it with the user through an approved channel.</small>
+                </div>
+                @if (editingId is not null)
+                {
+                    <div class="col-12"><label class="form-check-label"><input class="form-check-input me-2" type="checkbox" @bind="form.IsActive" />Active</label></div>
+                }
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-primary" disabled="@busy" @onclick="SaveAsync">@(editingId is null ? "Create" : "Save changes")</button>
+                <button class="btn btn-outline-secondary" disabled="@busy" @onclick="New">Clear</button>
+                @if (editingId is not null)
+                {
+                    <button class="btn btn-outline-danger ms-auto" disabled="@busy" @onclick="ConfirmDelete">Delete</button>
+                }
+            </div>
+            @if (deletePending)
+            {
+                <div class="alert alert-warning mt-3">
+                    Deactivate @form.Username and revoke their sessions?
+                    <button class="btn btn-danger btn-sm ms-2" disabled="@busy" @onclick="DeleteAsync">Confirm delete</button>
+                    <button class="btn btn-outline-secondary btn-sm ms-2" @onclick="() => deletePending = false">Cancel</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ManagedUserDto> users = new();
+    private List<ManagedBranchDto> branches = new();
+    private string selectedBranch = "";
+    private string ownBranch = "";
+    private ManagedUserRequest form = new();
+    private string[] roles = Array.Empty<string>();
+    private decimal? editingId;
+    private bool busy;
+    private bool deletePending;
+    private string? error;
+    private string? message;
+    private IEnumerable<string> AvailableRoles => selectedBranch == ownBranch
+        ? roles : roles.Where(x => x != "PlatformOnboarding");
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        ownBranch = state.User.FindFirst("BrCode")?.Value ?? "";
+        roles = state.User.IsInRole("PlatformOnboarding") ? ["Maker", "Checker", "Admin", "PlatformOnboarding"] : ["Maker", "Checker", "Admin"];
+        try
+        {
+            branches = await Http.GetFromJsonAsync<List<ManagedBranchDto>>("api/user-management/branches") ?? new();
+            selectedBranch = branches.FirstOrDefault()?.BrCode ?? "";
+        }
+        catch { error = "Unable to load societies."; }
+        New();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try { users = await Http.GetFromJsonAsync<List<ManagedUserDto>>($"api/user-management?brCode={Uri.EscapeDataString(selectedBranch)}") ?? new(); }
+        catch { error = "Unable to load users."; }
+    }
+
+    private async Task BranchChangedAsync()
+    {
+        New();
+        await LoadAsync();
+    }
+
+    private void New()
+    {
+        editingId = null;
+        deletePending = false;
+        form = new ManagedUserRequest { BrCode = selectedBranch, Role = AvailableRoles.FirstOrDefault() ?? "Maker", IsActive = true };
+    }
+
+    private void Edit(ManagedUserDto user)
+    {
+        editingId = user.Id;
+        deletePending = false;
+        form = new ManagedUserRequest { BrCode = user.BrCode, Username = user.Username, Email = user.Email,
+            FirstName = user.FirstName, LastName = user.LastName, MobileNumber = user.MobileNumber,
+            Role = user.Role, IsActive = user.IsActive };
+    }
+
+    private async Task SaveAsync()
+    {
+        busy = true; error = null; message = null;
+        try
+        {
+            var response = editingId is null
+                ? await Http.PostAsJsonAsync("api/user-management", form)
+                : await Http.PutAsJsonAsync($"api/user-management/{editingId}", form);
+            if (!response.IsSuccessStatusCode) { error = await response.Content.ReadAsStringAsync(); return; }
+            message = editingId is null ? "User created." : "User updated.";
+            New();
+            await LoadAsync();
+        }
+        catch { error = "Unable to save user."; }
+        finally { busy = false; }
+    }
+
+    private void ConfirmDelete() => deletePending = true;
+
+    private async Task DeleteAsync()
+    {
+        if (editingId is null) return;
+        busy = true; error = null; message = null;
+        try
+        {
+            var response = await Http.DeleteAsync($"api/user-management/{editingId}");
+            if (!response.IsSuccessStatusCode) { error = await response.Content.ReadAsStringAsync(); return; }
+            message = "User deactivated.";
+            New();
+            await LoadAsync();
+        }
+        catch { error = "Unable to delete user."; }
+        finally { busy = false; }
+    }
+}
