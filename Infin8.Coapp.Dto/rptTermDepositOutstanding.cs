@@ -8,7 +8,7 @@
         public DateTime MaturityDate { get; set; }
         public double RateOfInterest { get; set; }
         public bool IsCompoundInterest { get; set; }
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDScheme_Name { get; set; }
         public decimal Mem_Id { get; set; }
         public string? MemberNo { get; set; }

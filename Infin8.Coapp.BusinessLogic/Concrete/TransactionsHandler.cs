@@ -1351,12 +1351,14 @@ namespace Infin8.Coapp.BusinessLogic
                             break;
                         case 42:    /// Staff security deposit receipt
                             #region Security deposit creation
-                            TermDeposit_Schemes sdScheme = new();
+                            var sdScheme = (await _unitOfWork.TermDepositScheme.GetTermDepositSchemeListAsync(brCode))
+                                .SingleOrDefault(s => s.TDSchemeType == "S" && !s.TDScheme_Delete)
+                                ?? throw new InvalidOperationException("Security-deposit scheme is not configured for this society.");
                             TermDeposit_Master sdMaster = new TermDeposit_Master();
                             TermDeposit_Trn sdTrn = new TermDeposit_Trn();
                             TermDeposit_Members sdMember = new TermDeposit_Members();
                             DtoSecurityDepositData sdemp = new();
-                            int.TryParse(trns.BrCode + "306", out int schemeId);
+                            long schemeId = sdScheme.TDScheme_Id;
                             sdemp = Utility.JsonbObject.ConvertFromJsonForSecurityDeposit(trns.Related_Account_Data!);
                             sdMaster = Utility.GetModalObject.GetTermDepositMaster(0, "", schemeId, sdemp.Employee_Id, sdemp.Employee_Name!, sdemp.Age, 1,
                                 trns.Transacted_Date, trns.Transacted_Date, trns.Receipt_Amount, 0, 0, sdemp.RateOfInterest,
@@ -1381,7 +1383,6 @@ namespace Infin8.Coapp.BusinessLogic
 
 
                             Narration = sdemp.Employee_Name + " Security Deposit No " + newTDNo;
-                            sdScheme = await _unitOfWork.TermDepositScheme.GetTermDepositSchemeByIdAsync(schemeId);
                             vocTrn = new();
                             vocTrn = Utility.GetModalObject.GetFinVoucherTrObject(vocId, sdScheme.Led_Id, trns.Receipt_Amount, 0, trns.Cash_Or_Adjustment, Narration, false, Checked_By, sdemp.Yr_Id, Status, "SD No : " + newTDNo, sdemp.Employee_Id, trns.BrCode!, 0, 0, 0);
                             finVoucherTrns.Add(vocTrn);

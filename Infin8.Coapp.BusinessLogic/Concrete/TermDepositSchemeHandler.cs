@@ -51,7 +51,7 @@ namespace Infin8.Coapp.BusinessLogic
             return schemes;
         }
 
-        public async Task<TermDeposit_Schemes> GetTermDepositSchemeByIdAsync(int schemeId)
+        public async Task<TermDeposit_Schemes> GetTermDepositSchemeByIdAsync(long schemeId)
         {
             return await _unitOfWork.TermDepositScheme.GetTermDepositSchemeByIdAsync(schemeId);
         }

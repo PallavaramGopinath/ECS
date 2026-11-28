@@ -15,7 +15,7 @@ namespace Infin8.Coapp.BusinessLogic
             return _unitOfWork.Verify.VerifyDuplicateAccountNo(accountNo, tableName, searchField, deleteField);
         }
 
-        public bool VerifyNomenClature(string accountNo, string accountType, int loanSchemeId, string brCode, out string errorMessage)
+        public bool VerifyNomenClature(string accountNo, string accountType, long loanSchemeId, string brCode, out string errorMessage)
         {
             return _unitOfWork.Verify.VerifyNomenClature(accountNo, accountType, loanSchemeId, brCode, out errorMessage);
         }

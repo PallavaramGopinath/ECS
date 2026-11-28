@@ -51,22 +51,22 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public  async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestListAsync(int schemeId)
+        public  async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestListAsync(long schemeId)
         {
             return await  _unitOfWork.LoanROITemplate.GetLoanRateOfInterestListAsync(schemeId);
         }
        
-        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef)
+        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(long schemeId, string agency, DateTime wef)
         {
             return await _unitOfWork.LoanROITemplate.GetLoanROIAndPIFromTemplateAsync(schemeId, agency, wef);
         }
 
-        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef, string brCode)
+        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(long schemeId, string agency, DateTime wef, string brCode)
         {
             return  await _unitOfWork.LoanROITemplate.GetLoanROIAndPIFromTemplateAsync(schemeId, agency,wef,brCode);
         }
 
-        public async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestTemplateList(int schemeId,string brCode)
+        public async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestTemplateList(long schemeId,string brCode)
         {
             return await _unitOfWork.LoanROITemplate.GetLoanRateOfInterestTemplateList(schemeId,brCode);
         }

@@ -8,7 +8,7 @@
         public int SlNo { get; set; }
         public int Loan_Id { get; set; }
         public string? Loan_No { get; set; }
-        public int? RecScheme_Id { get; set; }
+        public long? RecScheme_Id { get; set; }
         public int DM_Id { get; set; }
         public string? Status { get; set; }
         public int Mem_Id { get; set; }

@@ -2,7 +2,7 @@
 {
     public class rptTermDepositPayable
     {
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDScheme_Name { get; set; }
         public string? TDSchemeType { get; set; }
         public decimal TD_Id { get; set; }

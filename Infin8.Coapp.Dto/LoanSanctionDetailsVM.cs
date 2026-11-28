@@ -10,7 +10,7 @@
         public string? MemberName { get; set; }
         public DateTime SanctionDate { get; set; }
         public double LoanAmount { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
     }
 }

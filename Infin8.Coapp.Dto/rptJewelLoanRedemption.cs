@@ -15,7 +15,7 @@ namespace Infin8.Coapp.Dto
         public string? MemberName { get; set; }
         public DateTime Disb_Date { get; set; }
         public double Disb_Amount { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public DateTime Trn_Date { get; set; }
         public double PrlColl_Amt { get; set; }

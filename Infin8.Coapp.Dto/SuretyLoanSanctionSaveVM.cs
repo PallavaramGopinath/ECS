@@ -14,7 +14,7 @@ namespace Infin8.Coapp.Dto
 
         public decimal Mem_Id { get; set; }
         public decimal SuretyMem_Id { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
 
         // Loan details
         public double LoanAmount { get; set; }

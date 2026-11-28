@@ -1,6 +1,7 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
+using Infin8.Coapp.Utility;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
 using System;
 using System.Collections.Generic;
@@ -29,14 +30,7 @@ namespace Infin8.Coapp.Repository
                 decimal maxId = await CSISContext.Staging_Details
                 .Where(x => x.BrCode == stagingDetails.BrCode)
                 .MaxAsync(x => (decimal?)x.Id) ?? 0;
-                if (maxId == 0)
-                {
-                    maxId = Convert.ToDecimal(stagingDetails.BrCode) * 10000000 + 1;
-                }
-                else
-                {
-                    maxId++;
-                }
+                maxId = BranchScopedId.Next(stagingDetails.BrCode!, maxId);
                 stagingDetails.Id = maxId;
                 stagingDetails.Staging_Id = stagingId;
                 // Ensure proper JSONB serialization
@@ -72,20 +66,13 @@ namespace Infin8.Coapp.Repository
                 decimal maxId = await CSISContext.Staging_Details
                 .Where(x => x.BrCode == brCode)
                 .MaxAsync(x => (decimal?)x.Id) ?? 0;
-                if (maxId == 0)
-                {
-                    maxId = Convert.ToDecimal(brCode) * 10000000 + 1;
-                }
-                else
-                {
-                    maxId++;
-                }
                 foreach (var stagingDetail in stagingDetails)
                 {
-                    // Assign the same maxId to all staging details
+                    if (stagingDetail.BrCode != brCode)
+                        throw new InvalidOperationException("Staging details must have the same BrCode.");
+                    maxId = BranchScopedId.Next(brCode, maxId);
                     stagingDetail.Id = maxId;
                     stagingDetail.Staging_Id = stagingId;
-                    maxId++; // Increment maxId for the next detail
                 }
                 
 

@@ -5,7 +5,7 @@
         public int Mem_Id { get; set; }
         public DateTime TrnDate { get; set; }
         public int Loan_Id { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public double DisbAmt { get; set; }
         public double PrlColl { get; set; }
         public double IntCalc { get; set; }

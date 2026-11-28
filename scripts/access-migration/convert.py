@@ -9,13 +9,42 @@ S, MDB = sys.argv[1], sys.argv[2]
 OUT = os.path.join(S, 'out'); os.makedirs(OUT, exist_ok=True)
 csv.field_size_limit(1 << 30)
 
-BR = '11005'
-PREFIX = 110050000000
+BR = os.environ.get('ECS_IMPORT_BRCODE', '11005')
+PREFIX = int(os.environ.get('ECS_IMPORT_ID_PREFIX', '110050000000'))
+APPEND = os.environ.get('ECS_IMPORT_APPEND') == '1'
+INT_OFFSET = int(os.environ.get('ECS_IMPORT_INT_OFFSET', '0'))
+SEED_SQL = os.environ.get('ECS_IMPORT_SEED_SQL')
 MAXRUN = 9999999
+
+# Integer keys have no room for the 12-digit numeric ID prefix. In append mode,
+# offset only tenant-owned integer keys and their matching references. Shared
+# enums, account transaction types, voucher types and loan categories stay as-is.
+TENANT_INT_COLUMNS = {
+    ('fin_gen_template', 'voc_id'),
+    ('fin_ledger_grp', 'grp_id'), ('fin_ledger_subgrp', 'grp_id'), ('fin_ledger', 'grp_id'),
+    ('fin_ledger_subgrp', 'subgrp_id'), ('fin_ledger', 'subgrp_id'),
+    ('deposit_masters', 'deposit_id'), ('deposit_options', 'deposit_id'),
+    ('deposit_roi_templates', 'deposit_id'), ('deposit_trn', 'deposit_id'),
+    ('mem_demand', 'deposit_id'), ('mem_collection_priority', 'deposit_id'),
+    ('loan_eligibility', 'loanelig_id'),
+    ('loan_schemes', 'scheme_id'), ('loan_master', 'scheme_id'),
+    ('loan_roi_template', 'scheme_id'), ('loan_sanction', 'scheme_id'),
+    ('mem_collection_priority', 'scheme_id'), ('mem_demand_master', 'scheme_id'),
+    ('loan_sanction_trn', 'recscheme_id'),
+    ('sbca_schemes', 'scheme_id'), ('sbca_master', 'scheme_id'),
+    ('termdeposit_schemes', 'tdscheme_id'), ('termdeposit_master', 'tdscheme_id'),
+    ('termdeposit_roi_template', 'tdscheme_id'),
+    ('refer_district', 'district_id'), ('refer_taluk', 'district_id'),
+    ('refer_area', 'district_id'), ('refer_taluk', 'taluk_id'),
+    ('refer_area', 'taluk_id'), ('loan_sanction_trn', 'dm_id'),
+}
 
 # --- tables never touched ------------------------------------------------------------------
 EXCLUDED = {'account_transactions', 'account_voctype', 'bank_master', 'business_day', 'gen_bank_name',
             'menu_forms', 'menu_main', 'menu_sub', 'pay_component_assignments', 'pay_components'}
+if APPEND:
+    # This is shared/global and has an integer primary key already populated by the first society.
+    EXCLUDED.add('fin_ledger_fnl')
 # app/config tables with no Access source that we keep
 KEEP = {'refresh_tokens', 'users', 'reports_master', 'reports_group', 'society_options', 'society_neft',
         'refer_constituency', 'map_general', 'map_suspenseaccounts', 'jl_max_limit', 'jl_loaneligible',
@@ -26,6 +55,7 @@ KEEP = {'refresh_tokens', 'users', 'reports_master', 'reports_group', 'society_o
 # --- PG metadata ---------------------------------------------------------------------------
 pg = collections.OrderedDict()
 for l in open(os.path.join(S, 'survey/pg_meta.txt')):
+    if not l.strip(): continue
     t, c, d, nul, dflt, pk = l.rstrip('\n').split('|')
     pg.setdefault(t, collections.OrderedDict())[c] = dict(type=d, notnull=(nul == 'NO'), default=dflt, pk=(pk == 'PK'))
 
@@ -143,6 +173,12 @@ COLMAP = {
         'total_demand2': 'totaldemandamount2',
     },
 }
+if APPEND:
+    # The TVS copy of this empty table does not carry emp_id.
+    COLMAP['emp_qualification'] = {}
+    COLMAP['fin_ledger_subgrp'] = {}
+    COLMAP['sbca_master'] = {}
+    COLMAP['lien_trn'] = {}
 # fin_voucher_bank: gvb_* -> fvb_*
 COLMAP['fin_voucher_bank'] = {c: 'gvb_' + c[4:] for c in pg['fin_voucher_bank'] if c.startswith('fvb_')}
 
@@ -221,6 +257,15 @@ for t, at in TABLE_MAP.items():
                     if typ == 'boolean': v = 't' if truthy(v) else 'f'
                     elif typ in NUMT:
                         if str(v).lower() in ('true', 'false'): v = '1' if truthy(v) else '0'
+                        if APPEND and typ == 'integer' and (t, c) in TENANT_INT_COLUMNS:
+                            try:
+                                iv = int(float(v))
+                                if iv > 0:
+                                    if INT_OFFSET <= 0 or INT_OFFSET + iv > 2147483647:
+                                        raise ValueError(f'invalid tenant integer ID {iv} for {t}.{c}')
+                                    v = str(INT_OFFSET + iv)
+                            except ValueError as ex:
+                                problems.append(f'{t}.{c}: {ex}')
                         if typ in ('integer', 'smallint', 'bigint') or is_id(c, typ):
                             try:
                                 fv = float(v); v = str(int(fv)) if fv == int(fv) else v
@@ -249,17 +294,22 @@ for t, at in TABLE_MAP.items():
 orphans = [t for t in pg if t not in EXCLUDED and t not in KEEP and t not in TABLE_MAP]
 
 with open(os.path.join(S, 'load.sql'), 'w') as f:
-    f.write('\\set ON_ERROR_STOP on\nBEGIN;\nSET session_replication_role = replica;\n')
-    for t in list(TABLE_MAP) + orphans:
-        f.write(f'DELETE FROM {t};\n')
+    f.write('\\set ON_ERROR_STOP on\nBEGIN;\n')
+    if not APPEND:
+        f.write('SET LOCAL session_replication_role = replica;\n')
+    if not APPEND:
+        for t in list(TABLE_MAP) + orphans:
+            f.write(f'DELETE FROM {t};\n')
     for t, cl in sql_tables:
         f.write(f"\\copy {t} ({', '.join(cl)}) FROM '{os.path.join(OUT, t + '.csv')}' WITH (FORMAT csv, NULL '\\N')\n")
+    if APPEND and SEED_SQL:
+        f.write(f'\\i {SEED_SQL}\n')
     f.write('COMMIT;\n')
-    for t in list(TABLE_MAP) + orphans: f.write(f'ANALYZE {t};\n')
+    for t in TABLE_MAP: f.write(f'ANALYZE {t};\n')
 
 with open(os.path.join(S, 'report.md'), 'w') as f:
-    f.write('# Tsis_MRF -> ECS conversion dry run\n\n')
-    f.write(f'Loaded tables: {len(TABLE_MAP)}; emptied (no Access source): {orphans}\n\nKept untouched: {sorted(EXCLUDED | KEEP)}\n\n')
+    f.write(f'# Access -> ECS conversion dry run for {BR}\n\n')
+    f.write(f'Loaded tables: {len(TABLE_MAP)}; append mode: {APPEND}; emptied (no Access source): {[] if APPEND else orphans}\n\nKept untouched: {sorted(EXCLUDED | KEEP)}\n\n')
     f.write('Access tables with no ECS target (not loaded): ' + str([a for a in acc_tables if a not in TABLE_MAP.values()]) + '\n\n')
     for t, at, n, cl, unm, unused, st, ov in report:
         f.write(f'## {t} <- {at}: {n} rows\n- ECS cols with no source: {unm}\n- Access cols dropped: {unused}\n')

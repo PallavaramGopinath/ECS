@@ -204,7 +204,7 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetJLPeriod/{schemeId:int}/{brCode}")]
-        public async Task<ActionResult<int>> GetJewelLoanPeriodOfLoan(int schemeId, string brCode)
+        public async Task<ActionResult<int>> GetJewelLoanPeriodOfLoan(long schemeId, string brCode)
         {
             int period = 0;
             try
@@ -238,7 +238,7 @@ namespace Infin8.Coapp.API.Controllers
         #region Rate of Interest
         [HttpGet]
         [Route("GetRateOfInterest")]
-        public async Task<ActionResult<LoanROIAndPIVM>> GetLoanRateOfInterest([FromQuery] int schemeId, [FromQuery] string agency, [FromQuery] DateTime wef, [FromQuery] string brCode)
+        public async Task<ActionResult<LoanROIAndPIVM>> GetLoanRateOfInterest([FromQuery] long schemeId, [FromQuery] string agency, [FromQuery] DateTime wef, [FromQuery] string brCode)
         {
             LoanROIAndPIVM roi = new LoanROIAndPIVM();
             try
@@ -263,7 +263,7 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetRateOfInterest/{schemeId:int}/{agency}/{wef}/{brCode}")]
-        public async Task<ActionResult<LoanROIAndPIVM>> GetLoanRateOfInterest(int schemeId, string agency, string wef, string brCode)
+        public async Task<ActionResult<LoanROIAndPIVM>> GetLoanRateOfInterest(long schemeId, string agency, string wef, string brCode)
         {
             LoanROIAndPIVM roi = new LoanROIAndPIVM();
             try
@@ -280,7 +280,7 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetLoanRateOfInterestList/{schemeId:int}/{brCode}")]
-        public async Task<ActionResult<List<Loan_Roi_Template>>> GetLoanRateOfInterestTemplateList(int schemeId, string brCode)
+        public async Task<ActionResult<List<Loan_Roi_Template>>> GetLoanRateOfInterestTemplateList(long schemeId, string brCode)
         {
             List<Loan_Roi_Template> roiList = new();
             var query = await  _loanROITemplateHandler.GetLoanRateOfInterestTemplateList(schemeId, brCode);

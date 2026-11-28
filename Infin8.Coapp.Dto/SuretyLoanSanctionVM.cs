@@ -64,7 +64,7 @@ namespace Infin8.Coapp.Dto
         public bool Found { get; set; }
         public string? Message { get; set; }
 
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public int Loan_Type { get; set; }
         public double LoanAmount { get; set; }       // default = Loan_Schemes.MaximumLoanAmount
@@ -108,7 +108,7 @@ namespace Infin8.Coapp.Dto
         public double Outstanding { get; set; }       // the amount recovered (loan_sanction_trn.receiptitem)
         public double CalcAmount { get; set; }
         public double ODAmount { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public int Loan_SlNo { get; set; }            // MAX(loan_trn.trn_slno) snapshot for §3.13
         public bool MatchSC { get; set; }
         /// <summary>True for rows added by hand (ledger + amount). Only these, and zero rows, can be removed.</summary>

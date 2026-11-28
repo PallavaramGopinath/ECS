@@ -12,7 +12,7 @@
         public string? ReferName { get; set; }
         public string? SectionCode { get; set; }
         public string? DemandType { get; set; }
-        public int? Scheme_Id { get; set; }
+        public long? Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public int? Acc_Id { get; set; } /// Loan_Id, DM_Id, TDScheme_Id, Led_Id(for share capital, due to, due by rec, due by demand)
         public string? Acc_No { get; set; }

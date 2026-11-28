@@ -1,5 +1,6 @@
 using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Infin8.Coapp.Utility;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infin8.Coapp.Repository
@@ -22,12 +23,12 @@ namespace Infin8.Coapp.Repository
                    orderby s.TDScheme_Name
                    select s).AsNoTracking().ToListAsync();
 
-        public async Task<TermDeposit_Schemes?> GetRdSchemeAsync(int schemeId, string brCode) =>
+        public async Task<TermDeposit_Schemes?> GetRdSchemeAsync(long schemeId, string brCode) =>
             await (from s in CSISContext.TermDeposit_Schemes
                    where s.TDScheme_Id == schemeId && s.BrCode == brCode && s.TDSchemeType == "R" && !s.TDScheme_Delete
                    select s).AsNoTracking().FirstOrDefaultAsync();
 
-        public async Task<List<TermDeposit_Roi_Template>> GetRoiRowsAsync(IEnumerable<int> schemeIds, string brCode)
+        public async Task<List<TermDeposit_Roi_Template>> GetRoiRowsAsync(IEnumerable<long> schemeIds, string brCode)
         {
             var ids = schemeIds.Distinct().ToList();
             return await (from r in CSISContext.TermDeposit_Roi_Template
@@ -106,17 +107,20 @@ namespace Infin8.Coapp.Repository
 
         public async Task<decimal> AddRdAsync(TermDeposit_Master master, List<TermDeposit_Members> members)
         {
-            decimal tdId = (await CSISContext.TermDeposit_Master.Select(x => (decimal?)x.TD_Id).MaxAsync() ?? 0);
-            if (CSISContext.TermDeposit_Master.Local.Any())
-                tdId = Math.Max(tdId, CSISContext.TermDeposit_Master.Local.Max(x => x.TD_Id));
-            master.TD_Id = tdId + 1;
+            string brCode = master.BrCode ?? throw new InvalidOperationException("RD BrCode is required.");
+            decimal tdId = await CSISContext.TermDeposit_Master
+                .Where(x => x.BrCode == brCode).Select(x => (decimal?)x.TD_Id).MaxAsync() ?? 0;
+            var localMasters = CSISContext.TermDeposit_Master.Local.Where(x => x.BrCode == brCode);
+            if (localMasters.Any()) tdId = Math.Max(tdId, localMasters.Max(x => x.TD_Id));
+            master.TD_Id = BranchScopedId.Next(brCode, tdId);
 
-            decimal memIdMax = (await CSISContext.TermDeposit_Members.Select(x => (decimal?)x.TDMem_Id).MaxAsync() ?? 0);
-            if (CSISContext.TermDeposit_Members.Local.Any())
-                memIdMax = Math.Max(memIdMax, CSISContext.TermDeposit_Members.Local.Max(x => x.TDMem_Id));
+            decimal memIdMax = await CSISContext.TermDeposit_Members
+                .Where(x => x.BrCode == brCode).Select(x => (decimal?)x.TDMem_Id).MaxAsync() ?? 0;
+            var localMembers = CSISContext.TermDeposit_Members.Local.Where(x => x.BrCode == brCode);
+            if (localMembers.Any()) memIdMax = Math.Max(memIdMax, localMembers.Max(x => x.TDMem_Id));
             foreach (var m in members)
             {
-                m.TDMem_Id = ++memIdMax;
+                m.TDMem_Id = memIdMax = BranchScopedId.Next(brCode, memIdMax);
                 m.TD_Id = master.TD_Id;
             }
 

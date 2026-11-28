@@ -74,7 +74,7 @@ namespace Infin8.Coapp.BusinessLogic
         /// the value date. No row → 0 (no penal).
         /// </summary>
         private static double PenalRate(List<TermDeposit_Roi_Template> templates, DtoEcsRdReceiptLine rd) =>
-            templates.Where(t => t.TDScheme_Id == (int)rd.TDScheme_Id
+            templates.Where(t => t.TDScheme_Id == (long)rd.TDScheme_Id
                                  && t.PeriodBegin <= rd.PeriodInMonths && rd.PeriodInMonths <= t.PeriodEnd
                                  && t.Wef.Date <= rd.ValueDate.Date)
                      .OrderBy(t => t.Wef)

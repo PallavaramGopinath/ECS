@@ -12,16 +12,16 @@ namespace Infin8.Coapp.Repository
         /// <summary>Sets mem_master.dob only when it is empty. False when not found or already set.</summary>
         Task<bool> SetMemberDobAsync(decimal memId, DateTime dob, string brCode);
         Task<EcsPayDetailsVM> GetPayDetailsAsync(decimal memId, string brCode);
-        Task<Loan_Schemes?> GetSchemeAsync(int schemeId, string brCode);
+        Task<Loan_Schemes?> GetSchemeAsync(long schemeId, string brCode);
         /// <summary>Latest ROI / PI from Loan_Roi_Template (agency "S", Wef ≤ asOn). Null when none.</summary>
-        Task<(double roi, double pi)?> GetRoiAsync(int schemeId, DateTime asOn, string brCode);
-        Task<List<int>> GetDeductableSchemeIdsAsync(int schemeId, string brCode);
+        Task<(double roi, double pi)?> GetRoiAsync(long schemeId, DateTime asOn, string brCode);
+        Task<List<long>> GetDeductableSchemeIdsAsync(long schemeId, string brCode);
 
         // ----- checks -----
-        Task<bool> ExistsSanctionOnDateAsync(decimal memId, int schemeId, DateTime date, string[] statuses,
+        Task<bool> ExistsSanctionOnDateAsync(decimal memId, long schemeId, DateTime date, string[] statuses,
             decimal excludeSanctionId, string brCode);
         /// <summary>MAX(loan_master.san_date) for member + scheme (§3.5).</summary>
-        Task<DateTime?> GetLastLoanSanctionDateAsync(decimal memId, int schemeId, string brCode);
+        Task<DateTime?> GetLastLoanSanctionDateAsync(decimal memId, long schemeId, string brCode);
         Task<List<string>> GetSubsequentTransactionMessagesAsync(decimal sanctionId, string brCode);
 
         // ----- recoverable sources -----

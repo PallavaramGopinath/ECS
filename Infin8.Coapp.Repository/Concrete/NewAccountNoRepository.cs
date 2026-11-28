@@ -116,7 +116,7 @@ namespace Infin8.Coapp.Repository
             }
             return MemNoString;
         }
-        public async Task<string> NewLoanNoAsync(int schemeId, string brCode)
+        public async Task<string> NewLoanNoAsync(long schemeId, string brCode)
         {
             string loanNo = "";
             int lengthOfLoanNo = 15;
@@ -170,7 +170,7 @@ namespace Infin8.Coapp.Repository
             }
             return loanNo;
         }
-        public async Task<string> NewTDNoAsync(int schemeId, string brCode)
+        public async Task<string> NewTDNoAsync(long schemeId, string brCode)
         {
             //errorMessage = "";
             string maxNo = "";
@@ -183,9 +183,14 @@ namespace Infin8.Coapp.Repository
                                    select td.TD_No).MaxAsync();
                     if (maxTdNo == null)
                     {
-                        if (schemeId < Convert.ToInt32(brCode + 400)) maxNo = Convert.ToInt16(brCode) + "030000001";
-                        if (schemeId >= Convert.ToInt32(brCode + 400) && schemeId < Convert.ToInt16(brCode + 500)) maxNo = brCode + "040000001";
-                        if (schemeId >= Convert.ToInt32(brCode + 500)) maxNo = brCode + "050000001";
+                        var schemeType = await CSISContext.TermDeposit_Schemes
+                            .Where(s => s.TDScheme_Id == schemeId && s.BrCode == brCode)
+                            .Select(s => s.TDSchemeType).FirstOrDefaultAsync();
+                        if (schemeType == null)
+                            throw new InvalidOperationException("Term-deposit scheme was not found for this society.");
+                        var productCode = schemeType == "R" ? "04" :
+                            schemeType is "F" or "C" or "S" ? "03" : "05";
+                        maxNo = brCode + productCode + "0000001";
                     }
                     else
                     {
@@ -201,7 +206,7 @@ namespace Infin8.Coapp.Repository
             }
             return maxNo;
         }
-        public async Task<(string newSBNo, string errorMessage)> NewSBNoAsyncWithErrorMessage(int schemeId, string brCode)
+        public async Task<(string newSBNo, string errorMessage)> NewSBNoAsyncWithErrorMessage(long schemeId, string brCode)
         {
             string errorMessage = "";
             string newSBNo = "";
@@ -214,12 +219,11 @@ namespace Infin8.Coapp.Repository
 
                 if (maxAccNo == null)
                 {
-                    if (schemeId == 7) maxNo = brCode + "010000001";
-                    if (schemeId == 8) maxNo = brCode + "020000001";
+                    maxNo = brCode + await GetSbProductCodeAsync(schemeId, brCode) + "0000001";
                 }
                 else
                 {
-                    int.TryParse(maxNo, out int newMaxNo);
+                    long.TryParse(maxAccNo, out long newMaxNo);
                     newMaxNo++;
                     maxNo = newMaxNo.ToString();
                 }
@@ -233,7 +237,7 @@ namespace Infin8.Coapp.Repository
             return (newSBNo , errorMessage);
         }
 
-        public async Task<string> NewSBNoAsync(int schemeId, string brCode)
+        public async Task<string> NewSBNoAsync(long schemeId, string brCode)
         {
             string newSBNo = "";
             string maxNo = "";
@@ -245,12 +249,11 @@ namespace Infin8.Coapp.Repository
 
                 if (maxAccNo == null)
                 {
-                    if (schemeId == 7) maxNo = brCode + "010000001";
-                    if (schemeId == 8) maxNo = brCode + "020000001";
+                    maxNo = brCode + await GetSbProductCodeAsync(schemeId, brCode) + "0000001";
                 }
                 else
                 {
-                    int.TryParse(maxNo, out int newMaxNo);
+                    long.TryParse(maxAccNo, out long newMaxNo);
                     newMaxNo++;
                     maxNo = newMaxNo.ToString();
                 }
@@ -263,6 +266,15 @@ namespace Infin8.Coapp.Repository
             }
             return newSBNo;
         }
+
+        private async Task<string> GetSbProductCodeAsync(long schemeId, string brCode)
+        {
+            var name = await CSISContext.SBCA_Schemes
+                .Where(s => s.Scheme_Id == schemeId && s.BrCode == brCode && !s.SBCA_Delete)
+                .Select(s => s.SBCA_Name).FirstOrDefaultAsync();
+            if (name == null)
+                throw new InvalidOperationException("Savings/current-account scheme was not found for this society.");
+            return name.Contains("CURRENT", StringComparison.OrdinalIgnoreCase) ? "02" : "01";
+        }
     }
 }
-

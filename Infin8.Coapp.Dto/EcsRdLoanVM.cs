@@ -15,7 +15,7 @@ namespace Infin8.Coapp.Dto
         public DateTime ApplicationDate { get; set; }      // business day = sanction / disbursement date
         public int CashOrAdjustment { get; set; }          // 1 cash, >1 adjustment
 
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? SchemeName { get; set; }
         public string? ProvisionalLoanNo { get; set; }     // display only; allocated at approval
         public string? LoanNo { get; set; }                // filled by the View after approval, if read back
@@ -38,7 +38,7 @@ namespace Infin8.Coapp.Dto
     {
         public decimal TD_Id { get; set; }
         public string? TD_No { get; set; }
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public double Instalment { get; set; }
         public DateTime ValueDate { get; set; }
         public int PeriodInMonths { get; set; }
@@ -55,7 +55,7 @@ namespace Infin8.Coapp.Dto
     public class EcsRdLoanSetupVM
     {
         public DateTime ApplicationDate { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? SchemeName { get; set; }
         public string? ProvisionalLoanNo { get; set; }
         public double EligPer { get; set; }

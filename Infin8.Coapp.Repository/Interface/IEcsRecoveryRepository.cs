@@ -31,7 +31,7 @@ namespace Infin8.Coapp.Repository
         Task<int> GetMaxRecoveryIdAsync(string brCode);
         Task<List<EcsRecoveryLedgerRow>> GetLedgersAsync(string brCode);
         Task<decimal?> GetLastDebitLedgerAsync(decimal officeId, string brCode);
-        Task<Dictionary<int, Loan_Schemes>> GetSchemesAsync(IEnumerable<int> schemeIds, string brCode);
+        Task<Dictionary<long, Loan_Schemes>> GetSchemesAsync(IEnumerable<long> schemeIds, string brCode);
         Task<Dictionary<int, (decimal LedId, decimal PiLedId)>> GetDepositLedgersAsync(string brCode);
         Task<Dictionary<decimal, decimal>> GetRdLedgersAsync(IEnumerable<decimal> tdIds, string brCode);
         Task<Dictionary<decimal, DateTime>> GetLastLoanTrnDatesAsync(IEnumerable<decimal> loanIds, string brCode);
@@ -118,7 +118,7 @@ namespace Infin8.Coapp.Repository
     public class EcsRecoveryRdRow
     {
         public decimal TdId { get; set; }
-        public int SchemeId { get; set; }
+        public long SchemeId { get; set; }
         public DateTime ValueDate { get; set; }
         public int PeriodInMonths { get; set; }
         public double Instalment { get; set; }
@@ -134,7 +134,7 @@ namespace Infin8.Coapp.Repository
     {
         public decimal LoanId { get; set; }
         public decimal MemId { get; set; }
-        public int SchemeId { get; set; }
+        public long SchemeId { get; set; }
         public DateTime? SanDate { get; set; }
         public double Disb { get; set; }
         public double PrlColl { get; set; }

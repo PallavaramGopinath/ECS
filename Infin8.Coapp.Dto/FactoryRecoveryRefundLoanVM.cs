@@ -5,7 +5,7 @@
         public int Trn_Id { get; set; }
         public int Loan_Id { get; set; }
         public int Demand_Id { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public int PrlLed_Id { get; set; }
         public int IntLed_Id { get; set; }

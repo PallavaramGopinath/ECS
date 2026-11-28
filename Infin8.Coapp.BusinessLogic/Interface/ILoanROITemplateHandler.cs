@@ -10,11 +10,11 @@ namespace Infin8.Coapp.BusinessLogic
 {
     public interface ILoanROITemplateHandler
     {
-        Task<List<Loan_Roi_Template>> GetLoanRateOfInterestListAsync(int schemeId);
+        Task<List<Loan_Roi_Template>> GetLoanRateOfInterestListAsync(long schemeId);
         Task<bool> AddLoanROIAsync(Loan_Roi_Template roiTemplate);
         Task<bool> EditLoanROIAsync(Loan_Roi_Template roiTemplate);
-        Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef);
-        Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef, string brCode);
-        Task<List<Loan_Roi_Template>> GetLoanRateOfInterestTemplateList(int schemeId,string brCode);
+        Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(long schemeId, string agency, DateTime wef);
+        Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(long schemeId, string agency, DateTime wef, string brCode);
+        Task<List<Loan_Roi_Template>> GetLoanRateOfInterestTemplateList(long schemeId,string brCode);
     }
 }

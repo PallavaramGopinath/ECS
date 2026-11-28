@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Infin8.Coapp.Utility;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel;
 
@@ -14,8 +15,10 @@ namespace Infin8.Coapp.Repository
 
         public bool AddLoanScheme(Loan_Schemes loanScheme)
         {
-            int maxId = CSISContext.Loan_Schemes.Max(x => x.Scheme_Id);
-            loanScheme.Scheme_Id = maxId;
+            string brCode = loanScheme.BrCode ?? throw new InvalidOperationException("Scheme BrCode is required.");
+            long maxId = CSISContext.Loan_Schemes.Where(x => x.BrCode == brCode)
+                .Select(x => (long?)x.Scheme_Id).Max() ?? 0;
+            loanScheme.Scheme_Id = decimal.ToInt64(BranchScopedId.Next(brCode, maxId));
             Add(loanScheme);
             return true;
         }
@@ -25,9 +28,10 @@ namespace Infin8.Coapp.Repository
             bool result = false;
             try
             {
-                int maxId = await CSISContext.Loan_Schemes.MaxAsync(x => x.Scheme_Id);
-                maxId++;
-                loanScheme.Scheme_Id = maxId;
+                string brCode = loanScheme.BrCode ?? throw new InvalidOperationException("Scheme BrCode is required.");
+                long maxId = await CSISContext.Loan_Schemes.Where(x => x.BrCode == brCode)
+                    .MaxAsync(x => (long?)x.Scheme_Id) ?? 0;
+                loanScheme.Scheme_Id = decimal.ToInt64(BranchScopedId.Next(brCode, maxId));
                 await AddAsync(loanScheme);
                 result = true;
             }
@@ -254,7 +258,7 @@ namespace Infin8.Coapp.Repository
             return await Task.FromResult(list);
         }
 
-        public async Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId,string brCode)
+        public async Task<Loan_Schemes> GetLoanSchemesAsync(long schemeId,string brCode)
         {
             Loan_Schemes loanSchemes = new Loan_Schemes();
             try
@@ -289,7 +293,7 @@ namespace Infin8.Coapp.Repository
             return list;
         }
 
-        public async Task<int> GetPeriodOfLoan(int schemeId,string brCode)
+        public async Task<int> GetPeriodOfLoan(long schemeId,string brCode)
         {
             int period = 0;
             try
@@ -358,4 +362,3 @@ namespace Infin8.Coapp.Repository
 
     }
 }
-

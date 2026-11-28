@@ -20,7 +20,7 @@ namespace Infin8.Coapp.Dto
         public string? Applicant_Name { get; set; }
         public int Applicant_Status { get; set; }
         public int MyProperty { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public int Security_Type { get; set; }
         public string? Loan_No { get; set; }
 

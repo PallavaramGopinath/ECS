@@ -1,4 +1,5 @@
 using Infin8.Coapp.Models;
+using Infin8.Coapp.Utility;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infin8.Coapp.Repository
@@ -37,7 +38,7 @@ namespace Infin8.Coapp.Repository
                           select (double?)e.Elig_Per).FirstOrDefaultAsync();
         }
 
-        public async Task<double?> GetRoiMarginAsync(int schemeId, string brCode, DateTime asOn)
+        public async Task<double?> GetRoiMarginAsync(long schemeId, string brCode, DateTime asOn)
         {
             var day = asOn.Date.AddDays(1);
             return await (from r in CSISContext.Loan_Roi_Template
@@ -127,7 +128,7 @@ namespace Infin8.Coapp.Repository
         {
             // Ids are branch-prefixed (brcode + 7-digit serial), so MAX is taken within the branch and never below the
             // branch's zero id (brcode + 0000000) — as EcsLoanDisbursementRepository.CreateIdAllocatorAsync does.
-            decimal zero = decimal.TryParse(brCode + "0000000", out var z) ? z : 0;
+            decimal zero = BranchScopedId.Floor(brCode);
             decimal Floor(decimal? v) => Math.Max(v ?? 0, zero);
 
             return new EcsRdLoanIdAllocator(CSISContext, brCode)
@@ -167,7 +168,7 @@ namespace Infin8.Coapp.Repository
     {
         private readonly CSISContext _ctx;
         private readonly string _brCode;
-        private readonly Dictionary<int, long> _loanNo = new();
+        private readonly Dictionary<long, long> _loanNo = new();
 
         internal EcsRdLoanIdAllocator(CSISContext ctx, string brCode)
         {
@@ -177,11 +178,11 @@ namespace Infin8.Coapp.Repository
 
         internal decimal LoanId, DisbId, RoiId, LienId, LienTrId;
 
-        public decimal NextLoanId() => ++LoanId;
-        public decimal NextDisbId() => ++DisbId;
-        public decimal NextRoiId() => ++RoiId;
-        public decimal NextLienId() => ++LienId;
-        public decimal NextLienTrId() => ++LienTrId;
+        public decimal NextLoanId() => LoanId = BranchScopedId.Next(_brCode, LoanId);
+        public decimal NextDisbId() => DisbId = BranchScopedId.Next(_brCode, DisbId);
+        public decimal NextRoiId() => RoiId = BranchScopedId.Next(_brCode, RoiId);
+        public decimal NextLienId() => LienId = BranchScopedId.Next(_brCode, LienId);
+        public decimal NextLienTrId() => LienTrId = BranchScopedId.Next(_brCode, LienTrId);
 
         /// <summary>§5: allocated at approval.</summary>
         public async Task<string> NextLoanNoAsync(Loan_Schemes scheme)

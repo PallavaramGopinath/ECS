@@ -172,14 +172,14 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<Loan_Schemes?> GetSchemeAsync(int schemeId, string brCode)
+        public async Task<Loan_Schemes?> GetSchemeAsync(long schemeId, string brCode)
         {
             return await (from s in CSISContext.Loan_Schemes
                           where s.Scheme_Id == schemeId && !s.Scheme_Delete && s.BrCode == brCode
                           select s).FirstOrDefaultAsync();
         }
 
-        public async Task<(double roi, double pi)?> GetRoiAsync(int schemeId, DateTime asOn, string brCode)
+        public async Task<(double roi, double pi)?> GetRoiAsync(long schemeId, DateTime asOn, string brCode)
         {
             var row = await (from r in CSISContext.Loan_Roi_Template
                              where r.Scheme_Id == schemeId && r.Agency == "S" && r.Wef <= asOn
@@ -189,7 +189,7 @@ namespace Infin8.Coapp.Repository
             return row == null ? null : (row.Roi, row.Pi);
         }
 
-        public async Task<List<int>> GetDeductableSchemeIdsAsync(int schemeId, string brCode)
+        public async Task<List<long>> GetDeductableSchemeIdsAsync(long schemeId, string brCode)
         {
             return await (from d in CSISContext.Loan_Scheme_Deduction_Rules
                           where d.Scheme_Id == schemeId && d.Is_Active && d.BrCode == brCode
@@ -200,7 +200,7 @@ namespace Infin8.Coapp.Repository
         // Checks
         // =====================================================================
 
-        public async Task<bool> ExistsSanctionOnDateAsync(decimal memId, int schemeId, DateTime date, string[] statuses,
+        public async Task<bool> ExistsSanctionOnDateAsync(decimal memId, long schemeId, DateTime date, string[] statuses,
             decimal excludeSanctionId, string brCode)
         {
             var day = date.Date;
@@ -214,7 +214,7 @@ namespace Infin8.Coapp.Repository
                           select s.LoanSanction_Id).AnyAsync();
         }
 
-        public async Task<DateTime?> GetLastLoanSanctionDateAsync(decimal memId, int schemeId, string brCode)
+        public async Task<DateTime?> GetLastLoanSanctionDateAsync(decimal memId, long schemeId, string brCode)
         {
             return await (from l in CSISContext.Loan_Master
                           where l.Mem_Id == memId && l.Scheme_Id == schemeId && !l.Loan_Delete && l.BrCode == brCode
@@ -571,14 +571,17 @@ namespace Infin8.Coapp.Repository
             int eligMax = await (from e in CSISContext.Loan_Eligibility select (int?)e.LoanElig_Id).MaxAsync() ?? 0;
             eligibility.LoanElig_Id = eligMax + 1;
 
-            decimal sancMax = await (from s in CSISContext.Loan_Sanction select (decimal?)s.LoanSanction_Id).MaxAsync() ?? 0;
-            sanction.LoanSanction_Id = sancMax + 1;
+            string brCode = sanction.BrCode ?? throw new InvalidOperationException("Sanction BrCode is required.");
+            decimal sancMax = await CSISContext.Loan_Sanction
+                .Where(s => s.BrCode == brCode).MaxAsync(s => (decimal?)s.LoanSanction_Id) ?? 0;
+            sanction.LoanSanction_Id = BranchScopedId.Next(brCode, sancMax);
             sanction.LoanElig_Id = eligibility.LoanElig_Id;
 
-            decimal trnMax = await (from t in CSISContext.Loan_Sanction_Trn select (decimal?)t.LoanSanctionTr_Id).MaxAsync() ?? 0;
+            decimal trnMax = await CSISContext.Loan_Sanction_Trn
+                .Where(t => t.BrCode == brCode).MaxAsync(t => (decimal?)t.LoanSanctionTr_Id) ?? 0;
             foreach (var t in trnList)
             {
-                t.LoanSanctionTr_Id = ++trnMax;
+                t.LoanSanctionTr_Id = trnMax = BranchScopedId.Next(brCode, trnMax);
                 t.LoanSanction_Id = sanction.LoanSanction_Id;
                 t.LoanElig_Id = eligibility.LoanElig_Id;
             }

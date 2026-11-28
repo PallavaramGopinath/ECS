@@ -16,7 +16,7 @@ namespace Infin8.Coapp.Repository
         Task<FDRenewalObject> GetFDRnewalObjectByMemIdAsync(decimal memId);
         Task<DateTime> GetMaxMaturityDate(decimal[] tdIds, DateTime toDate);
         Task<List<FDDataForLoan>> GetFDDetailsForLoan(decimal[] tdIds);
-        Task<string> GetNewTDNo(int schemeId);
+        Task<string> GetNewTDNo(long schemeId);
 
     }
 }

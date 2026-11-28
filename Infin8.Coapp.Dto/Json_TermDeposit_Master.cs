@@ -8,7 +8,7 @@ namespace Infin8.Coapp.Dto
 {
     public class Json_TermDeposit_Master
     {
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDH_name { get; set; }
         public int  TDH_Age { get; set; }
         public int Mode_Of_Opration { get; set; }

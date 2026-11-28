@@ -18,7 +18,7 @@
         public double NetAmount { get; set; }
         public string? SBAccountNo { get; set; }
         public string? BankName { get; set; }
-        public int RecScheme_Id { get; set; }
+        public long RecScheme_Id { get; set; }
         public double BP50Percentage { get; set; }
         public DateTime? DORMember { get; set; }
         public DateTime? DORSuretyMember { get; set; }

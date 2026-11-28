@@ -11,7 +11,7 @@ namespace Infin8.Coapp.Models
         public decimal Loan_Id { get; set; }
         public decimal Mem_Id { get; set; }
         public decimal SuretyMem_Id { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public int Inst_Type { get; set; }
         public int SuretyShareCapitalAmount { get; set; }
         public Nullable<System.DateTime> SanctionDate { get; set; }

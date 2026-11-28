@@ -3,7 +3,7 @@
     public class TDRateOfInterstDto
     {
         public decimal Roi_Id { get; set; }
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDScheme_Name { get; set; }
         public DateTime Wef { get; set; }
         public string? PeriodType { get; set; }

@@ -6,7 +6,7 @@ namespace Infin8.Coapp.Models
     public partial class TermDeposit_Schemes
     {
         [Key]
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
 
         [Required(ErrorMessage = "Scheme name is required")]
         [StringLength(100, ErrorMessage = "Scheme name cannot exceed 100 characters")]

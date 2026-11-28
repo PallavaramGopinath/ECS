@@ -1,4 +1,5 @@
 using Infin8.Coapp.Models;
+using Infin8.Coapp.Utility;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infin8.Coapp.Repository
@@ -220,7 +221,7 @@ namespace Infin8.Coapp.Repository
                           select (decimal?)t.Led_Id).FirstOrDefaultAsync();
         }
 
-        public async Task<Dictionary<int, Loan_Schemes>> GetSchemesAsync(IEnumerable<int> schemeIds, string brCode)
+        public async Task<Dictionary<long, Loan_Schemes>> GetSchemesAsync(IEnumerable<long> schemeIds, string brCode)
         {
             var ids = schemeIds.Distinct().ToList();
             var rows = await (from s in CSISContext.Loan_Schemes
@@ -276,7 +277,7 @@ namespace Infin8.Coapp.Repository
         public async Task<EcsRecoveryIdAllocator> CreateIdAllocatorAsync(string brCode)
         {
             // Ids are branch-prefixed (brcode + 7-digit serial): MAX within the branch, never below the zero id.
-            decimal zero = decimal.TryParse(brCode + "0000000", out var z) ? z : 0;
+            decimal zero = BranchScopedId.Floor(brCode);
             decimal Floor(decimal? v) => Math.Max(v ?? 0, zero);
 
             return new EcsRecoveryIdAllocator(CSISContext, brCode)
@@ -617,15 +618,15 @@ namespace Infin8.Coapp.Repository
 
         internal decimal LineId, VocId, VocTrnId, FvbId, LoanTrnId, DepositTrnId, MemTrnId, RdTrnId;
 
-        public decimal ZeroId => decimal.TryParse(_brCode + "0000000", out var z) ? z : 0;
-        public decimal NextLineId() => ++LineId;
-        public decimal NextVocId() => ++VocId;
-        public decimal NextVocTrnId() => ++VocTrnId;
-        public decimal NextFvbId() => ++FvbId;
-        public decimal NextLoanTrnId() => ++LoanTrnId;
-        public decimal NextDepositTrnId() => ++DepositTrnId;
-        public decimal NextMemTrnId() => ++MemTrnId;
-        public decimal NextRdTrnId() => ++RdTrnId;
+        public decimal ZeroId => BranchScopedId.Floor(_brCode);
+        public decimal NextLineId() => LineId = BranchScopedId.Next(_brCode, LineId);
+        public decimal NextVocId() => VocId = BranchScopedId.Next(_brCode, VocId);
+        public decimal NextVocTrnId() => VocTrnId = BranchScopedId.Next(_brCode, VocTrnId);
+        public decimal NextFvbId() => FvbId = BranchScopedId.Next(_brCode, FvbId);
+        public decimal NextLoanTrnId() => LoanTrnId = BranchScopedId.Next(_brCode, LoanTrnId);
+        public decimal NextDepositTrnId() => DepositTrnId = BranchScopedId.Next(_brCode, DepositTrnId);
+        public decimal NextMemTrnId() => MemTrnId = BranchScopedId.Next(_brCode, MemTrnId);
+        public decimal NextRdTrnId() => RdTrnId = BranchScopedId.Next(_brCode, RdTrnId);
 
         public async Task PrimeSerialsAsync(IEnumerable<decimal> loanIds, IEnumerable<decimal> memIds, IEnumerable<decimal> tdIds)
         {

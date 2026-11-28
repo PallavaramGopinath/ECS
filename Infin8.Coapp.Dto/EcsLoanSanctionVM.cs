@@ -31,7 +31,7 @@ namespace Infin8.Coapp.Dto
     {
         public decimal MemId { get; set; }
         public decimal SuretyMemId { get; set; }
-        public int SchemeId { get; set; }
+        public long SchemeId { get; set; }
         public double LoanAmount { get; set; }
         public int PeriodOfLoan { get; set; }
         public double Roi { get; set; }
@@ -80,7 +80,7 @@ namespace Infin8.Coapp.Dto
     {
         public decimal LoanId { get; set; }
         public string? LoanNo { get; set; }
-        public int SchemeId { get; set; }
+        public long SchemeId { get; set; }
         public string? Purpose { get; set; }
         public double LoanOS { get; set; }
         public double PrlOD { get; set; }
@@ -139,7 +139,7 @@ namespace Infin8.Coapp.Dto
         public string? MemberName { get; set; }
         public DateTime? SanctionDate { get; set; }
         public double LoanAmount { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? SchemeName { get; set; }
         /// <summary>Σ recoverables (loan_sanction.totalreceiptamount) — spec 10 grid.</summary>
         public double TotalReceiptAmount { get; set; }
@@ -180,7 +180,7 @@ namespace Infin8.Coapp.Dto
     {
         public decimal Loan_Id { get; set; }
         public string? Loan_No { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public int Loan_Type { get; set; }
         public decimal PrlLed_Id { get; set; }

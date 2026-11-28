@@ -2,7 +2,7 @@
 {
     public  class DashBoardLoanCollection
     {
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public double PrlColl_Amt { get; set; }
         public double IntColl_Amt { get; set; }

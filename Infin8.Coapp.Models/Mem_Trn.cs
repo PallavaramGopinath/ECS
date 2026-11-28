@@ -20,9 +20,9 @@ namespace Infin8.Coapp.Models
         public decimal Usr_Id { get; set; }
         public decimal Yr_Id { get; set; }
         public int Trn_SlNo { get; set; }
-        public int IntCalc_Amt { get; set; }
+        public double IntCalc_Amt { get; set; }
         public DateTime? IntCalc_Date { get; set; }
-        public int IntPaid_Amt { get; set; }
+        public double IntPaid_Amt { get; set; }
         public int Amt_CB { get; set; }
         public int Int_CB { get; set; }
         public int Amt_OB { get; set; }

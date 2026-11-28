@@ -80,7 +80,7 @@ namespace Infin8.Coapp.Repository
 
         public async Task<List<TermDeposit_Roi_Template>> GetPenalTemplatesAsync(IEnumerable<decimal> schemeIds, string brCode)
         {
-            var ids = schemeIds.Select(x => (int)x).Distinct().ToList();
+            var ids = schemeIds.Select(x => (long)x).Distinct().ToList();
             return await (from r in CSISContext.TermDeposit_Roi_Template
                           where ids.Contains(r.TDScheme_Id) && !r.TDRoi_Delete && r.PeriodType == "M" && r.BrCode == brCode
                           select r).AsNoTracking().ToListAsync();

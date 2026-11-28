@@ -445,7 +445,7 @@ namespace Infin8.Coapp.Repository
             return securityDeposit;
         }
 
-        public async Task<SecurityDepositVM> CalculateSecurityDepositInterest(decimal empId,int schemeId, string brCode)
+        public async Task<SecurityDepositVM> CalculateSecurityDepositInterest(decimal empId,long schemeId, string brCode)
         {
             SecurityDepositVM securityDeposit = new();
             try

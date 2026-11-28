@@ -654,17 +654,17 @@
         Navigation.NavigateTo("/loanproducts/create");
     }
 
-    private void ViewLoan(int schemeId)
+    private void ViewLoan(long schemeId)
     {
         Navigation.NavigateTo($"/loanproducts/view/{schemeId}");
     }
 
-    private void EditLoan(int schemeId)
+    private void EditLoan(long schemeId)
     {
         Navigation.NavigateTo($"/loanproducts/edit/{schemeId}");
     }
 
-    private async Task DeleteLoan(int schemeId)
+    private async Task DeleteLoan(long schemeId)
     {
         // TODO: Implement delete confirmation and logic
         var loan = allLoans.FirstOrDefault(l => l.Scheme_Id == schemeId);

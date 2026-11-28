@@ -13,10 +13,10 @@ namespace Infin8.Coapp.Dto
         public double? Rpt_Amt { get; set; }
         public double? Pmt_Amt { get; set; }
         public double? Bal_Amt { get; set; }
-        public int? IntCalc_Amt { get; set; }
+        public double? IntCalc_Amt { get; set; }
         public DateTime? IntCalc_Date { get; set; }
-        public int? IntPaid_Amt { get; set; }
-        public int? IntBal_Amt { get; set; }
+        public double? IntPaid_Amt { get; set; }
+        public double? IntBal_Amt { get; set; }
         public decimal Voc_Id  { get; set; }
         public int Trn_SlNo { get; set; }
         public decimal Yr_Id { get; set; }

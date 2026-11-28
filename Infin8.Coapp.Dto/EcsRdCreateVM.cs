@@ -15,7 +15,7 @@ namespace Infin8.Coapp.Dto
         public string? MemberName { get; set; }
         public DateTime ApplicationDate { get; set; }      // business day = AccountOpenDate
         public int CashOrAdjustment { get; set; }          // 1 cash, >1 adjustment (as voc_Trn_Type)
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDScheme_Name { get; set; }
         public string? ProvisionalTD_No { get; set; }      // display only; allocated on approval
         public DateTime ValueDate { get; set; }
@@ -50,7 +50,7 @@ namespace Infin8.Coapp.Dto
     /// <summary>An RD scheme offered by the component (spec 15 §4.1).</summary>
     public class DtoEcsRdScheme
     {
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDScheme_Name { get; set; }
         public int MinimumPeriod { get; set; }
         public int MaximumPeriod { get; set; }

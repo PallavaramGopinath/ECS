@@ -107,7 +107,7 @@ namespace Infin8.Coapp.BusinessLogic
                 {
                     TD_Id = rd.TD_Id,
                     TD_No = rd.TD_No?.Trim(),
-                    TDScheme_Id = (int)rd.TDScheme_Id,
+                    TDScheme_Id = (long)rd.TDScheme_Id,
                     Instalment = rd.Instalment,
                     ValueDate = rd.ValueDate,
                     PeriodInMonths = rd.PeriodInMonths,

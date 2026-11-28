@@ -146,7 +146,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanTrn.GetLoanDetailsListByLoanIdsHSISAsync(loanIds,trnDate,intCalcType ,societyType);
         }
 
-        public async Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(int schemeId)
+        public async Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(long schemeId)
         {
             return await _unitOfWork.LoanTrn.GetLoanHavingOSItemsBySchemeIdAsync(schemeId);
         }

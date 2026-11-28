@@ -9,7 +9,7 @@ namespace Infin8.Coapp.Models
         [Key]
         public decimal TD_Id { get; set; }
         public string? TD_No { get; set; }
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public decimal Mem_Id { get; set; }
         public string? TDH_Name { get; set; }
         public int TDH_Age { get; set; }

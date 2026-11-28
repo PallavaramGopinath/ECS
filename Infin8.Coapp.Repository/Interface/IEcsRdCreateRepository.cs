@@ -10,10 +10,10 @@ namespace Infin8.Coapp.Repository
         Task<List<TermDeposit_Schemes>> GetRdSchemesAsync(string brCode);
 
         /// <summary>The branch's RD scheme <paramref name="schemeId"/>, or null when missing, deleted or not an RD scheme.</summary>
-        Task<TermDeposit_Schemes?> GetRdSchemeAsync(int schemeId, string brCode);
+        Task<TermDeposit_Schemes?> GetRdSchemeAsync(long schemeId, string brCode);
 
         /// <summary>Non-deleted ROI rows of the given schemes in the branch (all period types; the calculator filters 'M').</summary>
-        Task<List<TermDeposit_Roi_Template>> GetRoiRowsAsync(IEnumerable<int> schemeIds, string brCode);
+        Task<List<TermDeposit_Roi_Template>> GetRoiRowsAsync(IEnumerable<long> schemeIds, string brCode);
 
         /// <summary>Member by id, branch-filtered, with the status flags of §7.3.</summary>
         Task<DtoEcsRdMember?> GetMemberByIdAsync(decimal memId, string brCode);

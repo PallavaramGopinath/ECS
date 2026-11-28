@@ -13,7 +13,7 @@
         public int OfficeId { get; set; }
         public string? ReferName { get; set; }
         public string? DemandType { get; set; }
-        public int? Scheme_Id { get; set; }
+        public long? Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public int? DM_Id { get; set; } 
         public string? DMName { get; set; }

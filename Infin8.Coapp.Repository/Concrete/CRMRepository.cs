@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Infin8.Coapp.Utility;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infin8.Coapp.Repository
@@ -14,17 +15,19 @@ namespace Infin8.Coapp.Repository
 
         public async Task<bool> AddMember(mem_master member)
         {
-            decimal maxId = await CSISContext.mem_master.MaxAsync(x => x.mem_id);
-            maxId++;
-            member.mem_id = maxId;
+            string brCode = member.brcode ?? throw new InvalidOperationException("Member BrCode is required.");
+            decimal maxId = await CSISContext.mem_master
+                .Where(x => x.brcode == brCode).MaxAsync(x => (decimal?)x.mem_id) ?? 0;
+            member.mem_id = BranchScopedId.Next(brCode, maxId);
             Add(member);
             return true;
         }
         public async Task<decimal> AddMemberMaster(mem_master member)
         {
-            decimal maxId = await CSISContext.mem_master.MaxAsync(x => x.mem_id);
-            maxId++;
-            member.mem_id = maxId;
+            string brCode = member.brcode ?? throw new InvalidOperationException("Member BrCode is required.");
+            decimal maxId = await CSISContext.mem_master
+                .Where(x => x.brcode == brCode).MaxAsync(x => (decimal?)x.mem_id) ?? 0;
+            member.mem_id = maxId = BranchScopedId.Next(brCode, maxId);
             await AddAsync  (member);
             CSISContext.SaveChanges();
             return maxId;
@@ -166,4 +169,3 @@ namespace Infin8.Coapp.Repository
     }
 
 }
-

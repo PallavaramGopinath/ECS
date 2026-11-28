@@ -71,7 +71,7 @@ namespace Infin8.Coapp.BusinessLogic
                 {
                     TD_Id = rd.TD_Id,
                     TD_No = rd.TD_No?.Trim(),
-                    TDScheme_Id = (int)rd.TDScheme_Id,
+                    TDScheme_Id = (long)rd.TDScheme_Id,
                     Instalment = rd.Instalment,
                     ValueDate = rd.ValueDate,
                     PeriodInMonths = rd.PeriodInMonths,
@@ -100,7 +100,7 @@ namespace Infin8.Coapp.BusinessLogic
 
         /// <summary>Spec 14 §6.1 as settled: the scheme's monthly row whose band holds the RD's period, latest Wef ≤ value date.</summary>
         private static double PenalRate(List<TermDeposit_Roi_Template> templates, DtoEcsRdReceiptLine rd) =>
-            templates.Where(t => t.TDScheme_Id == (int)rd.TDScheme_Id
+            templates.Where(t => t.TDScheme_Id == (long)rd.TDScheme_Id
                                  && t.PeriodBegin <= rd.PeriodInMonths && rd.PeriodInMonths <= t.PeriodEnd
                                  && t.Wef.Date <= rd.ValueDate.Date)
                      .OrderBy(t => t.Wef)

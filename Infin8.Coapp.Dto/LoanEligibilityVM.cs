@@ -4,7 +4,7 @@ namespace Infin8.Coapp.Dto
     public class LoanEligibilityInputVM
     {
         public decimal Mem_Id { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? BrCode { get; set; }
 
         public double LoanAmount { get; set; }

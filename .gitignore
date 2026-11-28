@@ -367,3 +367,4 @@ FodyWeavers.xsd
 # reference only. The build depends on the ReportViewerCore.NETCore NuGet
 # package, not on this folder.
 /ReportViewer/
+.db-backups/

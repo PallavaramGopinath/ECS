@@ -55,7 +55,7 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<bool> IsLoanSchemeReferedInLoanMaster(int schemeId)
+        public async Task<bool> IsLoanSchemeReferedInLoanMaster(long schemeId)
         {
             bool result = false;
             try
@@ -70,7 +70,7 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<string> GetNewLoanNo(int schemeId)
+        public async Task<string> GetNewLoanNo(long schemeId)
         {
             return await _unitOfWork.LoanMaster.GetNewLoanNo(schemeId);
         }

@@ -23,7 +23,7 @@ namespace Infin8.Coapp.API.Controllers
         }
         [HttpGet]
         [Route("NewTDNo/{schemeId:int}/{brCode}")]
-        public async Task<ActionResult<string>> GetNewTDNo(int schemeId, string brCode)
+        public async Task<ActionResult<string>> GetNewTDNo(long schemeId, string brCode)
         {
             string newTDNo = await _newAccountNoHandler.NewTDNoAsync(schemeId, brCode);
             if (string.IsNullOrWhiteSpace(newTDNo)) return NotFound();
@@ -31,7 +31,7 @@ namespace Infin8.Coapp.API.Controllers
         }
         [HttpGet]
         [Route("NewLoanNo/{schemeId:int}/{brCode}")]
-        public async Task<ActionResult<string>> GetNewLoanNo(int schemeId, string brCode)
+        public async Task<ActionResult<string>> GetNewLoanNo(long schemeId, string brCode)
         {
             string newTDNo = await _newAccountNoHandler.NewTDNoAsync(schemeId, brCode);
             if (string.IsNullOrWhiteSpace(newTDNo)) return NotFound();
@@ -39,7 +39,7 @@ namespace Infin8.Coapp.API.Controllers
         }
         [HttpGet]
         [Route("NewSBNo/{schemeId:int}/{brCode}")]
-        public async Task<ActionResult<string>> GetNewSBNo(int schemeId, string brCode)
+        public async Task<ActionResult<string>> GetNewSBNo(long schemeId, string brCode)
         {
             string newTDNo = await _newAccountNoHandler.NewSBNoAsync(schemeId, brCode);
             if (string.IsNullOrWhiteSpace(newTDNo)) return NotFound();

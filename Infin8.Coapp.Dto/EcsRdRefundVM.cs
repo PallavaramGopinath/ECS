@@ -26,7 +26,7 @@ namespace Infin8.Coapp.Dto
     {
         public decimal TD_Id { get; set; }
         public string? TD_No { get; set; }
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public double Instalment { get; set; }
         public DateTime ValueDate { get; set; }
         public int PeriodInMonths { get; set; }

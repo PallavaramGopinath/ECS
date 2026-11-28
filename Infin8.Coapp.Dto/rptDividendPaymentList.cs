@@ -6,6 +6,6 @@
         public string? PerNo { get; set; }
         public string? MemberName { get; set; }
         public string? DividendYear { get; set; }
-        public int DividendPaid { get; set; }
+        public double DividendPaid { get; set; }
     }
 }

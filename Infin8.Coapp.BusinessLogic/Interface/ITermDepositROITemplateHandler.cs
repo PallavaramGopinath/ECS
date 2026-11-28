@@ -14,9 +14,9 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<TermDeposit_Roi_Template>> AddTermDepositROITemplateList(List<TermDeposit_Roi_Template> termDepositList);
         Task<List<TermDeposit_Roi_Template>> EditTermDepositROITemplateAsync(TermDeposit_Roi_Template termDepositROITemplate);
         Task<List<TDRateOfInterstDto>> GetTermDepositROITemplateListAsync(string[] tdSchemeTypeList);
-        Task<double> GetROIForTermDepositAsync(DateTime depositDate, int schemeId, int prdInMonths, int prdInDays, string brCode);
-        Task<double> GetPIForRDAsync(DateTime depositDate, int schemeId, int prdInMonths, int prdInDays, string brCode);
+        Task<double> GetROIForTermDepositAsync(DateTime depositDate, long schemeId, int prdInMonths, int prdInDays, string brCode);
+        Task<double> GetPIForRDAsync(DateTime depositDate, long schemeId, int prdInMonths, int prdInDays, string brCode);
         Task<List<TermDeposit_Roi_Template>> GetTermDepositRateOfInterestList(string SchemeType, string brCode);
-        Task<double> GetSecurityDepositRoi(int schemeId, DateTime toDate, string brCode);
+        Task<double> GetSecurityDepositRoi(long schemeId, DateTime toDate, string brCode);
     }
 }

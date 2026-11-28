@@ -8,7 +8,7 @@ namespace Infin8.Coapp.Models
     {
         [Key]
         public decimal Roi_Id { get; set; }
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDHolderType { get; set; }
         public DateTime Wef { get; set; }
         public double Roi { get; set; }

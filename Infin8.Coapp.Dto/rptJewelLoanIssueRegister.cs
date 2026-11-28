@@ -11,7 +11,7 @@
         public double GrossWeight { get; set; }
         public double NetWeight { get; set; }
         public double NetValue { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         
     }

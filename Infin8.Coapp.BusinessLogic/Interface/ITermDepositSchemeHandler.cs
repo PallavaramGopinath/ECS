@@ -13,7 +13,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<List<TermDeposit_Schemes>> AddTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme);
         Task<List<TermDeposit_Schemes>> EditTermDepositSchemeAsync(TermDeposit_Schemes termDepositScheme);
         Task<List<DropdownItem>> GetTermDepositSchemeTypesAsync();
-        Task<TermDeposit_Schemes> GetTermDepositSchemeByIdAsync(int schemeId);
+        Task<TermDeposit_Schemes> GetTermDepositSchemeByIdAsync(long schemeId);
         Task<List<TermDeposit_Schemes>> GetTermDepositSchemeListAsync(string brCode);
         Task<List<DropdownItem>> GetTermDepositSchemeListBySchemeTypeArrayAsync(string[] schemeTypes, string brCode);
     }

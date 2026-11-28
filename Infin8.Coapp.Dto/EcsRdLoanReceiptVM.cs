@@ -26,7 +26,7 @@ namespace Infin8.Coapp.Dto
     {
         public decimal Loan_Id { get; set; }
         public string? Loan_No { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public DateTime DisbursedOn { get; set; }
         public double Disbursed { get; set; }
         public double Roi { get; set; }

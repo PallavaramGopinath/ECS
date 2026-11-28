@@ -8,7 +8,7 @@
         public string? MemberNo { get; set; }
         public string? PerNo { get; set; }
         public string? MemberName { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public double Roi { get; set; }
         public int Prl_Prd { get; set; }

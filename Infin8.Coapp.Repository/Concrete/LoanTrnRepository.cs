@@ -98,7 +98,7 @@ namespace Infin8.Coapp.Repository
         }
         #endregion 
 
-        public async Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(int schemeId)
+        public async Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(long schemeId)
         {
             List<DropdownItem> result = new List<DropdownItem>();
             try

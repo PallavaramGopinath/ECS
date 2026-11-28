@@ -12,7 +12,7 @@
         public int OfficeId { get; set; }
         public string? ReferName { get; set; }
         public string? SectionCode { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? SL_LoanNo { get; set; }
         public DateTime SL_San_date { get; set; }
         public double SL_San_amt { get; set; }

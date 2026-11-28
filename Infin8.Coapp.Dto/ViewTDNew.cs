@@ -9,7 +9,7 @@
         public string? FatherName { get; set; }
         public int TD_Id { get; set; }
         public string? TD_No { get; set; }
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDScheme_Name { get; set; }
         public string? TDH_Name { get; set; }
         public DateTime ValueDate { get; set; }

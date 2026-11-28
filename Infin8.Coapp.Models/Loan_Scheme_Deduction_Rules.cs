@@ -7,8 +7,8 @@ namespace Infin8.Coapp.Models
     {
         [Key]
         public BigInteger Rule_Id { get; set; }
-        public int Scheme_Id { get; set; }
-        public int Deductable_Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
+        public long Deductable_Scheme_Id { get; set; }
         public bool Is_Active { get; set; }
         public decimal Usr_Id { get; set; }
         public decimal Yr_Id { get; set; }

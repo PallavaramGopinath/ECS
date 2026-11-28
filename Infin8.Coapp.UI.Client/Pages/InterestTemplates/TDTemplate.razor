@@ -710,7 +710,7 @@
         }
     }
 
-    private string GetSchemeName(int schemeId) =>
+    private string GetSchemeName(long schemeId) =>
         Schemes.FirstOrDefault(s => s.TDScheme_Id == schemeId)?.TDScheme_Name ?? "Unknown";
 
     private async Task ShowCreateModal()

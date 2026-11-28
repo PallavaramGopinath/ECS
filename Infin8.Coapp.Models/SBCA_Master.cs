@@ -7,7 +7,7 @@ namespace Infin8.Coapp.Models
     {
         [Key]
         public decimal Acc_Id { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public decimal Mem_Id { get; set; }
         public string? Acc_No { get; set; }
         public int Acc_Status { get; set; }

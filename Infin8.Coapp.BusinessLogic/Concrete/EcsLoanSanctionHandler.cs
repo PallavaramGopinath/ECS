@@ -87,7 +87,7 @@ namespace Infin8.Coapp.BusinessLogic
             return member;
         }
 
-        public async Task<SuretyLoanSchemeDefaultsVM> GetSchemeDefaultsAsync(int schemeId, decimal memId,
+        public async Task<SuretyLoanSchemeDefaultsVM> GetSchemeDefaultsAsync(long schemeId, decimal memId,
             decimal excludeSanctionId, DateTime asOn, string brCode)
         {
             var repo = _unitOfWork.EcsLoanSanction;
@@ -170,7 +170,7 @@ namespace Infin8.Coapp.BusinessLogic
             return d;
         }
 
-        private async Task<List<SanctionWarningVM>> GetSchemeWarningsAsync(decimal memId, int schemeId,
+        private async Task<List<SanctionWarningVM>> GetSchemeWarningsAsync(decimal memId, long schemeId,
             decimal excludeSanctionId, DateTime asOn, int minInstalments, string brCode)
         {
             var repo = _unitOfWork.EcsLoanSanction;
@@ -344,7 +344,7 @@ namespace Infin8.Coapp.BusinessLogic
             return result;
         }
 
-        public async Task<EcsSuretyDetailsVM> GetSuretyDetailsAsync(int schemeId, decimal suretyMemId, string brCode)
+        public async Task<EcsSuretyDetailsVM> GetSuretyDetailsAsync(long schemeId, decimal suretyMemId, string brCode)
         {
             var scheme = await _unitOfWork.EcsLoanSanction.GetSchemeAsync(schemeId, brCode);
             if (scheme == null || !IsEcsScheme(scheme.Loan_Type)) return new EcsSuretyDetailsVM();

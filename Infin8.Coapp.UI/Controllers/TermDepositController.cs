@@ -62,7 +62,7 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("GetTDROI")]
-        public async Task<ActionResult<double>> GetTDROI([FromQuery] DateTime depositDate, [FromQuery] int schemeId, [FromQuery] int prdInMonths, [FromQuery] int prdInDays, string brCode)
+        public async Task<ActionResult<double>> GetTDROI([FromQuery] DateTime depositDate, [FromQuery] long schemeId, [FromQuery] int prdInMonths, [FromQuery] int prdInDays, string brCode)
         {
             double roi = 0;
             roi = await _termDepositROITemplateHandler.GetROIForTermDepositAsync(depositDate, schemeId, prdInMonths, prdInDays, brCode);
@@ -228,7 +228,7 @@ namespace Infin8.Coapp.API.Controllers
 
         [HttpGet]
         [Route("CalculateSecurityDepositInterest/{empId:decimal}/{schemeId:int}/{toDate}/{brCode}")]
-        public async Task<ActionResult<SecurityDepositVM>> CalculateSecurityDepositInterest(decimal empId, int schemeId, string toDate, string brCode)
+        public async Task<ActionResult<SecurityDepositVM>> CalculateSecurityDepositInterest(decimal empId, long schemeId, string toDate, string brCode)
         {
             SecurityDepositVM securityDeposit = new();
             DateTime.TryParse(toDate.ToString(), out DateTime toDt);

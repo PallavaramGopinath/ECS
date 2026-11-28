@@ -32,7 +32,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositROITemplate.EditTermDepositROITemplateAsync(termDepositROITemplate);
         }
 
-        public async Task<double> GetROIForTermDepositAsync(DateTime depositDate, int schemeId, int prdInMonths, int prdInDays, string brCode)
+        public async Task<double> GetROIForTermDepositAsync(DateTime depositDate, long schemeId, int prdInMonths, int prdInDays, string brCode)
         {
             return await _unitOfWork.TermDepositROITemplate.GetROIForTermDepositAsync(depositDate, schemeId, prdInMonths, prdInDays,brCode );
         }
@@ -41,7 +41,7 @@ namespace Infin8.Coapp.BusinessLogic
         {
             return await _unitOfWork.TermDepositROITemplate.GetTermDepositROITemplateListAsync(tdSchemeTypeList);
         }
-        public async Task<double> GetPIForRDAsync(DateTime depositDate, int schemeId, int prdInMonths, int prdInDays, string brCode)
+        public async Task<double> GetPIForRDAsync(DateTime depositDate, long schemeId, int prdInMonths, int prdInDays, string brCode)
         {
             return await _unitOfWork.TermDepositROITemplate.GetPIForRDAsync(depositDate,schemeId, prdInMonths,brCode );
         }
@@ -51,7 +51,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositROITemplate.GetTermDepositRateOfInterestList(SchemeType, brCode);
         }
 
-        public async Task<double> GetSecurityDepositRoi(int schemeId, DateTime toDate, string brCode)
+        public async Task<double> GetSecurityDepositRoi(long schemeId, DateTime toDate, string brCode)
         {
             return await _unitOfWork.TermDepositROITemplate.GetSecurityDepositRoi(schemeId, toDate, brCode);
         }

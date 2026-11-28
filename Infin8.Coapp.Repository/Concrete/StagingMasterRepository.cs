@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
+using Infin8.Coapp.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,18 +33,10 @@ namespace Infin8.Coapp.Repository
                 //.Select(x => x.Staging_Id)
                 //.DefaultIfEmpty(0)
                 //.MaxAsync();
-                var hasRecords = await CSISContext.Staging_Master
-                .AnyAsync(x => x.BrCode == stagingMaster.BrCode);
-
-                maxId = hasRecords
-                    ? await CSISContext.Staging_Master
-                        .Where(x => x.BrCode == stagingMaster.BrCode)
-                        .MaxAsync(x => x.Staging_Id)
-                    : 0;
-                if (maxId == 0)
-                    maxId = Convert.ToDecimal(stagingMaster.BrCode) * 10000000 + 1;
-                else
-                    maxId++;
+                string brCode = stagingMaster.BrCode ?? throw new InvalidOperationException("Staging BrCode is required.");
+                maxId = await CSISContext.Staging_Master
+                    .Where(x => x.BrCode == brCode).MaxAsync(x => (decimal?)x.Staging_Id) ?? 0;
+                maxId = BranchScopedId.Next(brCode, maxId);
                 stagingMaster.Staging_Id = maxId;
                 await AddAsync(stagingMaster);
             }

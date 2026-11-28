@@ -348,7 +348,7 @@ namespace Infin8.Coapp.Utility
         #endregion
 
         #region Loan
-        public static Loan_Master GetLoanMasterObject(int LoanSchemeId, string LoanNo, decimal MemId, int AppId, string AppNo, DateTime? LedDate, string ResNo,
+        public static Loan_Master GetLoanMasterObject(long LoanSchemeId, string LoanNo, decimal MemId, int AppId, string AppNo, DateTime? LedDate, string ResNo,
             DateTime? ResDate, double SanAmt, DateTime SanDate, int LoanType, int PurId, int subGrpId, int GrpId, int AgsId, int PrlPrd, int IntPrd,
             DateTime FirstIntDueDate, DateTime? FirstPrlDueDate, int InstDate, string ReimLNo, string ReimDVNo, string MortSlNo, DateTime? MortExeDate, DateTime? MortRegDate,
             int MortSRO, double ROI, double PI, DateTime? DisbDate, double InstAmt, bool LoanOE, bool LoanDelete, bool IsAccountClosed, decimal VocId, decimal UsrId,
@@ -619,7 +619,7 @@ namespace Infin8.Coapp.Utility
             return lientr!;
         }
 
-        public static Loan_Schemes GetLoanSchemesObject(int Scheme_Id, string Scheme_Name, string Is_MemberOrStaff, bool Is_Member,
+        public static Loan_Schemes GetLoanSchemesObject(long Scheme_Id, string Scheme_Name, string Is_MemberOrStaff, bool Is_Member,
             bool Is_Staff, int Loan_Type, int Disb_Type, bool IsCompound_Int, int Compound_Prd, int Inst_Type, int Dem_Frequency, int Int_Frequency, int Int_Application, int PI_Application,
             int IOD_Application, int Adv_Prl_Application, int PILed_Id, int IODLed_Id, int IntLed_Id, int PrlLed_Id, int ReimPILed_Id, int ReimIODLed_Id, int ReimIntLed_Id, int ReimPrlLed_id,
             double MaximumLoanAmount, int MaximumPrincipalPeriod, int MaximumInterestPeriod, bool Scheme_Delete, int usrId, int yrId, bool IsDeductBalances, bool IntFromTemplate,
@@ -679,7 +679,7 @@ namespace Infin8.Coapp.Utility
             return scheme;
         }
 
-        public static Loan_Roi_Template GetLoanROITemplateObject(decimal roi_Id, int Scheme_Id, string Agency, DateTime wef, double roi, double pi, bool updt, bool roitempalate_delete, decimal usrId, decimal yrId, string brCode)
+        public static Loan_Roi_Template GetLoanROITemplateObject(decimal roi_Id, long Scheme_Id, string Agency, DateTime wef, double roi, double pi, bool updt, bool roitempalate_delete, decimal usrId, decimal yrId, string brCode)
         {
             Loan_Roi_Template roiTemplate = new Loan_Roi_Template();
             try
@@ -818,7 +818,7 @@ namespace Infin8.Coapp.Utility
         #endregion
 
         #region TermDeposit
-        public static TermDeposit_Master GetTermDepositMaster(decimal TDId, string TDNo, int TDSchemeId, decimal MemId, string TDHName, int TDHAge, int ModeOfOperation,
+        public static TermDeposit_Master GetTermDepositMaster(decimal TDId, string TDNo, long TDSchemeId, decimal MemId, string TDHName, int TDHAge, int ModeOfOperation,
             DateTime AccountOpenDate, DateTime ValueDate, double DepositAmount, int PeriodInMonths, int PeriondInDays, double ROI, DateTime MaturityDate, double MaturityAmount,
             bool IsNomineeProvided, int InterInterestPayableFrequency, double PIRate, bool IsDiscountRate, bool IscompoundInterest, int CompoundFrequency, string Nominee1Name,
             int Nominee1Age, string Nominee1Relation, string Nominee2Name, int Nominee2Age, string Nominee2Relation, bool TDOE, bool TDDelete, bool IsAccountClosed, decimal VocId, decimal UsrId, decimal YrId,
@@ -956,7 +956,7 @@ namespace Infin8.Coapp.Utility
             return calender;
         }
 
-        public static TermDeposit_Schemes GetTermDepositSchem(int TDScheme_Id, string TDScheme_Name, string TDSchemeType, decimal Led_Id, decimal IntLed_Id, decimal PiLed_Id, bool TDScheme_Delete, decimal usrId, decimal yrId,string brCode)
+        public static TermDeposit_Schemes GetTermDepositSchem(long TDScheme_Id, string TDScheme_Name, string TDSchemeType, decimal Led_Id, decimal IntLed_Id, decimal PiLed_Id, bool TDScheme_Delete, decimal usrId, decimal yrId,string brCode)
         {
             TermDeposit_Schemes scheme = new ();
             try
@@ -984,7 +984,7 @@ namespace Infin8.Coapp.Utility
         #endregion
 
         #region SB Account
-        public static SBCA_Master GetSBCAMasterObject(decimal AccId, int SchemeId, decimal MemId, string AccNo, int Acc_Status, bool AccOE, bool AccDelete, decimal VocId, decimal UsrId, decimal YrId, string brCode)
+        public static SBCA_Master GetSBCAMasterObject(decimal AccId, long SchemeId, decimal MemId, string AccNo, int Acc_Status, bool AccOE, bool AccDelete, decimal VocId, decimal UsrId, decimal YrId, string brCode)
         {
             SBCA_Master sbAcc = new();
             try
@@ -1007,7 +1007,7 @@ namespace Infin8.Coapp.Utility
             }
             return sbAcc;
         }
-        public static SBCA_Schemes GetSBCAScheme(int schemeId, string schemeName, decimal LedId, decimal IntLedId, int period,string brCode)
+        public static SBCA_Schemes GetSBCAScheme(long schemeId, string schemeName, decimal LedId, decimal IntLedId, int period,string brCode)
         {
             SBCA_Schemes scheme = new SBCA_Schemes();
             try

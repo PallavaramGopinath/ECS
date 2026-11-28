@@ -725,12 +725,13 @@
                     await JSRuntime.InvokeVoidAsync("alert", "Member does not have SB Account, creating  SB account");
                     try
                     {
-                        string schemeCode = brCode + "1";
-                        int.TryParse(schemeCode, out int schemeId);
+                        var sbScheme = await _httpClient.GetFromJsonAsync<SBCA_Schemes>($"api/SBAccount/GetSBCAScheme/{brCode}");
+                        if (sbScheme == null || sbScheme.Scheme_Id <= 0)
+                            throw new InvalidOperationException("Savings scheme is not configured for this society.");
                         SBCA_Master sbAccountMaster = new()
                         {
                             Acc_Id = 0,
-                            Scheme_Id = schemeId, /// for SB account
+                            Scheme_Id = sbScheme.Scheme_Id, /// for SB account
                             Acc_No = string.Empty,
                             Mem_Id = transaction.Member_Id,
                             Acc_Status = 1,

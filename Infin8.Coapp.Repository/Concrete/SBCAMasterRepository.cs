@@ -1,6 +1,7 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
+using Infin8.Coapp.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,14 +25,11 @@ namespace Infin8.Coapp.Repository
 
             try
             {
-                decimal maxId = await CSISContext.SBCA_Master
-                .MaxAsync(x => (decimal?)x.Acc_Id) ?? 0;
-                if(maxId == 0)
-                {
-                    decimal.TryParse(sbcaMaster.BrCode + "0000000", out maxId);
-                }
+                string brCode = sbcaMaster.BrCode ?? throw new InvalidOperationException("Savings account BrCode is required.");
+                decimal maxId = await CSISContext.SBCA_Master.Where(x => x.BrCode == brCode)
+                    .MaxAsync(x => (decimal?)x.Acc_Id) ?? 0;
                 var maxAccountNo = await GetNewSBAccountNo(sbcaMaster.BrCode!);
-                maxId++;
+                maxId = BranchScopedId.Next(brCode, maxId);
                 sbcaMaster.Acc_Id = maxId;
                 sbcaMaster.Acc_No = maxAccountNo;
                 await AddAsync(sbcaMaster);
@@ -52,14 +50,11 @@ namespace Infin8.Coapp.Repository
         {
             try
             {
-                decimal maxId = await CSISContext.SBCA_Master
-                .MaxAsync(x => (decimal?)x.Acc_Id) ?? 0;
-                if (maxId == 0)
-                {
-                    decimal.TryParse(sbAccount.BrCode + "0000000", out maxId);
-                }
+                string brCode = sbAccount.BrCode ?? throw new InvalidOperationException("Savings account BrCode is required.");
+                decimal maxId = await CSISContext.SBCA_Master.Where(x => x.BrCode == brCode)
+                    .MaxAsync(x => (decimal?)x.Acc_Id) ?? 0;
                 var maxAccountNo = await GetNewSBAccountNo(sbAccount.BrCode!);
-                maxId++;
+                maxId = BranchScopedId.Next(brCode, maxId);
                 sbAccount.Acc_Id = maxId;
                 sbAccount.Acc_No = maxAccountNo;
                 await AddAsync(sbAccount);
@@ -117,12 +112,12 @@ namespace Infin8.Coapp.Repository
             decimal maxId = 0;
             try
             {
-                decimal schemeId = await (from lm in CSISContext.SBCA_Schemes
+                long schemeId = await (from lm in CSISContext.SBCA_Schemes
                                        where lm.BrCode == brCode && lm.SBCA_Delete == false
                                        select lm.Scheme_Id).FirstOrDefaultAsync();
 
                 var maxLoanNo = await (from lm in CSISContext.SBCA_Master
-                                       where lm.Scheme_Id == schemeId
+                                       where lm.Scheme_Id == schemeId && lm.BrCode == brCode
                                        select lm.Acc_No).MaxAsync();
                 if (!string.IsNullOrEmpty(maxLoanNo))
                 {

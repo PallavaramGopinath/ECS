@@ -5,7 +5,7 @@
         public DateTime Trn_Date { get; set; }
         public decimal TD_Id { get; set; }
         public string? TD_No { get; set; }
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDScheme_Name { get; set; }
         public decimal Mem_Id { get; set; }
         public string? MemberNo { get; set; }

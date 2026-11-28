@@ -4,7 +4,7 @@
     {
         public decimal TD_Id { get; set; }
         public string? TD_No { get; set; }
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public decimal Mem_Id { get; set; }
         public bool IsCompoundInterest { get; set; }
         public double DepositAmount { get; set; }

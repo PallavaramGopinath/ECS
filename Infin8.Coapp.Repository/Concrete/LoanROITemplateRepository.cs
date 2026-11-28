@@ -16,7 +16,7 @@ namespace Infin8.Coapp.Repository
         {
         }
 
-        public async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestListAsync(int schemeId)
+        public async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestListAsync(long schemeId)
         {
             List<Loan_Roi_Template> items = new List<Loan_Roi_Template>();
             try
@@ -70,7 +70,7 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef)
+        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(long schemeId, string agency, DateTime wef)
         {
             LoanROIAndPIVM roi = new LoanROIAndPIVM();
             try
@@ -121,7 +121,7 @@ namespace Infin8.Coapp.Repository
             return roi;
         }
 
-        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(int schemeId, string agency, DateTime wef , string brCode)
+        public async Task<LoanROIAndPIVM> GetLoanROIAndPIFromTemplateAsync(long schemeId, string agency, DateTime wef , string brCode)
         {
             LoanROIAndPIVM roi = new LoanROIAndPIVM();
             try
@@ -153,7 +153,7 @@ namespace Infin8.Coapp.Repository
             return roi;
         }
 
-        public async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestTemplateList(int schemeId,string brCode)
+        public async Task<List<Loan_Roi_Template>> GetLoanRateOfInterestTemplateList(long schemeId,string brCode)
         {
             List<Loan_Roi_Template> roiList = new();
             try

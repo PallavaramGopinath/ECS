@@ -39,7 +39,7 @@ namespace Infin8.Coapp.Repository
         public async Task<List<TermDeposit_Roi_Template>> AddTermDepositROITemplateList(List<TermDeposit_Roi_Template> termDepositList)
         {
             List<TermDeposit_Roi_Template> roiList = new();
-            int schemeId = termDepositList.Select(x=> x.TDScheme_Id).FirstOrDefault();
+            long schemeId = termDepositList.Select(x=> x.TDScheme_Id).FirstOrDefault();
             try
             {
                 decimal maxId = await CSISContext.TermDeposit_Roi_Template.MaxAsync(x => x.Roi_Id);
@@ -109,7 +109,7 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<double> GetROIForTermDepositAsync(DateTime depositDate, int schemeId, int prdInMonths, int prdInDays, string brCode)
+        public async Task<double> GetROIForTermDepositAsync(DateTime depositDate, long schemeId, int prdInMonths, int prdInDays, string brCode)
         {
             double rateOfInterest = 0;
             try
@@ -224,7 +224,7 @@ namespace Infin8.Coapp.Repository
             return rateOfInterest;
         }
 
-        public async Task<double> GetPIForRDAsync(DateTime depositDate, int schemeId, int prdInMonths, string brCode)
+        public async Task<double> GetPIForRDAsync(DateTime depositDate, long schemeId, int prdInMonths, string brCode)
         {
             double piRate = 0;
             try
@@ -290,7 +290,7 @@ namespace Infin8.Coapp.Repository
             return result;
         }
 
-        public async Task<double> GetSecurityDepositRoi(int schemeId, DateTime toDate, string brCode)
+        public async Task<double> GetSecurityDepositRoi(long schemeId, DateTime toDate, string brCode)
         {
             var roi = await  CSISContext.TermDeposit_Roi_Template.Where(x => x.TDScheme_Id == schemeId && x.Wef <= toDate && x.BrCode == brCode)
                 .OrderByDescending(x => x.Wef)

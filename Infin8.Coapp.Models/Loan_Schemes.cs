@@ -5,7 +5,7 @@ namespace Infin8.Coapp.Models
     public partial class Loan_Schemes
     {
         [Key]
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public int Grp_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public string? Is_MemberOrStaff { get; set; }

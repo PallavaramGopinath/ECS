@@ -75,7 +75,7 @@ namespace Infin8.Coapp.Utility
         /// The scheme's monthly row whose band holds <paramref name="months"/>, latest Wef on or before the value date.
         /// TDHolderType is ignored (§15.6).
         /// </summary>
-        public static TermDeposit_Roi_Template? PickRoi(IEnumerable<TermDeposit_Roi_Template> rows, int schemeId, int months, DateTime valueDate) =>
+        public static TermDeposit_Roi_Template? PickRoi(IEnumerable<TermDeposit_Roi_Template> rows, long schemeId, int months, DateTime valueDate) =>
             rows.Where(r => !r.TDRoi_Delete && r.TDScheme_Id == schemeId
                             && string.Equals(r.PeriodType?.Trim(), "M", StringComparison.OrdinalIgnoreCase)
                             && r.PeriodBegin <= months && months <= r.PeriodEnd
@@ -88,7 +88,7 @@ namespace Infin8.Coapp.Utility
         /// Periods offered (spec 15 §17): multiples of 12 up to 120 that have an ROI row with ROI &gt; 0. The scheme's
         /// Min/Max period is ignored, as TSIS did.
         /// </summary>
-        public static List<int> AllowedPeriods(IEnumerable<TermDeposit_Roi_Template> rows, int schemeId, DateTime valueDate)
+        public static List<int> AllowedPeriods(IEnumerable<TermDeposit_Roi_Template> rows, long schemeId, DateTime valueDate)
         {
             var list = rows.ToList();
             var result = new List<int>();
@@ -199,15 +199,15 @@ namespace Infin8.Coapp.Utility
         // RD number (§5.3 as settled in §17)
         // =====================================================================
 
-        /// <summary>brCode + the scheme's first digit (4 for RD scheme 40001).</summary>
-        public static string TdNoPrefix(string brCode, int schemeId) =>
-            brCode.Trim() + schemeId.ToString()[0];
+        /// <summary>RD account prefix: BrCode plus product digit 4; scheme IDs are independent keys.</summary>
+        public static string TdNoPrefix(string brCode, long schemeId) =>
+            brCode.Trim() + "4";
 
         /// <summary>
         /// Next number in the series: numeric MAX of the existing 13-digit numbers with the prefix + 1, or prefix +
         /// 0000001 for the first.
         /// </summary>
-        public static string NextTdNo(string brCode, int schemeId, IEnumerable<string?> existing)
+        public static string NextTdNo(string brCode, long schemeId, IEnumerable<string?> existing)
         {
             var prefix = TdNoPrefix(brCode, schemeId);
             long max = 0;

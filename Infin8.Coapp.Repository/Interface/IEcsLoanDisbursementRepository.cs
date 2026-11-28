@@ -11,7 +11,7 @@ namespace Infin8.Coapp.Repository
         Task<List<Loan_Sanction>> GetSanctionsAsync(IEnumerable<decimal> sanctionIds, string brCode);
         /// <summary>Recoverable lines (receiptitem &gt; 0, not deleted) of the given sanctions.</summary>
         Task<List<Loan_Sanction_Trn>> GetRecoverableLinesAsync(IEnumerable<decimal> sanctionIds, string brCode);
-        Task<Dictionary<int, Loan_Schemes>> GetSchemesAsync(IEnumerable<int> schemeIds, string brCode);
+        Task<Dictionary<long, Loan_Schemes>> GetSchemesAsync(IEnumerable<long> schemeIds, string brCode);
         Task<Dictionary<decimal, (string? MemberNo, string? PerNo, string? Name)>> GetMembersAsync(IEnumerable<decimal> memIds, string brCode);
         Task<Dictionary<decimal, (string? Name, int SundryType)>> GetLedgersAsync(IEnumerable<decimal> ledIds, string brCode);
         Task<Dictionary<decimal, string?>> GetLoanNumbersAsync(IEnumerable<decimal> loanIds, string brCode);

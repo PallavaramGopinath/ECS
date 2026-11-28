@@ -26,10 +26,10 @@ namespace Infin8.Coapp.BusinessLogic
         EcsRdRevision? Rd = null, double? DueTo = null);
 
     /// <summary>A loan the split may touch: scheme, sanction date (oldest first) and principal outstanding.</summary>
-    public sealed record EcsAppropriationLoan(decimal LoanId, int SchemeId, DateTime? SanDate, double Outstanding);
+    public sealed record EcsAppropriationLoan(decimal LoanId, long SchemeId, DateTime? SanDate, double Outstanding);
 
     /// <summary>One <c>mem_collection_priority</c> row.</summary>
-    public sealed record EcsPriorityHead(int No, string Type, int SchemeId, int DepositId, decimal LedId);
+    public sealed record EcsPriorityHead(int No, string Type, long SchemeId, int DepositId, decimal LedId);
 
     /// <summary>
     /// Recovery appropriation rules (spec 13 §4), ported from TSIS <c>DemandService.UpdateSubsequentRecoveryInDemand</c>
@@ -194,7 +194,7 @@ namespace Infin8.Coapp.BusinessLogic
             double rem = R(recovery);
 
             var live = lines.Where(l => !l.Stop_Demand).ToList();
-            List<Mem_Demand> LoanLines(int schemeId) => live
+            List<Mem_Demand> LoanLines(long schemeId) => live
                 .Where(l => l.Demand_Type == "L" && loans.TryGetValue(l.Loan_Id, out var ln) && ln.SchemeId == schemeId)
                 .OrderBy(l => loans[l.Loan_Id].SanDate ?? DateTime.MaxValue).ThenBy(l => l.Loan_Id).ToList();
             Mem_Demand? DepositLine(int depositId) =>

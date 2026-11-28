@@ -2,6 +2,7 @@
 using Infin8.Coapp.Models;
 using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
+using Infin8.Coapp.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +37,7 @@ namespace Infin8.Coapp.Repository
                             x.BrCode == memTrn.BrCode)
                 .Select(x => (int?)x.Trn_SlNo)
                 .MaxAsync() ?? 0;
-                maxId++;
+                maxId = BranchScopedId.Next(memTrn.BrCode!, maxId);
                 maxTrnId++;
                 memTrn.Mem_Trn_Id = maxId;
                 memTrn.Trn_SlNo = maxTrnId;
@@ -62,7 +63,9 @@ namespace Infin8.Coapp.Repository
             string brCode = memTrnList.Select(x => x.BrCode).FirstOrDefault()!;
             try
             {
-                maxId = await CSISContext.Mem_Trn.MaxAsync(x => x.Mem_Trn_Id);
+                maxId = await CSISContext.Mem_Trn
+                    .Where(x => x.BrCode == brCode)
+                    .MaxAsync(x => (decimal?)x.Mem_Trn_Id) ?? 0;
                 maxSlNo = await CSISContext.Mem_Trn
                 .Where(x => x.Mem_Id == memId &&
                             x.Trn_Type == memType &&
@@ -72,7 +75,9 @@ namespace Infin8.Coapp.Repository
                 .MaxAsync() ?? 0;
                 foreach (var trn in memTrnList)
                 {
-                    maxId++;
+                    if (trn.BrCode != brCode)
+                        throw new InvalidOperationException("Member transactions must have the same BrCode.");
+                    maxId = BranchScopedId.Next(brCode, maxId);
                     maxSlNo++;
                     trn.Mem_Trn_Id  = maxId;
                     trn.Trn_SlNo = maxSlNo;
@@ -388,9 +393,9 @@ namespace Infin8.Coapp.Repository
                                         FromDate = (DateTime)g.Key.FromDate!,
                                         ToDate = (DateTime)g.Key.ToDate!,
                                         PbleType = g.Key.PbleType,
-                                        IntCalc_Amt = g.Sum(x=> x.trn.IntCalc_Amt ),
-                                        IntPaid_Amt = g.Sum(x=> x.trn.IntPaid_Amt  ),
-                                        Int_Bal = g.Sum(x => x.trn.IntCalc_Amt) - g.Sum(x => x.trn.IntPaid_Amt),
+                                        IntCalc_Amt = g.Sum(x => (int)x.trn.IntCalc_Amt),
+                                        IntPaid_Amt = g.Sum(x => (int)x.trn.IntPaid_Amt),
+                                        Int_Bal = g.Sum(x => (int)x.trn.IntCalc_Amt) - g.Sum(x => (int)x.trn.IntPaid_Amt),
                                         Dividend_Paid = 0
                                     }
                              ).ToListAsync();

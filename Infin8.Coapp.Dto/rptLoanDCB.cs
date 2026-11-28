@@ -12,7 +12,7 @@
         public string? PreAdd3 { get; set; }
         public string? PrePin { get; set; }
 
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public int Loan_Id { get; set; }
         public string? Loan_No { get; set; }

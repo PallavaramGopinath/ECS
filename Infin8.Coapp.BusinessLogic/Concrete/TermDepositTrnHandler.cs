@@ -322,7 +322,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositTrn.GetSecurityDepositData(empId, brCode);
         }
 
-        public async Task<SecurityDepositVM> CalculateSecurityDepositInterest(decimal empId, int schemeId, DateTime toDate, string brCode)
+        public async Task<SecurityDepositVM> CalculateSecurityDepositInterest(decimal empId, long schemeId, DateTime toDate, string brCode)
         {
             SecurityDepositVM securityDeposit = new();
             try

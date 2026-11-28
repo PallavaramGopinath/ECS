@@ -326,11 +326,11 @@
 
     private void OnSchemeChange(ChangeEventArgs e)
     {
-        SelectScheme(int.TryParse(e.Value?.ToString(), out var id) ? id : 0);
+        SelectScheme(long.TryParse(e.Value?.ToString(), out var id) ? id : 0);
         Recalc();
     }
 
-    private void SelectScheme(int schemeId)
+    private void SelectScheme(long schemeId)
     {
         var s = setup.Schemes.FirstOrDefault(x => x.TDScheme_Id == schemeId);
         dto.TDScheme_Id = s?.TDScheme_Id ?? 0;

@@ -1,5 +1,6 @@
 using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Infin8.Coapp.Utility;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infin8.Coapp.Repository
@@ -55,7 +56,7 @@ namespace Infin8.Coapp.Repository
                           select t).ToListAsync();
         }
 
-        public async Task<Dictionary<int, Loan_Schemes>> GetSchemesAsync(IEnumerable<int> schemeIds, string brCode)
+        public async Task<Dictionary<long, Loan_Schemes>> GetSchemesAsync(IEnumerable<long> schemeIds, string brCode)
         {
             var ids = schemeIds.Distinct().ToList();
             var rows = await (from s in CSISContext.Loan_Schemes
@@ -175,7 +176,7 @@ namespace Infin8.Coapp.Repository
         {
             // Ids are branch-prefixed (brcode + 7-digit serial, e.g. 110050006354), so MAX is taken within
             // the branch and never below the branch's zero id (brcode + 0000000).
-            decimal zero = decimal.TryParse(brCode + "0000000", out var z) ? z : 0;
+            decimal zero = BranchScopedId.Floor(brCode);
             decimal Floor(decimal? v) => Math.Max(v ?? 0, zero);
 
             return new EcsDisbursementIdAllocator(CSISContext, brCode)
@@ -259,7 +260,7 @@ namespace Infin8.Coapp.Repository
     {
         private readonly CSISContext _ctx;
         private readonly string _brCode;
-        private readonly Dictionary<int, long> _loanNo = new();
+        private readonly Dictionary<long, long> _loanNo = new();
         private readonly Dictionary<decimal, int> _loanTrnSlNo = new();
         private readonly Dictionary<(decimal, byte, decimal), int> _memTrnSlNo = new();
         private readonly Dictionary<(decimal, int), int> _depositTrnSlNo = new();
@@ -272,16 +273,16 @@ namespace Infin8.Coapp.Repository
 
         internal decimal VocId, VocTrnId, FvbId, LoanId, DisbId, InstId, RoiId, LoanTrnId, MemTrnId, DepositTrnId;
 
-        public decimal NextVocId() => ++VocId;
-        public decimal NextVocTrnId() => ++VocTrnId;
-        public decimal NextFvbId() => ++FvbId;
-        public decimal NextLoanId() => ++LoanId;
-        public decimal NextDisbId() => ++DisbId;
-        public decimal NextInstId() => ++InstId;
-        public decimal NextRoiId() => ++RoiId;
-        public decimal NextLoanTrnId() => ++LoanTrnId;
-        public decimal NextMemTrnId() => ++MemTrnId;
-        public decimal NextDepositTrnId() => ++DepositTrnId;
+        public decimal NextVocId() => VocId = BranchScopedId.Next(_brCode, VocId);
+        public decimal NextVocTrnId() => VocTrnId = BranchScopedId.Next(_brCode, VocTrnId);
+        public decimal NextFvbId() => FvbId = BranchScopedId.Next(_brCode, FvbId);
+        public decimal NextLoanId() => LoanId = BranchScopedId.Next(_brCode, LoanId);
+        public decimal NextDisbId() => DisbId = BranchScopedId.Next(_brCode, DisbId);
+        public decimal NextInstId() => InstId = BranchScopedId.Next(_brCode, InstId);
+        public decimal NextRoiId() => RoiId = BranchScopedId.Next(_brCode, RoiId);
+        public decimal NextLoanTrnId() => LoanTrnId = BranchScopedId.Next(_brCode, LoanTrnId);
+        public decimal NextMemTrnId() => MemTrnId = BranchScopedId.Next(_brCode, MemTrnId);
+        public decimal NextDepositTrnId() => DepositTrnId = BranchScopedId.Next(_brCode, DepositTrnId);
 
         /// <summary>Same numbering as LoanMasterRepository.GetNewLoanNo (highest numeric loan_no of the scheme + 1,
         /// else brcode + loannostartwith + 0000001), but counted in memory across the run.</summary>

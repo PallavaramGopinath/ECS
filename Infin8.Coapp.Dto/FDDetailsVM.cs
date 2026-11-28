@@ -7,7 +7,7 @@
         public string? FDNo { get; set; }
         public string? TDH_Name { get; set; }
         public int TDH_Age { get; set; }
-        public int FDSchemeId { get; set; }
+        public long FDSchemeId { get; set; }
         public DateTime FDValueDate { get; set; }
         public double FDAmount { get; set; }
         public int FDPrdInMonths { get; set; }

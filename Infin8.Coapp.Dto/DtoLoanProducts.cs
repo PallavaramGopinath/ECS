@@ -8,7 +8,7 @@ namespace Infin8.Coapp.Dto
 {
     public class DtoLoanProducts
     {
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public int Grp_Id { get; set; }
         public int Pur_Id { get; set; }
         public string? Scheme_Code { get; set; }

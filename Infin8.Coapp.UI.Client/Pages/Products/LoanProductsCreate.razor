@@ -852,7 +852,7 @@
 </div>
 
 @code {
-    [Parameter] public int SchemeId { get; set; }
+    [Parameter] public long SchemeId { get; set; }
     private InstitutionType institution = InstitutionType.Unknown;
     private Loan_Schemes loanScheme = new();
     private List<Loan_Schemes> ecsLoans = new();

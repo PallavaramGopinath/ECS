@@ -22,7 +22,7 @@ namespace Infin8.Coapp.Models
         [Column("demand_closed")]
         public bool Is_Demand_Closed { get; set; }
         public int SocietyType { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? BrCode { get; set; }
         public string? Voc_Status { get; set; } = "V";
     }

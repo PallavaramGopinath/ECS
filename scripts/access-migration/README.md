@@ -3,6 +3,12 @@
 One-off data load of a legacy TSIS Access file (`Tsis_MRF_2026_11_11.mdb`) into the `ECS` database.
 Run on 2026-11-11. **No application code depends on this folder.**
 
+For the append-only LUCAS TVS conversion, see `specs/ecs-extension/20-tvs-import-report.md`.
+The converter now accepts `ECS_IMPORT_BRCODE`, `ECS_IMPORT_ID_PREFIX`,
+`ECS_IMPORT_INT_OFFSET`, `ECS_IMPORT_APPEND=1`, and `ECS_IMPORT_SEED_SQL`.
+Its default mode still replaces tables and must not be used for another society
+in the shared database.
+
 ## Rules applied
 - All IDs become 12 digits: `11005` preamble + 7-digit running number (`mem_id` 1 → `110050000001`).
   Applies to PG `numeric`/`bigint` columns named `id`, `*_id`, `referid`, `calc_yrid` (incl. `voc_id`, `usr_id`, `yr_id`).

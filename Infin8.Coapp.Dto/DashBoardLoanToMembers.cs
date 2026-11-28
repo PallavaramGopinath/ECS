@@ -2,7 +2,7 @@
 {
     public class DashBoardLoanToMembers
     {
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public int NoOfLoans { get; set; }
         public double Disb_Amt { get; set; }

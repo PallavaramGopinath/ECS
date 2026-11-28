@@ -16,13 +16,13 @@ namespace Infin8.Coapp.BusinessLogic
         Task<SuretyLoanSanctionDataVM> UpdateMemberDobAsync(EcsMemberDobVM vm, DateTime asOn, string brCode);
 
         /// <summary>Scheme defaults + warnings: DUPLICATE / ALREADY_SAVED (block), STIPULATED_PERIOD (confirm).</summary>
-        Task<SuretyLoanSchemeDefaultsVM> GetSchemeDefaultsAsync(int schemeId, decimal memId, decimal excludeSanctionId,
+        Task<SuretyLoanSchemeDefaultsVM> GetSchemeDefaultsAsync(long schemeId, decimal memId, decimal excludeSanctionId,
             DateTime asOn, string brCode);
 
         Task<EcsRecoverablesVM> GetRecoverablesAsync(EcsRecoverablesRequestVM req, DateTime asOn, string brCode);
 
         /// <summary>Surety's share capital and loans in overdue, for the Surety Details panel.</summary>
-        Task<EcsSuretyDetailsVM> GetSuretyDetailsAsync(int schemeId, decimal suretyMemId, string brCode);
+        Task<EcsSuretyDetailsVM> GetSuretyDetailsAsync(long schemeId, decimal suretyMemId, string brCode);
 
         /// <summary>Status / DM_Id / ledger name for a manual deduction row (§3.8).</summary>
         Task<DeductableLoanRowVM> ResolveDeductionAsync(decimal ledId, string brCode);

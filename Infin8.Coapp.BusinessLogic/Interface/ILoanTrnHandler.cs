@@ -13,7 +13,7 @@ namespace Infin8.Coapp.BusinessLogic
         Task<bool> AddLoanTrnListAsync(List<Loan_Trn> loanTrnList);
         Task<bool> AddLoanTrn(Loan_Trn loanTrn);
         Task<bool> EditLoanTrnListAsync(List<Loan_Trn> loanTrnList);
-        Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(int schemeId);
+        Task<List<DropdownItem>> GetLoanHavingOSItemsBySchemeIdAsync(long schemeId);
         Task<double> GetJLExistingLoanOutstandingAsync(decimal memId,string brCode);
         Task<List<DropdownItem>> GetLoanNosAsync(decimal memId, int loanType, string brCode);
         Task<List<DropdownItem>> GetLoanNosByMemIdAndLoanTypeAsync(decimal memId, int loanType);

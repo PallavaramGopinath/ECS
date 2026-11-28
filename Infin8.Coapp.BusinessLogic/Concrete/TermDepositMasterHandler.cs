@@ -70,7 +70,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.TermDepositMaster.GetFDDetailsForLoan(tdIds);
         }
 
-        public async Task<string> GetNewTDNo(int schemeId)
+        public async Task<string> GetNewTDNo(long schemeId)
         {
             return await _unitOfWork.TermDepositMaster.GetNewTDNo(schemeId);
         }

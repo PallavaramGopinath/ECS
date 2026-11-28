@@ -1,6 +1,7 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
+using Infin8.Coapp.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,8 +25,10 @@ namespace Infin8.Coapp.Repository
             string tdNo = string.Empty; 
             try
             {
-                decimal maxId = await CSISContext.TermDeposit_Master.MaxAsync(x => x.TD_Id);
-                maxId++;
+                string brCode = termDepositMaster.BrCode ?? throw new InvalidOperationException("Term-deposit BrCode is required.");
+                decimal maxId = await CSISContext.TermDeposit_Master.Where(x => x.BrCode == brCode)
+                    .MaxAsync(x => (decimal?)x.TD_Id) ?? 0;
+                maxId = BranchScopedId.Next(brCode, maxId);
                 //var newTDNo = await GetNewTDNo(termDepositMaster.TDScheme_Id);
                 //if(newTDNo!= null) {tdNo = newTDNo;}
                 termDepositMaster.TD_Id = maxId;
@@ -142,58 +145,21 @@ namespace Infin8.Coapp.Repository
             return tdDetails;
         }
 
-        public async Task<string> GetNewTDNo(int schemeId)
+        public async Task<string> GetNewTDNo(long schemeId)
         {
-            string numberAsString = schemeId.ToString();
-            string brCode = numberAsString.Substring(0, 5); // Result will be "11001"
-            string forFDString = brCode + "400";
-            int forFD = int.Parse(forFDString);
-            //int forFD = int.Parse(numberAsString.Substring(5))+400; 
-            string lastThreeChars = numberAsString.Substring(numberAsString.Length - 3); // Result will be "301"
-            int lastThreeDigitsAsInt = int.Parse(lastThreeChars); // Result will be 301
-            string newTDNo = string.Empty;
-            decimal maxId = 0;
-            try
-            {
-                if(lastThreeDigitsAsInt < 400) /// for fixed deposit
-                {
-                    var maxNo = await (from lm in CSISContext.TermDeposit_Master
-                                       where lm.TDScheme_Id < forFD
-                                       select lm.TD_No).MaxAsync();
-                    if (!string.IsNullOrWhiteSpace(maxNo))
-                    {
-                        maxId = Convert.ToDecimal(maxNo) + 1;
-                        maxNo = Convert.ToString(maxId);
-                    }
-                    else
-                    {
-                        maxNo = brCode + "030000001"; // If no records found, start with 001
-                    }
-                    newTDNo = maxNo;
-                }
-                else if(lastThreeDigitsAsInt >= 400 && lastThreeDigitsAsInt <500) /// for recurring deposit
-                {
-                    var maxNo = await (from lm in CSISContext.TermDeposit_Master
-                                       where lm.TDScheme_Id == schemeId
-                                       select lm.TD_No).MaxAsync();
-                    if (string.IsNullOrEmpty(maxNo))
-                    {
-                        maxId = Convert.ToDecimal(maxNo) + 1;
-                        maxNo = Convert.ToString(maxId);
-                    }
-                    else
-                    {
-                        maxNo = brCode + "040000001"; // If no records found, start with 001
-                    }
-                    newTDNo = maxNo;
-                }
-                
-            }
-            catch (Exception)
-            {
-                throw new InvalidOperationException("Error in fetching New Loan No based on Loan Scheme");
-            }
-            return newTDNo;
+            var scheme = await CSISContext.TermDeposit_Schemes
+                .Where(s => s.TDScheme_Id == schemeId && !s.TDScheme_Delete)
+                .Select(s => new { s.BrCode, s.TDSchemeType }).FirstOrDefaultAsync();
+            if (scheme?.BrCode == null)
+                throw new InvalidOperationException("Term-deposit scheme was not found.");
+
+            var productCode = scheme.TDSchemeType == "R" ? "04" :
+                scheme.TDSchemeType is "F" or "C" or "S" ? "03" : "05";
+            var maxNo = await CSISContext.TermDeposit_Master
+                .Where(m => m.BrCode == scheme.BrCode && m.TDScheme_Id == schemeId)
+                .MaxAsync(m => m.TD_No);
+            if (long.TryParse(maxNo, out var last)) return (last + 1).ToString();
+            return scheme.BrCode + productCode + "0000001";
         }
 
         public async Task<bool> UpdateTermDepositMasterAsClosed(decimal tdId)

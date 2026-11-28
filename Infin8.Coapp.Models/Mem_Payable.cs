@@ -12,8 +12,8 @@ namespace Infin8.Coapp.Models
         public decimal Mem_Id { get; set; }
         public Nullable<System.DateTime> Trn_Date { get; set; }
         public int Receipt_Amount { get; set; }
-        public int Payment_Amount { get; set; }
-        public int Closing_Balance { get; set; }
+        public double Payment_Amount { get; set; }
+        public double Closing_Balance { get; set; }
         public int NoOfDays { get; set; }
         public int Interest_Amount { get; set; }
         public int Pble_SlNo { get; set; }

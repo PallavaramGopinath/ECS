@@ -15,7 +15,7 @@ namespace Infin8.Coapp.Dto
         public string? Employee_Name { get; set; }
         public string? Designation { get; set; }
         public DateTime? Transaction_Date { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public int Security_Type { get; set; }
         public string? Loan_No { get; set; }

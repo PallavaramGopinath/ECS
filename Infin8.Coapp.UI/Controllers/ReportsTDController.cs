@@ -28,7 +28,7 @@ namespace Infin8.Coapp.UI.Controllers
 
         [HttpGet]
         [Route("GetTDNos/{fromDate}/{toDate}/{tdSchemeType}/{brCode}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetTDNos(int tdSchemeId, string fromDate, string toDate, string tdSchemeType, string brCode)
+        public async Task<ActionResult<List<DropdownItem>>> GetTDNos(long tdSchemeId, string fromDate, string toDate, string tdSchemeType, string brCode)
         {
             List<DropdownItem> loanlist = new();
             DateTime.TryParse(fromDate, out DateTime fromDateParse);
@@ -45,7 +45,7 @@ namespace Infin8.Coapp.UI.Controllers
         }
         [HttpGet]
         [Route("GetTDNosByMemId/{memId:decimal}/{fromDate}/{toDate}/{tdSchemeType}/{brCode}")]
-        public async Task<ActionResult<List<DropdownItem>>> GetTDNos(decimal memId, int tdSchemeId, string fromDate, string toDate, string tdSchemeType, string brCode)
+        public async Task<ActionResult<List<DropdownItem>>> GetTDNos(decimal memId, long tdSchemeId, string fromDate, string toDate, string tdSchemeType, string brCode)
         {
             List<DropdownItem> loanlist = new();
             DateTime.TryParse(fromDate, out DateTime fromDateParse);

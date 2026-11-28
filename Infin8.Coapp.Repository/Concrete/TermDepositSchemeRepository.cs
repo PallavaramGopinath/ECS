@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Dto;
 using Infin8.Coapp.Models;
+using Infin8.Coapp.Utility;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -22,9 +23,10 @@ namespace Infin8.Coapp.Repository
             List<TermDeposit_Schemes> schemes = new();
             try
             {
-                int maxId = await CSISContext.TermDeposit_Schemes.MaxAsync(x => x.TDScheme_Id);
-                maxId++;
-                termDepositScheme.TDScheme_Id = maxId;
+                string brCode = termDepositScheme.BrCode ?? throw new InvalidOperationException("Scheme BrCode is required.");
+                long maxId = await CSISContext.TermDeposit_Schemes.Where(x => x.BrCode == brCode)
+                    .MaxAsync(x => (long?)x.TDScheme_Id) ?? 0;
+                termDepositScheme.TDScheme_Id = decimal.ToInt64(BranchScopedId.Next(brCode, maxId));
                 await AddAsync(termDepositScheme);
                 await CSISContext.SaveChangesAsync();
                 var query = CSISContext.TermDeposit_Schemes.Where(x=> x.BrCode == termDepositScheme.BrCode ).ToList();
@@ -107,7 +109,7 @@ namespace Infin8.Coapp.Repository
             return schemeList;
         }
 
-        public async Task<TermDeposit_Schemes> GetTermDepositSchemeByIdAsync(int schemeId)
+        public async Task<TermDeposit_Schemes> GetTermDepositSchemeByIdAsync(long schemeId)
         {
             return await CSISContext.TermDeposit_Schemes.Where(x => x.TDScheme_Id == schemeId).FirstAsync();
         }

@@ -738,7 +738,7 @@ namespace Infin8.Coapp.Repository
         public async Task<List<MemberLedgerVM>> GetMemberLedger(decimal MemId, int TrnType, DateTime FromDate, DateTime ToDate, string brCode)
         {
             double OBAmt = 0;
-            int IntBal = 0;
+            double IntBal = 0;
             List<MemberLedgerVM> memLedger = new List<MemberLedgerVM>();
             try
             {
@@ -766,14 +766,13 @@ namespace Infin8.Coapp.Repository
                               }).FirstOrDefaultAsync();
                     if (OB != null)
                     {
-                        int.TryParse(OB.IntCalc_Amt.ToString(), out int _intCalc);
-                        int.TryParse(OB.IntPaid_Amt.ToString(), out int _intPaid);
+                        double _intCalc = OB.IntCalc_Amt ?? 0;
+                        double _intPaid = OB.IntPaid_Amt ?? 0;
                         double.TryParse(OB.Rpt_Amt.ToString(), out double _rptAmt);
                         double.TryParse(OB.Pmt_Amt.ToString(), out double _pmtAmt);
 
                         OB.IntBal_Amt = _intCalc - _intPaid;
 
-                        IntBal = OB.IntCalc_Amt != null ? Convert.ToInt32(OB.IntCalc_Amt) : 0 - OB.IntPaid_Amt != null ? Convert.ToInt32(OB.IntPaid_Amt) : 0;
                         IntBal = _intCalc - _intPaid;
                         if (TrnType == 3 || TrnType == 2 || TrnType == 6 || TrnType == 7)    /// share capital or suspense creditor or sb account
                         {
@@ -847,8 +846,8 @@ namespace Infin8.Coapp.Repository
                     {
                         foreach (var led in Trn)
                         {
-                            int.TryParse(led.IntCalc_Amt.ToString(), out int _intCalc);
-                            int.TryParse(led.IntPaid_Amt.ToString(), out int _intPaid);
+                            double _intCalc = led.IntCalc_Amt ?? 0;
+                            double _intPaid = led.IntPaid_Amt ?? 0;
                             double.TryParse(led.Rpt_Amt.ToString(), out double _rptAmt);
                             double.TryParse(led.Pmt_Amt.ToString(), out double _pmtAmt);
                             IntBal += _intCalc - _intPaid;

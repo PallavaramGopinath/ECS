@@ -11,7 +11,7 @@
         public string? Loan_No { get; set; }
         public double Roi { get; set; }
         public DateTime San_Date { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Scheme_Name { get; set; }
         public double Prl_OB { get; set; }
         public double Int_OB { get; set; }

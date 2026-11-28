@@ -8,7 +8,7 @@ namespace Infin8.Coapp.Models
         [Key]
         public decimal Roi_Id { get; set; }
         [Required(ErrorMessage = "Select Product.")]
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Agency { get; set; }
         [Required(ErrorMessage = "With effect from is required.")]
         public DateTime Wef { get; set; }

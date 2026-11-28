@@ -37,7 +37,7 @@ namespace Infin8.Coapp.Repository
             public string? MemberName { get; set; }
             public string? Token_PersonNo { get; set; }
             public int Loan_Type { get; set; }
-            public int Scheme_Id { get; set; }
+            public long Scheme_Id { get; set; }
             public string? Scheme_Name { get; set; }
             public double Prl_OS { get; set; }
             public double Prl_OB { get; set; }
@@ -1312,12 +1312,6 @@ namespace Infin8.Coapp.Repository
                 var fromDateOnly = fromDate.Date;
                 var toDateOnly = toDate.Date;
                 #region linq
-                /// 11001400
-                int.TryParse(brCode +"400", out int tdSchemeId);
-                var tdSchemeCondition = TDType == "F"
-                    ? (Func<int, bool>)(id => id < tdSchemeId)
-                    : (id => id > tdSchemeId);
-
                 // First SELECT (Deposit_OB and Interest_OB before fromDate)
                 var q1 = from trn in CSISContext.TermDeposit_Trn
                          join master in CSISContext.TermDeposit_Master on trn.TD_Id equals master.TD_Id

@@ -87,7 +87,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanScheme.GetDisbursementTypeAsync();
         }
 
-        public async Task<Loan_Schemes> GetLoanSchemesAsync(int schemeId, string brCode)
+        public async Task<Loan_Schemes> GetLoanSchemesAsync(long schemeId, string brCode)
         {
             return await _unitOfWork.LoanScheme.GetLoanSchemesAsync(schemeId,brCode );
         }
@@ -97,7 +97,7 @@ namespace Infin8.Coapp.BusinessLogic
             return await _unitOfWork.LoanScheme.GetLoanSchemesItemsByLoanTypeArrayAsync(loanTypeList);
         }
 
-        public async Task<int> GetPeriodOfLoan(int schemeId, string brCode)
+        public async Task<int> GetPeriodOfLoan(long schemeId, string brCode)
         {
            return await _unitOfWork.LoanScheme.GetPeriodOfLoan(schemeId,brCode);
         }

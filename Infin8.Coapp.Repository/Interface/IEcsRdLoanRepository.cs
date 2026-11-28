@@ -15,7 +15,7 @@ namespace Infin8.Coapp.Repository
         Task<double?> GetEligibilityPercentAsync(string brCode, DateTime asOn);
 
         /// <summary>§6.2: Roi of loan_roi_template for the scheme, Agency 'S', not deleted, latest Wef ≤ <paramref name="asOn"/>.</summary>
-        Task<double?> GetRoiMarginAsync(int schemeId, string brCode, DateTime asOn);
+        Task<double?> GetRoiMarginAsync(long schemeId, string brCode, DateTime asOn);
 
         /// <summary>
         /// §8 rule 7: RDs among <paramref name="tdIds"/> with LienMarked or an open, valid lien_trn row, with the loan no. of

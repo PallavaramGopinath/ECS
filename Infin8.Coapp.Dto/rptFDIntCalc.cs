@@ -2,7 +2,7 @@
 {
     public  class rptFDIntCalc
     {
-        public int TDScheme_Id { get; set; }
+        public long TDScheme_Id { get; set; }
         public string? TDScheme_Name { get; set; }
         public int TD_Id { get; set; }
         public string? TD_No { get; set; }

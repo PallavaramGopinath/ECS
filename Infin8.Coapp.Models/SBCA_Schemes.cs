@@ -6,7 +6,7 @@ namespace Infin8.Coapp.Models
     public partial class SBCA_Schemes
     {
         [Key]
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? SBCA_Name { get; set; }
         public decimal SBCA_Led_Id { get; set; }
         public decimal SBCA_Int_Led_Id { get; set; }

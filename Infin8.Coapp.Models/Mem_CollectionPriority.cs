@@ -15,7 +15,7 @@ namespace Infin8.Coapp.Models
         public decimal Priority_Id { get; set; }
         public int? PriorityNo { get; set; }
         public string? PriorityType { get; set; }
-        public int? Scheme_Id { get; set; }
+        public long? Scheme_Id { get; set; }
         public int? Deposit_Id { get; set; }
         public string? PriorityName { get; set; }
         public decimal? PriorityLed_Id { get; set; }

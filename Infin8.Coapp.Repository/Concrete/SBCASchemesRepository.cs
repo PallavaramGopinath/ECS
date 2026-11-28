@@ -1,5 +1,6 @@
 ﻿using Infin8.Coapp.Models;
 using Microsoft.EntityFrameworkCore;
+using Infin8.Coapp.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,11 +23,9 @@ namespace Infin8.Coapp.Repository
             {
                 //var  maxId = await CSISContext.SBCA_Schemes.Where(x=> x.BrCode == brCode).MaxAsync(x => x.Scheme_Id);
                 var maxId = await CSISContext.SBCA_Schemes
-                .Where(x => x.BrCode == brCode)
-                .Select(x => (int?)x.Scheme_Id)  // Cast to nullable int?
-                .MaxAsync() ?? 0;
-                maxId++;
-                sbcaSchemes.Scheme_Id = maxId;
+                    .Where(x => x.BrCode == brCode)
+                    .MaxAsync(x => (long?)x.Scheme_Id) ?? 0;
+                sbcaSchemes.Scheme_Id = decimal.ToInt64(BranchScopedId.Next(brCode, maxId));
                 await AddAsync(sbcaSchemes);
                 var response = await CSISContext.SBCA_Schemes.Where(x => x.BrCode == brCode).ToListAsync();
                 if (response != null && response.Count > 0)
@@ -68,7 +67,9 @@ namespace Infin8.Coapp.Repository
             decimal intledId = 0;
             try
             {
-                var sbScheme = await CSISContext.SBCA_Schemes.Where(x => x.Scheme_Id == 7).FirstOrDefaultAsync();
+                var sbScheme = await CSISContext.SBCA_Schemes
+                    .Where(x => x.BrCode == brCode && !x.SBCA_Delete)
+                    .FirstOrDefaultAsync();
                 if (sbScheme != null)
                 {
                     prlLedId = sbScheme.SBCA_Led_Id;

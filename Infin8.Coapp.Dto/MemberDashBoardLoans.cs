@@ -4,7 +4,7 @@
     {
         public decimal Mem_Id { get; set; }
         public decimal Loan_Id { get; set; }
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Loan_No { get; set; }
         public string? Scheme_Name { get; set; }
         public double San_Amt { get; set; }

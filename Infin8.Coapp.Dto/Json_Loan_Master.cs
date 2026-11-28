@@ -8,7 +8,7 @@ namespace Infin8.Coapp.Dto
 {
     public class Json_Loan_Master
     {
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? Application_No { get; set; }
         public DateTime? Application_Date { get; set; }
         public string? Resolution_No { get; set; }

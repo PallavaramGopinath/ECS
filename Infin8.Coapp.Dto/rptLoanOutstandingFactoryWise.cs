@@ -2,7 +2,7 @@
 {
     public  class rptLoanOutstandingFactoryWise
     {
-        public int Scheme_Id { get; set; }
+        public long Scheme_Id { get; set; }
         public string? MemberNo { get; set; }
         public string? PerNo { get; set; }
         public string? MemberName { get; set; }

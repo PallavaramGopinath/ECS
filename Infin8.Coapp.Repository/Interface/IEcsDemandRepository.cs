@@ -102,7 +102,7 @@ namespace Infin8.Coapp.Repository
         public decimal LoanId { get; set; }
         public string? LoanNo { get; set; }
         public decimal MemId { get; set; }
-        public int SchemeId { get; set; }
+        public long SchemeId { get; set; }
         public string? SchemeName { get; set; }
         public int InstType { get; set; }
         public int DemFrequency { get; set; }
@@ -143,7 +143,7 @@ namespace Infin8.Coapp.Repository
         public decimal TdId { get; set; }
         public string? TdNo { get; set; }
         public decimal MemId { get; set; }
-        public int SchemeId { get; set; }
+        public long SchemeId { get; set; }
         public DateTime ValueDate { get; set; }
         public int PeriodInMonths { get; set; }
         public double Instalment { get; set; }
